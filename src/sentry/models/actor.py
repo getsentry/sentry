@@ -9,7 +9,7 @@ from sentry.db.models import Model, region_silo_only_model
 
 if TYPE_CHECKING:
     from sentry.models import Team
-    from sentry.services.hybrid_cloud.user import APIUser, user_service
+    from sentry.services.hybrid_cloud.user import APIUser
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -153,6 +153,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :return:
         """
         from sentry.models import User
+        from sentry.services.hybrid_cloud.user import user_service
 
         if not actors:
             return []
