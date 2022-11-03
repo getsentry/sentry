@@ -188,7 +188,7 @@ describe('MetricsBaselineContainer', function () {
           option: expect.objectContaining({
             legend: expect.objectContaining({
               data: expect.arrayContaining([
-                'processed events: p50(transaction.duration)',
+                'total transactions: p50(transaction.duration)',
               ]),
             }),
           }),
