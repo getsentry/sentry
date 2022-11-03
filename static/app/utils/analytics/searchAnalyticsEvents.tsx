@@ -17,7 +17,10 @@ export type SearchEventParameters = {
   'command_palette.select': SelectEvent;
   'organization_saved_search.selected': {
     id: number;
+    is_global: boolean;
+    query: string;
     search_type: string;
+    visibility: string;
   };
   'projectselector.clear': ProjectSelectorEvent;
   'projectselector.direct_selection': ProjectSelectorEvent;
