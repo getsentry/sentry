@@ -149,7 +149,7 @@ describe('MetricsBaselineContainer', function () {
       })
     );
 
-    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total Transactions/i)).toBeInTheDocument();
     expect(screen.getByText(/19m/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
   });
@@ -179,7 +179,7 @@ describe('MetricsBaselineContainer', function () {
       );
     });
 
-    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total Transactions/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
 
     await waitFor(() => {
@@ -207,7 +207,7 @@ describe('MetricsBaselineContainer', function () {
 
     renderMetricsBaselineContainer(organization, project, eventView, yAxis);
 
-    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total Transactions/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
   });
 
@@ -225,7 +225,7 @@ describe('MetricsBaselineContainer', function () {
 
     renderMetricsBaselineContainer(organization, project, eventView, yAxis);
 
-    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total Transactions/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
   });
 

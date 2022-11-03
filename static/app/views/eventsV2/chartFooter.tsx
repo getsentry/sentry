@@ -121,7 +121,7 @@ export default function ChartFooter({
               position="top"
               size="sm"
               title={tct(
-                'The baseline is only available for [transactionEventsLink: transaction events] when displaying the Top Period. The baseline shows the [processedEventsLink: total transactions] matching your query, compared to the sampled transactions.',
+                'The baseline is only available for [transactionEventsLink: transaction events] when displaying the Top Period.[break]The baseline shows the [processedEventsLink: total transactions] matching your query, compared to the sampled transactions.',
                 {
                   transactionEventsLink: (
                     <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/event-detail/" />
