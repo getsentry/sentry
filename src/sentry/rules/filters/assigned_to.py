@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django import forms
 
@@ -50,7 +50,7 @@ class AssignedToFilter(EventFilter):
                         return True
             return False
 
-    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs: Any) -> bool:
         target_type = AssigneeTargetType(self.get_option("targetType"))
         assignee = kwargs["assignee_status"][condition_activity.group_id]
 
@@ -60,9 +60,9 @@ class AssignedToFilter(EventFilter):
         target_id = str(self.get_option("targetIdentifier", None))
 
         if target_type == AssigneeTargetType.TEAM:
-            return assignee["assigneeType"] == "team" and assignee["assignee"] == target_id
+            return bool(assignee["assigneeType"] == "team" and assignee["assignee"] == target_id)
         elif target_type == AssigneeTargetType.MEMBER:
-            return assignee["assigneeType"] == "user" and assignee["assignee"] == target_id
+            return bool(assignee["assigneeType"] == "user" and assignee["assignee"] == target_id)
 
         return False
 

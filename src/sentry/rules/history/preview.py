@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, List, Sequence
 
 from django.utils import timezone
 
@@ -100,7 +100,9 @@ def preview(
     return Group.objects.filter(id__in=fired_group_ids)
 
 
-def update_assignee(assignee_status, assignee_activity, timestamp):
+def update_assignee(
+    assignee_status: Dict[str, Any], assignee_activity: List[Activity], timestamp: datetime
+) -> None:
     while len(assignee_activity) > 0 and assignee_activity[-1].datetime < timestamp:
         activity = assignee_activity.pop()
         if activity.type == ActivityType.ASSIGNED.value:

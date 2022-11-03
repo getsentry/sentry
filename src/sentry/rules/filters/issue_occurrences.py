@@ -1,3 +1,5 @@
+from typing import Any
+
 from django import forms
 from django.utils import timezone
 
@@ -30,7 +32,7 @@ class IssueOccurrencesFilter(EventFilter):
         issue_occurrences: int = event.group.times_seen_with_pending
         return bool(issue_occurrences >= value)
 
-    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs: Any) -> bool:
         try:
             value = int(self.get_option("value"))
         except (TypeError, ValueError):

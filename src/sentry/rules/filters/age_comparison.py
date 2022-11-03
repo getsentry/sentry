@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import operator
 from datetime import datetime, timedelta
-from typing import Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 from django import forms
 from django.utils import timezone
@@ -89,7 +89,7 @@ class AgeComparisonFilter(EventFilter):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         return self._passes(event.group.first_seen, timezone.now())
 
-    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs: Any) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)
         except Group.DoesNotExist:
