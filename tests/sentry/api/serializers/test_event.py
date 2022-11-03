@@ -388,7 +388,6 @@ class DetailedEventSerializerTest(TestCase):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):
@@ -429,7 +428,6 @@ class DetailedEventSerializerTest(TestCase):
             "sentry.event_manager.EventPerformanceProblem"
         ), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):

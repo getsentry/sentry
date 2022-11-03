@@ -2156,14 +2156,6 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
         # as the feature is under development.
         try:
             event = job["event"]
-            project = projects[job["project_id"]]
-
-            if not features.has(
-                "projects:performance-suspect-spans-ingestion",
-                project=project,
-            ):
-                continue
-
             with metrics.timer("event_manager.save.get_span_groupings.default"):
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
