@@ -17,7 +17,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
-from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -189,7 +189,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response([])
         except InvalidParams as err:
@@ -217,12 +217,22 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         )
 
+        use_profiles = features.has(
+            "organizations:profiling",
+            organization=organization,
+            actor=request.user,
+        )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
+        use_metrics_layer = features.has(
+            "organizations:use-metrics-layer", organization=organization, actor=request.user
+        )
 
-        dataset = self.get_dataset(request) if use_metrics else discover
-        metrics_enhanced = dataset != discover
+        use_custom_dataset = use_metrics or use_profiles
+        dataset = self.get_dataset(request) if use_custom_dataset else discover
+        metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -237,6 +247,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "selected_columns": self.get_field_list(organization, request),
                 "query": request.GET.get("query"),
                 "params": params,
+                "snuba_params": snuba_params,
                 "equations": self.get_equation_list(organization, request),
                 "orderby": self.get_orderby(request),
                 "offset": offset,
@@ -249,6 +260,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "transform_alias_to_input_format": True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 "has_metrics": use_metrics,
+                "use_metrics_layer": use_metrics_layer,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)

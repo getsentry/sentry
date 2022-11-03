@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, features
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyActiveReleaseEmailAction
 from sentry.models import GroupRuleStatus, Rule
 from sentry.notifications.types import ActionTargetType
@@ -26,12 +26,22 @@ from sentry.utils.safe import safe_execute
 SLOW_CONDITION_MATCHES = ["event_frequency"]
 
 
+def get_match_function(match_name: str) -> Callable[..., bool] | None:
+    if match_name == "all":
+        return all
+    elif match_name == "any":
+        return any
+    elif match_name == "none":
+        return lambda bool_iter: not any(bool_iter)
+    return None
+
+
 class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
     def __init__(
         self,
-        event: Event,
+        event: GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -47,7 +57,7 @@ class RuleProcessor:
         self.has_reappeared = has_reappeared
 
         self.grouped_futures: MutableMapping[
-            str, Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]
+            str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
         ] = {}
 
     def get_rules(self) -> Sequence[Rule]:
@@ -147,15 +157,6 @@ class RuleProcessor:
             has_reappeared=self.has_reappeared,
         )
 
-    def get_match_function(self, match_name: str) -> Callable[..., bool] | None:
-        if match_name == "all":
-            return all
-        elif match_name == "any":
-            return any
-        elif match_name == "none":
-            return lambda bool_iter: not any(bool_iter)
-        return None
-
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
         If all conditions and filters pass, execute every action.
@@ -203,7 +204,7 @@ class RuleProcessor:
             if not predicate_list:
                 continue
             predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
-            predicate_func = self.get_match_function(match)
+            predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     return
@@ -232,7 +233,10 @@ class RuleProcessor:
             )
 
         history.record(rule, self.group, self.event.event_id)
+        self.activate_downstream_actions(rule)
 
+    def activate_downstream_actions(self, rule: Rule) -> None:
+        state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
             if action_cls is None:
@@ -321,7 +325,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
@@ -332,7 +336,9 @@ class RuleProcessor:
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
 
-        if features.has("organizations:active-release-notifications-enable", self.project):
+        if features.has(
+            "organizations:active-release-notifications-enable", self.project.organization
+        ):
             self.apply_active_release_rule(
                 [ActiveReleaseEventCondition(project=self.project)],
                 [],

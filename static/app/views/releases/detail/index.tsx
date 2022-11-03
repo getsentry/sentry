@@ -28,13 +28,16 @@ import {
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
-import {getReleaseBounds, ReleaseBounds} from '../utils';
+import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 
@@ -54,11 +57,12 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  releaseMeta: ReleaseMeta;
-  selection: PageFilters;
-};
+type Props = RouteComponentProps<RouteParams, {}> &
+  WithRouteAnalyticsProps & {
+    organization: Organization;
+    releaseMeta: ReleaseMeta;
+    selection: PageFilters;
+  };
 
 type State = {
   deploys: Deploy[];
@@ -139,11 +143,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
         query: {
           project: location.query.project,
           environment: location.query.environment ?? [],
-          query: `release:"${params.release}"`,
+          query: searchReleaseVersion(params.release),
           field: 'sum(session)',
           statsPeriod: '90d',
           interval: '1d',
         },
+      },
+      {
+        allowError: error => error.status === 400,
       },
     ]);
 
@@ -253,6 +260,7 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
+    this.props.setRouteAnalyticsParams({release: this.props.params.release});
   }
 
   componentDidUpdate(
@@ -375,4 +383,6 @@ const ProjectsFooterMessage = styled('div')`
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};
-export default withPageFilters(withOrganization(ReleasesDetailContainer));
+export default withRouteAnalytics(
+  withPageFilters(withOrganization(ReleasesDetailContainer))
+);

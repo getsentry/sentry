@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'sentry/components/deprecatedforms/form';
 import FormContext from 'sentry/components/forms/formContext';
 import {Permissions, WebhookEvent} from 'sentry/types';
 import {
@@ -27,7 +26,7 @@ export default class Subscriptions extends Component<Props> {
     webhookDisabled: false,
   };
 
-  constructor(props: Props, context: Context) {
+  constructor(props: Props, context) {
     super(props, context);
     this.context.form.setValue('events', this.props.events);
   }

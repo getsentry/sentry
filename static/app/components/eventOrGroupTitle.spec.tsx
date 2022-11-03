@@ -1,11 +1,7 @@
-import {FC} from 'react';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {BaseGroup, EventOrGroupType, IssueCategory} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('EventOrGroupTitle', function () {
   const data = {
@@ -17,28 +13,18 @@ describe('EventOrGroupTitle', function () {
     culprit: 'culprit',
   };
 
-  const {organization} = initializeOrg();
-
-  const TestComponent: FC = ({children}) => (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-
   it('renders with subtitle when `type = error`', function () {
     const wrapper = render(
-      <TestComponent>
-        <EventOrGroupTitle
-          data={
-            {
-              ...data,
-              ...{
-                type: EventOrGroupType.ERROR,
-              },
-            } as BaseGroup
-          }
-        />
-      </TestComponent>
+      <EventOrGroupTitle
+        data={
+          {
+            ...data,
+            ...{
+              type: EventOrGroupType.ERROR,
+            },
+          } as BaseGroup
+        }
+      />
     );
 
     expect(wrapper.container).toSnapshot();
@@ -46,18 +32,16 @@ describe('EventOrGroupTitle', function () {
 
   it('renders with subtitle when `type = csp`', function () {
     const wrapper = render(
-      <TestComponent>
-        <EventOrGroupTitle
-          data={
-            {
-              ...data,
-              ...{
-                type: EventOrGroupType.CSP,
-              },
-            } as BaseGroup
-          }
-        />
-      </TestComponent>
+      <EventOrGroupTitle
+        data={
+          {
+            ...data,
+            ...{
+              type: EventOrGroupType.CSP,
+            },
+          } as BaseGroup
+        }
+      />
     );
 
     expect(wrapper.container).toSnapshot();
@@ -65,20 +49,18 @@ describe('EventOrGroupTitle', function () {
 
   it('renders with no subtitle when `type = default`', function () {
     const wrapper = render(
-      <TestComponent>
-        <EventOrGroupTitle
-          data={
-            {
-              ...data,
-              type: EventOrGroupType.DEFAULT,
-              metadata: {
-                ...data.metadata,
-                title: 'metadata title',
-              },
-            } as BaseGroup
-          }
-        />
-      </TestComponent>
+      <EventOrGroupTitle
+        data={
+          {
+            ...data,
+            type: EventOrGroupType.DEFAULT,
+            metadata: {
+              ...data.metadata,
+              title: 'metadata title',
+            },
+          } as BaseGroup
+        }
+      />
     );
 
     expect(wrapper.container).toSnapshot();
@@ -90,20 +72,18 @@ describe('EventOrGroupTitle', function () {
     ]);
 
     render(
-      <TestComponent>
-        <EventOrGroupTitle
-          data={
-            {
-              ...data,
-              type: EventOrGroupType.ERROR,
-              metadata: {
-                ...data.metadata,
-                title: 'metadata title',
-              },
-            } as BaseGroup
-          }
-        />
-      </TestComponent>,
+      <EventOrGroupTitle
+        data={
+          {
+            ...data,
+            type: EventOrGroupType.ERROR,
+            metadata: {
+              ...data.metadata,
+              title: 'metadata title',
+            },
+          } as BaseGroup
+        }
+      />,
       {context: routerContext}
     );
 
@@ -112,17 +92,15 @@ describe('EventOrGroupTitle', function () {
 
   it('does not render stack trace when issueCategory is performance', () => {
     render(
-      <TestComponent>
-        <EventOrGroupTitle
-          data={
-            {
-              ...data,
-              issueCategory: IssueCategory.PERFORMANCE,
-            } as BaseGroup
-          }
-          withStackTracePreview
-        />
-      </TestComponent>
+      <EventOrGroupTitle
+        data={
+          {
+            ...data,
+            issueCategory: IssueCategory.PERFORMANCE,
+          } as BaseGroup
+        }
+        withStackTracePreview
+      />
     );
 
     expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
@@ -144,12 +122,7 @@ describe('EventOrGroupTitle', function () {
         {organization: TestStubs.Organization({features: ['custom-event-title']})},
       ]);
 
-      render(
-        <TestComponent>
-          <EventOrGroupTitle data={perfData} />
-        </TestComponent>,
-        {context: routerContext}
-      );
+      render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
       expect(screen.getByText('transaction name')).toBeInTheDocument();

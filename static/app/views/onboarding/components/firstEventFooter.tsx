@@ -48,7 +48,7 @@ export default function FirstEventFooter({
     return null;
   };
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+  const getPrimaryCta = ({firstIssue}: {firstIssue: null | boolean | Group}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
@@ -65,8 +65,10 @@ export default function FirstEventFooter({
     return (
       <Button
         to={`/organizations/${organization.slug}/issues/${
-          firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
-        }`}
+          firstIssue && firstIssue !== true && 'id' in firstIssue
+            ? `${firstIssue.id}/`
+            : ''
+        }?referrer=onboarding-first-event-footer`}
         priority="primary"
       >
         {t('Take me to my error')}
@@ -89,7 +91,7 @@ export default function FirstEventFooter({
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/`}
+        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>

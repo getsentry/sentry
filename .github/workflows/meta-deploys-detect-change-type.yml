@@ -12,10 +12,10 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@78ab00f87740f82aec8ed8826eb4c3c851044126  # master
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           list-files: shell

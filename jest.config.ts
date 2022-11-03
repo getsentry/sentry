@@ -1,6 +1,5 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
 import path from 'path';
 import process from 'process';
 
@@ -20,6 +19,27 @@ const {
   GITHUB_RUN_ATTEMPT,
 } = process.env;
 
+const BALANCE_RESULTS_PATH = path.resolve(
+  __dirname,
+  'tests',
+  'js',
+  'test-balancer',
+  'jest-balance.json'
+);
+
+const optionalTags: {
+  balancer?: boolean;
+  balancer_strategy?: string;
+} = {
+  balancer: false,
+};
+
+if (!!JEST_TEST_BALANCER && !CI) {
+  throw new Error(
+    '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
+  );
+}
+
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
@@ -29,68 +49,107 @@ const {
  */
 let testMatch: string[] | undefined;
 
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
-
-/**
- * Given a Map of <testName, testRunTime> and a number of total groups, split the
- * tests into n groups whose total test run times should be roughly equal
- *
- * The source results should be sorted with the slowest tests first. We insert
- * the test into the smallest group on each iteration. This isn't perfect, but
- * should be good enough.
- *
- * Returns a map of <testName, groupIndex>
- */
-function balancer(
+function getTestsForGroup(
+  nodeIndex: number,
+  nodeTotal: number,
   allTests: string[],
-  source: Record<string, number>,
-  numberGroups: number
-) {
-  const results = new Map<string, number>();
-  const totalRunTimes = Array(numberGroups).fill(0);
+  testStats: Record<string, number>
+): string[] {
+  const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
+  const targetDuration = speculatedSuiteDuration / nodeTotal;
 
-  /**
-   * Find the index of the smallest group (totalRunTimes)
-   */
-  function findSmallestGroup() {
-    let index = 0;
-    let smallestRunTime = null;
-    for (let i = 0; i < totalRunTimes.length; i++) {
-      const runTime = totalRunTimes[i];
+  if (speculatedSuiteDuration <= 0) {
+    throw new Error('Speculated suite duration is <= 0');
+  }
 
-      if (!smallestRunTime || runTime <= smallestRunTime) {
-        smallestRunTime = totalRunTimes[i];
-        index = i;
-      }
+  // We are going to take all of our tests and split them into groups.
+  // If we have a test without a known duration, we will default it to 2 second
+  // This is to ensure that we still assign some weight to the tests and still attempt to somewhat balance them.
+  // The 1.5s default is selected as a p50 value of all of our JS tests in CI (as of 2022-10-26) taken from our sentry performance monitoring.
+  const tests = new Map<string, number>();
+  const SUITE_P50_DURATION_MS = 1500;
 
-      if (runTime === 0) {
+  // First, iterate over all of the tests we have stats for.
+  for (const test in testStats) {
+    if (testStats[test] <= 0) {
+      throw new Error(`Test duration is <= 0 for ${test}`);
+    }
+    tests.set(test, testStats[test]);
+  }
+  // Then, iterate over all of the remaining tests and assign them a default duration.
+  for (const test of allTests) {
+    if (tests.has(test)) {
+      continue;
+    }
+    tests.set(test, SUITE_P50_DURATION_MS);
+  }
+
+  // Sanity check to ensure that we have all of our tests accounted for, we need to fail
+  // if this is not the case as we risk not executing some tests and passing the build.
+  if (tests.size < allTests.length) {
+    throw new Error(
+      `All tests should be accounted for, missing ${allTests.length - tests.size}`
+    );
+  }
+
+  const groups: string[][] = [];
+
+  // We sort files by path so that we try and improve the transformer cache hit rate.
+  // Colocated domain specific files are likely to require other domain specific files.
+  const testsSortedByPath = Array.from(tests.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  for (let group = 0; group < nodeTotal; group++) {
+    groups[group] = [];
+    let duration = 0;
+
+    // While we are under our target duration and there are tests in the group
+    while (duration < targetDuration && testsSortedByPath.length > 0) {
+      // We peek the next item to check that it is not some super long running
+      // test that may exceed our target duration. For example, if target runtime for each group is
+      // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
+      // want to move that test to the next group so as to avoid a 40% imbalance.
+      const peek = testsSortedByPath[testsSortedByPath.length - 1];
+      if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
         break;
       }
+      const nextTest = testsSortedByPath.pop();
+      if (!nextTest) {
+        throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
+      }
+      groups[group].push(nextTest[0]);
+      duration += nextTest[1];
     }
-
-    return index;
   }
 
-  /**
-   * We may not have a duration for all tests (e.g. a test that was just added)
-   * as the `source` needs to be generated
-   */
+  // Whatever may be left over will get round robin'd into the groups.
+  let i = 0;
+  while (testsSortedByPath.length) {
+    const nextTest = testsSortedByPath.pop();
+    if (!nextTest) {
+      throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
+    }
+    groups[i % 4].push(nextTest[0]);
+    i++;
+  }
+
+  // Make sure we exhausted all tests before proceeding.
+  if (testsSortedByPath.length > 0) {
+    throw new Error('All tests should be accounted for');
+  }
+
+  // We need to ensure that everything from jest --listTests is accounted for.
   for (const test of allTests) {
-    const index = findSmallestGroup();
-    results.set(test, index);
-
-    if (source[test] !== undefined) {
-      totalRunTimes[index] = totalRunTimes[index] + source[test];
+    if (!tests.has(test)) {
+      throw new Error(`Test ${test} is not accounted for`);
     }
   }
 
-  return results;
+  if (!groups[nodeIndex]) {
+    throw new Error(`No tests found for node ${nodeIndex}`);
+  }
+  return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
 
 if (
@@ -107,24 +166,18 @@ if (
   }
 
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList = JSON.parse(JEST_TESTS).map(file =>
+  const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
     file.replace(__dirname, '')
-  ) as string[];
+  );
   const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
-    const results = balancer(envTestList, balance, nodeTotal);
-
-    testMatch = [
-      // First, we only want the tests that we have test durations for and belong
-      // to the current node's index
-      ...Object.entries(Object.fromEntries(results))
-        .filter(([, index]) => index === nodeIndex)
-        .map(([test]) => `${path.join(__dirname, test)}`),
-    ];
+    optionalTags.balancer = true;
+    optionalTags.balancer_strategy = 'by_path';
+    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
   } else {
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);
@@ -132,7 +185,7 @@ if (
     const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
-    testMatch = tests.slice(offset, offset + chunk);
+    testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
   }
 }
 
@@ -173,10 +226,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],
-  testMatch: testMatch || [
-    '<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)',
-    '<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)',
-  ],
+  testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [
@@ -193,6 +243,9 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
 
+  testResultsProcessor: JEST_TEST_BALANCER
+    ? '<rootDir>/tests/js/test-balancer/index.js'
+    : undefined,
   reporters: [
     'default',
     [
@@ -200,13 +253,6 @@ const config: Config.InitialOptions = {
       {
         outputDirectory: '.artifacts',
         outputName: 'jest.junit.xml',
-      },
-    ],
-    [
-      '<rootDir>/tests/js/test-balancer',
-      {
-        enabled: !!JEST_TEST_BALANCER,
-        resultsPath: BALANCE_RESULTS_PATH,
       },
     ],
   ],
@@ -222,6 +268,7 @@ const config: Config.InitialOptions = {
       },
       transactionOptions: {
         tags: {
+          ...optionalTags,
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
           github_run_attempt: GITHUB_RUN_ATTEMPT,

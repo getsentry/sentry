@@ -18,6 +18,10 @@ _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 def _get_all_keys(config):
     for key in config:
         yield key
+        if key == "breakdownsV2":
+            # Breakdown keys are not field names and may contain underscores,
+            # e.g. span_ops
+            continue
         if isinstance(config[key], dict):
             for key in _get_all_keys(config[key]):
                 yield key
@@ -172,7 +176,12 @@ def test_relays_dyamic_sampling(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         result, status_code = call_endpoint(full_config=False)
         assert status_code < 400
         dynamic_sampling = safe.get_path(

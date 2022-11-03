@@ -22,6 +22,7 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -62,6 +64,7 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   showInboxTime?: boolean;
+  source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
@@ -79,6 +82,7 @@ function BaseGroupRow({
   query,
   queryFilterDescription,
   showInboxTime,
+  source,
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
@@ -95,6 +99,8 @@ function BaseGroupRow({
   const {selection} = usePageFilters();
 
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
+
+  const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
   const reviewed =
     // Original state had an inbox reason
@@ -239,6 +245,7 @@ function BaseGroupRow({
     return {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
+        referrer,
         ...commonQuery,
         query: filteredQuery,
       },
@@ -408,6 +415,12 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
+  const issueStreamAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
+  ) : (
+    <GuideAnchor target="issue_stream" />
+  );
+
   return (
     <Wrapper
       data-test-id="group"
@@ -436,10 +449,12 @@ function BaseGroupRow({
           query={query}
           size="normal"
           onClick={trackClick}
+          source={referrer}
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
       </GroupSummary>
-      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+      {hasGuideAnchor && issueStreamAnchor}
+
       {withChart && !displayReprocessingLayout && (
         <ChartWrapper
           className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}

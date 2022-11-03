@@ -20,7 +20,6 @@ TREE_RESPONSES = {
         "body": {
             # The latest sha for a specific branch
             "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
-            "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
             "tree": [
                 {
                     "path": ".artifacts",
@@ -38,6 +37,7 @@ TREE_RESPONSES = {
                     "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
                 },
             ],
+            "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
             "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
         },
     },
@@ -401,11 +401,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            result = installation.get_repositories()
+            result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo"},
                 {"name": "bar", "identifier": "Test-Organization/bar"},
                 {"name": "baz", "identifier": "Test-Organization/baz"},
+            ]
+
+    @responses.activate
+    def test_get_repositories_only_first_page(self):
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+
+        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+            result = installation.get_repositories()
+            assert result == [
+                {"name": "foo", "identifier": "Test-Organization/foo"},
             ]
 
     @responses.activate
@@ -566,13 +581,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            # XXX: Does the installation already have the org stored?
-            installation.get_client().get_trees_for_org(self.organization.slug)
+            trees = installation.get_client().get_trees_for_org(self.organization.slug)
+            # This check is useful since it will be available in the GCP logs
+            assert (
+                self._caplog.records[0].message
+                == "The Github App does not have access to Test-Organization/baz."
+            )
+            assert self._caplog.records[0].levelname == "ERROR"
 
-        # XXX: We need to search filenames in the stack trace
-        # This check is specially useful since it will be available in the GCP logs
-        assert (
-            self._caplog.records[0].message
-            == "The Github App does not have access to Test-Organization/baz."
-        )
-        assert self._caplog.records[0].levelname == "ERROR"
+        assert trees == {
+            "Test-Organization/bar": {"default_branch": "main", "files": []},
+            "Test-Organization/baz": {"default_branch": "master", "files": []},
+            "Test-Organization/foo": {
+                "default_branch": "master",
+                "files": ["src/sentry/api/endpoints/auth_login.py"],
+            },
+        }

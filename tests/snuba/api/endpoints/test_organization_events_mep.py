@@ -84,7 +84,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"] == "dataset must be one of: discover, metricsEnhanced, metrics"
+            response.data["detail"]
+            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
         )
 
     def test_out_of_retention(self):
@@ -403,6 +404,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "user_misery()",
                         "failure_rate()",
                     ],
+                    "orderby": "tpm()",
                     "query": "event.type:transaction",
                     "dataset": dataset,
                     "per_page": 50,
@@ -1663,6 +1665,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
 
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
@@ -1772,6 +1775,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["p50(transaction.duration)"] == 1.5
 
+    def test_unparam_filter(self):
+        self.store_transaction_metric(
+            1,
+            # Transaction: unparam
+            tags={
+                "transaction": "<< unparameterized >>",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            2,
+            # Transaction:null
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            3,
+            tags={
+                "transaction": "foo_transaction",
+            },
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "count()",
+            ],
+            "query": 'transaction:"<< unparameterized >>"',
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == "<< unparameterized >>"
+        assert response.data["data"][0]["count()"] == 2
+
     def test_custom_measurements_without_function(self):
         self.store_transaction_metric(
             33,
@@ -1879,3 +1925,27 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_duration_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_not_selected(self):
+        super().test_having_condition_not_selected()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_size_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition(self):
+        super().test_having_condition()

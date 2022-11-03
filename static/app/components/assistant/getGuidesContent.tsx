@@ -3,10 +3,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
-    if (localStorage.getItem('new-walkthrough') === '1') {
+    if (isDemoWalkthrough()) {
       return getDemoModeGuidesV2();
     }
     return getDemoModeGuides();
@@ -458,7 +459,7 @@ function getDemoModeGuidesV2(): GuidesContent {
   return [
     {
       guide: 'sidebar_v2',
-      requiredTargets: ['projects', 'issues'],
+      requiredTargets: ['projects'],
       priority: 1,
       markOthersAsSeen: true,
       steps: [
@@ -473,7 +474,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           title: t('Issues'),
           target: 'issues',
           description: t(
-            `Here's a list of what's broken with your application. Sentry automatically groups similar events together into an issue.`
+            `Here's a list of what's broken and slow. Sentry automatically groups similar events together into an issue.`
           ),
         },
         {
@@ -501,8 +502,22 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
+      guide: 'issue_stream_v3',
+      requiredTargets: ['issue_stream'],
+      steps: [
+        {
+          title: t('Issues'),
+          target: 'issue_stream',
+          description: t(
+            `Sentry automatically groups similar events together into an issue. Similarity is
+            determined by stack trace and other factors. Click on an issue to learn more`
+          ),
+        },
+      ],
+    },
+    {
       guide: 'issues_v3',
-      requiredTargets: ['tags', 'stack_trace', 'breadcrumbs'],
+      requiredTargets: ['tags'],
       steps: [
         {
           title: t('Metadata and metrics'),

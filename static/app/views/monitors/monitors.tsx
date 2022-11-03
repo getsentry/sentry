@@ -4,9 +4,13 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Button from 'sentry/components/button';
+import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
+
+import Access from 'sentry/components/acl/access';
+import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -20,6 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -34,6 +39,30 @@ type Props = AsyncView['props'] &
 type State = AsyncView['state'] & {
   monitorList: Monitor[] | null;
 };
+
+function NewMonitorButton(props: ButtonProps) {
+  const organization = useOrganization();
+  return (
+    <Access organization={organization} access={['project:write']}>
+      {({hasAccess}) => (
+        <Button
+          to={`/organizations/${organization.slug}/monitors/create/`}
+          priority="primary"
+          disabled={!hasAccess}
+          tooltipProps={{
+            disabled: hasAccess,
+          }}
+          title={t(
+            'You must be an organization owner, manager, or admin to create a new monitor'
+          )}
+          {...props}
+        >
+          {props.children}
+        </Button>
+      )}
+    </Access>
+  );
+}
 
 class Monitors extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -81,13 +110,7 @@ class Monitors extends AsyncView<Props, State> {
             <div>
               {t('Monitors')} <FeatureBadge type="beta" />
             </div>
-            <Button
-              to={`/organizations/${organization.slug}/monitors/create/`}
-              priority="primary"
-              size="sm"
-            >
-              {t('New Monitor')}
-            </Button>
+            <NewMonitorButton size="sm">{t('New Monitor')}</NewMonitorButton>
           </HeaderTitle>
         </PageHeader>
         <Filters>
@@ -98,27 +121,41 @@ class Monitors extends AsyncView<Props, State> {
             onSearch={this.handleSearch}
           />
         </Filters>
-        <Panel>
-          <PanelBody>
-            {monitorList?.map(monitor => (
-              <PanelItemCentered key={monitor.id}>
-                <MonitorIcon status={monitor.status} size={16} />
-                <StyledLink
-                  to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
-                >
-                  {monitor.name}
-                </StyledLink>
-                {monitor.nextCheckIn ? (
-                  <StyledTimeSince date={monitor.lastCheckIn} />
-                ) : (
-                  t('n/a')
-                )}
-              </PanelItemCentered>
-            ))}
-          </PanelBody>
-        </Panel>
-        {monitorListPageLinks && (
-          <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+        {monitorList?.length ? (
+          <Fragment>
+            <Panel>
+              <PanelBody>
+                {monitorList?.map(monitor => (
+                  <PanelItemCentered key={monitor.id}>
+                    <MonitorIcon status={monitor.status} size={16} />
+                    <StyledLink
+                      to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                    >
+                      {monitor.name}
+                    </StyledLink>
+                    {monitor.nextCheckIn ? (
+                      <StyledTimeSince date={monitor.lastCheckIn} />
+                    ) : (
+                      t('n/a')
+                    )}
+                  </PanelItemCentered>
+                ))}
+              </PanelBody>
+            </Panel>
+            {monitorListPageLinks && (
+              <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+            )}
+          </Fragment>
+        ) : (
+          <OnboardingPanel image={<img src={onboardingImg} />}>
+            <h3>{t('Monitor your recurring jobs')}</h3>
+            <p>
+              {t(
+                'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
+              )}
+            </p>
+            <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
+          </OnboardingPanel>
         )}
       </Fragment>
     );

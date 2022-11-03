@@ -13,7 +13,6 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -31,6 +30,7 @@ import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/t
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -156,7 +156,8 @@ function GroupHeader({
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
+    const hasSessionReplay =
+      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
 
     const analyticsData = event
       ? event.tags
@@ -251,7 +252,7 @@ function GroupHeader({
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
+      <StyledTabList hideBorder>
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
@@ -318,12 +319,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );

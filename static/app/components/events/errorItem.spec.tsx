@@ -1,36 +1,20 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ErrorItem} from 'sentry/components/events/errorItem';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Issue error item', function () {
   it('expand subitems', function () {
-    const {organization, router} = initializeOrg();
-
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <ErrorItem
-            error={{
-              data: {
-                mapping_uuid: 'd270a1a0-1970-3c05-cb09-2cb00b4335ee',
-              },
-              type: 'proguard_missing_mapping',
-              message: 'A proguard mapping file was missing.',
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <ErrorItem
+        error={{
+          data: {
+            mapping_uuid: 'd270a1a0-1970-3c05-cb09-2cb00b4335ee',
+          },
+          type: 'proguard_missing_mapping',
+          message: 'A proguard mapping file was missing.',
+        }}
+      />
     );
 
     expect(screen.getByText('A proguard mapping file was missing.')).toBeInTheDocument();
@@ -43,34 +27,21 @@ describe('Issue error item', function () {
   });
 
   it('display redacted data', async function () {
-    const {organization, router} = initializeOrg();
-
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <ErrorItem
-            error={{
-              data: {
-                image_path: '',
-                image_uuid: '6b77ffb6-5aba-3b5f-9171-434f9660f738',
-                message: '',
-              },
-              message: 'A required debug information file was missing.',
-              type: 'native_missing_dsym',
-            }}
-            meta={{
-              image_path: {'': {rem: [['project:2', 's', 0, 0]], len: 117}},
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <ErrorItem
+        error={{
+          data: {
+            image_path: '',
+            image_uuid: '6b77ffb6-5aba-3b5f-9171-434f9660f738',
+            message: '',
+          },
+          message: 'A required debug information file was missing.',
+          type: 'native_missing_dsym',
+        }}
+        meta={{
+          image_path: {'': {rem: [['project:2', 's', 0, 0]], len: 117}},
+        }}
+      />
     );
 
     userEvent.click(screen.getByLabelText('Expand'));

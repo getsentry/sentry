@@ -31,7 +31,7 @@ type Props = {
   organization: Organization;
   project: Project;
   teams: Team[];
-  title: React.ComponentClass<TitleProps>;
+  title: React.ComponentType<TitleProps>;
   transactionName: string;
   initialValue?: number;
 };
