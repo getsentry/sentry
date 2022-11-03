@@ -5,6 +5,7 @@ configure()
 
 from datetime import datetime, timedelta
 
+import click
 import requests
 from django.conf import settings
 
@@ -21,12 +22,11 @@ def store_outcomes(outcome, num_times=1):
         outcome_copy = outcome.copy()
         outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         outcomes.append(outcome_copy)
-    assert (
-        requests.post(
-            settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
-        ).status_code
-        == 200
+
+    req = requests.post(
+        settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
     )
+    req.raise_for_status()
 
 
 def generate_outcomes():
@@ -38,7 +38,7 @@ def generate_outcomes():
             Outcome.FILTERED,
         ]:
             # print(datetime.now() - timedelta(hours=1840))
-            print(i)
+            click.echo(i)
             for category in [
                 DataCategory.ERROR,
                 DataCategory.DEFAULT,
@@ -61,7 +61,7 @@ def generate_outcomes():
 
 
 def drop_outcomes():
-    assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+    assert requests.post(settings.SENTRY_SNUBA + "/tests/entities/outcomes/drop").status_code == 200
 
 
 if __name__ == "__main__":
