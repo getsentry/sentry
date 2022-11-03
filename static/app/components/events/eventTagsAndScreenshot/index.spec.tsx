@@ -287,7 +287,7 @@ describe('EventTagsAndScreenshot', function () {
 
       // Screenshot Container
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshots'
+        'Screenshot'
       );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -341,7 +341,7 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshots'
+        'Screenshot'
       );
       expect(screen.queryByTestId('screenshot-icon-1')).not.toBeInTheDocument();
 
@@ -422,7 +422,7 @@ describe('EventTagsAndScreenshot', function () {
 
       // Screenshot Container
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshots'
+        'Screenshot'
       );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -457,7 +457,7 @@ describe('EventTagsAndScreenshot', function () {
 
       // Screenshot Container
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshots'
+        'Screenshot'
       );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(

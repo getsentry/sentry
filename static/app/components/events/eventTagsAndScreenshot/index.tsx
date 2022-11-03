@@ -127,7 +127,7 @@ function EventTagsAndScreenshots({
                       total: screenshots.length,
                       link: screenshotLink,
                     })
-                  : tct('[link:Screenshots]', {
+                  : tct('[link:Screenshot]', {
                       link: screenshotLink,
                     })
               }
