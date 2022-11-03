@@ -9,6 +9,8 @@ from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
+from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
@@ -55,6 +57,24 @@ DEFAULT_ENVIRONMENT_RULE = {
     },
     "active": True,
     "id": 1001,
+}
+
+DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
+    "sampleRate": 0.02,
+    "type": "transaction",
+    "condition": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "event.transaction",
+                "value": HEALTH_CHECK_GLOBS,
+                "options": {"ignoreCase": True},
+            }
+        ],
+    },
+    "active": True,
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
 }
 
 
@@ -263,6 +283,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -290,6 +311,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -313,6 +335,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -398,6 +421,40 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     assert dynamic_sampling == {
         "rules": [
             {
+                "sampleRate": 1,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["*dev*", "*test*"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
+            },
+            {
+                "sampleRate": 0.02,
+                "type": "transaction",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "event.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1002,
+            },
+            {
                 "sampleRate": 0.5,
                 "type": "trace",
                 "active": True,
@@ -466,23 +523,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-            },
-            {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
             },
             {
                 "sampleRate": 0.1,
@@ -559,12 +599,6 @@ def test_project_config_satisfaction_thresholds(
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
-    cfg = cfg.to_dict()
-    assert "spanAttributes" not in cfg["config"]
-
-    with Feature("projects:performance-suspect-spans-ingestion"):
-        cfg = get_project_config(default_project, full_config=True)
-
     cfg = cfg.to_dict()
     insta_snapshot(cfg["config"]["spanAttributes"])
 
