@@ -5,6 +5,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getTour, isDemoWalkthrough} from 'sentry/utils/demoMode';
+
+import {demoEndModal} from './modal';
 
 import {demoEndModal} from './modal';
 import {updateOnboardingTask} from './onboardingTasks';
@@ -56,6 +59,7 @@ export function recordFinish(
   orgId: string | null,
   orgSlug: string | null,
   org: Organization | null
+
 ) {
   api.request('/assistant/', {
     method: 'PUT',
@@ -92,7 +96,11 @@ export function recordFinish(
   if (task) {
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
   }
-  if (tour) {
+
+  const tour = getTour(guide);
+
+  if (isDemoWalkthrough() && tour) {
+
     demoEndModal({tour, orgSlug});
   }
 

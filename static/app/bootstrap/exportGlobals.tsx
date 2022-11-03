@@ -57,6 +57,7 @@ const SentryApp = {
     .findCompleteTasks,
   findUpcomingTasks: require('sentry/components/onboardingWizard/utils')
     .findUpcomingTasks,
+
 };
 
 globals.SentryApp = SentryApp;

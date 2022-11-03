@@ -58,6 +58,7 @@ class BaseGuideAnchor extends Component<Props, State> {
     orgId: null,
     orgSlug: null,
     org: null,
+
   };
 
   componentDidMount() {
@@ -103,6 +104,7 @@ class BaseGuideAnchor extends Component<Props, State> {
       orgId: data.orgId,
       orgSlug: data.orgSlug,
       org: data.organization,
+
     });
   }
 
@@ -121,6 +123,7 @@ class BaseGuideAnchor extends Component<Props, State> {
     const {currentGuide, orgId, orgSlug, org} = this.state;
     if (currentGuide) {
       recordFinish(currentGuide.guide, orgId, orgSlug, org);
+
     }
     closeGuide();
   };
