@@ -57,7 +57,6 @@ def query(
     selected_columns,
     query,
     params,
-    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -77,7 +76,6 @@ def query(
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             params,
-            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=[],

@@ -380,7 +380,7 @@ class EntitySubscriptionTestCase(TestCase):
                             function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
                         ),
                         Op.IN,
-                        [""],
+                        [],
                     ),
                 ]
             ),

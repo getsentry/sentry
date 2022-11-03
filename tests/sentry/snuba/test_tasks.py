@@ -507,7 +507,7 @@ class BuildSnqlQueryTest(TestCase):
             "",
             [
                 Condition(Column(name="type"), Op.EQ, "error"),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             ],
         )
 
@@ -518,7 +518,7 @@ class BuildSnqlQueryTest(TestCase):
             "count_unique(user)",
             "",
             [
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             ],
         )
 
@@ -530,7 +530,7 @@ class BuildSnqlQueryTest(TestCase):
             "count_unique(user)",
             "",
             [
-                Condition(Column("project_id"), Op.IN, [self.project.id]),
+                Condition(Column("project_id"), Op.IN, (self.project.id,)),
                 Condition(Column("org_id"), Op.EQ, self.organization.id),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ],
@@ -555,7 +555,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -569,7 +569,7 @@ class BuildSnqlQueryTest(TestCase):
         self.create_release(self.project, version="something")
         expected_conditions = [
             Condition(Column("release"), Op.IN, ["something"]),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
@@ -593,7 +593,7 @@ class BuildSnqlQueryTest(TestCase):
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
             ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
@@ -624,7 +624,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -637,7 +637,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_user_query_performance_transactions(self):
         expected_conditions = [
             Condition(Column("user"), Op.EQ, "anengineer@work.io"),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
@@ -664,7 +664,7 @@ class BuildSnqlQueryTest(TestCase):
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
             ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
@@ -706,7 +706,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -747,7 +747,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -775,7 +775,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -787,7 +787,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_simple_sessions(self):
         expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
 
@@ -802,7 +802,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_simple_users(self):
         expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
         self.run_test(
@@ -818,7 +818,7 @@ class BuildSnqlQueryTest(TestCase):
         env = self.create_environment(self.project, name="development")
         expected_conditions = [
             Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="environment"), Op.EQ, "development"),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
@@ -836,7 +836,7 @@ class BuildSnqlQueryTest(TestCase):
         env = self.create_environment(self.project, name="development")
         expected_conditions = [
             Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="environment"), Op.EQ, "development"),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
@@ -855,7 +855,7 @@ class BuildSnqlQueryTest(TestCase):
         for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
             rh_indexer_record(org_id, tag)
         expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),
@@ -891,7 +891,7 @@ class BuildSnqlQueryTest(TestCase):
             rh_indexer_record(org_id, tag)
 
         expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),
@@ -932,7 +932,7 @@ class BuildSnqlQueryTest(TestCase):
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),
@@ -993,7 +993,7 @@ class BuildSnqlQueryTest(TestCase):
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),

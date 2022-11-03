@@ -1315,22 +1315,21 @@ class GetSnubaQueryArgsTest(TestCase):
         assert result.having == [["last_seen", ">", 1585769692]]
 
     def test_release_latest(self):
-        params = {"organization_id": self.organization.id, "project_id": [self.project.id]}
         result = get_filter(
             "release:latest",
-            params=params,
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [["release", "IN", [""]]]
 
         # When organization id isn't included, project_id should unfortunately be an object
-        result = get_filter("release:latest", params=params)
+        result = get_filter("release:latest", params={"project_id": [self.project]})
         assert result.conditions == [["release", "IN", [""]]]
 
         release_2 = self.create_release(self.project)
 
-        result = get_filter("release:[latest]", params=params)
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
         assert result.conditions == [["release", "IN", [release_2.version]]]
-        result = get_filter("release:[latest,1]", params=params)
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
         assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
@@ -1877,7 +1876,6 @@ def _project(x):
     return _cond("project_id", Op.EQ, x)
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     "description,query,expected_where,expected_having",
     [
@@ -2494,7 +2492,7 @@ def _project(x):
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
-    params: ParamsType = {"project_id": [1]}
+    params: ParamsType = {"project_id": 1}
     query_filter = UnresolvedQuery(dataset, params)
     where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
     assert where == expected_where, description

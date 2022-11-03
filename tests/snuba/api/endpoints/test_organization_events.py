@@ -103,30 +103,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
 
-    def test_environment_filter(self):
-        self.create_environment(self.project, name="production")
-        self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "environment": "production",
-                "timestamp": self.ten_mins_ago,
-            },
-            project_id=self.project.id,
-        )
-
-        query = {
-            "field": ["id", "project.id"],
-            "project": [self.project.id],
-            "environment": ["staging", "production"],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200
-        assert len(response.data["data"]) == 2
-
     def test_performance_view_feature(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},

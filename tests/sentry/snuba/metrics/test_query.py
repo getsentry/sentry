@@ -437,7 +437,6 @@ def test_validate_distribution_functions_in_orderby():
     MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])
