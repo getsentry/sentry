@@ -1560,7 +1560,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 self.url,
                 data={
                     "project": self.project.id,
-                    "span": f"django.middleware:2b9cbb96dbf59baa",
+                    "span": "django.middleware:2b9cbb96dbf59baa",
                     "min_exclusive_time": 4.0,
                     "per_page": 1,
                 },
