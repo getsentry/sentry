@@ -22,6 +22,16 @@
       "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
     },
     {
+      "name": "sentry backend debug",
+      "type": "python",
+      "request": "launch",
+      "stopOnEntry": true,
+      "program": "${workspaceRoot}/.venv/bin/sentry",
+      "args": ["devserver", "--debug-server", "--no-pretty"],
+      "cwd": "${workspaceRoot}",
+      "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
+    },
+    {
       "name": "jest",
       "type": "node",
       "request": "launch",
