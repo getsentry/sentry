@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -50,7 +50,7 @@ export const useGetTasks = (
   projects: Project[],
   onboardingState: OnboardingState | null
 ) => {
-  const defaultHook = useMemo(() => {
+  const defaultHook = useCallback(() => {
     const all = getMergedTasks({
       organization,
       projects,

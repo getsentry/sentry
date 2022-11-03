@@ -48,11 +48,7 @@ export const getSidebarTasks = (
   projects: Project[],
   onboardingState: OnboardingState | null
 ) => {
-  const defaultHook = getMergedTasks({
-    organization,
-    projects,
-    onboardingState: onboardingState || undefined,
-  });
+  const defaultHook = getMergedTasks;
   const featureHook = HookStore.get('onboarding:sidebar-tasks')[0] || defaultHook;
   return featureHook({organization, projects, onboardingState});
 };
