@@ -100,7 +100,16 @@ export function TagFacets({
           readable: true,
         },
       });
-      setState({...state, tagsData: keyBy(data, 'key'), loading: false});
+      const tagsData = keyBy(data, 'key');
+      const defaultSelectedTag = tagKeys.find(tagKey =>
+        Object.keys(tagsData).includes(tagKey)
+      );
+      setState({
+        ...state,
+        tagsData,
+        loading: false,
+        selectedTag: defaultSelectedTag ?? state.selectedTag,
+      });
     };
     setState({...state, loading: true});
     fetchData().catch(() => {
