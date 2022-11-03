@@ -2,6 +2,7 @@ import groupBy from 'lodash/groupBy';
 
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {createDelimiter} from 'sentry/utils/profiling/strings';
 
 export function collectProfileFrames(profile: Profile) {
   const nodes: CallTreeNode[] = [];
@@ -75,18 +76,16 @@ export function aggregate<T extends string>(
   return rows;
 }
 
-// we'll use the "unit separator" character to delimit grouped values
-// https://en.wikipedia.org/wiki/Delimiter#ASCII_delimited_text
-const FIELD_SEPARATOR = String.fromCharCode(31);
+const delimiter = createDelimiter();
 
 // getGroupedKey will derive a key from an objects values and delimit them using
 // the unit separator
 function getGroupedKey(row: Record<string, unknown>, groups: string[]) {
-  return groups.map(key => row[key]).join(FIELD_SEPARATOR);
+  return delimiter.join(...groups.map(key => row[key]));
 }
 
 function makeRowFromGroupedKey(groupedKey: string, groups: string[]) {
-  const groupedKeyValues = groupedKey.split(FIELD_SEPARATOR);
+  const groupedKeyValues = delimiter.split(groupedKey);
   return groups.reduce((acc, key, idx) => {
     acc[key] = groupedKeyValues[idx];
     return acc;
