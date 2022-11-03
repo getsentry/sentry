@@ -222,6 +222,7 @@ def timeseries_query(
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
+    use_metrics_layer=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -658,6 +659,7 @@ def spans_histogram_query(
     limit_by=None,
     extra_condition=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -828,6 +830,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for numeric columns.
