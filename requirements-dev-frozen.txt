@@ -158,7 +158,7 @@ soupsieve==2.3.2.post1
 sqlparse==0.3.0
 statsd==3.3
 structlog==21.1.0
-symbolic==10.0.0
+symbolic==10.1.1
 tokenize-rt==5.0.0
 toml==0.10.2
 tomli==2.0.1

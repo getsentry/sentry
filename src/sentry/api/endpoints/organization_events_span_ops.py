@@ -3,7 +3,6 @@ from typing import Any, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -19,18 +18,7 @@ class SpanOp(TypedDict):
 
 @region_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type: ignore
-    def has_feature(self, request: Request, organization: Organization) -> bool:
-        return bool(
-            features.has(
-                "organizations:performance-suspect-spans-view",
-                organization,
-                actor=request.user,
-            )
-        )
-
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(request, organization):
-            return Response(status=404)
 
         try:
             params = self.get_snuba_params(request, organization)
