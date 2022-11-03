@@ -271,12 +271,15 @@ def timer(
 
 
 def wraps(
-    key: str, instance: Optional[str] = None, tags: Optional[Tags] = None
+    key: str,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: Optional[float] = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            with timer(key, instance=instance, tags=tags):
+            with timer(key, instance=instance, tags=tags, sample_rate=sample_rate):
                 return f(*args, **kwargs)
 
         return inner  # type: ignore
