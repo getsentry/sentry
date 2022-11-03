@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {createDelimiter} from 'sentry/utils/profiling/strings';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -48,9 +49,9 @@ export function ProfileDetailsTable() {
     initialState: '',
   });
 
-  const groupByView = GROUP_BY_OPTIONS[groupByViewKey] ?? GROUP_BY_OPTIONS.occurrence;
+  const groupByView = GROUP_BY_OPTIONS[groupByViewKey!] ?? GROUP_BY_OPTIONS.occurrence;
 
-  const cursor = parseInt(paginationCursor, 10) || 0;
+  const cursor = paginationCursor ? parseInt(paginationCursor, 10) : 0;
 
   const allData: TableDataRow[] = useMemo(() => {
     const data =
@@ -70,14 +71,17 @@ export function ProfileDetailsTable() {
   );
 
   const [filteredDataBySearch, setFilteredDataBySearch] = useState<TableDataRow[]>(() => {
+    if (!searchQuery) {
+      return [];
+    }
     return search(searchQuery);
   });
 
-  const [typeFilter, setTypeFilter] = useQuerystringState({
+  const [typeFilter, setTypeFilter] = useQuerystringState<string[]>({
     key: 'type',
   });
 
-  const [imageFilter, setImageFilter] = useQuerystringState({
+  const [imageFilter, setImageFilter] = useQuerystringState<string[]>({
     key: 'image',
   });
 
@@ -109,6 +113,9 @@ export function ProfileDetailsTable() {
   );
 
   useEffectAfterFirstRender(() => {
+    if (!searchQuery) {
+      return;
+    }
     setFilteredDataBySearch(search(searchQuery));
     // purposely omitted `searchQuery` as we only want this to run once.
     // future search filters are called by handleSearch
@@ -244,7 +251,7 @@ interface ProfilingFunctionsTableCellProps {
   dataRow: TableDataRow;
   rowIndex: number;
 }
-
+const delimiter = createDelimiter();
 const formatter = makeFormatter('nanoseconds');
 function ProfilingFunctionsTableCell({
   column,
@@ -272,6 +279,25 @@ function ProfilingFunctionsTableCell({
               projectSlug: projectId,
               profileId: eventId,
               query: {tid: dataRow.thread as string},
+            })}
+          >
+            {value}
+          </Link>
+        </Container>
+      );
+    }
+    case 'symbol': {
+      return (
+        <Container>
+          <Link
+            to={generateProfileFlamechartRouteWithQuery({
+              orgSlug: orgId,
+              projectSlug: projectId,
+              profileId: eventId,
+              query: {
+                highlightAll: delimiter.join(dataRow.symbol, dataRow.image),
+                tid: dataRow.thread as string,
+              },
             })}
           >
             {value}
