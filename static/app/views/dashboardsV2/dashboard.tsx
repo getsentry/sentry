@@ -45,7 +45,7 @@ import {
   Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -469,15 +469,8 @@ class Dashboard extends Component<Props, State> {
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
-    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-releases');
-      }
-      return true;
-    });
+    const {isEditing, dashboard, widgetLimitReached} = this.props;
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -524,15 +517,8 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderDndDashboard = () => {
-    const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-releases');
-      }
-      return true;
-    });
+    const {isEditing, onUpdate, dashboard, widgetLimitReached} = this.props;
+    const {widgets} = dashboard;
 
     const items = this.getWidgetIds();
 
