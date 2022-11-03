@@ -4,6 +4,7 @@ import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getTour, isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 import {demoEndModal} from './modal';
 
@@ -62,24 +63,8 @@ export function recordFinish(
     },
   });
 
-  let tour;
-  switch (guide) {
-    case 'sidebar_v2':
-      tour = 'tabs';
-      break;
-    case 'issues_v3':
-      tour = 'issues';
-      break;
-    case 'release-details_v2':
-      tour = 'releases';
-      break;
-    case 'transaction_details_v2':
-      tour = 'performance';
-      break;
-    default:
-  }
-
-  if (tour) {
+  if (isDemoWalkthrough()) {
+    const tour = getTour(guide);
     demoEndModal({tour, orgSlug});
   }
 

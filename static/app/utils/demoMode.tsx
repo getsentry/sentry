@@ -36,3 +36,19 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
 export function isDemoWalkthrough(): boolean {
   return localStorage.getItem('new-walkthrough') === '1';
 }
+
+// Function to determine which tour has completed depending on the guide that is being passed in.
+export function getTour(guide: string): string {
+  switch (guide) {
+    case 'sidebar_v2':
+      return 'tabs';
+    case 'issues_v3':
+      return 'issues';
+    case 'release-details_v2':
+      return 'releases';
+    case 'transaction_details_v2':
+      return 'performance';
+    default:
+      return '';
+  }
+}
