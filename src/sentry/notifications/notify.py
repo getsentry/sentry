@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
 
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ def register_notification_provider(
 def notify(
     provider: ExternalProviders,
     notification: Any,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[Team | APIUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> None:

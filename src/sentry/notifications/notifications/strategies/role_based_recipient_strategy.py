@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
 from sentry.models import BaseUser, OrganizationMember
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -42,9 +42,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        user_map: Iterable[APIUser] = map(lambda member: member.user, members)
-        # convert to list from an interterator
-        return list(user_map)
+        return user_service.get_many((member.user_id for member in members), is_active=None)
 
     @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:

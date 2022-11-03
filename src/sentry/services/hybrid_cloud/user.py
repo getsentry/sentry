@@ -28,6 +28,9 @@ class APIUser(BaseUser):
     def get_display_name(self):  # API compatibility with ORM User
         return self.display_name
 
+    def class_name(self):
+        return "User"
+
 
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
@@ -145,9 +148,11 @@ class DatabaseBackedUserService(UserService):
         return self._to_api(query)
 
     def get_from_project(self, project_id: int) -> List[APIUser]:
-        return self.get_many(
-            Project.objects.get(project_id).member_set.values_list("user_id", flat=True)
-        )
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return []
+        return self.get_many(project.member_set.values_list("user_id", flat=True))
 
     def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
         return self._to_api(User.objects.get(actor_id=actor_id))

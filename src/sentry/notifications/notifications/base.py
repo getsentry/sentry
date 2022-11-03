@@ -167,7 +167,7 @@ class BaseNotification(abc.ABC):
                 )
 
     def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
     ) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
@@ -176,7 +176,7 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.
@@ -185,7 +185,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def get_settings_url(self, recipient: Team | APIUser, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -203,7 +203,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[Team | User]:
+    def determine_recipients(self) -> Iterable[Team | APIUser]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:

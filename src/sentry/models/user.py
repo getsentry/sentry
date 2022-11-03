@@ -112,6 +112,9 @@ class BaseUser:
     def get_display_name(self) -> str:
         return ""
 
+    def class_name(self):
+        return "User"
+
 
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser, BaseUser):
