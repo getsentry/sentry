@@ -153,16 +153,16 @@ def _error_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequ
 
 
 def _perf_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequence[SearchFilter]:
-    # need to remove this filter, so we query snuba and not postgres
+    # need to remove this search filter, so we don't constrain the returned transactions
     return [sf for sf in search_filters if sf.key.name != "message"]
 
 
-SEARCH_STRATEGIES = {
+SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
     GroupCategory.ERROR: _query_params_for_error,
     GroupCategory.PERFORMANCE: _query_params_for_perf,
 }
 
-SEARCH_FILTER_UPDATERS = {
+SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
     GroupCategory.ERROR: _error_search_filter_updater,
     GroupCategory.PERFORMANCE: _perf_search_filter_updater,
 }
