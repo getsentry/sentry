@@ -1,24 +1,29 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEllipsis} from 'sentry/icons';
+import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 interface SavedIssueSearchesProps {
   isOpen: boolean;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
+  query: string;
   savedSearch: SavedSearch | null;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  sort: string;
 }
 
 interface SavedSearchItemProps
@@ -28,6 +33,11 @@ interface SavedSearchItemProps
   > {
   savedSearch: SavedSearch;
 }
+
+type CreateNewSavedSearchButtonProps = Pick<
+  SavedIssueSearchesProps,
+  'query' | 'sort' | 'organization'
+>;
 
 const SavedSearchItem = ({
   organization,
@@ -93,6 +103,39 @@ const SavedSearchItem = ({
   );
 };
 
+function CreateNewSavedSearchButton({
+  organization,
+  query,
+  sort,
+}: CreateNewSavedSearchButtonProps) {
+  const disabled = !organization.access.includes('org:write');
+
+  const title = disabled
+    ? t('You do not have permission to create a saved search')
+    : t('Create a new saved search for your organization');
+
+  const onClick = () => {
+    trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+      organization,
+    });
+    openModal(deps => (
+      <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
+    ));
+  };
+
+  return (
+    <Button
+      aria-label={t('Create a new saved search for your organization')}
+      disabled={disabled}
+      onClick={onClick}
+      icon={<IconAdd size="sm" />}
+      title={title}
+      borderless
+      size="sm"
+    />
+  );
+}
+
 const SavedIssueSearches = ({
   organization,
   isOpen,
@@ -100,6 +143,8 @@ const SavedIssueSearches = ({
   onSavedSearchSelect,
   savedSearchLoading,
   savedSearches,
+  query,
+  sort,
 }: SavedIssueSearchesProps) => {
   if (!isOpen) {
     return null;
@@ -126,7 +171,10 @@ const SavedIssueSearches = ({
     <StyledSidebar>
       {orgSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>{t('Saved Searches')}</Heading>
+          <HeadingContainer>
+            <Heading>{t('Saved Searches')}</Heading>
+            <CreateNewSavedSearchButton {...{organization, query, sort}} />
+          </HeadingContainer>
           <SearchesContainer>
             {orgSavedSearches.map(item => (
               <SavedSearchItem
@@ -142,7 +190,9 @@ const SavedIssueSearches = ({
       )}
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>{t('Recommended')}</Heading>
+          <HeadingContainer>
+            <Heading>{t('Recommended')}</Heading>
+          </HeadingContainer>
           <SearchesContainer>
             {recommendedSavedSearches.map(item => (
               <SavedSearchItem
@@ -162,7 +212,7 @@ const SavedIssueSearches = ({
 
 const StyledSidebar = styled('aside')`
   width: 360px;
-  padding: ${space(4)} ${space(2)};
+  padding: ${space(3)} ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
@@ -174,13 +224,20 @@ const StyledSidebar = styled('aside')`
   }
 `;
 
-const Heading = styled('h2')`
+const HeadingContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 38px;
   &:first-of-type {
     margin-top: 0;
   }
-
-  font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: ${space(3)} 0 ${space(2)} ${space(2)};
+`;
+
+const Heading = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: 0;
 `;
 
 const SearchesContainer = styled('ul')`

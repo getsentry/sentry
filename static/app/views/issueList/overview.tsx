@@ -1268,10 +1268,17 @@ class IssueListOverview extends Component<Props, State> {
             />
           </StyledMain>
           <SavedIssueSearches
-            {...{savedSearches, savedSearch, savedSearchLoading, organization}}
+            {...{
+              savedSearches,
+              savedSearch,
+              savedSearchLoading,
+              organization,
+              query,
+            }}
             isOpen={isSavedSearchesOpen}
             onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
+            sort={this.getSort()}
           />
         </StyledBody>
       </StyledPageContent>
