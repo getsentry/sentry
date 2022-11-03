@@ -253,7 +253,6 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
-    OrganizationEventsMetricsCompatiblity,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -364,7 +363,6 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.organization_vitals_overview import OrganizationVitalsOverviewEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
@@ -421,13 +419,12 @@ from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -1167,11 +1164,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-meta",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
-                    OrganizationEventsMetricsCompatiblity.as_view(),
-                    name="sentry-api-0-organization-events-metrics-compatibility",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
                     OrganizationMetricsCompatibility.as_view(),
                     name="sentry-api-0-organization-metrics-compatibility",
@@ -1680,11 +1672,6 @@ urlpatterns = [
                     ClientStateEndpoint.as_view(),
                     name="sentry-api-0-organization-client-state",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/vitals-overview/$",
-                    OrganizationVitalsOverviewEndpoint.as_view(),
-                    name="sentry-api-0-organization-vitals-overview",
-                ),
             ]
         ),
     ),
@@ -2097,6 +2084,11 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-preview",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-actions/$",
+                    ProjectRuleActionsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-actions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
                     ProjectRuleGroupHistoryIndexEndpoint.as_view(),
                     name="sentry-api-0-project-rule-group-history-index",
@@ -2110,16 +2102,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
                     ProjectRuleTaskDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-task-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",
-                    ProjectSearchesEndpoint.as_view(),
-                    name="sentry-api-0-project-searches",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
-                    ProjectSearchDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-search-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",

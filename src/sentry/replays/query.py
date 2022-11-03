@@ -230,6 +230,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
             alias="agg_urls",
         ),
+        _sorted_aggregated_urls(Column("agg_urls"), "urls_sorted"),
         Function("count", parameters=[Column("segment_id")], alias="countSegments"),
         Function(
             "uniqArray",
@@ -241,6 +242,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[Function("groupArray", parameters=[Column("is_archived")])],
             alias="isArchived",
         ),
+        _activity_score(),
     ]
 
 
@@ -274,6 +276,44 @@ def _grouped_unique_scalar_value(
     )
 
 
+def _sorted_aggregated_urls(agg_urls_column, alias):
+    mapped_urls = Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 2])
+            ),
+            agg_urls_column,
+        ],
+    )
+    mapped_sequence_ids = Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 1])
+            ),
+            agg_urls_column,
+        ],
+    )
+    return Function(
+        "arrayFlatten",
+        parameters=[
+            Function(
+                "arraySort",
+                parameters=[
+                    Lambda(
+                        ["urls", "sequence_id"],
+                        Function("identity", parameters=[Identifier("sequence_id")]),
+                    ),
+                    mapped_urls,
+                    mapped_sequence_ids,
+                ],
+            )
+        ],
+        alias=alias,
+    )
+
+
 # Filter
 
 replay_url_parser_config = SearchConfig(
@@ -286,6 +326,7 @@ class ReplayQueryConfig(QueryConfig):
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")
+    activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
@@ -293,6 +334,7 @@ class ReplayQueryConfig(QueryConfig):
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
+    urls = ListField(query_alias="urls_sorted", field_alias="url")
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
     user_name = String(field_alias="user.name")
@@ -352,4 +394,61 @@ def _strip_uuid_dashes(
         "replaceAll",
         parameters=[Function("toString", parameters=[input_value]), "-", ""],
         alias=alias or input_name if aliased else None,
+    )
+
+
+def _activity_score():
+    #  taken from frontend calculation:
+    #  score = (countErrors * 25 + pagesVisited * 5 ) / 10;
+    #  score = Math.floor(Math.min(10, Math.max(1, score)));
+
+    error_weight = Function(
+        "multiply",
+        parameters=[Column("countErrors"), 25],
+    )
+    pages_visited_weight = Function(
+        "multiply",
+        parameters=[
+            Function(
+                "length",
+                parameters=[Column("urls_sorted")],
+            ),
+            5,
+        ],
+    )
+
+    combined_weight = Function(
+        "plus",
+        parameters=[
+            error_weight,
+            pages_visited_weight,
+        ],
+    )
+
+    combined_weight_normalized = Function(
+        "intDivOrZero",
+        parameters=[
+            combined_weight,
+            10,
+        ],
+    )
+
+    return Function(
+        "floor",
+        parameters=[
+            Function(
+                "greatest",
+                parameters=[
+                    1,
+                    Function(
+                        "least",
+                        parameters=[
+                            10,
+                            combined_weight_normalized,
+                        ],
+                    ),
+                ],
+            )
+        ],
+        alias="activity",
     )

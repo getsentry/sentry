@@ -26,6 +26,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -310,7 +311,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization} = this.props;
     return (
       <Button
-        onClick={() => {}}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('discover_v2.view_saved_queries', {organization});
+        }}
         data-test-id="discover2-savedquery-button-view-saved"
         disabled={disabled}
         size="sm"
@@ -449,11 +452,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       homepageQuery,
       queryDataLoading,
     } = this.props;
-    const buttonDisabled =
-      disabled ||
-      queryDataLoading ||
-      (!homepageQuery &&
-        eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
+    const buttonDisabled = disabled || queryDataLoading;
+    const analyticsEventSource = isHomepage
+      ? 'homepage'
+      : eventView.id
+      ? 'saved-query'
+      : 'prebuilt-query';
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
@@ -464,6 +468,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           data-test-id="reset-discover-homepage"
           onClick={async () => {
             await handleResetHomepageQuery(api, organization);
+            trackAdvancedAnalyticsEvent('discover_v2.remove_default', {
+              organization,
+              source: analyticsEventSource,
+            });
             setHomepageQuery(undefined);
             if (isHomepage) {
               const nextEventView = EventView.fromNewQueryWithLocation(
@@ -481,7 +489,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Button>
       );
     }
@@ -496,6 +504,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             organization,
             eventView.toNewQuery()
           );
+          trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+            organization,
+            source: analyticsEventSource,
+          });
           if (updatedHomepageQuery) {
             setHomepageQuery(updatedHomepageQuery);
           }
@@ -505,7 +517,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         disabled={buttonDisabled}
       >
         {t('Set as Default')}
-        <FeatureBadge type="beta" />
+        <FeatureBadge type="new" />
       </Button>
     );
   }

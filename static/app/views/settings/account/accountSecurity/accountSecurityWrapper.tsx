@@ -58,6 +58,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       addErrorMessage(t('Error regenerating backup codes'));
     }
   };
+
   handleRefresh = () => {
     this.fetchData();
   };

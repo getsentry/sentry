@@ -35,6 +35,7 @@ def dispatch_post_process_group_task(
     is_regression: Optional[bool],
     is_new_group_environment: bool,
     primary_hash: Optional[str],
+    queue: str,
     skip_consume: bool = False,
     group_states: Optional[GroupStates] = None,
 ) -> None:
@@ -46,6 +47,7 @@ def dispatch_post_process_group_task(
         is_regression,
         is_new_group_environment,
         primary_hash,
+        queue,
         skip_consume,
         group_states,
     )

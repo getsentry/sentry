@@ -5,8 +5,12 @@
 
 {% block title %}{% trans "Auth" %} | {{ block.super }}{% endblock %}
 
+{% block modal_header_link %}
+{{ settings_url }}
+{% endblock %}
+
 {% block modal_header_extra %}
-<span style="font-size: 16px;margin-left: 6px;"> Back to Organization</span>
+<span style="font-size: 16px;margin-left: 6px;"> Back to Organization Settings</span>
 {% endblock %}
 
 {% block main %}

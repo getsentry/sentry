@@ -216,9 +216,13 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     }
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
-    const titleText = isEquationAlias(column.name)
+    let titleText = isEquationAlias(column.name)
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]
       : column.name;
+
+    if (column.name.toLowerCase() === 'replayid') {
+      titleText = 'Replay';
+    }
 
     const title = (
       <StyledTooltip title={titleText}>
@@ -305,10 +309,10 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
         const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
-        const referrer = encodeURIComponent(getRouteStringFromRoutes(this.props.routes));
+        const referrer = getRouteStringFromRoutes(this.props.routes);
 
         const target = {
-          pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+          pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
           query: {
             referrer,
           },
@@ -343,8 +347,6 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column)}
-            organization={organization}
-            showQuickContextMenu
           >
             {cell}
           </CellAction>
@@ -359,8 +361,6 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
-          organization={organization}
-          showQuickContextMenu
         >
           {cell}
         </CellAction>
@@ -377,19 +377,13 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       customMeasurements,
     } = this.props;
 
-    const hasBreakdownFeature = organization.features.includes(
-      'performance-ops-breakdown'
-    );
-
     openModal(
       modalProps => (
         <ColumnEditModal
           {...modalProps}
           organization={organization}
           measurementKeys={measurementKeys}
-          spanOperationBreakdownKeys={
-            hasBreakdownFeature ? spanOperationBreakdownKeys : undefined
-          }
+          spanOperationBreakdownKeys={spanOperationBreakdownKeys}
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
           customMeasurements={customMeasurements}

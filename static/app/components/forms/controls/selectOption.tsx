@@ -43,6 +43,8 @@ function SelectOption(props: Props) {
         <MenuListItem
           {...itemProps}
           {...innerProps}
+          role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}
+          aria-checked={isSelected}
           ref={innerRef}
           className={cx({
             option: true,
