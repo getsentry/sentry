@@ -1,4 +1,3 @@
-from collections import namedtuple
 from datetime import datetime, timedelta
 from typing import Dict, Match, Optional, TypedDict
 
@@ -18,13 +17,10 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg, parse_function
-from sentry.search.events.types import SelectType, WhereType
+from sentry.search.events.types import Alias, SelectType, WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, raw_snql_query
-
-# converter is to convert the aggregate filter to snuba query
-Alias = namedtuple("Alias", "converter aggregate resolved_function")
 
 
 class TrendColumns(TypedDict):
@@ -60,8 +56,8 @@ class TrendQueryBuilder(QueryBuilder):
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
 
-        if name in self.params.get("aliases", {}):
-            return self.params["aliases"][name].converter(aggregate_filter)
+        if name in self.params.aliases:
+            return self.params.aliases[name].converter(aggregate_filter)
         else:
             return super().convert_aggregate_filter_to_condition(aggregate_filter)
 
@@ -72,8 +68,8 @@ class TrendQueryBuilder(QueryBuilder):
         resolve_only=False,
         overwrite_alias: Optional[str] = None,
     ) -> SelectType:
-        if function in self.params.get("aliases", {}):
-            return self.params["aliases"][function].resolved_function
+        if function in self.params.aliases:
+            return self.params.aliases[function].resolved_function
         else:
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
@@ -473,7 +469,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             snql_trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
             trend_query.columns.extend(snql_trend_columns.values())
             trend_query.aggregates.extend(snql_trend_columns.values())
-            trend_query.params["aliases"] = self.get_snql_function_aliases(
+            trend_query.params.aliases = self.get_snql_function_aliases(
                 snql_trend_columns, trend_type
             )
             # Both orderby and conditions need to be resolved after the columns because of aliasing

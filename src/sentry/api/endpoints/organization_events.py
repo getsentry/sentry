@@ -189,7 +189,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response([])
         except InvalidParams as err:
@@ -247,6 +247,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "selected_columns": self.get_field_list(organization, request),
                 "query": request.GET.get("query"),
                 "params": params,
+                "snuba_params": snuba_params,
                 "equations": self.get_equation_list(organization, request),
                 "orderby": self.get_orderby(request),
                 "offset": offset,
