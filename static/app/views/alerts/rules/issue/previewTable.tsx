@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -65,6 +66,7 @@ const PreviewTable = ({
           displayReprocessingLayout={false}
           useFilteredStats
           withChart={false}
+          canSelect={false}
         />
       );
     });
@@ -78,20 +80,33 @@ const PreviewTable = ({
     return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
   };
 
+  const renderPagination = () => {
+    if (error) {
+      return null;
+    }
+    return (
+      <StyledPagination
+        pageLinks={pageLinks}
+        onCursor={onCursor}
+        caption={renderCaption()}
+        disabled={loading}
+      />
+    );
+  };
+
   return (
     <Fragment>
       <Panel>
         <GroupListHeader withChart={false} />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
-      <Pagination
-        pageLinks={pageLinks}
-        onCursor={onCursor}
-        caption={renderCaption()}
-        disabled={loading}
-      />
+      {renderPagination()}
     </Fragment>
   );
 };
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+`;
 
 export default PreviewTable;

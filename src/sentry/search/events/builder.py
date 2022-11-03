@@ -9,6 +9,7 @@ from typing import (
     Mapping,
     Match,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
@@ -17,7 +18,6 @@ from typing import (
 )
 
 import sentry_sdk
-from django.utils import timezone
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
 from snuba_sdk import Flags, Request
@@ -50,8 +50,7 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Organization
-from sentry.models.project import Project
+from sentry.models import Environment, Organization, Project, Team, User
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
@@ -70,6 +69,11 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
@@ -91,6 +95,7 @@ from sentry.search.events.types import (
     ParamsType,
     QueryFramework,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.sentry_metrics import indexer
@@ -117,10 +122,70 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class QueryBuilder:
     """Builds a snql query"""
 
+    def _dataclass_params(
+        self, snuba_params: Optional[SnubaParams], params: ParamsType
+    ) -> SnubaParams:
+        """Shim so the query builder can start using the dataclass"""
+        if snuba_params is not None:
+            return snuba_params
+
+        if "project_objects" in params:
+            projects = cast(Sequence[Project], params["project_objects"])
+        elif "project_id" in params and (
+            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)
+        ):
+            projects = Project.objects.filter(id__in=params["project_id"])
+        else:
+            projects = []
+
+        if "organization_id" in params and isinstance(params["organization_id"], int):
+            organization = Organization.objects.filter(id=params["organization_id"]).first()
+        else:
+            organization = projects[0].organization if projects else None
+
+        # Yes this is a little janky, but its temporary until we can have everyone passing the dataclass directly
+        environments: Sequence[Union[Environment, None]] = []
+        if "environment_objects" in params:
+            environments = cast(Sequence[Union[Environment, None]], params["environment_objects"])
+        elif "environment" in params and organization is not None:
+            if isinstance(params["environment"], list):
+                environments = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name__in=params["environment"]
+                    )
+                )
+                if "" in cast(List[str], params["environment"]):
+                    environments.append(None)
+            elif isinstance(params["environment"], str):
+                environments = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name=params["environment"]
+                    )
+                )
+            else:
+                environments = []
+
+        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
+        teams = (
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
+            else None
+        )
+        return SnubaParams(
+            start=cast(datetime, params.get("start")),
+            end=cast(datetime, params.get("end")),
+            environments=environments,
+            projects=projects,
+            user=user,
+            teams=teams,
+            organization=organization,
+        )
+
     def __init__(
         self,
         dataset: Dataset,
         params: ParamsType,
+        snuba_params: Optional[SnubaParams] = None,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
@@ -147,7 +212,9 @@ class QueryBuilder:
     ):
         self.dataset = dataset
 
-        self.params = params
+        # filter params is the older style params, shouldn't be used anymore
+        self.filter_params = params
+        self.params = self._dataclass_params(snuba_params, params)
 
         org_id = params.get("organization_id")
         self.organization_id: Optional[int] = (
@@ -218,17 +285,11 @@ class QueryBuilder:
         if self.skip_time_conditions:
             return
         # start/end are required so that we can run a query in a reasonable amount of time
-        if "start" not in self.params or "end" not in self.params:
+        if self.params.start is None or self.params.end is None:
             raise InvalidSearchQuery("Cannot query without a valid date range")
 
-        # TODO: this validation should be done when we create the params dataclass instead
-        assert isinstance(self.params["start"], datetime) and isinstance(
-            self.params["end"], datetime
-        ), "Both start and end params must be datetime objects"
-
-        # Strip timezone, which are ignored and assumed UTC to match filtering
-        self.start = self.params["start"].replace(tzinfo=timezone.utc)
-        self.end = self.params["end"].replace(tzinfo=timezone.utc)
+        self.start = self.params.start
+        self.end = self.params.end
 
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
@@ -271,25 +332,15 @@ class QueryBuilder:
     ]:
         self.config: DatasetConfig
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
-            from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
-            from sentry.search.events.datasets.sessions import SessionsDatasetConfig
-
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.use_metrics_layer:
-                from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
-
                 self.config = MetricsLayerDatasetConfig(self)
             else:
-                from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
-            from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-
             self.config = ProfilesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -482,13 +533,9 @@ class QueryBuilder:
         expired = False
         if self.start and self.end:
             expired, self.start = outside_retention_with_modified_start(
-                self.start, self.end, Organization(self.params.get("organization_id"))
+                self.start, self.end, self.params.organization
             )
 
-        project_id: List[int] = self.params.get("project_id", [])  # type: ignore
-        assert all(
-            isinstance(project_id, int) for project_id in project_id
-        ), "All project id params must be ints"
         if expired:
             raise QueryOutsideRetentionError(
                 "Invalid date range. Please try a more recent date range."
@@ -499,18 +546,17 @@ class QueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        if "project_id" in self.params:
-            conditions.append(
-                Condition(
-                    self.column("project_id"),
-                    Op.IN,
-                    self.params["project_id"],
-                )
+        conditions.append(
+            Condition(
+                self.column("project_id"),
+                Op.IN,
+                self.params.project_ids,
             )
+        )
 
-        if "environment" in self.params:
+        if len(self.params.environments) > 0:
             term = SearchFilter(
-                SearchKey("environment"), "=", SearchValue(self.params["environment"])
+                SearchKey("environment"), "=", SearchValue(self.params.environment_names)
             )
             condition = self._environment_filter_converter(term)
             if condition:
@@ -638,7 +684,7 @@ class QueryBuilder:
         combinator_applied = False
 
         arguments = snql_function.format_as_arguments(
-            name, parsed_arguments, self.params, combinator
+            name, parsed_arguments, self.filter_params, combinator
         )
 
         self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
@@ -890,14 +936,14 @@ class QueryBuilder:
     @cached_property  # type: ignore
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
-        if "project_id" not in self.params or self.organization_id is None or not self.has_metrics:
+        if self.organization_id is None or not self.has_metrics:
             return []
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
         try:
             result: List[MetricMeta] = get_custom_measurements(
-                project_ids=self.params["project_id"],
+                project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
                 start=datetime.today() - timedelta(days=90),
                 end=datetime.today(),
@@ -949,23 +995,6 @@ class QueryBuilder:
             return "percentage"
         else:
             return "number"
-
-    @cached_property  # type: ignore
-    def project_slugs(self) -> Mapping[str, int]:
-        return {project.slug: project.id for project in self.projects}
-
-    @cached_property  # type: ignore
-    def projects(self) -> Sequence[Project]:
-        project_ids = cast(List[int], self.params.get("project_id", []))
-
-        if len(project_ids) > 0:
-            return [project for project in Project.objects.filter(id__in=project_ids)]
-        else:
-            return []
-
-    @cached_property  # type: ignore
-    def project_ids(self) -> Mapping[int, str]:
-        return {project_id: slug for slug, project_id in self.project_slugs.items()}
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
@@ -1066,7 +1095,7 @@ class QueryBuilder:
         try:
             parsed_terms = parse_search_query(
                 query,
-                params=self.params,
+                params=self.filter_params,
                 builder=self,
                 config_overrides=self.parser_config_overrides,
             )
@@ -1678,7 +1707,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":
-                    projects = list({self.project_slugs[event["project"]] for event in top_events})
+                    projects = list(
+                        {self.params.project_slug_map[event["project"]] for event in top_events}
+                    )
                 else:
                     projects = list({event["project.id"] for event in top_events})
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
@@ -1905,7 +1936,7 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        org_id = self.params.get("organization_id")
+        org_id = self.filter_params.get("organization_id")
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
@@ -2157,7 +2188,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance and self.tag_values_are_strings:
+        if self.is_performance and self.tag_values_are_strings or self.use_metrics_layer:
             return value
         if self.dry_run:
             return -1
@@ -2436,7 +2467,7 @@ class MetricsQueryBuilder(QueryBuilder):
             try:
                 metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
                 metrics_data = get_series(
-                    projects=self.projects,
+                    projects=self.params.projects,
                     metrics_query=metric_query,
                     use_case_id=use_case_id,
                     include_meta=True,
@@ -2639,17 +2670,12 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
         *args: Any,
         **kwargs: Any,
     ):
-        self.params = kwargs["params"]
         self.histogram_aliases: List[str] = []
         self.num_buckets = histogram_params.num_buckets
         self.min_bin = histogram_params.start_offset
         self.max_bin = (
             histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
         )
-        if "organization_id" in self.params:
-            self.organization_id: int = cast(int, self.params["organization_id"])
-        else:
-            raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
             self.num_buckets,
@@ -2686,6 +2712,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
         limit: Optional[int] = 10000,
+        use_metrics_layer: Optional[bool] = False,
     ):
         super().__init__(
             params=params,
@@ -2696,6 +2723,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             auto_fields=False,
             functions_acl=functions_acl,
             dry_run=dry_run,
+            use_metrics_layer=use_metrics_layer,
         )
         if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
@@ -2778,6 +2806,66 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if self.use_metrics_layer:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                tranform_mqb_query_to_metrics_query,
+            )
+
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            snuba_query = Query(
+                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                select=self.aggregates
+                + [
+                    # Team key transaction is a special case sigh
+                    col
+                    for col in self.columns
+                    if isinstance(col, Function) and col.function == "team_key_transaction"
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[],
+                granularity=self.granularity,
+            )
+            try:
+                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
+                metrics_data = get_series(
+                    projects=self.params.projects,
+                    metrics_query=metric_query,
+                    use_case_id=use_case_id,
+                    include_meta=True,
+                )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            # metric layer adds bucketed time automatically but doesn't remove it
+            for meta in metric_layer_result["meta"]:
+                if meta["name"] == "bucketed_time":
+                    meta["name"] = "time"
+            for index, interval in enumerate(metrics_data["intervals"]):
+                # the metric layer changes the intervals to datetime objects when we want the isoformat
+                data = {self.time_alias: interval.isoformat()}
+                # only need the first thing in groups since we don't groupby
+                for key, value_list in (
+                    metrics_data.get("groups", [{}])[0].get("series", {}).items()
+                ):
+                    data[key] = value_list[index]
+                metric_layer_result["data"].append(data)
+                for meta in metric_layer_result["meta"]:
+                    if meta["name"] not in data:
+                        data[meta["name"]] = self.get_default_value(meta["type"])
+            return metric_layer_result
         queries = self.get_snql_query()
         if self.dry_run:
             return {
@@ -2802,3 +2890,58 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             "data": list(time_map.values()),
             "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
         }
+
+
+class ProfilesQueryBuilderProtocol(Protocol):
+    @property
+    def config(self) -> ProfilesDatasetConfig:
+        ...
+
+    @property
+    def params(self) -> SnubaParams:
+        ...
+
+    def column(self, name: str) -> Column:
+        ...
+
+    def resolve_params(self) -> List[WhereType]:
+        ...
+
+
+class ProfilesQueryBuilderMixin:
+    def resolve_column_name(self: ProfilesQueryBuilderProtocol, col: str) -> str:
+        # giving resolved a type here convinces mypy that the type is str
+        resolved: str = self.config.resolve_column(col)
+        return resolved
+
+    def resolve_params(self: ProfilesQueryBuilderProtocol) -> List[WhereType]:
+        if self.params.organization is None:
+            raise InvalidSearchQuery("Organization is a required parameter")
+        # not sure how to make mypy happy here as `super()`
+        # refers to the other parent query builder class
+        conditions: List[WhereType] = super().resolve_params()  # type: ignore
+
+        # the profiles dataset requires a condition
+        # on the organization_id in the query
+        conditions.append(
+            Condition(
+                self.column("organization.id"),
+                Op.EQ,
+                self.params.organization.id,
+            )
+        )
+
+        return conditions
+
+    def get_field_type(self: ProfilesQueryBuilderProtocol, field: str) -> Optional[str]:
+        # giving resolved a type here convinces mypy that the type is str
+        resolved: Optional[str] = self.config.resolve_column_type(field)
+        return resolved
+
+
+class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
+    pass
+
+
+class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
+    pass

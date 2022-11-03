@@ -135,6 +135,40 @@ def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Seque
     return [cleaned]
 
 
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
+
+DB_PARAMETRIZATION_PATTERN = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
+            r"\b(?:true|false)\b",  # booleans
+        ]
+    )
+)
+
+
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
+def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
+    """First, apply the same IN-condition normalization as
+    loose_normalized_db_span_condition_strategy. Then, replace all numeric,
+    string, and boolean parameters with placeholders so that queries that only
+    differ in their parameters will have the same hash.
+
+    Since we don't know what flavor of SQL is being passed in, we have to be
+    conservative with the literals we target. Currently, only single-quoted
+    strings are parametrized even though MySQL supports double-quoted strings as
+    well, because PG uses double-quoted strings for identifiers."""
+    query = span.get("description") or ""
+    query, in_count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", query)
+    query, param_count = DB_PARAMETRIZATION_PATTERN.subn("%s", query)
+    if param_count + in_count == 0:
+        return None
+    return [query.strip()]
+
+
 HTTP_METHODS = {
     "GET",
     "HEAD",
