@@ -6,6 +6,15 @@ source: tests/sentry/relay/test_config.py
 config:
   allowedDomains:
   - '*'
+  breakdownsV2:
+    span_ops:
+      matches:
+      - http
+      - db
+      - browser
+      - resource
+      - ui
+      type: spanOperations
   datascrubbingSettings:
     excludeFields: []
     scrubData: true

@@ -253,8 +253,8 @@ def _get_project_config(project, full_config=True, project_keys=None):
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
 
-    if features.has("organizations:performance-ops-breakdown", project.organization):
-        config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+    config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
             config,
