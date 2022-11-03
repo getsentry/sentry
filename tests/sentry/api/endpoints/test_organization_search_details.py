@@ -1,6 +1,6 @@
 from exam import fixture
 
-from sentry.models import SavedSearch
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -23,14 +23,37 @@ class DeleteOrganizationSearchTest(APITestCase):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
     def test_owner_can_delete_org_searches(self):
-        search = SavedSearch.objects.create(organization=self.organization, name="foo", query="")
+        search = SavedSearch.objects.create(
+            organization=self.organization,
+            owner=self.create_user(),
+            name="foo",
+            query="",
+            visibility=Visibility.ORGANIZATION,
+        )
+        response = self.get_response(search.id)
+        assert response.status_code == 204, response.content
+        assert not SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_owners_can_delete_their_searches(self):
+        search = SavedSearch.objects.create(
+            organization=self.organization,
+            owner=self.user,
+            name="foo",
+            query="",
+            visibility=Visibility.OWNER,
+        )
+
         response = self.get_response(search.id)
         assert response.status_code == 204, response.content
         assert not SavedSearch.objects.filter(id=search.id).exists()
 
     def test_owners_cannot_delete_searches_they_do_not_own(self):
         search = SavedSearch.objects.create(
-            organization=self.organization, name="foo", query="", owner=self.create_user()
+            organization=self.organization,
+            owner=self.create_user(),
+            name="foo",
+            query="",
+            visibility=Visibility.OWNER,
         )
 
         response = self.get_response(search.id)
@@ -38,14 +61,25 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert SavedSearch.objects.filter(id=search.id).exists()
 
     def test_owners_cannot_delete_global_searches(self):
-        search = SavedSearch.objects.create(name="foo", query="", is_global=True)
+        search = SavedSearch.objects.create(
+            name="foo",
+            query="",
+            is_global=True,
+            visibility=Visibility.ORGANIZATION,
+        )
 
         response = self.get_response(search.id)
         assert response.status_code == 404, response.content
         assert SavedSearch.objects.filter(id=search.id).exists()
 
     def test_members_cannot_delete_shared_searches(self):
-        search = SavedSearch.objects.create(organization=self.organization, name="foo", query="")
+        search = SavedSearch.objects.create(
+            organization=self.organization,
+            owner=self.user,
+            name="foo",
+            query="",
+            visibility=Visibility.ORGANIZATION,
+        )
 
         self.login_as(user=self.member)
         response = self.get_response(search.id)
