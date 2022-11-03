@@ -58,7 +58,7 @@ class FromUserTest(TestCase):
         for result in results:
             assert result.has_project_access(deleted_project) is False
             assert result.has_project_membership(deleted_project) is False
-            assert len(result.visible_project_ids) == 0
+            assert len(result.enrolled_project_ids) == 0
 
     def test_no_deleted_teams(self):
         user = self.create_user()
@@ -78,7 +78,7 @@ class FromUserTest(TestCase):
         for result in results:
             assert result.has_team_access(team) is True
             assert result.has_team_access(deleted_team) is False
-            assert result.visible_team_ids == frozenset({team.id})
+            assert result.enrolled_team_ids == frozenset({team.id})
 
     def test_unique_projects(self):
         user = self.create_user()
@@ -96,7 +96,7 @@ class FromUserTest(TestCase):
 
         for result in results:
             assert result.has_project_access(project)
-            assert len(result.visible_project_ids) == 1
+            assert len(result.enrolled_project_ids) == 1
 
     def test_mixed_access(self):
         user = self.create_user()
@@ -324,9 +324,9 @@ class FromRequestTest(TestCase):
         def assert_memberships(result: Access) -> None:
             assert result.role == "admin"
 
-            assert result.visible_team_ids == frozenset({self.team1.id})
+            assert result.enrolled_team_ids == frozenset({self.team1.id})
             assert result.has_team_access(self.team1)
-            assert result.visible_project_ids == frozenset({self.project1.id})
+            assert result.enrolled_project_ids == frozenset({self.project1.id})
             assert result.has_project_access(self.project1)
             assert result.has_project_membership(self.project1)
             assert not result.has_project_membership(self.project2)
@@ -356,9 +356,9 @@ class FromRequestTest(TestCase):
         assert not result.requires_sso
         assert result.sso_is_valid
 
-        assert result.visible_team_ids == frozenset()
+        assert result.enrolled_team_ids == frozenset()
         assert result.has_team_access(self.team1)
-        assert result.visible_project_ids == frozenset()
+        assert result.enrolled_project_ids == frozenset()
         assert result.has_project_access(self.project1)
 
     def test_member_role_in_organization_closed_membership(self):
@@ -373,9 +373,9 @@ class FromRequestTest(TestCase):
         result = access.from_request(request, self.org)
 
         assert result.role == "member"
-        assert result.visible_team_ids == frozenset({self.team1.id})
+        assert result.enrolled_team_ids == frozenset({self.team1.id})
         assert result.has_team_access(self.team1)
-        assert result.visible_project_ids == frozenset({self.project1.id})
+        assert result.enrolled_project_ids == frozenset({self.project1.id})
         assert result.has_project_access(self.project1)
         assert result.has_project_membership(self.project1)
         assert not result.has_project_membership(self.project2)
@@ -397,9 +397,9 @@ class FromRequestTest(TestCase):
         result = access.from_request(request, self.org)
 
         assert result.role == "member"
-        assert result.visible_team_ids == frozenset({self.team1.id})
+        assert result.enrolled_team_ids == frozenset({self.team1.id})
         assert result.has_team_access(self.team1)
-        assert result.visible_project_ids == frozenset({self.project1.id})
+        assert result.enrolled_project_ids == frozenset({self.project1.id})
         assert result.has_project_access(self.project1)
         assert result.has_project_membership(self.project1)
         assert not result.has_project_membership(self.project2)
@@ -423,10 +423,10 @@ class FromRequestTest(TestCase):
         request.auth = ApiKey.objects.create(organization=organization, allowed_origins="*")
         result = access.from_request(request, organization)
 
-        assert result.visible_team_ids == frozenset({})
+        assert result.enrolled_team_ids == frozenset({})
         assert result.has_team_access(member_team)
         assert result.has_team_access(non_member_team)
-        assert result.visible_project_ids == frozenset({})
+        assert result.enrolled_project_ids == frozenset({})
         assert result.has_project_access(member_project)
         assert result.has_project_access(non_member_project)
         assert result.has_project_membership(member_project) is False
@@ -448,9 +448,9 @@ class FromRequestTest(TestCase):
 
         assert result == NoAccess()
 
-        assert result.visible_team_ids == frozenset({})
+        assert result.enrolled_team_ids == frozenset({})
         assert result.has_team_access(team) is False
-        assert result.visible_project_ids == frozenset({})
+        assert result.enrolled_project_ids == frozenset({})
         assert result.has_project_access(project) is False
         assert result.has_project_membership(project) is False
         assert result.has_global_access is False
@@ -496,7 +496,7 @@ class FromSentryAppTest(TestCase):
         result = access.from_request(request, self.org)
         assert result.has_global_access
         assert result.has_team_access(self.team)
-        assert result.visible_team_ids == frozenset({self.team.id})
+        assert result.enrolled_team_ids == frozenset({self.team.id})
         assert result.scopes == frozenset()
         assert result.has_project_access(self.project)
         assert result.has_project_membership(self.project)
