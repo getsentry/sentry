@@ -22,7 +22,7 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
-import OnboardingProjectsCard from './onboardingCard';
+import OnboardingProjectsCard from './onboardingProjectsCard';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined

@@ -5,6 +5,7 @@ from typing import Any, List, Mapping, Tuple
 import sentry_sdk
 from sentry_sdk import set_tag, set_user
 
+from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
@@ -43,6 +44,10 @@ def derive_code_mappings(
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
+
+    # Check the feature flag again to ensure the feature is still enabled.
+    if not features.has("organizations:derive-code-mappings", organization):
+        return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:

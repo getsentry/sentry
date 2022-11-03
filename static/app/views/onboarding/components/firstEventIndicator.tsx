@@ -37,7 +37,9 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
               })
             }
             to={`/organizations/${props.organization.slug}/issues/${
-              firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
+              firstIssue && firstIssue !== true && 'id' in firstIssue
+                ? `${firstIssue.id}/`
+                : ''
             }?referrer=onboarding-first-event-indicator`}
           >
             {t('Take me to my error')}
@@ -49,7 +51,7 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
 );
 
 interface IndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
-  firstIssue: Group | null | true;
+  firstIssue: null | boolean | Group;
 }
 
 const Indicator = ({firstIssue}: IndicatorProps) => (
