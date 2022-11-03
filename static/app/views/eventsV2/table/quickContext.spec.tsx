@@ -53,7 +53,7 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('Loading state renders for Quick Context.', async () => {
+    it('Renders child and trigger icon.', async () => {
       renderQuickContextContent();
 
       expect(await screen.findByText(/Text from Child/i)).toBeInTheDocument();

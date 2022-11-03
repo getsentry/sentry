@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {QueryClientProvider, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
@@ -153,36 +153,34 @@ export function QuickContextHoverWrapper(props: ContextProps) {
   }, [queryClient]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <HoverWrapper>
-        {props.children}
-        <StyledHovercard
-          skipWrapper
-          delay={HOVER_DELAY}
-          body={
-            <Wrapper data-test-id="quick-context-hover-body">
-              {isIssueContext(props.contextType) ? (
-                <IssueContext
-                  api={api}
-                  dataRow={props.dataRow}
-                  eventID={props.dataRow.id}
-                />
-              ) : (
-                <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
-              )}
-            </Wrapper>
-          }
-        >
-          <StyledIconInfo
-            data-test-id="quick-context-hover-trigger"
-            onMouseEnter={handleHoverState}
-            onMouseLeave={handleHoverState}
-            ishovering={ishovering ? 1 : 0}
-            onClick={e => e.preventDefault()}
-          />
-        </StyledHovercard>
-      </HoverWrapper>
-    </QueryClientProvider>
+    <HoverWrapper>
+      {props.children}
+      <StyledHovercard
+        skipWrapper
+        delay={HOVER_DELAY}
+        body={
+          <Wrapper data-test-id="quick-context-hover-body">
+            {isIssueContext(props.contextType) ? (
+              <IssueContext
+                api={api}
+                dataRow={props.dataRow}
+                eventID={props.dataRow.id}
+              />
+            ) : (
+              <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
+            )}
+          </Wrapper>
+        }
+      >
+        <StyledIconInfo
+          data-test-id="quick-context-hover-trigger"
+          onMouseEnter={handleHoverState}
+          onMouseLeave={handleHoverState}
+          ishovering={ishovering ? 1 : 0}
+          onClick={e => e.preventDefault()}
+        />
+      </StyledHovercard>
+    </HoverWrapper>
   );
 }
 
@@ -240,7 +238,6 @@ const ContextTitle = styled('h6')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;
 
