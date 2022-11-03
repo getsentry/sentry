@@ -540,3 +540,6 @@ register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
+
+# Controls whether we should attempt to derive code mappings for projects during post processing.
+register("post_process.derive-code-mappings", default=True)

@@ -633,8 +633,7 @@ export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
-  const results = field.match(MEASUREMENT_PATTERN);
-  return !!results;
+  return MEASUREMENT_PATTERN.test(field);
 }
 
 export function measurementType(field: string): MeasurementType {

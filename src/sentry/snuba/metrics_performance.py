@@ -121,6 +121,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     dry_run: bool = False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -142,6 +143,7 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 allow_metric_aggregates=allow_metric_aggregates,
                 dry_run=dry_run,
+                use_metrics_layer=use_metrics_layer,
             )
             if dry_run:
                 metrics_referrer = referrer + ".dry-run"
@@ -196,6 +198,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -246,6 +249,7 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
+        use_metrics_layer=use_metrics_layer,
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
