@@ -93,6 +93,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     }[metric_name]
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "query_string,expected",
     [
@@ -566,6 +567,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
         )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_orderby(mock_now, mock_now2):
@@ -666,6 +668,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
