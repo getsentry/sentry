@@ -275,6 +275,18 @@ export async function demoSignupModalV2(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
+export type DemoEndModalOptions = {
+  orgSlug: string | null;
+  tour: string;
+};
+
+export async function demoEndModal(options: DemoEndModalOptions) {
+  const mod = await import('sentry/components/modals/demoEndModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
