@@ -90,10 +90,10 @@ export class TransactionEventBuilder {
     return (this.#spans.length + 1).toString(16).padStart(16, '0');
   }
 
-  addSpan(mSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
+  addSpan(mockSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
     for (let i = 0; i < numSpans; i++) {
       const spanId = this.generateSpanId();
-      const {span} = mSpan;
+      const {span} = mockSpan;
       const clonedSpan = {...span};
 
       clonedSpan.span_id = spanId;
@@ -102,7 +102,7 @@ export class TransactionEventBuilder {
 
       this.#spans.push(clonedSpan);
 
-      switch (mSpan.problemSpan) {
+      switch (mockSpan.problemSpan) {
         case ProblemSpan.PARENT:
           this.#event.perfProblem?.parentSpanIds.push(spanId);
           break;
@@ -117,7 +117,7 @@ export class TransactionEventBuilder {
         this.#event.endTimestamp = clonedSpan.timestamp;
       }
 
-      mSpan.children.forEach(child => this.addSpan(child, 1, spanId));
+      mockSpan.children.forEach(child => this.addSpan(child, 1, spanId));
     }
 
     return this;
