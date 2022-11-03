@@ -53,6 +53,7 @@ class UserService(InterfaceWithLifecycle):
         """
         pass
 
+    @abstractmethod
     def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
         """
         This method returns a User object given an actor ID

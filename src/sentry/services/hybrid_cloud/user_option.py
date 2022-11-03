@@ -39,7 +39,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         key: str,
         project: Optional[Project],
     ) -> List[UserOption]:
-        queryset = UserOption.objects.filter(user__in=user_ids, key=key)
+        queryset = UserOption.objects.filter(user_id__in=user_ids, key=key)
         if project is not None:
             queryset = queryset.filter(project=project)
         return queryset

@@ -38,6 +38,7 @@ from sentry.models import (
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
 
 
@@ -69,6 +70,7 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
+@region_silo_test(stable=True)
 class MergeReleasesTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -198,6 +200,7 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release3.id).exists()
 
 
+@region_silo_test(stable=True)
 class SetCommitsTestCase(TestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -570,6 +573,7 @@ class SetCommitsTestCase(TestCase):
         assert commit.author.email == truncatechars(commit_email, 75)
 
 
+@region_silo_test(stable=True)
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -690,8 +694,8 @@ class SetRefsTest(SetRefsTestCase):
         with pytest.raises(ValidationError):
             Release.objects.create(organization=self.org)
 
-    @staticmethod
-    def test_invalid_chars_in_version():
+    # @staticmethod
+    def test_invalid_chars_in_version(self):
         version = (
             "\n> rfrontend@0.1.0 release:version\n> echo "
             "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
@@ -717,6 +721,7 @@ class SetRefsTest(SetRefsTestCase):
         assert not Release.is_valid_version(version)
 
 
+@region_silo_test(stable=True)
 class SemverReleaseParseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -899,6 +904,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "-2020"
 
 
+@region_silo_test(stable=True)
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
         with pytest.raises(
@@ -997,6 +1003,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
 
 
+@region_silo_test(stable=True)
 class ReleaseFilterBySemverBuildTest(TestCase):
     def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
         organization_id = organization_id if organization_id else self.organization.id
@@ -1042,6 +1049,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123abc", [release_3])
 
 
+@region_silo_test(stable=True)
 class FollowsSemverVersioningSchemeTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -1233,6 +1241,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         )
 
 
+@region_silo_test(stable=True)
 class ClearCommitsTestCase(TestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -1310,6 +1319,7 @@ class ClearCommitsTestCase(TestCase):
 from sentry.testutils import TransactionTestCase
 
 
+@region_silo_test(stable=True)
 class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_custom_manger(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
