@@ -78,7 +78,7 @@ describe('Dynamic Sampling', function () {
     expect(ignoreHealthChecks).toBeChecked();
   });
 
-  it('renders disabled default UI, when user has not permission to edit', function () {
+  it('renders disabled default UI, when user has not permission to edit', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -103,14 +103,16 @@ describe('Dynamic Sampling', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
-
     const prioritizenewReleases = screen.getByRole('checkbox', {
       name: 'Prioritize new releases',
     });
 
     expect(prioritizenewReleases).toBeDisabled();
     expect(prioritizenewReleases).toBeChecked();
+    userEvent.hover(prioritizenewReleases);
+    expect(
+      await screen.findByText('You do not have permission to edit this setting')
+    ).toBeInTheDocument();
 
     const prioritizeDevEnvironments = screen.getByRole('checkbox', {
       name: 'Prioritize dev environments',

@@ -74,7 +74,11 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
       });
-      expect(Cookies.set).toHaveBeenCalledWith('su-test-cookie', 'test');
+      expect(Cookies.set).toHaveBeenCalledWith(
+        'su-test-cookie',
+        'set-in-isActiveSuperuser',
+        {domain: '.sentry.io'}
+      );
       ConfigStore.config.user = TestStubs.User({isSuperuser: false});
     });
 

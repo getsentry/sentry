@@ -15,7 +15,7 @@ function initializeData(opts?: InitialOpts) {
   const project = TestStubs.Project({platform});
   const organization = TestStubs.Organization({
     projects: [project],
-    features,
+    features: features ?? [],
   });
 
   const initialData = initializeOrg({
