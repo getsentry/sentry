@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
+from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.support import get_support_mail
 
@@ -123,7 +124,7 @@ def get_client_config(request=None):
     """
     if request is not None:
         customer_domain = None
-        if hasattr(request, "subdomain") and request.subdomain:
+        if is_using_customer_domain(request):
             customer_domain = {
                 "subdomain": request.subdomain,
                 "organizationUrl": generate_organization_url(request.subdomain),
@@ -171,7 +172,11 @@ def get_client_config(request=None):
         last_org_slug = last_org.slug
     if last_org is None:
         _delete_activeorg(session)
+
+    inject_customer_domain_feature = bool(customer_domain)
     if last_org is not None and features.has("organizations:customer-domains", last_org):
+        inject_customer_domain_feature = True
+    if inject_customer_domain_feature:
         enabled_features.append("organizations:customer-domains")
 
     context = {
