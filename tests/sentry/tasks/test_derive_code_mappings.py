@@ -143,6 +143,7 @@ class TestIdentfiyStacktracePaths(TestCase):
             )
         ],
     )
+    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_dry_run(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
