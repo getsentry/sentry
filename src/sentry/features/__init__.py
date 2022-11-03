@@ -71,7 +71,6 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:customer-domains", OrganizationFeature, True)
 default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
-default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
