@@ -274,7 +274,7 @@ def wraps(
     key: str,
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
-    sample_rate: Optional[float] = settings.SENTRY_METRICS_SAMPLE_RATE,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
