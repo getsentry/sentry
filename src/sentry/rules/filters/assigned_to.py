@@ -38,7 +38,7 @@ class AssignedToFilter(EventFilter):
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(self.get_assignees(event.group)) == 0
         else:
-            target_id = self.get_option("targetIdentifier", None)
+            target_id = self.get_option("targetIdentifier", "")
 
             if target_type == AssigneeTargetType.TEAM:
                 for assignee in self.get_assignees(event.group):
@@ -57,7 +57,7 @@ class AssignedToFilter(EventFilter):
         if assignee is None:
             return target_type == AssigneeTargetType.UNASSIGNED
 
-        target_id = str(self.get_option("targetIdentifier", None))
+        target_id = str(self.get_option("targetIdentifier", ""))
 
         if target_type == AssigneeTargetType.TEAM:
             return bool(assignee["assigneeType"] == "team" and assignee["assignee"] == target_id)

@@ -105,9 +105,12 @@ def preview(
 def update_assignee(
     assignee_status: Dict[str, Any], assignee_activity: List[Activity], timestamp: datetime
 ) -> None:
+    last_activity = None
     while len(assignee_activity) > 0 and assignee_activity[-1].datetime < timestamp:
-        activity = assignee_activity.pop()
-        if activity.type == ActivityType.ASSIGNED.value:
-            assignee_status[activity.group_id] = activity.data
-        elif activity.type == ActivityType.UNASSIGNED.value:
-            assignee_status[activity.group_id] = None
+        last_activity = assignee_activity.pop()
+
+    if last_activity is not None:
+        if last_activity.type == ActivityType.ASSIGNED.value:
+            assignee_status[last_activity.group_id] = last_activity.data
+        elif last_activity.type == ActivityType.UNASSIGNED.value:
+            assignee_status[last_activity.group_id] = None
