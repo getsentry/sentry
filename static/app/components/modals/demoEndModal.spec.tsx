@@ -6,16 +6,6 @@ import DemoEndModal from 'sentry/components/modals/demoEndModal';
 describe('DemoEndModal', function () {
   const organization = TestStubs.Organization();
 
-  it('renders', function () {
-    const {container} = renderGlobalModal();
-
-    openModal(modalProps => (
-      <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
-    ));
-
-    expect(container).toSnapshot();
-  });
-
   it('closes on close button click', function () {
     const closeModal = jest.fn();
 
