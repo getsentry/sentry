@@ -3,7 +3,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future
-from typing import Deque, Generic, MutableMapping, NamedTuple, Optional, Tuple, TypeVar
+from typing import Any, Deque, MutableMapping, NamedTuple, Optional, Tuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
@@ -11,6 +11,18 @@ from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 
 logger = logging.getLogger(__name__)
+
+
+class RoutingPayload(NamedTuple):
+    """
+    Payload suitable for the ``RoutingProducer``. ``MessageRouter`` works
+    with this payload type. The routing_headers are used to determine the
+    route for the message. The payload is the message body which should be sent
+    to the destination topic.
+    """
+
+    routing_header: MutableMapping[str, Any]
+    payload: KafkaPayload
 
 
 class MessageRoute(NamedTuple):
@@ -23,10 +35,7 @@ class MessageRoute(NamedTuple):
     topic: Topic
 
 
-TPayload = TypeVar("TPayload")
-
-
-class MessageRouter(ABC, Generic[TPayload]):
+class MessageRouter(ABC):
     """
     An abstract class that defines the interface for a message router. A message
     router relies on the implementation of the get_route_for_message method
@@ -41,7 +50,7 @@ class MessageRouter(ABC, Generic[TPayload]):
     """
 
     @abstractmethod
-    def get_route_for_message(self, message: Message[TPayload]) -> MessageRoute:
+    def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         """
         This method must return the MessageRoute on which the message should
         be produced. Implementations of this method can vary based on the
@@ -60,7 +69,7 @@ class MessageRouter(ABC, Generic[TPayload]):
         raise NotImplementedError
 
 
-class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
+class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
     """
     This strategy is used to route messages to different producers/topics
     based on the message payload. It delegates the routing logic to the
@@ -78,7 +87,7 @@ class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit_function: Commit,
-        message_router: MessageRouter[KafkaPayload],
+        message_router: MessageRouter,
     ) -> None:
         self.__commit_function = commit_function
         self.__message_router = message_router
@@ -100,9 +109,7 @@ class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
             if not future.done():
                 break
 
-            exc = future.exception()
-            if exc is not None:
-                raise exc
+            future.result()
 
             self.__queue.popleft()
             self.__offsets_to_be_committed[message.partition] = Position(
@@ -111,7 +118,7 @@ class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
 
         self.__commit_function(self.__offsets_to_be_committed)
 
-    def submit(self, message: Message[KafkaPayload]) -> None:
+    def submit(self, message: Message[RoutingPayload]) -> None:
         """
         This is where the actual routing happens. Each message is passed to the
         message router to get the producer and topic to which the message should
@@ -120,7 +127,16 @@ class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
         """
         assert not self.__closed
         producer, topic = self.__message_router.get_route_for_message(message)
-        self.__queue.append((message, producer.produce(destination=topic, payload=message.payload)))
+        output_message = Message(
+            partition=message.partition,
+            offset=message.offset,
+            timestamp=message.timestamp,
+            payload=message.payload.payload,
+        )
+
+        self.__queue.append(
+            (output_message, producer.produce(destination=topic, payload=output_message.payload))
+        )
 
     def terminate(self) -> None:
         self.__closed = True

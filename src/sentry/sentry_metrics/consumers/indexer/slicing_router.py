@@ -1,7 +1,7 @@
+from time import time
 from typing import MutableMapping, Optional
 
 from arroyo import Message, Topic
-from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka import Producer
 from django.conf import settings
 
@@ -11,11 +11,15 @@ from sentry.ingest.partitioning import (
     map_logical_partition_to_slice,
     map_org_id_to_logical_partition,
 )
-from sentry.sentry_metrics.consumers.indexer.routing_producer import MessageRoute, MessageRouter
+from sentry.sentry_metrics.consumers.indexer.routing_producer import (
+    MessageRoute,
+    MessageRouter,
+    RoutingPayload,
+)
 from sentry.utils import kafka_config
 
 
-class SlicingRouter(MessageRouter[KafkaPayload]):
+class SlicingRouter(MessageRouter):
     def __init__(
         self,
         sliceable: Sliceable,
@@ -51,7 +55,7 @@ class SlicingRouter(MessageRouter[KafkaPayload]):
             )
             self.__slicing_enabled = True
 
-    def get_route_for_message(self, message: Message[KafkaPayload]) -> MessageRoute:
+    def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         """
         Get route for the message. If slicing is enabled, the message will be routed
         based on the mapping of partition to slice. If slicing is disabled, the message
@@ -60,11 +64,7 @@ class SlicingRouter(MessageRouter[KafkaPayload]):
         if not self.__slicing_enabled:
             return self.__slice_to_producer[0]
 
-        org_id: Optional[int] = None
-        for header in message.payload.headers:
-            if header[0] == "org_id":
-                org_id = int(header[1])
-                break
+        org_id = message.payload.routing_header.get("org_id", None)
 
         if org_id is None:
             producer = self.__slice_to_producer[0]
@@ -78,6 +78,10 @@ class SlicingRouter(MessageRouter[KafkaPayload]):
 
     def shutdown(self, timeout: Optional[float] = None) -> None:
         if not timeout:
-            timeout = 1.0
+            timeout = 5.0
         for route in self.__slice_to_producer.values():
+            now = time()
             route.producer.flush(timeout=timeout)
+            timeout -= time() - now
+            if timeout <= 0:
+                break

@@ -11,18 +11,21 @@ from sentry.conf.server import (
     SLICED_KAFKA_BROKER_CONFIG,
     SLICED_KAFKA_TOPIC_MAP,
 )
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 
 
 @pytest.fixture
-def metrics_message(org_id: int) -> Message[KafkaPayload]:
-    header = [("org_id", str(org_id).encode("utf-8"))] if org_id > 0 else []
+def metrics_message(org_id: int) -> Message[RoutingPayload]:
     return Message(
         partition=Partition(Topic("source_topic"), 0),
-        payload=KafkaPayload(
-            key=b"",
-            value=b"{}",
-            headers=header,
+        payload=RoutingPayload(
+            routing_header={"org_id": org_id},
+            payload=KafkaPayload(
+                key=b"",
+                value=b"{}",
+                headers=[],
+            ),
         ),
         offset=0,
         timestamp=datetime.now(),
@@ -30,7 +33,7 @@ def metrics_message(org_id: int) -> Message[KafkaPayload]:
 
 
 @pytest.fixture
-def setup_slicing(monkeypatch):
+def setup_slicing(monkeypatch) -> None:
     monkeypatch.setitem(
         SENTRY_SLICING_CONFIG, "generic_metrics_sets", {(0, 128): 0, (128, 256): 1}  # type: ignore
     )
@@ -53,7 +56,7 @@ def setup_slicing(monkeypatch):
 
 
 @pytest.mark.parametrize("org_id", [100, 1000])
-def test_slicing_router_with_no_partitioning(metrics_message):
+def test_slicing_router_with_no_slicing(metrics_message) -> None:
     """
     With default settings, the SlicingRouter should always route to the topic
     whose name is the same as the logical topic name.
@@ -65,12 +68,12 @@ def test_slicing_router_with_no_partitioning(metrics_message):
 
 
 @pytest.mark.parametrize("org_id", [1, 127, 128, 256, 257])
-def test_slicing_router_with_partitioning(metrics_message, setup_slicing):
+def test_slicing_router_with_slicing(metrics_message, setup_slicing) -> None:
     """
     With partitioning settings, the SlicingRouter should route to the correct topic
     based on the org_id header.
     """
-    org_id = metrics_message.payload.headers[0][1].decode("utf-8")
+    org_id = metrics_message.payload.routing_header.get("org_id")
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
     route = router.get_route_for_message(metrics_message)
     if int(org_id) % SENTRY_SLICING_LOGICAL_PARTITION_COUNT < 128:
@@ -107,7 +110,15 @@ def test_slicing_router_with_no_org_in_message(metrics_message, setup_slicing):
     When no org id is present in the message, the message should be routed to slice 0.
     """
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
-    assert metrics_message.payload.headers == []
-    route = router.get_route_for_message(metrics_message)
+    new_metrics_message = Message(
+        partition=metrics_message.partition,
+        payload=RoutingPayload(
+            routing_header={},
+            payload=metrics_message.payload.payload,
+        ),
+        offset=metrics_message.offset,
+        timestamp=metrics_message.timestamp,
+    )
+    route = router.get_route_for_message(new_metrics_message)
     assert route.topic.name == "sliced_topic_0"
     router.shutdown()
