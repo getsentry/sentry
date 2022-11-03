@@ -1,8 +1,5 @@
 import styled from '@emotion/styled';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import space from 'sentry/styles/space';
-
 import FieldControlState from './fieldControlState';
 import {FieldGroupProps} from './types';
 
@@ -10,8 +7,6 @@ type FieldControlProps = Pick<
   FieldGroupProps,
   | 'alignRight'
   | 'controlState'
-  | 'disabled'
-  | 'disabledReason'
   | 'flexibleControlStateSize'
   | 'hideControlState'
   | 'inline'
@@ -22,8 +17,6 @@ type FieldControlProps = Pick<
 const FieldControl = ({
   inline,
   alignRight,
-  disabled,
-  disabledReason,
   controlState,
   children,
   hideControlState,
@@ -32,12 +25,6 @@ const FieldControl = ({
   <FieldControlErrorWrapper inline={inline}>
     <FieldControlWrapper>
       <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
-
-      {disabled && disabledReason && (
-        <DisabledIndicator className="disabled-indicator">
-          <StyledQuestionTooltip title={disabledReason} size="sm" position="top" />
-        </DisabledIndicator>
-      )}
 
       {!hideControlState && (
         <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
@@ -70,15 +57,4 @@ const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
 const FieldControlWrapper = styled('div')`
   display: flex;
   flex-shrink: 0;
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  display: block;
-  margin: 0 auto;
-`;
-
-const DisabledIndicator = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: ${space(1)};
 `;

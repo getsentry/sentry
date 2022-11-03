@@ -666,8 +666,10 @@ class MetricsDatasetConfig(DatasetConfig):
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-            project_ids=self.builder.params.get("project_id"),
-            org_id=self.builder.params.get("organization_id"),
+            org_id=self.builder.params.organization.id
+            if self.builder.params.organization
+            else None,
+            project_ids=self.builder.params.project_ids,
         )
 
     def _project_threshold_multi_if_function(self) -> SelectType:
@@ -743,9 +745,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
 
-        return Condition(
-            Column(self.builder.resolve_column_name("transaction")), Op(operator), value
-        )
+        return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(

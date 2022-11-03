@@ -59,10 +59,12 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         ]
         context["orgRoleList"] = serialize(
             organization_role_list,
-            serializer=OrganizationRoleSerializer(),
+            serializer=OrganizationRoleSerializer(organization=obj.organization),
             allowed_roles=self.allowed_roles,
         )
         context["roles"] = context["orgRoleList"]  # deprecated
-        context["teamRoleList"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
+        context["teamRoleList"] = serialize(
+            team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj.organization)
+        )
 
         return context

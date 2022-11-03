@@ -167,8 +167,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             orderby="project",
         )
         data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32]
+        assert len(data) == 2
+        assert [item["project"] for item in data] == ["a" * 32, "z" * 32]
 
     def test_issue_short_id_mapping(self):
         tests = [
