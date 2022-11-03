@@ -74,8 +74,15 @@ interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
 function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
-  const {value, defaultValue, onChange, orientation, disabled, ...otherRootProps} =
-    rootProps;
+  const {
+    value,
+    defaultValue,
+    onChange,
+    orientation,
+    disabled,
+    keyboardActivation = 'manual',
+    ...otherRootProps
+  } = rootProps;
 
   // Load up list state
   const ariaProps = {
@@ -92,6 +99,7 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
       browserHistory.push(linkTo);
     },
     isDisabled: disabled,
+    keyboardActivation,
     ...otherRootProps,
     ...props,
   };
