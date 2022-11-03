@@ -353,7 +353,6 @@ class TransactionBar extends Component<Props, State> {
 
     return (
       <RowRectangle
-        spanBarHatch={false}
         style={{
           backgroundColor: barColor,
           left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
@@ -366,7 +365,6 @@ class TransactionBar extends Component<Props, State> {
             width: widthPercentage,
           })}
           showDetail={showDetail}
-          spanBarHatch={false}
         >
           {getHumanDuration(duration)}
         </DurationPill>

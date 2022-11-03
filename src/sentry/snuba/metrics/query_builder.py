@@ -8,8 +8,9 @@ __all__ = (
     "resolve_tags",
     "translate_meta_results",
 )
+
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
     AliasedExpression,
@@ -44,6 +45,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
+    MetricExpressionBase,
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
@@ -71,6 +73,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
+    require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -94,7 +97,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
 
 
 def resolve_tags(
@@ -183,17 +186,21 @@ def resolve_tags(
             conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
-        if input_.name == "project_id":
+        # If a column has the name belonging to the set, it means that we don't need to resolve its name.
+        if input_.name in frozenset(["project_id", "tags.key"]):
             return input_
+
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             # Handles translating field aliases to their "metrics" equivalent, for example
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
             name = input_.key
         else:
             name = input_.name
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
@@ -341,10 +348,15 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
+def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+    """Get the metric object from a metric field"""
+    return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
+
+
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
-    query_metric_fields: Set[str],
-    groupby_aliases: Set[str],
+    alias_to_metric_field: Dict[str, MetricField],
+    alias_to_metric_group_by_field: Dict[str, MetricGroupByField],
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -359,7 +371,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name in groupby_aliases
+        is_tag = column_name in alias_to_metric_group_by_field.keys()
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -375,10 +387,31 @@ def translate_meta_results(
                     # it is a safe assumption to make.
                     parent_alias = record["name"].split(COMPOSITE_ENTITY_CONSTITUENT_ALIAS)[1]
                     if parent_alias not in {elem["name"] for elem in results}:
-                        results.append({"name": parent_alias, "type": record["type"]})
+                        try:
+                            defined_parent_meta_type = get_metric_object_from_metric_field(
+                                alias_to_metric_field[parent_alias]
+                            ).get_meta_type()
+                        except KeyError:
+                            defined_parent_meta_type = None
+
+                        results.append(
+                            {
+                                "name": parent_alias,
+                                "type": record["type"]
+                                if defined_parent_meta_type is None
+                                else defined_parent_meta_type,
+                            }
+                        )
                     continue
-                if record["name"] not in query_metric_fields:
+                if record["name"] not in alias_to_metric_field.keys():
                     raise InvalidParams(f"Field {record['name']} was not in the select clause")
+
+                defined_parent_meta_type = get_metric_object_from_metric_field(
+                    alias_to_metric_field[record["name"]]
+                ).get_meta_type()
+                record["type"] = (
+                    record["type"] if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             except InvalidParams:
                 # XXX(ahmed): We get into this branch when we are tying to generate inferred types
                 # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
@@ -394,7 +427,17 @@ def translate_meta_results(
             if is_tag:
                 # since we changed value from int to str we need
                 # also want to change type
-                record["type"] = "string"
+                metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+                if isinstance(metric_groupby_field.field, MetricField):
+                    defined_parent_meta_type = get_metric_object_from_metric_field(
+                        metric_groupby_field.field
+                    ).get_meta_type()
+                else:
+                    defined_parent_meta_type = None
+
+                record["type"] = (
+                    "string" if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             elif is_time_col or is_dataset_col:
                 record["name"] = column_name
 
@@ -496,7 +539,9 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=condition.rhs,
+                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                            if require_rhs_condition_resolution(condition.lhs.op)
+                            else condition.rhs,
                         )
                     )
                 except IndexError:
@@ -566,11 +611,35 @@ class SnubaQueryBuilder:
 
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
+
+            if self._use_case_id == UseCaseKey.PERFORMANCE:
+                time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
+                    self._metrics_query.interval
+                )
+            else:
+                time_groupby_column = Column(TS_COL_GROUP)
+
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
-                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+                list(totals_query.groupby or []) + [time_groupby_column]
             )
 
         return rv
+
+    @staticmethod
+    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
+        return Function(
+            function="toStartOfInterval",
+            parameters=[
+                Column(name="timestamp"),
+                Function(
+                    function="toIntervalSecond",
+                    parameters=[interval],
+                    alias=None,
+                ),
+                "Universal",
+            ],
+            alias=TS_COL_GROUP,
+        )
 
     def __update_query_dicts_with_component_entities(
         self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
@@ -696,6 +765,7 @@ class SnubaQueryBuilder:
                             self._metrics_query.start,
                             self._metrics_query.end,
                             self._metrics_query.granularity.granularity,
+                            interval=self._metrics_query.interval,
                         )
                     )
                 ),
@@ -802,7 +872,7 @@ class SnubaResultConverter:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(alias, empty_values)
 
-                    if bucketed_time is not None:
+                    if bucketed_time is not None and bucketed_time in self._timestamp_index:
                         series_index = self._timestamp_index[bucketed_time]
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value

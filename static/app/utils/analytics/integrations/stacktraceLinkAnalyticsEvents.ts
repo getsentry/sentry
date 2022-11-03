@@ -1,5 +1,6 @@
 import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {PlatformType} from 'sentry/types';
+import {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 import {IntegrationView} from './index';
 
@@ -22,10 +23,12 @@ export type StacktraceLinkEventParameters = {
   [key in StacktraceLinkEventsLiterals]: {
     error_reason?: StacktraceErrorMessage;
     platform?: PlatformType;
+    project_id?: string;
     provider?: string;
     setup_type?: 'automatic' | 'manual';
     state?: 'match' | 'no_match' | 'prompt' | 'empty';
-  } & IntegrationView;
+  } & IntegrationView &
+    Partial<BaseEventAnalyticsParams>; // make optional
 };
 
 export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string> = {

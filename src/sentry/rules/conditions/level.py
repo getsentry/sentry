@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import Any, Callable, Tuple
 
 from django import forms
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
 
 key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
-LEVEL_CHOICES = OrderedDict(
-    [(f"{k}", v) for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)]
-)
+LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
 
 
 class LevelEventForm(forms.Form):  # type: ignore
@@ -31,7 +28,7 @@ class LevelCondition(EventCondition):
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         desired_level_raw = self.get_option("level")
         desired_match = self.get_option("match")
 

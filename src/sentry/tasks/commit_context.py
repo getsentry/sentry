@@ -9,6 +9,7 @@ from sentry.integrations.utils.commit_context import find_commit_context_for_eve
 from sentry.locks import locks
 from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -24,8 +25,11 @@ logger = logging.getLogger("tasks.commit_context")
 @instrumented_task(
     name="sentry.tasks.process_commit_context",
     queue="group_owners.process_commit_context",
-    default_retry_delay=5,
+    autoretry_for=(ApiError,),
     max_retries=5,
+    retry_backoff=True,
+    retry_backoff_max=60 * 60 * 3,  # 3 hours
+    retry_jitter=False,
 )
 def process_commit_context(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
@@ -77,7 +81,7 @@ def process_commit_context(
                 frames = munged[1]
 
             # First frame in the stacktrace that is "in_app"
-            frame = next(filter(lambda frame: frame.get("in_app", False), frames), None)
+            frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
 
             if not frame:
                 metrics.incr(

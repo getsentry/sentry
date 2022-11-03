@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
-import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
-import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
+import createCache from '@emotion/cache';
+import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import ConfigStore from 'sentry/stores/configStore';
@@ -12,6 +12,15 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme';
 type Props = {
   children: React.ReactNode;
 };
+
+// XXX(epurkhiser): We create our own emotion cache object to disable the
+// stylis prefixer plugin. This plugin does NOT use browserlist to determine
+// what needs prefixed, just applies ALL prefixes.
+//
+// In 2022 prefixes are almost ubiquitously unnecessary
+const cache = createCache({key: 'app', stylisPlugins: []});
+// Compat disables :nth-child warning
+cache.compat = true;
 
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.

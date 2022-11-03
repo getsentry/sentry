@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Duration from 'sentry/components/duration';
 import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import space from 'sentry/styles/space';
+import useApiRequests from 'sentry/utils/useApiRequests';
 import {Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
@@ -18,44 +18,41 @@ type CheckIn = {
 
 type Props = {
   monitor: Monitor;
-} & AsyncComponent['props'];
+};
 
 type State = {
   checkInList: CheckIn[];
-} & AsyncComponent['state'];
+};
 
-export default class MonitorCheckIns extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {monitor} = this.props;
-    return [
-      ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: 10}}],
-    ];
-  }
+const MonitorCheckIns = ({monitor}: Props) => {
+  const {data, hasError, renderComponent} = useApiRequests<State>({
+    endpoints: [
+      ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: '10'}}],
+    ],
+  });
 
-  renderError() {
-    return <ErrorWrapper>{super.renderError()}</ErrorWrapper>;
-  }
+  const renderedComponent = renderComponent(
+    <PanelBody>
+      {data.checkInList?.map(checkIn => (
+        <PanelItem key={checkIn.id}>
+          <CheckInIconWrapper>
+            <CheckInIcon status={checkIn.status} size={16} />
+          </CheckInIconWrapper>
+          <TimeSinceWrapper>
+            <TimeSince date={checkIn.dateCreated} />
+          </TimeSinceWrapper>
+          <DurationWrapper>
+            {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
+          </DurationWrapper>
+        </PanelItem>
+      ))}
+    </PanelBody>
+  );
 
-  renderBody() {
-    return (
-      <PanelBody>
-        {this.state.checkInList.map(checkIn => (
-          <PanelItem key={checkIn.id}>
-            <CheckInIconWrapper>
-              <CheckInIcon status={checkIn.status} size={16} />
-            </CheckInIconWrapper>
-            <TimeSinceWrapper>
-              <TimeSince date={checkIn.dateCreated} />
-            </TimeSinceWrapper>
-            <DurationWrapper>
-              {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
-            </DurationWrapper>
-          </PanelItem>
-        ))}
-      </PanelBody>
-    );
-  }
-}
+  return hasError ? <ErrorWrapper>{renderedComponent}</ErrorWrapper> : renderedComponent;
+};
+
+export default MonitorCheckIns;
 
 const DivMargin = styled('div')`
   margin-right: ${space(2)};

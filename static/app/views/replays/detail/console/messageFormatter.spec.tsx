@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -7,8 +6,6 @@ import {
   BreadcrumbTypeDefault,
   Crumb,
 } from 'sentry/types/breadcrumbs';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import MessageFormatter from './messageFormatter';
 
@@ -104,83 +101,40 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
   },
 ];
 
-function TestComponent({children}: {children: React.ReactNode}) {
-  const {organization, router} = initializeOrg();
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[0]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[0]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('This is a test');
+    expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
 
   it('Should print console message with objects correctly', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[1]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[1]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('test 1 false {}');
+    expect(screen.getByText('test 1 false {}')).toBeInTheDocument();
   });
 
   it('Should print console message correctly when it is an Error object', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[2]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('Error: this is my error message');
+    expect(screen.getByText('Error: this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[3]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('{}');
+    expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[4]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('prev state {"cart":[]}');
+    expect(screen.getByText('prev state {"cart":[]}')).toBeInTheDocument();
   });
 
   it('Should print arrays correctly', () => {
-    render(
-      <TestComponent>
-        <MessageFormatter breadcrumb={breadcrumbs[5]} />
-      </TestComponent>
-    );
+    render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('test ["foo","bar"]');
+    expect(screen.getByText('test ["foo","bar"]')).toBeInTheDocument();
   });
 });

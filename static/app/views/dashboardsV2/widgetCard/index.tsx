@@ -12,7 +12,6 @@ import Button from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -324,44 +323,44 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            {(organization.features.includes('dashboards-mep') ||
-              organization.features.includes('mep-rollout-flag')) && (
-              <MEPConsumer>
-                {metricSettingContext => {
-                  return (
-                    <DashboardsMEPConsumer>
-                      {({isMetricsData}) => {
-                        if (
-                          showStoredAlert &&
-                          isMetricsData === false &&
-                          widget.widgetType === WidgetType.DISCOVER &&
-                          metricSettingContext &&
-                          metricSettingContext.metricSettingState !==
-                            MEPState.transactionsOnly
-                        ) {
-                          if (!widgetContainsErrorFields) {
-                            return (
-                              <StoredDataAlert showIcon>
-                                {tct(
-                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                  {
-                                    indexedData: (
-                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                    ),
-                                  }
-                                )}
-                                <FeatureBadge type="beta" />
-                              </StoredDataAlert>
-                            );
+            {!organization.features.includes('performance-mep-bannerless-ui') &&
+              (organization.features.includes('dashboards-mep') ||
+                organization.features.includes('mep-rollout-flag')) && (
+                <MEPConsumer>
+                  {metricSettingContext => {
+                    return (
+                      <DashboardsMEPConsumer>
+                        {({isMetricsData}) => {
+                          if (
+                            showStoredAlert &&
+                            isMetricsData === false &&
+                            widget.widgetType === WidgetType.DISCOVER &&
+                            metricSettingContext &&
+                            metricSettingContext.metricSettingState !==
+                              MEPState.transactionsOnly
+                          ) {
+                            if (!widgetContainsErrorFields) {
+                              return (
+                                <StoredDataAlert showIcon>
+                                  {tct(
+                                    "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                    {
+                                      indexedData: (
+                                        <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                      ),
+                                    }
+                                  )}
+                                </StoredDataAlert>
+                              );
+                            }
                           }
-                        }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
-                  );
-                }}
-              </MEPConsumer>
-            )}
+                          return null;
+                        }}
+                      </DashboardsMEPConsumer>
+                    );
+                  }}
+                </MEPConsumer>
+              )}
           </React.Fragment>
         )}
       </ErrorBoundary>

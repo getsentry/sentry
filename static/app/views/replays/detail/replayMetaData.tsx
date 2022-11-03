@@ -31,7 +31,7 @@ function ReplayMetaData({replayRecord}: Props) {
     query: {
       ...query,
       t_main: 'console',
-      f_c_logLevel: 'error',
+      f_c_logLevel: 'issue',
       f_c_search: undefined,
     },
   };
@@ -61,7 +61,11 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <Fragment>
             <IconClock color="gray300" />
-            <Duration seconds={replayRecord?.duration} abbreviation exact />
+            <Duration
+              seconds={Math.trunc(replayRecord?.duration.asSeconds())}
+              abbreviation
+              exact
+            />
           </Fragment>
         ) : (
           <HeaderPlaceholder />

@@ -53,7 +53,8 @@ Makefile                    @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
 .git-blame-ignore-revs      @getsentry/owners-sentry-dev
 
-mypy.ini @getsentry/python-typing
+mypy.ini        @getsentry/python-typing
+/fixtures/stubs @getsentry/python-typing
 
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/release-approvers
@@ -238,11 +239,15 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/models/notificationsetting.py     @getsentry/ecosystem
 
 /src/sentry/tasks/code_owners.py              @getsentry/ecosystem
+/src/sentry/tasks/commits.py                  @getsentry/ecosystem
+/src/sentry/tasks/commit_context.py           @getsentry/ecosystem
 /src/sentry/tasks/digests.py                  @getsentry/ecosystem
+/src/sentry/tasks/derive_code_mappings.py     @getsentry/ecosystem
 /src/sentry/tasks/email.py                    @getsentry/ecosystem
 /src/sentry/tasks/integrations/               @getsentry/ecosystem
 /src/sentry/tasks/reports.py                  @getsentry/ecosystem
 /src/sentry/tasks/user_report.py              @getsentry/ecosystem
+/src/sentry/tasks/weekly_reports.py           @getsentry/ecosystem
 
 /src/sentry_plugins/                          @getsentry/ecosystem
 
@@ -346,6 +351,7 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py                  @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/query.py                                                       @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                        @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_details.py                                             @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                             @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_details.py                          @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py                      @getsentry/telemetry-experience
@@ -355,9 +361,17 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/sentry/api/endpoints/test_organization_dynamic_sampling_sdk_versions.py           @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                             @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                                 @getsentry/telemetry-experience
+/tests/acceptance/test_project_settings_sampling.py                                      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_details.py                                      @getsentry/telemetry-experience
 
 /static/app/views/settings/project/sampling/                                             @getsentry/telemetry-experience
 /static/app/views/settings/project/server-side-sampling/                                 @getsentry/telemetry-experience
+/static/app/views/settings/project/dynamicSampling/                                      @getsentry/telemetry-experience
+/static/app/stores/serverSideSamplingStore.tsx                                           @getsentry/telemetry-experience
+/static/app/stores/serverSideSamplingStore.spec.tsx                                      @getsentry/telemetry-experience
+/static/app/actionCreators/serverSideSampling.tsx                                        @getsentry/telemetry-experience
+/static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx            @getsentry/telemetry-experience
+/static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx            @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                               @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                                   @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.spec.tsx                                              @getsentry/telemetry-experience

@@ -48,7 +48,6 @@ import {
 } from './utils';
 import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
-import VitalsComparison from './vitalsComparison';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
@@ -155,7 +154,7 @@ function VitalDetailContent(props: Props) {
           'aria-label': `Web Vitals: ${vitalAbbreviations[vitalName]}`,
           prefix: t('Web Vitals'),
         }}
-        placement="bottom left"
+        position="bottom-start"
       />
     );
   }
@@ -205,20 +204,6 @@ function VitalDetailContent(props: Props) {
             onSearch={handleSearch}
           />
         </FilterActions>
-        {organization.experiments.VitalsAlertExperiment ? (
-          <VitalsComparison
-            {...{
-              organization,
-              location,
-              vital,
-              project,
-              end,
-              environment,
-              statsPeriod,
-              start,
-            }}
-          />
-        ) : null}
         <VitalChart
           organization={organization}
           query={query}

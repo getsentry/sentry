@@ -1,6 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 
 /**
  * Processed form field metadata.
@@ -34,6 +34,9 @@ const storeConfig: ExternalIssuesDefinition = {
   searchMap: null,
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 

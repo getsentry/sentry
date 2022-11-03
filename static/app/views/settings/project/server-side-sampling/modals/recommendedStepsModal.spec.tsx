@@ -1,8 +1,7 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -26,7 +25,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render all recommended steps', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -40,7 +39,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
       />
     ));
 
-    expect(screen.getByText('Next steps')).toBeInTheDocument();
+    expect(screen.getByText('Important next steps')).toBeInTheDocument();
 
     // First recommended step
     expect(
@@ -51,7 +50,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To activate Dynamic Sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -73,13 +72,13 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
     // Second recommended step
     expect(
       screen.getByRole('heading', {
-        name: 'Increase your client-side transaction sample rate',
+        name: 'Adjust your Client-Side (SDK) sample rate',
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
+        'Here’s the new Client-Side (SDK) sample rate you specified in the previous step. To make this change, find the ‘tracesSampleRate’ option in your SDK Config, modify it’s value to what’s shown below and re-deploy.'
       )
     ).toBeInTheDocument();
 
@@ -105,7 +104,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render only the last recommended step', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -127,7 +126,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Increase your client-side transaction sample rate',
+        name: 'Adjust your Client-Side (SDK) sample rate',
       })
     ).toBeInTheDocument();
   });
@@ -137,7 +136,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     const onGoBack = jest.fn();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -160,7 +159,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('renders 3/3 footer', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal

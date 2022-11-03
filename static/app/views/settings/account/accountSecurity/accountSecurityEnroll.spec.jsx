@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -6,8 +6,6 @@ import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity
 const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
-  let wrapper;
-
   describe('Totp', function () {
     Client.clearMockResponses();
     const authenticator = TestStubs.Authenticators().Totp({
@@ -18,36 +16,39 @@ describe('AccountSecurityEnroll', function () {
         {
           type: 'string',
           name: 'otp',
+          label: 'OTP Code',
         },
       ],
     });
+
+    const routerContext = TestStubs.routerContext([
+      {
+        router: {
+          ...TestStubs.router(),
+          params: {authId: authenticator.authId},
+        },
+      },
+    ]);
 
     beforeAll(function () {
       Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mountWithTheme(
-        <AccountSecurityEnroll />,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router(),
-              params: {
-                authId: authenticator.authId,
-              },
-            },
-          },
-        ])
-      );
     });
 
     it('does not have enrolled circle indicator', function () {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+      render(<AccountSecurityEnroll />, {context: routerContext});
+
+      expect(
+        screen.getByRole('status', {name: 'Authentication Method Inactive'})
+      ).toBeInTheDocument();
     });
 
     it('has qrcode component', function () {
-      expect(wrapper.find('QRCodeCanvas')).toHaveLength(1);
+      render(<AccountSecurityEnroll />, {context: routerContext});
+
+      expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
 
     it('can enroll', function () {
@@ -56,8 +57,10 @@ describe('AccountSecurityEnroll', function () {
         method: 'POST',
       });
 
-      wrapper.find('input[name="otp"]').simulate('change', {target: {value: 'otp'}});
-      wrapper.find('Form').simulate('submit');
+      render(<AccountSecurityEnroll />, {context: routerContext});
+
+      userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+
       expect(enrollMock).toHaveBeenCalledWith(
         `${ENDPOINT}15/enroll/`,
         expect.objectContaining({
@@ -78,21 +81,17 @@ describe('AccountSecurityEnroll', function () {
       });
 
       const pushMock = jest.fn();
-      wrapper = mountWithTheme(
-        <AccountSecurityEnroll />,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router({
-                push: pushMock,
-              }),
-              params: {
-                authId: authenticator.authId,
-              },
-            },
+      const routerContextWithMock = TestStubs.routerContext([
+        {
+          router: {
+            ...TestStubs.router({push: pushMock}),
+            params: {authId: authenticator.authId},
           },
-        ])
-      );
+        },
+      ]);
+
+      render(<AccountSecurityEnroll />, {context: routerContextWithMock});
+
       expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });
   });

@@ -348,10 +348,20 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option(
+    "--no-strict-offset-reset",
+    is_flag=True,
+    help="Forces the kafka consumer auto offset reset.",
+)
+# TODO: Remove this option once we have fully cut over to the streaming consumer
+@click.option(
+    "--use-streaming-consumer",
+    is_flag=True,
+    help="Switches to the new streaming consumer implementation.",
+)
+@click.option(
     "--entity",
-    default="all",
-    type=click.Choice(["all", "errors", "transactions"]),
-    help="The type of entity to process (all, errors, transactions).",
+    type=click.Choice(["errors", "transactions"]),
+    help="The type of entity to process (errors, transactions).",
 )
 @log_options()
 @configuration
@@ -370,6 +380,8 @@ def post_process_forwarder(**options):
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
+            strict_offset_reset=not options["no_strict_offset_reset"],
+            use_streaming_consumer=bool(options["use_streaming_consumer"]),
         )
     except ForwarderNotRequired:
         sys.stdout.write(
@@ -656,6 +668,17 @@ def metrics_parallel_consumer(**options):
 
     initialize_global_consumer_state(ingest_config)
     streamer.run()
+
+
+@run.command("billing-metrics-consumer")
+@log_options()
+@batching_kafka_options("billing-metrics-consumer")
+@configuration
+def metrics_billing_consumer(**options):
+    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    consumer = get_metrics_billing_consumer(**options)
+    consumer.run()
 
 
 @run.command("ingest-profiles")

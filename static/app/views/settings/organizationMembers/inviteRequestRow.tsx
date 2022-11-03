@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {MultiControlProps} from 'sentry/components/deprecatedforms/multiSelectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {PanelItem} from 'sentry/components/panels';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
+import TeamSelector from 'sentry/components/teamSelector';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -32,7 +31,6 @@ const InviteModalHook = HookOrDefault({
 });
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
-type OnChangeArgs = Parameters<NonNullable<MultiControlProps['onChange']>>[0];
 
 const InviteRequestRow = ({
   inviteRequest,
@@ -93,9 +91,7 @@ const InviteRequestRow = ({
         <TeamSelectControl
           name="teams"
           placeholder={t('Add to teams\u2026')}
-          onChange={(teams: OnChangeArgs) =>
-            onUpdate({teams: (teams || []).map(team => team.value)})
-          }
+          onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
           value={inviteRequest.teams}
           clearable
           multiple

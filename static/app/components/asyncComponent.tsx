@@ -77,7 +77,7 @@ class AsyncComponent<
     this._measurement = {
       hasMeasured: false,
     };
-    if (props.routes && props.routes) {
+    if (props.routes) {
       metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
   }

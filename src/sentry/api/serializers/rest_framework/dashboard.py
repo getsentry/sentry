@@ -165,8 +165,15 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
+        params = {
+            "start": datetime.now() - timedelta(days=1),
+            "end": datetime.now(),
+            "project_id": [p.id for p in self.context.get("projects")],
+            "organization_id": self.context.get("organization").id,
+        }
+
         try:
-            parse_search_query(conditions)
+            parse_search_query(conditions, params=params)
         except InvalidSearchQuery as err:
             # We don't know if the widget that this query belongs to is an
             # Issue widget or Discover widget. Pass the error back to the
@@ -179,13 +186,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
-            params = {
-                "start": datetime.now() - timedelta(days=1),
-                "end": datetime.now(),
-                "project_id": [p.id for p in self.context.get("projects")],
-                "organization_id": self.context.get("organization").id,
-            }
-
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
@@ -318,6 +318,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if start and end and start >= end:
             raise serializers.ValidationError("start must be before end")
+
+        if len(data.get("widgets", [])) > Dashboard.MAX_WIDGETS:
+            raise serializers.ValidationError(
+                f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
+            )
 
         return data
 

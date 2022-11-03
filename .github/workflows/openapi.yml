@@ -6,7 +6,7 @@ on:
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   build_and_deref_json:
@@ -15,19 +15,19 @@ jobs:
     steps:
       - name: Getsentry Token
         id: getsentry
-        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
       - name: Check for python file changes
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
@@ -40,14 +40,14 @@ jobs:
 
       - name: Checkout getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'
-        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON

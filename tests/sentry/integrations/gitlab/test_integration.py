@@ -331,6 +331,92 @@ class GitlabIntegrationTest(IntegrationTestCase):
             source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
         )
 
+    @responses.activate
+    def test_get_commit_context(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=f"{instance}:{external_id}",
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "sentry/tasks.py"
+        ref = "master"
+        event_frame = {
+            "function": "handle_set_commits",
+            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+            "module": "sentry.tasks",
+            "in_app": True,
+            "lineno": 30,
+            "filename": "sentry/tasks.py",
+        }
+
+        responses.add(
+            responses.GET,
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}/blame?ref={ref}&range[start]=30&range[end]=30",
+            json=[
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Rename title",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-11-14T10:12:32.000Z",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-11-14T10:12:32.000Z",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## Installation Docs"],
+                },
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Add installation instructions",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-12-18T08:12:22.000Z",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-12-18T08:12:22.000Z",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## Docs"],
+                },
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Create docs",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-10-03T09:34:32.000Z",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-10-03T09:34:32.000Z",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## New"],
+                },
+            ],
+        )
+        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
+
+        assert commit_context == {
+            "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+            "committedDate": "2015-12-18T08:12:22.000Z",
+            "commitMessage": "Add installation instructions",
+            "commitAuthorName": "Nisanthan Nanthakumar",
+            "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
+        }
+
 
 class GitlabIntegrationInstanceTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider

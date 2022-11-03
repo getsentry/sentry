@@ -8,16 +8,11 @@ import sortBy from 'lodash/sortBy';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import Link from 'sentry/components/links/link';
-import HeaderItem from 'sentry/components/organizations/headerItem';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
-import PlatformList from 'sentry/components/platformList';
-import Tooltip from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {MinimalProject, Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
@@ -26,6 +21,18 @@ import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
 
 type Props = WithRouterProps & {
+  /**
+   * Used to render a custom dropdown button for the DropdownAutoComplete
+   */
+  customDropdownButton: (config: {
+    actions: MenuActions;
+    isOpen: boolean;
+    selectedProjects: Project[];
+  }) => React.ReactElement;
+  /**
+   * The loading indicator to render when global selection is not yet ready.
+   */
+  customLoadingIndicator: React.ReactNode;
   /**
    * Projects the member is a part of
    */
@@ -48,19 +55,6 @@ type Props = WithRouterProps & {
    */
   value: number[];
   /**
-   * Used to render a custom dropdown button for the DropdownAutoComplete
-   */
-  customDropdownButton?: (config: {
-    actions: MenuActions;
-    isOpen: boolean;
-    selectedProjects: Project[];
-  }) => React.ReactElement;
-  /**
-   * The loading indicator to render when global selection is not yet ready.
-   */
-  customLoadingIndicator?: React.ReactNode;
-  detached?: boolean;
-  /**
    * Only allow a single project to be selected at once
    */
   disableMultipleProjectSelection?: boolean;
@@ -72,42 +66,7 @@ type Props = WithRouterProps & {
    * Message to show in the footer
    */
   footerMessage?: React.ReactNode;
-  /**
-   * Forces a specific project to be selected and does _not_ allow editing of the project selection.
-   *
-   * @deprecated This was used in the old Global Selection Header
-   */
-  forceProject?: MinimalProject | null;
   isGlobalSelectionReady?: boolean;
-  /**
-   * Used when `forceProject` is set. Indicates what is "locked"
-   *
-   * @deprecated
-   */
-  lockedMessageSubject?: React.ReactNode;
-  /**
-   * When we expect forceProject to be set, but the project is still loading, we
-   * can use this to hint that the forceProject will be set.
-   *
-   * @deprecated
-   */
-  shouldForceProject?: boolean;
-  /**
-   * Link back to the issues stream
-   *
-   * @deprecated
-   */
-  showIssueStreamLink?: boolean;
-  /**
-   * Show the pinning icon in the projects dropdown
-   */
-  showPin?: boolean;
-  /**
-   * Show a link to the project settings in th header
-   *
-   * @deprecated
-   */
-  showProjectSettingsLink?: boolean;
 };
 
 function ProjectSelector({
@@ -115,22 +74,15 @@ function ProjectSelector({
   customLoadingIndicator,
   disableMultipleProjectSelection,
   footerMessage,
-  forceProject,
   isGlobalSelectionReady,
-  location,
-  lockedMessageSubject = t('page'),
   memberProjects,
   nonMemberProjects = [],
   onApplyChange,
   onChange,
   organization,
   router,
-  shouldForceProject,
-  showIssueStreamLink,
-  showPin,
-  showProjectSettingsLink,
   value,
-  ...extraProps
+  disabled,
 }: Props) {
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
@@ -223,71 +175,8 @@ function ProjectSelector({
     selectedProjectIds.has(parseInt(project.id, 10))
   );
 
-  // `forceProject` can be undefined if it is loading the project
-  // We are intentionally using an empty string as its "loading" state
-  if (shouldForceProject) {
-    const projectName =
-      forceProject && showIssueStreamLink && isMulti ? (
-        <Tooltip title={t('Issues Stream')} position="bottom">
-          <StyledLink
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {...location.query, project: forceProject.id},
-            }}
-          >
-            {forceProject.slug}
-          </StyledLink>
-        </Tooltip>
-      ) : forceProject ? (
-        forceProject.slug
-      ) : (
-        ''
-      );
-
-    const lockedMessage = forceProject
-      ? tct('This [subject] is unique to the [projectSlug] project', {
-          subject: lockedMessageSubject,
-          projectSlug: forceProject.slug,
-        })
-      : tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
-
-    return (
-      <StyledHeaderItem
-        data-test-id="page-filter-project-selector"
-        icon={
-          forceProject && (
-            <PlatformList
-              platforms={forceProject.platform ? [forceProject.platform] : []}
-              max={1}
-            />
-          )
-        }
-        locked
-        lockedMessage={lockedMessage}
-        settingsLink={
-          (forceProject &&
-            showProjectSettingsLink &&
-            `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
-          undefined
-        }
-      >
-        {projectName}
-      </StyledHeaderItem>
-    );
-  }
-
   if (!isGlobalSelectionReady) {
-    return (
-      <Fragment>{customLoadingIndicator}</Fragment> ?? (
-        <StyledHeaderItem
-          data-test-id="page-filter-project-selector-loading"
-          icon={<IconProject />}
-          loading
-        >
-          {t('Loading\u2026')}
-        </StyledHeaderItem>
-      )
-    );
+    return <Fragment>{customLoadingIndicator}</Fragment>;
   }
 
   const listSort = (project: Project) => [
@@ -328,6 +217,7 @@ function ProjectSelector({
     searchKey: project.slug,
     label: ({inputValue}: {inputValue: typeof project.slug}) => (
       <SelectorItem
+        key={project.slug}
         project={project}
         organization={organization}
         multi={isMulti}
@@ -360,8 +250,9 @@ function ProjectSelector({
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutocomplete
-          {...extraProps}
+          detached
           blendCorner={false}
+          disabled={disabled}
           searchPlaceholder={t('Filter projects')}
           onSelect={i => handleQuickSelect(i.item)}
           onClose={handleClose}
@@ -377,11 +268,13 @@ function ProjectSelector({
           virtualizedLabelHeight={theme.headerSelectorLabelHeight}
           inputActions={
             <InputActions>
-              {showPin && (
-                <GuideAnchor target="new_page_filter_pin" position="bottom">
-                  <PageFilterPinButton size="xs" filter="projects" />
-                </GuideAnchor>
-              )}
+              <GuideAnchor target="new_page_filter_pin" position="bottom">
+                <PageFilterPinButton
+                  organization={organization}
+                  filter="projects"
+                  size="xs"
+                />
+              </GuideAnchor>
             </InputActions>
           }
           menuFooter={({actions}) => (
@@ -393,21 +286,31 @@ function ProjectSelector({
               onApply={() => handleUpdate(actions)}
               onShowAllProjects={() => {
                 handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
-                actions.close();
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'all',
                   path: getRouteStringFromRoutes(router.routes),
                   organization,
                 });
+
+                // The close action here triggers the onClose() handler which we
+                // use to apply the current selection. We need that to happen on the
+                // next render so that the state will reflect All Projects instead of
+                // the outdated selection that exists when this callback is triggered.
+                setTimeout(actions.close);
               }}
               onShowMyProjects={() => {
                 handleClear();
-                actions.close();
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'my',
                   path: getRouteStringFromRoutes(router.routes),
                   organization,
                 });
+
+                // The close action here triggers the onClose() handler which we
+                // use to apply the current selection. We need that to happen on the
+                // next render so that the state will reflect My Projects instead of
+                // the outdated selection that exists when this callback is triggered.
+                setTimeout(actions.close);
               }}
               message={footerMessage}
             />
@@ -416,48 +319,9 @@ function ProjectSelector({
           allowActorToggle
           closeOnSelect
         >
-          {({actions, isOpen}) => {
-            if (customDropdownButton) {
-              return customDropdownButton({
-                actions,
-                selectedProjects: selected,
-                isOpen,
-              });
-            }
-            const hasSelected = !!selected.length;
-            const title = hasSelected
-              ? selected.map(({slug}) => slug).join(', ')
-              : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
-              ? t('All Projects')
-              : t('My Projects');
-            const icon = hasSelected ? (
-              <PlatformList
-                platforms={selected.map(p => p.platform ?? 'other').reverse()}
-                max={5}
-              />
-            ) : (
-              <IconProject />
-            );
-
-            return (
-              <StyledHeaderItem
-                data-test-id="page-filter-project-selector"
-                icon={icon}
-                hasSelected={hasSelected}
-                hasChanges={hasChanges}
-                isOpen={isOpen}
-                onClear={handleClear}
-                allowClear={isMulti}
-                settingsLink={
-                  selected.length === 1
-                    ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
-                    : ''
-                }
-              >
-                {title}
-              </StyledHeaderItem>
-            );
-          }}
+          {({actions, isOpen}) =>
+            customDropdownButton({actions, selectedProjects: selected, isOpen})
+          }
         </StyledDropdownAutocomplete>
       )}
     </ClassNames>
@@ -469,28 +333,7 @@ export default withRouter(ProjectSelector);
 const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-
-  ${p =>
-    !p.detached &&
-    `
-    width: 100%;
-    margin: 1px 0 0 -1px;
-    border-radius: ${p.theme.borderRadiusBottom};
-  `}
-`;
-
-const StyledHeaderItem = styled(HeaderItem)`
-  height: 100%;
   width: 100%;
-  ${p => p.locked && 'cursor: default'};
-`;
-
-const StyledLink = styled(Link)`
-  color: ${p => p.theme.subText};
-
-  &:hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const Label = styled('div')`

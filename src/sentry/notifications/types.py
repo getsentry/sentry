@@ -59,6 +59,12 @@ class NotificationSettingTypes(Enum):
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
 
+    # Sub category of quotas for spend allocation notifications
+    QUOTA_SPEND_ALLOCATIONS = 55
+
+    # Notifications about spikes
+    SPIKE_PROTECTION = 60
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
@@ -72,6 +78,8 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
     NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
     NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
+    NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
 }
 
 
@@ -132,6 +140,7 @@ class FineTuningAPIKey(Enum):
     REPORTS = "reports"
     WORKFLOW = "workflow"
     ACTIVE_RELEASE = "activeRelease"
+    SPIKE_PROTECTION = "spikeProtection"
 
 
 class UserOptionsSettingsKey(Enum):
@@ -143,6 +152,7 @@ class UserOptionsSettingsKey(Enum):
     ACTIVE_RELEASE = "activeReleaseNotifications"
     APPROVAL = "approvalNotifications"
     QUOTA = "quotaNotifications"
+    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -179,12 +189,20 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.ACTIVE_RELEASE: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.SPIKE_PROTECTION: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

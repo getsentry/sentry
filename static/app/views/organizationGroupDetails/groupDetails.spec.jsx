@@ -7,9 +7,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
-import {RouteContext} from 'sentry/views/routeContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -67,20 +65,9 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        <OrganizationContext.Provider value={organization}>
-          <GroupDetails {...router} router={router} selection={props.selection}>
-            <MockComponent />
-          </GroupDetails>
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>,
+      <GroupDetails {...router} router={router} selection={props.selection}>
+        <MockComponent />
+      </GroupDetails>,
       {context: routerContext}
     );
   };
@@ -128,6 +115,10 @@ describe('groupDetails', () => {
           },
         ],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/environments/`,
+      body: TestStubs.Environments(),
     });
   });
 

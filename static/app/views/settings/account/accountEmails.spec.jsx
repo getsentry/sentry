@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
@@ -17,9 +17,9 @@ describe('AccountEmails', function () {
   });
 
   it('renders with emails', function () {
-    const wrapper = mountWithTheme(<AccountEmails />);
+    const {container} = render(<AccountEmails />);
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can remove an email', function () {
@@ -29,12 +29,10 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />);
-
+    render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    // The first Button should be delete button for first secondary email (NOT primary)
-    wrapper.find('[data-test-id="remove"]').at(1).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove email'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -54,12 +52,10 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />);
-
+    render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    // The first Button should be delete button for first secondary email (NOT primary)
-    wrapper.find('Button[children="Set as primary"]').first().simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Set as primary'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -79,11 +75,10 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />);
-
+    render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper.find('Button[children="Resend verification"]').simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Resend verification'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       `${ENDPOINT}confirm/`,
@@ -102,15 +97,11 @@ describe('AccountEmails', function () {
       method: 'POST',
       statusCode: 200,
     });
-    const wrapper = mountWithTheme(<AccountEmails />);
 
+    render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('input')
-      .first()
-      .simulate('change', {target: {value: 'test@example.com'}})
-      .simulate('blur');
+    userEvent.type(screen.getByRole('textbox'), 'test@example.com{enter}');
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

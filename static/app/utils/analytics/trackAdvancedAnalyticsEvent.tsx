@@ -1,9 +1,14 @@
 import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
+import {
+  dynamicSamplingEventMap,
+  DynamicSamplingEventParameters,
+} from './dynamicSamplingAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
+import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
 import {
   performanceEventMap,
   PerformanceEventParameters,
@@ -21,6 +26,7 @@ type EventParameters = GrowthEventParameters &
   DashboardsEventParameters &
   DiscoverEventParameters &
   IssueEventParameters &
+  MonitorsEventParameters &
   PerformanceEventParameters &
   ProfilingEventParameters &
   ReleasesEventParameters &
@@ -28,7 +34,8 @@ type EventParameters = GrowthEventParameters &
   SamplingEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
-  TeamInsightsEventParameters;
+  TeamInsightsEventParameters &
+  DynamicSamplingEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -36,6 +43,7 @@ const allEventMap: Record<string, string | null> = {
   ...discoverEventMap,
   ...growthEventMap,
   ...issueEventMap,
+  ...monitorsEventMap,
   ...performanceEventMap,
   ...profilingEventMap,
   ...releasesEventMap,
@@ -44,6 +52,7 @@ const allEventMap: Record<string, string | null> = {
   ...searchEventMap,
   ...settingsEventMap,
   ...workflowEventMap,
+  ...dynamicSamplingEventMap,
 };
 
 /**

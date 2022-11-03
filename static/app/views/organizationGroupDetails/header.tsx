@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -8,11 +8,11 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -21,7 +21,7 @@ import Link from 'sentry/components/links/link';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
-import {Item, TabList} from 'sentry/components/tabs';
+import {Item, TabList, TabsContext} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -30,6 +30,7 @@ import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/t
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -144,6 +145,10 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
+  const {
+    rootProps: {onChange},
+  } = useContext(TabsContext);
+
   const errorIssueTabs = useMemo(() => {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -151,10 +156,31 @@ function GroupHeader({
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
+    const hasSessionReplay =
+      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
+
+    const analyticsData = event
+      ? event.tags
+          .filter(({key}) => ['device', 'os', 'browser'].includes(key))
+          .reduce((acc, {key, value}) => {
+            acc[key] = value;
+            return acc;
+          }, {})
+      : {};
 
     return (
-      <StyledTabList>
+      <StyledTabList
+        hideBorder
+        onSelectionChange={key => {
+          trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+            organization,
+            tab: key.toString(),
+            platform: project.platform,
+            ...analyticsData,
+          });
+          return onChange?.(key);
+        }}
+      >
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
@@ -220,11 +246,13 @@ function GroupHeader({
     organization,
     project,
     replaysCount,
+    onChange,
+    event,
   ]);
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
+      <StyledTabList hideBorder>
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
@@ -291,28 +319,35 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
 
+  const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
+
   return (
     <Layout.Header>
       <div className={className}>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: 'Issues',
-              to: `/organizations/${organization.slug}/issues/${location.search}`,
-            },
-            {label: shortIdBreadCrumb},
-          ]}
-        />
+        <BreadcrumbActionWrapper>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
+              {label: shortIdBreadCrumb},
+            ]}
+          />
+          {hasIssueActionsV2 && (
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+          )}
+        </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -376,19 +411,26 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-            query={location.query}
-          />
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-        </HeaderRow>
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}
@@ -398,6 +440,14 @@ function GroupHeader({
 }
 
 export default GroupHeader;
+
+const BreadcrumbActionWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
+  align-items: center;
+`;
 
 const ShortIdBreadrcumb = styled('div')`
   display: flex;
@@ -467,6 +517,5 @@ const IconBadge = styled(Badge)`
 `;
 
 const StyledTabList = styled(TabList)`
-  border-bottom: none;
   margin-top: ${space(2)};
 `;

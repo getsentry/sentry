@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {Group, IssueCategory} from 'sentry/types';
 
 import UnhandledTag, {
   TagAndMessageWrapper,
@@ -19,10 +21,20 @@ const SharedGroupHeader = ({group}: Props) => (
     <Details>
       <TitleWrap>
         <Title>{group.title}</Title>
-        <StyledShortId
-          shortId={group.shortId}
-          avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
-        />
+        <ShortIdWrapper>
+          <ShortId
+            shortId={group.shortId}
+            avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
+          />
+          {group.issueCategory === IssueCategory.PERFORMANCE && (
+            <FeatureBadge
+              type="beta"
+              title={t(
+                'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
+              )}
+            />
+          )}
+        </ShortIdWrapper>
       </TitleWrap>
 
       <TagAndMessageWrapper>
@@ -46,15 +58,15 @@ const Details = styled('div')`
   margin: 0 auto;
 `;
 
-const TitleWrap = styled('div')`
+const ShortIdWrapper = styled('div')`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
 `;
 
-const StyledShortId = styled(ShortId)`
-  flex-shrink: 0;
+const TitleWrap = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;
 
 const Title = styled('h3')`

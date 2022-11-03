@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 import {MemberRole} from 'sentry/types';
 
 type OptionType = {
@@ -28,7 +30,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
           ({
             value: r.id,
             label: r.name,
-            disabled: disableUnallowed && !r.allowed,
+            disabled: (disableUnallowed && !r.allowed) || r.isRetired,
             details: <Details>{r.desc}</Details>,
           } as OptionType)
       )}

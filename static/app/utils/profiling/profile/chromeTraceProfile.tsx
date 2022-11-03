@@ -285,6 +285,7 @@ export function parseTypescriptChromeTraceArrayFormat(
   return {
     name: 'chrometrace',
     traceID: profileID,
+    transactionID: null,
     activeProfileIndex: 0,
     profiles,
     metadata: {} as Profiling.Schema['metadata'],
@@ -304,8 +305,6 @@ function isProfileChunk(
 function isThreadmetaData(
   event: ChromeTrace.Event
 ): event is ChromeTrace.ThreadMetadataEvent {
-  event.name === 'Thread';
-
   return event.ph === 'M' && event.name === 'Thread';
 }
 
@@ -535,6 +534,7 @@ export function parseChromeTraceFormat(
     activeProfileIndex: 0,
     profiles: [],
     traceID: profileID,
+    transactionID: null,
     metadata: {} as Profiling.Schema['metadata'],
   };
 }

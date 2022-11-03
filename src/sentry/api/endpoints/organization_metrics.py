@@ -54,6 +54,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
         # endpoint does not
         for metric in metrics:
             del metric["metric_id"]
+            del metric["mri_string"]
         return Response(metrics, status=200)
 
 

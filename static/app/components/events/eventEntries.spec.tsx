@@ -5,10 +5,8 @@ import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
 import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
-const {organization, project, router} = initializeData({
+const {organization, project} = initializeData({
   features: ['performance-issues'],
 });
 
@@ -16,24 +14,13 @@ const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   render(
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        <EventEntries
-          organization={organization}
-          event={{...event, errors: errors ?? event.errors}}
-          project={project}
-          location={location}
-          api={api}
-        />
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
+    <EventEntries
+      organization={organization}
+      event={{...event, errors: errors ?? event.errors}}
+      project={project}
+      location={location}
+      api={api}
+    />
   );
 
   const alertSummaryInfo = await screen.findByTestId('event-error-alert');
@@ -54,6 +41,13 @@ describe('EventEntries', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      body: {
+        committers: [],
+      },
     });
   });
 
@@ -306,16 +300,15 @@ describe('EventEntries', function () {
       };
 
       render(
-        <OrganizationContext.Provider value={organization}>
-          <EventEntries
-            organization={organization}
-            event={newEvent}
-            project={project}
-            location={location}
-            api={api}
-            group={group}
-          />
-        </OrganizationContext.Provider>
+        <EventEntries
+          organization={organization}
+          event={newEvent}
+          project={project}
+          location={location}
+          api={api}
+          group={group}
+        />,
+        {organization}
       );
 
       const resourcesHeadingText = screen.getByRole('heading', {
@@ -350,25 +343,14 @@ describe('EventEntries', function () {
       };
 
       render(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <EventEntries
-              organization={organization}
-              event={newEvent}
-              project={project}
-              location={location}
-              api={api}
-              group={group}
-            />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
+        <EventEntries
+          organization={organization}
+          event={newEvent}
+          project={project}
+          location={location}
+          api={api}
+          group={group}
+        />
       );
 
       const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');

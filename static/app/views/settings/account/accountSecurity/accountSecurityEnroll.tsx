@@ -16,12 +16,12 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import {PanelItem} from 'sentry/components/panels';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -72,7 +72,11 @@ const getFields = ({
     return [
       () => (
         <CodeContainer key="qrcode">
-          <StyledQRCode value={authenticator.qrcode} size={228} />
+          <StyledQRCode
+            aria-label={t('Enrollment QR Code')}
+            value={authenticator.qrcode}
+            size={228}
+          />
         </CodeContainer>
       ),
       () => (
@@ -292,7 +296,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     this.handleEnrollSuccess();
   };
 
-  handleSubmit: Form['props']['onSubmit'] = data => {
+  handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
     if (id === 'totp') {
@@ -384,6 +388,8 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
           }, {})
       : {};
 
+    const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
+
     return (
       <Fragment>
         <SettingsPageHeader
@@ -391,8 +397,14 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator
+                role="status"
+                aria-label={
+                  isActive
+                    ? t('Authentication Method Active')
+                    : t('Authentication Method Inactive')
+                }
+                enabled={isActive}
                 css={{marginLeft: 6}}
-                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
               />
             </Fragment>
           }

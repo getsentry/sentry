@@ -455,8 +455,7 @@ def query_facet_performance(
             ([] if orderby is None else orderby) + ["tags_key", "tags_value"]
         )
 
-        results = tag_query.run_query(f"{referrer}.tag_values".format(referrer, "tag_values"))
-        results = discover.transform_results(results, tag_query, {}, None)
+        results = tag_query.process_results(tag_query.run_query(f"{referrer}.tag_values"))
 
         return results
 

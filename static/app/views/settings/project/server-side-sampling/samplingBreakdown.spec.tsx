@@ -18,19 +18,15 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
-    expect(
-      screen.getByText(
-        'There were no traces initiated from this project in the last 30 days.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/This project made no/)).toBeInTheDocument();
   });
 
   it('renders project breakdown', function () {
     const {organization} = getMockData();
-    const projectBreakdown = mockedSamplingDistribution.project_breakdown;
+    const projectBreakdown = mockedSamplingDistribution.projectBreakdown;
 
     ProjectsStore.loadInitialData(
-      projectBreakdown!.map(p => TestStubs.Project({id: p.project_id, slug: p.project}))
+      projectBreakdown!.map(p => TestStubs.Project({id: p.projectId, slug: p.project}))
     );
 
     ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);

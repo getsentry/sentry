@@ -155,7 +155,7 @@ const StyledInput = styled(Input)`
 `;
 
 const Status = styled('div')`
-  height: 40px;
+  height: 100%;
   position: absolute;
   right: ${space(1.5)};
   top: 0;

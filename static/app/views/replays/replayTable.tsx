@@ -16,6 +16,7 @@ import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,22 +24,30 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   isFetching: boolean;
-  replays: undefined | ReplayListRecord[];
+  replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   showProjectColumn: boolean;
-  sort: Sort;
+  sort: Sort | undefined;
   fetchError?: Error;
+  showSlowestTxColumn?: boolean;
+};
+
+type TableProps = {
+  showProjectColumn: boolean;
+  showSlowestTxColumn: boolean;
 };
 
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
-  replay: ReplayListRecord;
+  replay: ReplayListRecord | ReplayListRecordWithTx;
   showProjectColumn: boolean;
+  showSlowestTxColumn: boolean;
 };
 
 function SortableHeader({
@@ -48,19 +57,19 @@ function SortableHeader({
 }: {
   fieldName: string;
   label: string;
-  sort: Sort;
+  sort: Props['sort'];
 }) {
   const location = useLocation<ReplayListLocationQuery>();
 
-  const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
+  const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
     <SortLink
       role="columnheader"
       aria-sort={
-        sort.field.endsWith(fieldName)
-          ? sort.kind === 'asc'
+        sort?.field.endsWith(fieldName)
+          ? sort?.kind === 'asc'
             ? 'ascending'
             : 'descending'
           : 'none'
@@ -69,18 +78,29 @@ function SortableHeader({
         pathname: location.pathname,
         query: {
           ...location.query,
-          sort: sort.kind === 'desc' ? fieldName : '-' + fieldName,
+          sort: sort?.field.endsWith(fieldName)
+            ? sort?.kind === 'desc'
+              ? fieldName
+              : '-' + fieldName
+            : '-' + fieldName,
         },
       }}
     >
-      {label} {sort.field === fieldName && sortArrow}
+      {label} {sort?.field === fieldName && sortArrow}
     </SortLink>
   );
 }
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}: Props) {
+function ReplayTable({
+  isFetching,
+  replays,
+  showProjectColumn,
+  sort,
+  fetchError,
+  showSlowestTxColumn = false,
+}: Props) {
   const routes = useRoutes();
-  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+  const referrer = getRouteStringFromRoutes(routes);
 
   const organization = useOrganization();
   const theme = useTheme();
@@ -88,20 +108,34 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
 
   const tableHeaders = [
     t('Session'),
-    showProjectColumn && minWidthIsSmall ? (
+    showProjectColumn && minWidthIsSmall && (
       <SortableHeader
         key="projectId"
         sort={sort}
         fieldName="projectId"
         label={t('Project')}
       />
-    ) : null,
-    <SortableHeader
-      key="startedAt"
-      sort={sort}
-      fieldName="startedAt"
-      label={t('Start Time')}
-    />,
+    ),
+    showSlowestTxColumn && minWidthIsSmall && (
+      <Header key="slowestTransaction">
+        {t('Slowest Transaction')}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t(
+            'Slowest single instance of this transaction captured by this session.'
+          )}
+        />
+      </Header>
+    ),
+    minWidthIsSmall && (
+      <SortableHeader
+        key="startedAt"
+        sort={sort}
+        fieldName="startedAt"
+        label={t('Start Time')}
+      />
+    ),
     <SortableHeader
       key="duration"
       sort={sort}
@@ -114,7 +148,6 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       fieldName="countErrors"
       label={t('Errors')}
     />,
-
     <Header key="activity">
       {t('Activity')}{' '}
       <QuestionTooltip
@@ -133,11 +166,14 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         headers={tableHeaders}
         showProjectColumn={showProjectColumn}
         isLoading={false}
+        showSlowestTxColumn={showSlowestTxColumn}
       >
         <StyledAlert type="error" showIcon>
-          {t(
-            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-          )}
+          {typeof fetchError === 'string'
+            ? fetchError
+            : t(
+                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+              )}
         </StyledAlert>
       </StyledPanelTable>
     );
@@ -148,6 +184,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
+      showSlowestTxColumn={showSlowestTxColumn}
       headers={tableHeaders}
     >
       {replays?.map(replay => (
@@ -158,6 +195,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
           referrer={referrer}
           replay={replay}
           showProjectColumn={showProjectColumn}
+          showSlowestTxColumn={showSlowestTxColumn}
         />
       ))}
     </StyledPanelTable>
@@ -170,16 +208,26 @@ function ReplayTableRow({
   referrer,
   replay,
   showProjectColumn,
+  showSlowestTxColumn,
 }: RowProps) {
+  const location = useLocation();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
+  const hasTxEvent = 'txEvent' in replay;
+  const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
+
   return (
     <Fragment>
       <UserBadge
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
+            to={{
+              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+              query: {
+                referrer,
+              },
+            }}
           >
             {replay.user.displayName || ''}
           </Link>
@@ -197,14 +245,35 @@ function ReplayTableRow({
       {showProjectColumn && minWidthIsSmall && (
         <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
       )}
+      {minWidthIsSmall && showSlowestTxColumn && (
+        <Item>
+          {hasTxEvent ? (
+            <SpanOperationBreakdown>
+              {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
+              {spanOperationRelativeBreakdownRenderer(
+                replay.txEvent,
+                {
+                  organization,
+                  location,
+                },
+                {
+                  enableOnClick: false,
+                }
+              )}
+            </SpanOperationBreakdown>
+          ) : null}
+        </Item>
+      )}
+      {minWidthIsSmall && (
+        <Item>
+          <TimeSinceWrapper>
+            {minWidthIsSmall && <StyledIconCalendarWrapper color="gray500" size="sm" />}
+            <TimeSince date={replay.startedAt} />
+          </TimeSinceWrapper>
+        </Item>
+      )}
       <Item>
-        <TimeSinceWrapper>
-          {minWidthIsSmall && <StyledIconCalendarWrapper color="gray500" size="sm" />}
-          <TimeSince date={replay.startedAt} />
-        </TimeSinceWrapper>
-      </Item>
-      <Item>
-        <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
+        <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
       <Item>
@@ -214,14 +283,22 @@ function ReplayTableRow({
   );
 }
 
-const StyledPanelTable = styled(PanelTable)<{showProjectColumn: boolean}>`
-  ${p =>
-    p.showProjectColumn
-      ? `grid-template-columns: minmax(0, 1fr) repeat(5, max-content);`
-      : `grid-template-columns: minmax(0, 1fr) repeat(4, max-content);`}
+function getColCount(props: TableProps) {
+  let colCount = 4;
+  if (props.showSlowestTxColumn) {
+    colCount += 1;
+  }
+  if (props.showProjectColumn) {
+    colCount += 1;
+  }
+  return colCount;
+}
+
+const StyledPanelTable = styled(PanelTable)<TableProps>`
+  ${p => `grid-template-columns: minmax(0, 1fr) repeat(${getColCount(p)}, max-content);`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) repeat(4, max-content);
+    grid-template-columns: minmax(0, 1fr) repeat(3, min-content);
   }
 `;
 
@@ -242,6 +319,17 @@ const Item = styled('div')`
   align-items: center;
 `;
 
+const SpanOperationBreakdown = styled('div')`
+  width: 100%;
+  text-align: right;
+`;
+
+const TxDuration = styled('div')`
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(0.5)};
+`;
+
 const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(auto, max-content));
@@ -255,9 +343,9 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
 `;
 
 const StyledAlert = styled(Alert)`
-  position: relative;
-  bottom: 0.5px;
-  grid-column-start: span 99;
+  border-radius: 0;
+  border-width: 1px 0 0 0;
+  grid-column: 1/-1;
   margin-bottom: 0;
 `;
 

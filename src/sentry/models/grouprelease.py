@@ -7,7 +7,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -15,7 +15,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupRelease(Model):
     __include_in_export__ = False
 

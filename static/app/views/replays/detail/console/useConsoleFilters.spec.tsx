@@ -117,6 +117,24 @@ const breadcrumbs: Crumb[] = [
     },
     event_id: null,
   },
+  {
+    type: BreadcrumbType.ERROR,
+    timestamp: '2022-05-11T23:05:51.531000Z',
+    level: BreadcrumbLevelType.ERROR,
+    color: 'red300',
+    description: '',
+    id: 4,
+    message:
+      'NotFoundError GET "/projects/{orgSlug}/{projectSlug}/replays/2b5b78831dc849a0b663a72acdef9fa6/" 404',
+    category: 'issue',
+    data: {
+      arguments: [
+        'NotFoundError GET "/projects/{orgSlug}/{projectSlug}/replays/2b5b78831dc849a0b663a72acdef9fa6/" 404',
+      ],
+      logger: 'console',
+    },
+    event_id: null,
+  },
 ];
 
 describe('useConsoleFilters', () => {
@@ -138,9 +156,9 @@ describe('useConsoleFilters', () => {
         query: {f_c_logLevel: LOG_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(() =>
-      useConsoleFilters({breadcrumbs})
-    );
+    const {result, rerender} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
 
     result.current.setLogLevel(LOG_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -168,8 +186,10 @@ describe('useConsoleFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
-    expect(result.current.items.length).toEqual(5);
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
+    expect(result.current.items.length).toEqual(6);
   });
 
   it('should filter by logLevel', () => {
@@ -180,8 +200,24 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(2);
+  });
+
+  it('should filter to find issues', () => {
+    mockUseLocation.mockReturnValue({
+      pathname: '/',
+      query: {
+        f_c_logLevel: ['issue'],
+      },
+    } as Location<FilterFields>);
+
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
+    expect(result.current.items.length).toEqual(1);
   });
 
   it('should filter by searchTerm', () => {
@@ -192,7 +228,9 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -205,7 +243,92 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(1);
+  });
+
+  describe('getOptions', () => {
+    const CRUMB_LOG_1 = {level: BreadcrumbLevelType.LOG, message: ''} as Crumb;
+    const CRUMB_LOG_2 = {level: BreadcrumbLevelType.LOG, message: ''} as Crumb;
+    const CRUMB_WARN = {level: BreadcrumbLevelType.WARNING, message: ''} as Crumb;
+    const CRUMB_ERROR = {level: BreadcrumbLevelType.ERROR, message: ''} as Crumb;
+    const CRUMB_ISSUE = {category: 'issue', level: 'error', message: ''} as Crumb;
+
+    beforeEach(() => {
+      mockUseLocation.mockReturnValue({
+        pathname: '/',
+        query: {},
+      } as Location<FilterFields>);
+    });
+
+    it('should return a sorted list of BreadcrumbLevelType', () => {
+      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_WARN, CRUMB_ERROR];
+
+      const {result} = reactHooks.renderHook(useConsoleFilters, {
+        initialProps: {breadcrumbs: simpleCrumbs},
+      });
+      expect(result.current.getOptions()).toStrictEqual([
+        {label: 'console error', value: 'error'},
+        {label: 'warning', value: 'warning'},
+        {label: 'log', value: 'log'},
+      ]);
+    });
+
+    it('should deduplicate BreadcrumbLevelType', () => {
+      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_LOG_2];
+
+      const {result} = reactHooks.renderHook(useConsoleFilters, {
+        initialProps: {breadcrumbs: simpleCrumbs},
+      });
+      expect(result.current.getOptions()).toStrictEqual([{label: 'log', value: 'log'}]);
+    });
+
+    it('should inject extra BreadcrumbLevelType values', () => {
+      const simpleCrumbs = [CRUMB_WARN, CRUMB_ERROR];
+
+      mockUseLocation.mockReturnValue({
+        pathname: '/',
+        query: {f_c_logLevel: ['log']},
+      } as Location<FilterFields>);
+
+      const {result} = reactHooks.renderHook(useConsoleFilters, {
+        initialProps: {breadcrumbs: simpleCrumbs},
+      });
+
+      expect(result.current.getOptions()).toStrictEqual([
+        {label: 'console error', value: 'error'},
+        {label: 'warning', value: 'warning'},
+        {label: 'log', value: 'log'},
+      ]);
+    });
+
+    it('should include issue if a crumb has that for a category', () => {
+      const simpleCrumbs = [CRUMB_ISSUE];
+
+      const {result} = reactHooks.renderHook(useConsoleFilters, {
+        initialProps: {breadcrumbs: simpleCrumbs},
+      });
+      expect(result.current.getOptions()).toStrictEqual([
+        {label: 'sentry error', value: 'issue'},
+      ]);
+    });
+
+    it('should include issue the query includes it', () => {
+      const simpleCrumbs = [];
+      mockUseLocation.mockReturnValue({
+        pathname: '/',
+        query: {f_c_logLevel: ['issue']},
+      } as Location<FilterFields>);
+
+      const {result} = reactHooks.renderHook(useConsoleFilters, {
+        initialProps: {breadcrumbs: simpleCrumbs},
+      });
+
+      expect(result.current.getOptions()).toStrictEqual([
+        {label: 'sentry error', value: 'issue'},
+      ]);
+    });
   });
 });

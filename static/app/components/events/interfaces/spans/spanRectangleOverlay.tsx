@@ -1,3 +1,4 @@
+import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   getDurationDisplay,
@@ -22,7 +23,6 @@ export function SpanRectangleOverlay({
 
   return (
     <RowRectangle
-      spanBarHatch={false}
       style={{
         left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
         width: toPercent(bounds.width || 0),
@@ -31,7 +31,7 @@ export function SpanRectangleOverlay({
       <DurationPill
         durationDisplay={durationDisplay}
         showDetail={false}
-        spanBarHatch={false}
+        spanBarType={SpanBarType.AUTOGROUPED}
       >
         {durationString}
       </DurationPill>

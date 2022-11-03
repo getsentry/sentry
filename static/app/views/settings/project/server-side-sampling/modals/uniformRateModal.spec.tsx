@@ -1,5 +1,6 @@
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -9,13 +10,32 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, outcomesWithoutClientDiscarded} from '../testUtils';
+import {
+  getMockData,
+  mockedSamplingDistribution,
+  outcomesWithoutClientDiscarded,
+} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+
+function renderMockRequests({
+  organizationSlug,
+}: {
+  organizationSlug: Organization['slug'];
+}) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
+      TestStubs.Project({id: p.projectId, slug: p.project})
+    ),
+  });
+}
 
 describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeEach(function () {
@@ -24,13 +44,16 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
   it('render next button', async function () {
     const {organization, project} = getMockData();
+
+    renderMockRequests({organizationSlug: organization.slug});
+
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
     ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
 
-    const {container} = render(<GlobalModal />);
+    const {container} = renderGlobalModal();
 
     openModal(modalProps => (
       <UniformRateModal
@@ -60,8 +83,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     // Content
     expect(screen.getByText('Transactions (Last 30 days)')).toBeInTheDocument(); // Chart
-    expect(screen.getByRole('radio', {name: 'Current'})).toBeChecked();
-    expect(screen.getByRole('radio', {name: 'Suggested'})).not.toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Current'})).not.toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Suggested'})).toBeChecked();
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
@@ -158,6 +181,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     });
 
     const {organization, project} = getMockData();
+
     const handleSubmit = jest.fn();
 
     const {container} = render(<GlobalModal />);
@@ -178,7 +202,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(suggestedSampleRates[0]).toHaveValue(100); // Suggested client-side sample rate
     expect(suggestedSampleRates[1]).toHaveValue(100); // Suggested server-side sample rate
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'sampling.settings.modal.uniform.rate_switch_current',
+      'sampling.settings.modal.uniform.rate_switch_recommended',
       expect.objectContaining({
         organization,
         project_id: project.id,
@@ -186,8 +210,19 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     );
 
     // Footer
-    expect(screen.getByRole('button', {name: 'Done'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Done'})).toBeEnabled();
     expect(screen.queryByText('Step 1 of 2')).not.toBeInTheDocument();
+
+    // Switch to current sample rates
+    userEvent.click(screen.getByText('Current'));
+    expect(screen.getByRole('button', {name: 'Done'})).toBeDisabled();
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'sampling.settings.modal.uniform.rate_switch_current',
+      expect.objectContaining({
+        organization,
+        project_id: project.id,
+      })
+    );
 
     // Hover over done button
     userEvent.hover(screen.getByRole('button', {name: 'Done'}));
@@ -195,16 +230,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       await screen.findByText('Current sampling values selected')
     ).toBeInTheDocument();
 
-    // Switch to suggested sample rates
+    // Switch again to recommended sample rates
     userEvent.click(screen.getByText('Suggested'));
-    expect(screen.getByRole('button', {name: 'Done'})).toBeEnabled();
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'sampling.settings.modal.uniform.rate_switch_recommended',
-      expect.objectContaining({
-        organization,
-        project_id: project.id,
-      })
-    );
 
     // Take screenshot (this is good as we can not test the chart)
     expect(container).toSnapshot();
@@ -275,12 +302,12 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
     ServerSideSamplingStore.sdkVersionsRequestSuccess([
       {
-        isSendingSampleRate: false,
-        isSendingSource: false,
-        isSupportedPlatform: true,
-        latestSDKName: 'abc',
-        latestSDKVersion: '999',
         project: project.slug,
+        latestSDKVersion: '1.0.3',
+        latestSDKName: 'sentry.javascript.react',
+        isSendingSampleRate: false,
+        isSendingSource: true,
+        isSupportedPlatform: true,
       },
     ]);
 

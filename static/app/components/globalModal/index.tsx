@@ -192,7 +192,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       >
         <AnimatePresence>
           {visible && (
-            <Modal role="dialog" css={options.modalCss}>
+            <Modal role="dialog" aria-modal css={options.modalCss}>
               <Content role="document">{renderedChild}</Content>
             </Modal>
           )}
@@ -231,9 +231,14 @@ const Container = styled('div')`
 `;
 
 const Modal = styled(motion.div)`
+  max-width: 100%;
   width: 640px;
   pointer-events: auto;
-  padding: 80px ${space(2)} ${space(4)} ${space(2)};
+  padding: 80px ${space(1.5)} ${space(2)} ${space(1.5)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 80px ${space(2)} ${space(4)} ${space(2)};
+  }
 `;
 
 Modal.defaultProps = {
@@ -247,20 +252,24 @@ Modal.defaultProps = {
 };
 
 const Content = styled('div')`
-  padding: ${space(4)};
   background: ${p => p.theme.background};
   border-radius: 8px;
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   position: relative;
+  padding: ${space(4)} ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(4)};
+  }
 `;
 
 type State = {
-  modalStore: ReturnType<typeof ModalStore.get>;
+  modalStore: ReturnType<typeof ModalStore.getState>;
 };
 
 class GlobalModalContainer extends Component<Partial<Props>, State> {
   state: State = {
-    modalStore: ModalStore.get(),
+    modalStore: ModalStore.getState(),
   };
 
   componentWillUnmount() {

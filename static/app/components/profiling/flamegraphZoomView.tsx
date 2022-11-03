@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -10,6 +12,10 @@ import {
   useDispatchFlamegraphState,
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {
+  Direction,
+  selectNearestFrame,
+} from 'sentry/utils/profiling/flamegraph/selectNearestFrame';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -182,6 +188,18 @@ function FlamegraphZoomView({
 
         dispatch({type: action});
       }
+
+      if (evt.target === flamegraphCanvasRef) {
+        const nextSelected = handleFlamegraphKeyboardNavigation(
+          evt,
+          selectedFramesRef.current?.[0],
+          flamegraph.inverted
+        );
+        if (nextSelected) {
+          selectedFramesRef.current = [nextSelected];
+          canvasPoolManager.dispatch('zoom at frame', [nextSelected, 'min']);
+        }
+      }
     };
 
     document.addEventListener('keydown', onKeyDown);
@@ -189,7 +207,16 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [canvasPoolManager, dispatch, nextState, previousState, flamegraphView]);
+  }, [
+    canvasPoolManager,
+    dispatch,
+    nextState,
+    previousState,
+    flamegraphView,
+    scheduler,
+    flamegraphCanvasRef,
+    flamegraph.inverted,
+  ]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
@@ -720,6 +747,21 @@ function FlamegraphZoomView({
     ]);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
+  const handleCopyFunctionName = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(hoveredNodeOnContextMenuOpen.current.frame.name)
+      .then(() => {
+        addSuccessMessage(t('Function name copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function name to clipboard'));
+      });
+  }, []);
+
   return (
     <CanvasContainer>
       <Canvas
@@ -730,6 +772,7 @@ function FlamegraphZoomView({
         onMouseLeave={onCanvasMouseLeave}
         onContextMenu={handleContextMenuOpen}
         style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
+        tabIndex={1}
       />
       <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
@@ -741,6 +784,7 @@ function FlamegraphZoomView({
         contextMenu={contextMenu}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
+        onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
       />
       {flamegraphCanvas &&
@@ -781,5 +825,46 @@ const Canvas = styled('canvas')`
   user-select: none;
   position: absolute;
 `;
+
+// loosely based spreadsheet navigation
+const keyDirectionMap: Record<string, Direction> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Tab: 'down',
+  'Shift+Tab': 'up',
+  w: 'up',
+  s: 'down',
+  a: 'left',
+  d: 'right',
+} as const;
+
+function handleFlamegraphKeyboardNavigation(
+  evt: KeyboardEvent,
+  currentFrame: FlamegraphFrame | undefined,
+  inverted: boolean = false
+) {
+  if (!currentFrame) {
+    return null;
+  }
+
+  const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
+  let direction = keyDirectionMap[key];
+  if (!direction) {
+    return currentFrame;
+  }
+  if (inverted && (direction === 'up' || direction === 'down')) {
+    direction = direction === 'up' ? 'down' : 'up';
+  }
+
+  const nextSelection = selectNearestFrame(currentFrame, direction);
+  if (!nextSelection) {
+    return null;
+  }
+  evt.preventDefault();
+
+  return nextSelection;
+}
 
 export {FlamegraphZoomView};

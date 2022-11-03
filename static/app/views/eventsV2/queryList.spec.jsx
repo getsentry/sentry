@@ -263,7 +263,7 @@ describe('EventsV2 > QueryList', function () {
     const menuItems = card.find('MenuItemWrap');
 
     expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Use as Discover Home');
+    expect(menuItems.at(0).text()).toEqual('Set as Default');
     expect(menuItems.at(1).text()).toEqual('Duplicate Query');
     expect(menuItems.at(2).text()).toEqual('Delete Query');
   });
@@ -291,7 +291,7 @@ describe('EventsV2 > QueryList', function () {
     expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
   });
 
-  it('Use as Discover Home updates the homepage query', function () {
+  it('Set as Default updates the homepage query', function () {
     render(
       <QueryList
         organization={organization}
@@ -303,7 +303,7 @@ describe('EventsV2 > QueryList', function () {
     );
 
     userEvent.click(screen.getByTestId('menu-trigger'));
-    userEvent.click(screen.getByText('Use as Discover Home'));
+    userEvent.click(screen.getByText('Set as Default'));
     expect(updateHomepageMock).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/homepage/',
       expect.objectContaining({

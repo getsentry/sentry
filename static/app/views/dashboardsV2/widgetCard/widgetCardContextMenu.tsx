@@ -95,8 +95,9 @@ function WidgetCardContextMenu({
           <MEPConsumer>
             {metricSettingContext => (
               <ContextWrapper>
-                {(organization.features.includes('dashboards-mep') ||
-                  organization.features.includes('mep-rollout-flag')) &&
+                {!organization.features.includes('performance-mep-bannerless-ui') &&
+                  (organization.features.includes('dashboards-mep') ||
+                    organization.features.includes('mep-rollout-flag')) &&
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
@@ -123,7 +124,7 @@ function WidgetCardContextMenu({
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}
-                  placement="bottom right"
+                  position="bottom-end"
                   disabledKeys={[...disabledKeys, 'preview']}
                 />
                 {showWidgetViewerButton && (
@@ -237,8 +238,9 @@ function WidgetCardContextMenu({
         <MEPConsumer>
           {metricSettingContext => (
             <ContextWrapper>
-              {(organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) &&
+              {!organization.features.includes('performance-mep-bannerless-ui') &&
+                (organization.features.includes('dashboards-mep') ||
+                  organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
@@ -257,7 +259,7 @@ function WidgetCardContextMenu({
                   showChevron: false,
                   icon: <IconEllipsis direction="down" size="sm" />,
                 }}
-                placement="bottom right"
+                position="bottom-end"
                 disabledKeys={[...disabledKeys]}
               />
               {showWidgetViewerButton && (

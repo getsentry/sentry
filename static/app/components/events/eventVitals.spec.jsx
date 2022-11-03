@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventVitals from 'sentry/components/events/eventVitals';
 
@@ -17,8 +17,8 @@ function makeEvent(measurements = {}, sdk = {version: '5.27.3'}) {
 describe('EventVitals', function () {
   it('should not render anything', function () {
     const event = makeEvent({});
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
-    expect(wrapper.isEmptyRender()).toBe(true);
+    const {container} = render(<EventVitals event={event} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('should not render non web vitals', function () {
@@ -26,8 +26,8 @@ describe('EventVitals', function () {
       'mark.stuff': 123,
       'op.more.stuff': 123,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
-    expect(wrapper.isEmptyRender()).toBe(true);
+    const {container} = render(<EventVitals event={event} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('should render some web vitals with a header', function () {
@@ -40,18 +40,35 @@ describe('EventVitals', function () {
       ttfb: 5,
       'ttfb.requesttime': 6,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
-    expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
-    expect(wrapper.find('WarningIconContainer').exists()).toBe(false);
-    expect(wrapper.find('EventVital')).toHaveLength(7);
+    render(<EventVitals event={event} />);
+
+    expect(screen.getByText('Web Vitals')).toBeInTheDocument();
+
+    [
+      'Cumulative Layout Shift',
+      'First Contentful Paint',
+      'First Input Delay',
+      'First Paint',
+      'Largest Contentful Paint',
+      'Time to First Byte',
+      'Request Time',
+    ].forEach(vital => expect(screen.getByText(vital)).toBeInTheDocument());
   });
 
   it('should render some web vitals with a heading and a sdk warning', function () {
     const event = makeEvent({fp: 1}, {version: '5.26.0'});
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
-    expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
-    expect(wrapper.find('WarningIconContainer').exists()).toBe(true);
-    expect(wrapper.find('EventVital')).toHaveLength(1);
+    render(<EventVitals event={event} />);
+
+    [
+      'Cumulative Layout Shift',
+      'First Contentful Paint',
+      'First Input Delay',
+      'Largest Contentful Paint',
+      'Time to First Byte',
+      'Request Time',
+    ].forEach(vital => expect(screen.queryByText(vital)).not.toBeInTheDocument());
+
+    expect(screen.getByTestId('outdated-sdk-warning')).toBeInTheDocument();
   });
 
   it('should show fire icon if vital failed threshold', function () {
@@ -64,9 +81,8 @@ describe('EventVitals', function () {
       ttfb: 5,
       'ttfb.requesttime': 6,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
-    expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
-    expect(wrapper.find('EventVital')).toHaveLength(7);
-    expect(wrapper.find('IconFire')).toHaveLength(3);
+    render(<EventVitals event={event} />);
+
+    expect(screen.getAllByTestId('threshold-failed-warning')[0]).toBeInTheDocument();
   });
 });

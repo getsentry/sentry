@@ -1,4 +1,6 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
+import * as Sentry from '@sentry/react';
+import {Transaction} from '@sentry/types';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -31,63 +33,75 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
-const getFunctionTags = (fields: Readonly<Field[]>) =>
-  Object.fromEntries(
-    fields
-      .filter(
-        item =>
-          !Object.keys(FIELD_TAGS).includes(item.field) &&
-          !isEquation(item.field) &&
-          !isCustomMeasurement(item.field)
-      )
-      .map(item => [
-        item.field,
-        {key: item.field, name: item.field, kind: FieldKind.FUNCTION},
-      ])
-  );
+const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
+const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+  if (!fields?.length) {
+    return [];
+  }
+  return fields.reduce((acc, item) => {
+    if (
+      !STATIC_FIELD_TAGS_SET.has(item.field) &&
+      !isEquation(item.field) &&
+      !isCustomMeasurement(item.field)
+    ) {
+      acc[item.field] = {key: item.field, name: item.field, kind: FieldKind.FUNCTION};
+    }
 
-const getFieldTags = () =>
-  Object.fromEntries(
-    Object.keys(FIELD_TAGS).map(key => [
-      key,
-      {
-        ...FIELD_TAGS[key],
-        kind: FieldKind.FIELD,
-      },
-    ])
-  );
+    return acc;
+  }, {});
+};
 
 const getMeasurementTags = (
   measurements: Parameters<
     React.ComponentProps<typeof Measurements>['children']
-  >[0]['measurements']
-) =>
-  Object.fromEntries(
-    Object.keys(measurements).map(key => [
-      key,
-      {
-        ...measurements[key],
-        kind: FieldKind.MEASUREMENT,
-      },
-    ])
-  );
+  >[0]['measurements'],
+  customMeasurements:
+    | Parameters<React.ComponentProps<typeof Measurements>['children']>[0]['measurements']
+    | undefined
+) => {
+  const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
+    tags[key] = {
+      ...measurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, {});
 
-const getSpanTags = () => {
-  return Object.fromEntries(
-    SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
-  );
+  if (!customMeasurements) {
+    return measurementsWithKind;
+  }
+
+  return Object.keys(customMeasurements).reduce((tags, key) => {
+    tags[key] = {
+      ...measurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, measurementsWithKind);
 };
 
-const getSemverTags = () =>
-  Object.fromEntries(
-    Object.keys(SEMVER_TAGS).map(key => [
-      key,
-      {
-        ...SEMVER_TAGS[key],
-        kind: FieldKind.FIELD,
-      },
-    ])
-  );
+const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
+  tags[key] = {
+    ...FIELD_TAGS[key],
+    kind: FieldKind.FIELD,
+  };
+  return tags;
+}, {});
+
+const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
+
+const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
+  tags[key] = {name: key, kind: FieldKind.METRICS};
+  return tags;
+}, {});
+
+const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
+  tags[key] = {
+    ...SEMVER_TAGS[key],
+    kind: FieldKind.FIELD,
+  };
+  return tags;
+}, {});
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
@@ -118,6 +132,18 @@ function SearchBar(props: SearchBarProps) {
   } = props;
 
   const api = useApi();
+  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
+
+  const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
+  const tagsWithKind = useMemo(() => {
+    return Object.keys(tags).reduce((acc, key) => {
+      acc[key] = {
+        ...tags[key],
+        kind: FieldKind.TAG,
+      };
+      return acc;
+    }, {});
+  }, [tags]);
 
   useEffect(() => {
     // Clear memoized data on mount to make tests more consistent.
@@ -137,20 +163,18 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve([]);
       }
 
-      return fetchTagValues(
+      return fetchTagValues({
         api,
-        organization.slug,
-        tag.key,
-        query,
-        projectIdStrings,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
         endpointParams,
-
         // allows searching for tags on transactions as well
-        true,
-
+        includeTransactions: true,
         // allows searching for tags on sessions as well
-        includeSessionTagsValues
-      ).then(
+        includeSessions: includeSessionTagsValues,
+      }).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
         () => {
@@ -166,44 +190,57 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
-    const functionTags = getFunctionTags(fields ?? []);
-    const fieldTags = getFieldTags();
-    const measurementsWithKind = getMeasurementTags(measurements);
-    const spanTags = getSpanTags();
-    const semverTags = getSemverTags();
+    // We will only collect a transaction once and only if the number of tags > 0
+    // This is to avoid a large number of transactions being sent to Sentry. The 0 check
+    // is to avoid collecting a transaction when tags are not loaded yet.
+    let transaction: Transaction | undefined = undefined;
+    if (!collectedTransactionFromGetTagsListRef.current && Object.keys(tags).length > 0) {
+      transaction = Sentry.startTransaction({
+        name: 'SearchBar.getTagList',
+      });
+      // Mark as collected - if code below errors, we risk never collecting
+      // a transaction in that case, but that is fine.
+      collectedTransactionFromGetTagsListRef.current = true;
+    }
 
+    const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: TagCollection = orgHasPerformanceView
-      ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
-      : omit(fieldTags, TRACING_FIELDS);
+      ? Object.assign(
+          {},
+          measurementsWithKind,
+          functionTags,
+          STATIC_SPAN_TAGS,
+          STATIC_FIELD_TAGS
+        )
+      : STATIC_FIELD_TAGS_WITHOUT_TRACING;
 
-    const tagsWithKind = Object.fromEntries(
-      Object.keys(tags).map(key => [
-        key,
-        {
-          ...tags[key],
-          kind: FieldKind.TAG,
-        },
-      ])
-    );
-
-    assign(combinedTags, tagsWithKind, fieldTags, semverTags);
-
-    const sortedTagKeys = Object.keys(combinedTags);
-    sortedTagKeys.sort((a, b) => {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
+    assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,
       name: 'Has property',
-      values: sortedTagKeys,
+      values: Object.keys(combinedTags).sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+      }),
       predefined: true,
       kind: FieldKind.FIELD,
     };
 
-    return omit(combinedTags, omitTags ?? []);
+    const list =
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
+
+    if (transaction) {
+      const totalCount: number = Object.keys(list).length;
+      transaction.setTag('tags.totalCount', totalCount);
+      const countGroup = [
+        1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 10000,
+      ].find(n => totalCount <= n);
+      transaction.setTag('tags.totalCount.grouped', `<=${countGroup}`);
+      transaction.finish();
+    }
+    return list;
   };
 
   return (
@@ -213,13 +250,13 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList({...measurements, ...(customMeasurements ?? {})})}
+          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludeEnvironment
+          excludedTags={['environment']}
           maxMenuHeight={maxMenuHeight ?? 300}
           customPerformanceMetrics={customMeasurements}
           {...props}

@@ -6,7 +6,7 @@ import pytz
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
@@ -529,7 +529,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             event = self.store_transaction(
-                environment=[self.env1, None][(r // 7200) % 3],
+                environment=[self.env1.name, None][(r // 7200) % 3],
                 project_id=self.proj1.id,
                 # change every 55 min so some hours have 1 user, some have 2
                 user_id=f"user{r // 3300}",

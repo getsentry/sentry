@@ -1,11 +1,13 @@
 import {Component, Fragment} from 'react';
 import {findDOMNode} from 'react-dom';
-import {components, StylesConfig} from 'react-select';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  StylesConfig,
+} from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -60,11 +62,6 @@ type Props = ModalRenderProps & {
   organizations: Organization[];
 
   projects: Project[];
-  /**
-   * Id of the project (most likely from the URL)
-   * on which the modal was opened
-   */
-  comingFromProjectId?: string;
 };
 
 const selectStyles: StylesConfig = {
@@ -228,34 +225,6 @@ class ContextPickerModal extends Component<Props> {
     return [memberProjects, nonMemberProjects];
   };
 
-  onMenuOpen = (
-    ref: any | null,
-    listItems: (Project | Integration)[],
-    valueKey: string,
-    currentSelected: string = ''
-  ) => {
-    // Hacky way to pre-focus to an item with newer versions of react select
-    // See https://github.com/JedWatson/react-select/issues/3648
-    setTimeout(() => {
-      if (ref) {
-        const choices = ref.select.state.menuOptions.focusable;
-        const toBeFocused = listItems.find(({id}) => id === currentSelected);
-        const selectedIndex = toBeFocused
-          ? choices.findIndex(option => option.value === toBeFocused[valueKey])
-          : 0;
-        if (selectedIndex >= 0 && toBeFocused) {
-          // Focusing selected option only if it exists
-          ref.select.scrollToFocusedOptionOnUpdate = true;
-          ref.select.inputIsHiddenAfterUpdate = false;
-          ref.select.setState({
-            focusedValue: null,
-            focusedOption: choices[selectedIndex],
-          });
-        }
-      }
-    });
-  };
-
   // TODO(TS): Fix typings
   customOptionProject = ({label, ...props}: any) => {
     const project = this.props.projects.find(({slug}) => props.value === slug);
@@ -269,6 +238,7 @@ class ContextPickerModal extends Component<Props> {
           avatarSize={20}
           displayName={label}
           avatarProps={{consistentWidth: true}}
+          disableLink
         />
       </components.Option>
     );
@@ -293,7 +263,7 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects, comingFromProjectId} = this.props;
+    const {organization, projects} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
 
@@ -302,7 +272,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('My Projects'),
         options: memberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: false,
         })),
       },
@@ -310,7 +280,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('All Projects'),
         options: nonMemberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: isSuperuser ? false : true,
         })),
       },
@@ -338,9 +308,6 @@ class ContextPickerModal extends Component<Props> {
         name="project"
         options={projectOptions}
         onChange={this.handleSelectProject}
-        onMenuOpen={() =>
-          this.onMenuOpen(this.projectSelect, projects, 'slug', comingFromProjectId)
-        }
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
         styles={selectStyles}
         menuIsOpen
@@ -379,7 +346,6 @@ class ContextPickerModal extends Component<Props> {
         name="configurations"
         options={options}
         onChange={this.handleSelectConfiguration}
-        onMenuOpen={() => this.onMenuOpen(this.configSelect, integrationConfigs, 'id')}
         components={{DropdownIndicator: null}}
         styles={selectStyles}
         menuIsOpen

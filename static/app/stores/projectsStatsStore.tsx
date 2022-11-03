@@ -1,8 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface ProjectsStatsStoreDefinition extends StoreDefinition {
   getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
@@ -10,6 +8,9 @@ interface ProjectsStatsStoreDefinition extends StoreDefinition {
   getBySlug(slug: string): Project;
   getInitialState(): ProjectsStatsStoreDefinition['itemsBySlug'];
   itemsBySlug: Record<string, Project>;
+  onStatsLoadSuccess(projects: Project[]): void;
+  onUpdate(projectSlug: string, data: Partial<Project>): void;
+  onUpdateError(err: Error, projectSlug: string): void;
   reset(): void;
 }
 
@@ -20,18 +21,12 @@ interface ProjectsStatsStoreDefinition extends StoreDefinition {
  */
 const storeConfig: ProjectsStatsStoreDefinition = {
   itemsBySlug: {},
-  unsubscribeListeners: [],
 
   init() {
-    this.reset();
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess)
-    );
-    this.unsubscribeListeners.push(this.listenTo(ProjectActions.update, this.onUpdate));
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.updateError, this.onUpdateError)
-    );
+    this.reset();
   },
 
   getInitialState() {
@@ -43,7 +38,7 @@ const storeConfig: ProjectsStatsStoreDefinition = {
     this.updatingItems = new Map();
   },
 
-  onStatsLoadSuccess(projects: Project[]) {
+  onStatsLoadSuccess(projects) {
     projects.forEach(project => {
       this.itemsBySlug[project.slug] = project;
     });
@@ -55,7 +50,7 @@ const storeConfig: ProjectsStatsStoreDefinition = {
    * @param projectSlug Project slug
    * @param data Project data
    */
-  onUpdate(projectSlug: string, data: Project) {
+  onUpdate(projectSlug, data) {
     const project = this.getBySlug(projectSlug);
     this.updatingItems.set(projectSlug, project);
     if (!project) {
@@ -84,7 +79,7 @@ const storeConfig: ProjectsStatsStoreDefinition = {
    * @param err Error object
    * @param data Previous project data
    */
-  onUpdateError(_err: Error, projectSlug: string) {
+  onUpdateError(_err, projectSlug) {
     const project = this.updatingItems.get(projectSlug);
     if (!project) {
       return;
@@ -108,5 +103,5 @@ const storeConfig: ProjectsStatsStoreDefinition = {
   },
 };
 
-const ProjectsStatsStore = createStore(makeSafeRefluxStore(storeConfig));
+const ProjectsStatsStore = createStore(storeConfig);
 export default ProjectsStatsStore;

@@ -10,7 +10,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.types.activity import ActivityType
@@ -119,7 +119,7 @@ class GroupHistoryManager(BaseManager):
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,

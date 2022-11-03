@@ -1,11 +1,12 @@
 import set from 'lodash/set';
 
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,
+  NOTIFICATION_SETTINGS_PATHNAMES,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
   VALUE_MAPPING,
@@ -16,8 +17,16 @@ import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel
 /**
  * Which fine-tuning parts are grouped by project
  */
+const notificationsByProject = [
+  'alerts',
+  'email',
+  'workflow',
+  'activeRelease',
+  'spikeProtection',
+];
+
 export const isGroupedByProject = (notificationType: string): boolean =>
-  ['alerts', 'email', 'workflow', 'activeRelease'].includes(notificationType);
+  notificationsByProject.includes(notificationType);
 
 export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
@@ -435,4 +444,14 @@ export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attach
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
+}
+
+/**
+ * Returns the corresponding notification type name from the router path name
+ */
+export function getNotificationTypeFromPathname(routerPathname: string) {
+  const result = Object.entries(NOTIFICATION_SETTINGS_PATHNAMES).find(
+    ([_, pathname]) => pathname === routerPathname
+  ) ?? [routerPathname];
+  return result[0];
 }

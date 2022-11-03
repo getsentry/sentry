@@ -53,6 +53,11 @@ export type PerformanceEventParameters = {
     from_widget?: string;
     to_widget?: string;
   };
+  'performance_views.mep.metrics_outcome': {
+    fallback_from_null: boolean;
+    fallback_from_unparam: boolean;
+    is_on_metrics: boolean;
+  };
   'performance_views.overview.cellaction': {action?: string};
   'performance_views.overview.navigate.summary': {
     project_platforms: string;
@@ -62,6 +67,12 @@ export type PerformanceEventParameters = {
     project_platforms: string;
     show_onboarding: boolean;
   };
+  'performance_views.project_transaction_threshold.change': {
+    from: string;
+    key: string;
+    to: string;
+  };
+  'performance_views.project_transaction_threshold.clear': {};
   'performance_views.relative_breakdown.selection': {
     action: string;
   };
@@ -125,11 +136,6 @@ export type PerformanceEventParameters = {
     direction: string;
     widget_type: string;
   };
-  'performance_views.vital_detail.comparison_viewed': {
-    count: number;
-    p75: number;
-    vital: string;
-  };
   'performance_views.vital_detail.switch_vital': {
     from_vital: string;
     to_vital: string;
@@ -176,6 +182,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.summary.tag_explorer.sort': 'Performance Views: Tag Explorer Sorted',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
+  'performance_views.project_transaction_threshold.change':
+    'Project Transaction Threshold: Changed',
+  'performance_views.project_transaction_threshold.clear':
+    'Project Transaction Threshold: Cleared',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
   'performance_views.vital_detail.switch_vital':
     'Performance Views: Vital Detail vital type switched',
@@ -217,8 +227,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.transaction_summary.view':
     'Performance Views: Transaction Summary View',
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
-  'performance_views.vital_detail.comparison_viewed':
-    'Performance Views: Vital Detail Comparison Viewed',
   'performance_views.relative_breakdown.selection':
     'Performance Views: Select Relative Breakdown',
+  'performance_views.mep.metrics_outcome': 'Performance Views: Metrics Outcome',
 };

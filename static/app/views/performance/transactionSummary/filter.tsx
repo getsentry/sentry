@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,11 +50,7 @@ type Props = {
 };
 
 function Filter(props: Props) {
-  const {currentFilter, onChangeFilter, organization} = props;
-
-  if (!organization.features.includes('performance-ops-breakdown')) {
-    return null;
-  }
+  const {currentFilter, onChangeFilter} = props;
 
   const menuOptions = OPTIONS.map(operationName => ({
     value: operationName,
@@ -70,7 +66,10 @@ function Filter(props: Props) {
         options={menuOptions}
         value={currentFilter}
         onChange={opt => onChangeFilter(opt?.value)}
-        triggerProps={{icon: <IconFilter />}}
+        triggerProps={{
+          icon: <IconFilter />,
+          'data-test-id': 'span-operation-breakdown-filter',
+        }}
         triggerLabel={
           currentFilter === SpanOperationBreakdownFilter.None
             ? t('Filter')

@@ -14,7 +14,7 @@ concurrency:
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   files-changed:
@@ -30,10 +30,10 @@ jobs:
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       plugins: ${{ steps.changes.outputs.plugins }}
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Check for backend file changes
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
@@ -45,9 +45,9 @@ jobs:
     name: api docs test
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -67,7 +67,7 @@ jobs:
     needs: files-changed
     name: backend test
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -83,7 +83,7 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -112,7 +112,7 @@ jobs:
     needs: files-changed
     name: backend test (snuba contains metrics tag values)
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -128,7 +128,7 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -165,7 +165,7 @@ jobs:
       matrix:
         pg-version: ['9.6']
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -187,14 +187,14 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 3
     steps:
-      - uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         id: token
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
       - name: check requirements
@@ -219,16 +219,16 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         id: token
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+      - uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: files
         with:
           # Enable listing of files matching each filter.
@@ -244,13 +244,13 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip
           cache-dependency-path: requirements-dev-only-frozen.txt
 
-      - uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+      - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -288,7 +288,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -310,7 +310,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -329,7 +329,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -355,7 +355,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -400,7 +400,7 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -427,7 +427,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -466,10 +466,10 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Setup Python
-        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip

@@ -1,26 +1,28 @@
+import {FieldGroupProps} from 'sentry/components/forms/field/types';
+import SeparatorField from 'sentry/components/forms/fields/separatorField';
+import {Field} from 'sentry/components/forms/types';
 import {Scope} from 'sentry/types';
 
-import BlankField from './blankField';
-import BooleanField, {BooleanFieldProps} from './booleanField';
-import ChoiceMapperField, {ChoiceMapperFieldProps} from './choiceMapperField';
-import DateTimeField, {DateTimeFieldProps} from './dateTimeField';
-import EmailField, {EmailFieldProps} from './emailField';
-import {FieldProps} from './field';
-import FieldSeparator from './fieldSeparator';
-import FileField, {FileFieldProps} from './fileField';
-import HiddenField, {HiddenFieldProps} from './hiddenField';
-import InputField, {InputFieldProps} from './inputField';
-import NumberField from './numberField';
-import ProjectMapperField from './projectMapperField';
-import RadioField, {RadioFieldProps} from './radioField';
-import RangeField, {RangeFieldProps} from './rangeField';
-import SelectAsyncField, {SelectAsyncFieldProps} from './selectAsyncField';
-import SelectField, {SelectFieldProps} from './selectField';
-import SentryProjectSelectorField, {RenderFieldProps} from './sentryProjectSelectorField';
-import TableField from './tableField';
-import TextareaField, {TextareaFieldProps} from './textareaField';
-import TextField from './textField';
-import {Field} from './type';
+import BlankField from './fields/blankField';
+import BooleanField, {BooleanFieldProps} from './fields/booleanField';
+import ChoiceMapperField, {ChoiceMapperFieldProps} from './fields/choiceMapperField';
+import DateTimeField, {DateTimeFieldProps} from './fields/dateTimeField';
+import EmailField, {EmailFieldProps} from './fields/emailField';
+import FileField, {FileFieldProps} from './fields/fileField';
+import HiddenField, {HiddenFieldProps} from './fields/hiddenField';
+import NumberField, {NumberFieldProps} from './fields/numberField';
+import ProjectMapperField, {ProjectMapperProps} from './fields/projectMapperField';
+import RadioField, {RadioFieldProps} from './fields/radioField';
+import RangeField, {RangeFieldProps} from './fields/rangeField';
+import SecretField, {SecretFieldProps} from './fields/secretField';
+import SelectAsyncField, {SelectAsyncFieldProps} from './fields/selectAsyncField';
+import SelectField, {SelectFieldProps} from './fields/selectField';
+import SentryProjectSelectorField, {
+  RenderFieldProps,
+} from './fields/sentryProjectSelectorField';
+import TableField, {TableFieldProps} from './fields/tableField';
+import TextareaField, {TextareaFieldProps} from './fields/textareaField';
+import TextField, {TextFieldProps} from './fields/textField';
 
 interface FieldFromConfigProps {
   field: Field;
@@ -46,13 +48,13 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
 
   switch (field.type) {
     case 'separator':
-      return <FieldSeparator />;
+      return <SeparatorField />;
     case 'secret':
-      return <InputField {...(componentProps as InputFieldProps)} type="password" />;
+      return <SecretField {...(componentProps as SecretFieldProps)} />;
     case 'range':
       return <RangeField {...(componentProps as RangeFieldProps)} />;
     case 'blank':
-      return <BlankField {...(componentProps as FieldProps)} />;
+      return <BlankField {...(componentProps as FieldGroupProps)} />;
     case 'bool':
     case 'boolean':
       return <BooleanField {...(componentProps as BooleanFieldProps)} />;
@@ -66,9 +68,9 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       if (componentProps.multiline) {
         return <TextareaField {...(componentProps as TextareaFieldProps)} />;
       }
-      return <TextField {...componentProps} />;
+      return <TextField {...(componentProps as TextFieldProps)} />;
     case 'number':
-      return <NumberField {...componentProps} />;
+      return <NumberField {...(componentProps as NumberFieldProps)} />;
     case 'textarea':
       return <TextareaField {...(componentProps as TextareaFieldProps)} />;
     case 'choice':
@@ -83,9 +85,9 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       }
       throw new Error('Invalid `choices` type. Use an array of options');
     case 'table':
-      return <TableField {...(componentProps as InputFieldProps)} />;
+      return <TableField {...(componentProps as TableFieldProps)} />;
     case 'project_mapper':
-      return <ProjectMapperField {...(componentProps as InputFieldProps)} />;
+      return <ProjectMapperField {...(componentProps as ProjectMapperProps)} />;
     case 'sentry_project_selector':
       return <SentryProjectSelectorField {...(componentProps as RenderFieldProps)} />;
     case 'select_async':

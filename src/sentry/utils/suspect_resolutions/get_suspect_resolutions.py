@@ -24,8 +24,8 @@ def record_suspect_resolutions(
             or resolution_type == "with_commit"
             or resolution_type == "in_commit"
         ):
-            get_suspect_resolutions.delay(
-                group.id,
+            get_suspect_resolutions.apply_async(
+                kwargs={"resolved_issue_id": group.id},
                 eta=timezone.now() + timedelta(hours=1),
                 expires=timezone.now() + timedelta(hours=1, minutes=30),
             )
@@ -34,7 +34,7 @@ def record_suspect_resolutions(
 
 
 @instrumented_task(name="sentry.tasks.get_suspect_resolutions", queue="get_suspect_resolutions")
-def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
+def get_suspect_resolutions(resolved_issue_id: int, **kwargs) -> Sequence[int]:
     resolved_issue = Group.objects.get(id=resolved_issue_id)
     latest_resolved_activity = (
         Activity.objects.filter(

@@ -11,6 +11,7 @@ import responses
 from requests.exceptions import RequestException
 
 from sentry import http, options
+from sentry.event_manager import get_tag
 from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
@@ -33,7 +34,9 @@ from sentry.lang.javascript.processor import (
 )
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
@@ -93,6 +96,110 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert processor.dist is not None
         assert processor.dist.name == "foo"
         assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
+
+    @with_feature("organizations:javascript-console-error-tag")
+    def test_tag_suspected_console_error(self):
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        data = {
+            "is_exception": True,
+            "platform": "javascript",
+            "project": project.id,
+            "exception": {
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "mechanism": {
+                            "type": "onerror",
+                        },
+                        "value": ("value"),
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "?",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        stacktrace_infos = [
+            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+        ]
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            project=project,
+            stacktrace_infos=stacktrace_infos,
+        )
+
+        frames = processor.get_valid_frames()
+        assert processor.suspected_console_errors(frames) is True
+
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is True
+
+    @with_feature("organizations:javascript-console-error-tag")
+    def test_no_suspected_console_error(self):
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        data = {
+            "is_exception": True,
+            "platform": "javascript",
+            "project": project.id,
+            "exception": {
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "mechanism": {
+                            "type": "onerror",
+                        },
+                        "value": ("value"),
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "name",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "new name",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        stacktrace_infos = [
+            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+        ]
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            project=project,
+            stacktrace_infos=stacktrace_infos,
+        )
+
+        frames = processor.get_valid_frames()
+        assert processor.suspected_console_errors(frames) is False
+
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is False
 
 
 def test_build_fetch_retry_condition() -> None:
@@ -998,27 +1105,36 @@ class GenerateModuleTest(unittest.TestCase):
 
 class GetFunctionForTokenTest(unittest.TestCase):
     # There is no point in pulling down `SourceMapCacheToken` and creating a constructor for it.
-    def get_token(self, name):
+    def get_token(self, fn_name, token_name=None):
         class Token:
-            def __init__(self, name):
-                self.function_name = name
+            def __init__(self, fn_name, token_name):
+                self.name = token_name
+                self.function_name = fn_name
 
-        return Token(name)
+        return Token(fn_name, token_name)
 
     def test_valid_name(self):
         frame = {"function": "original"}
         token = self.get_token("lookedup")
         assert get_function_for_token(frame, token) == "lookedup"
 
-    def test_useless_name(self):
-        frame = {"function": "original"}
-        token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "original"
-
-    def test_useless_name_but_no_original(self):
+    def test_fallback_to_previous_frames_token_if_useless_name(self):
+        previous_frame = {"data": {"token": self.get_token("previous_fn", "previous_name")}}
         frame = {"function": None}
         token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "__webpack_require__"
+        assert get_function_for_token(frame, token, previous_frame) == "previous_name"
+
+    def test_fallback_to_useless_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": None}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "__webpack_require__"
+
+    def test_fallback_to_original_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": "original"}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "original"
 
 
 class FetchSourcemapTest(TestCase):

@@ -5,12 +5,12 @@ exam>=0.10.6
 freezegun>=1.1.0
 honcho>=1.1.0
 openapi-core>=0.14.2
-pytest>=7
-pytest-cov>=3.0.0
+pytest>=7.2
+pytest-cov>=4.0.0
 pytest-django>=4.4.0
 pytest-rerunfailures>=10
 pytest-sentry>=0.1.9
-pytest-xdist
+pytest-xdist>=3
 responses>=0.21.0
 
 # pre-commit dependencies
@@ -18,7 +18,7 @@ pre-commit>=2.18.1
 black>=22.3.0
 flake8>=5.0.2
 flake8-bugbear>=22.7.1
-pyupgrade>=2.37.2
+pyupgrade>=3
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
@@ -27,12 +27,15 @@ pip-tools>=6.7.0
 packaging>=21.3
 
 # for type checking
+lxml-stubs
 msgpack-types>=0.2.0
-mypy>=0.971
+mypy>=0.982
+types-beautifulsoup4
 types-freezegun
-types-pyyaml
+types-jsonschema
+types-psycopg2
 types-python-dateutil
 types-pytz
+types-pyyaml
 types-redis
 types-requests
-types-psycopg2

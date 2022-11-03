@@ -1,15 +1,17 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SelectField} from 'sentry/components/forms';
-import {SelectFieldProps} from 'sentry/components/forms/selectField';
+import {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,6 +20,7 @@ import {Organization, UpdateSdkSuggestion} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';
+import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
@@ -83,7 +86,7 @@ function asSelectOption(
   options: {disabled: boolean}
 ): SelectFieldProps<Project>['options'][0]['options'] {
   return {
-    label: project.name,
+    label: project.slug,
     value: project,
     disabled: options.disabled,
     leadingItems: project.platform ? <PlatformIcon platform={project.platform} /> : null,
@@ -183,6 +186,8 @@ function SelectProjectStep({
 
   const sdkUpdates = useProjectSdkUpdates({organization, projectId: project?.id ?? null});
 
+  const publicDSN = usePublicDSN({organization, project});
+
   return (
     <ModalBody>
       <ModalHeader>
@@ -208,6 +213,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              publicDSN={publicDSN}
             />
           ) : null}
           {project?.platform === 'apple-ios' ? (
@@ -215,6 +221,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              publicDSN={publicDSN}
             />
           ) : null}
         </StyledList>
@@ -226,7 +233,9 @@ function SelectProjectStep({
               <PreviousStepButton type="button" onClick={closeModal} />
               <NextStepButton
                 disabled={
-                  !(project?.platform && platformToInstructionsMapping[project.platform])
+                  !(
+                    project?.platform && platformToInstructionsMapping[project.platform]
+                  ) || publicDSN.type === 'loading'
                 }
                 type="submit"
               />
@@ -236,6 +245,30 @@ function SelectProjectStep({
       </form>
     </ModalBody>
   );
+}
+
+function usePublicDSN({
+  organization,
+  project,
+}: {
+  organization: Organization | null;
+  project: Project | null;
+}) {
+  const response = useProjectKeys({organization, project});
+  if (response.type !== 'resolved') {
+    return response;
+  }
+
+  const dsn = response.data?.[0]?.dsn.public;
+  if (!dsn) {
+    Sentry.captureException(
+      new Error(`public dsn not found for ${organization?.slug}/${project?.slug}`)
+    );
+  }
+  return {
+    ...response,
+    data: dsn,
+  };
 }
 
 function SetupPerformanceMonitoringStep({href}: {href: string}) {
@@ -280,7 +313,7 @@ function ProjectSdkUpdate({
         <Link
           to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
         >
-          {project.name}
+          {project.slug}
         </Link>
       </SDKUpdatesContainer>
 
@@ -323,22 +356,36 @@ const SDKUpdatesContainer = styled('div')`
 interface InstallStepsProps {
   organization: Organization;
   project: Project;
+  publicDSN: RequestState<string | null>;
   sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }
 
-function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+function AndroidInstallSteps({
+  project,
+  sdkUpdates,
+  organization,
+  publicDSN,
+}: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    hasSdkUpdates && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates &&
+    sdkUpdates.data?.sdkVersion &&
+    // ensure we only prompt an upgrade when the sdk is one of the following
+    ['sentry.java.android', 'sentry.java.android.timber'].includes(
+      sdkUpdates.data.sdkName
+    )
       ? semverCompare(sdkUpdates.data.sdkVersion, '6.0.0') < 0
       : false;
+
+  const dsn =
+    publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="6.0.0 (sentry-android)"
+            minSdkVersion="6.0.0 (sentry.android)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
@@ -350,31 +397,44 @@ function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsPr
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
-        <CodeSnippet language="xml" filename="AndroidManifest.xml">
-          {`<application>
-  <meta-data android:name="io.sentry.dsn" android:value="..." />
+        {publicDSN.type === 'loading' ? (
+          <LoadingIndicator />
+        ) : (
+          <CodeSnippet language="xml" filename="AndroidManifest.xml">
+            {`<application>
+  <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
-  <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
+  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
 </application>`}
-        </CodeSnippet>
+          </CodeSnippet>
+        )}
       </li>
     </Fragment>
   );
 }
 
-function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+function IOSInstallSteps({
+  project,
+  sdkUpdates,
+  organization,
+  publicDSN,
+}: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    hasSdkUpdates && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates &&
+    sdkUpdates.data?.sdkVersion &&
+    sdkUpdates.data?.sdkName === 'sentry.cocoa'
       ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
       : false;
+
+  const dsn = publicDSN.type === 'resolved' && publicDSN.data ? publicDSN.data : '...';
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="7.23.0 (sentry-cocoa)"
+            minSdkVersion="7.23.0 (sentry.cocoa)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
@@ -388,11 +448,18 @@ function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps)
         <StepTitle>
           {t('Enable profiling in your app by configuring the SDKs like below:')}
         </StepTitle>
-        <CodeSnippet language="swift">{`SentrySDK.start { options in
-    options.dsn = "..."
-    options.tracesSampleRate = 1.0 // Make sure transactions are enabled
-    options.profilesSampleRate = 1.0
-}`}</CodeSnippet>
+
+        {publicDSN.type === 'loading' ? (
+          <LoadingIndicator />
+        ) : (
+          <CodeSnippet language="swift">
+            {`SentrySDK.start { options in
+  options.dsn = "${dsn}"
+  options.tracesSampleRate = 1.0 // Make sure transactions are enabled
+  options.profilesSampleRate = 1.0
+}`}
+          </CodeSnippet>
+        )}
       </li>
     </Fragment>
   );

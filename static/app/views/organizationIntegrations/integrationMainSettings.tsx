@@ -3,7 +3,7 @@ import {Component} from 'react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Integration, Organization} from 'sentry/types';
 

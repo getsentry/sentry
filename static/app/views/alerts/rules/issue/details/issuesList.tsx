@@ -114,7 +114,10 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                       pathname:
                         `/organizations/${organization.slug}/issues/${issue.id}/` +
                         (eventId ? `events/${eventId}` : ''),
-                      query: rule.environment ? {environment: rule.environment} : {},
+                      query: {
+                        referrer: 'alert-rule-issue-list',
+                        ...(rule.environment ? {environment: rule.environment} : {}),
+                      },
                     }}
                   >
                     {title}:

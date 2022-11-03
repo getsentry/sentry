@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar, cast
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -19,9 +19,9 @@ __all__ = (
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
-    "control_silo_model",
-    "region_silo_model",
-    "all_silo_model",
+    "control_silo_with_replication_model",
+    "control_silo_only_model",
+    "region_silo_only_model",
 )
 
 
@@ -162,6 +162,9 @@ def get_model_if_available(app_config: AppConfig, model_name: str) -> Type[model
     return model
 
 
+ModelClass = TypeVar("ModelClass")
+
+
 class ModelSiloLimit(SiloLimit):
     def __init__(
         self,
@@ -199,7 +202,7 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: Any) -> type:
+    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
@@ -224,11 +227,6 @@ class ModelSiloLimit(SiloLimit):
         return model_class
 
 
-control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
-region_silo_model = ModelSiloLimit(SiloMode.REGION)
-
-# Tags a model that is readable and writable in all silos. This should be used only
-# for data that is private to this particular Django stack and is not of concern to
-# the rest of the platform. This is experimental and may be reverted as we proceed
-# with work on the multi-region architecture.
-all_silo_model = ModelSiloLimit(*SiloMode)
+control_silo_with_replication_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
+control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+region_silo_only_model = ModelSiloLimit(SiloMode.REGION)

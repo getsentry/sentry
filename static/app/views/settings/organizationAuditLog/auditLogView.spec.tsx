@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
+
+// XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
 describe('OrganizationAuditLog', function () {
   const {routerContext, organization, router} = initializeOrg({
@@ -23,14 +24,9 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('renders', async function () {
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OrganizationAuditLog location={router.location} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -49,27 +45,17 @@ describe('OrganizationAuditLog', function () {
       body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
     });
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OrganizationAuditLog location={router.location} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OrganizationAuditLog location={router.location} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);

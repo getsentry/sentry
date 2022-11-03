@@ -1,4 +1,3 @@
-from .active_release_notification_dry_run import *  # noqa: F401,F403
 from .active_release_notification_sent import *  # noqa: F401,F403
 from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
@@ -10,6 +9,7 @@ from .codeowners_updated import *  # noqa: F401,F403
 from .comment_webhooks import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403
+from .first_replay_sent import *  # noqa: F401,F403
 from .first_sourcemaps_sent import *  # noqa: F401,F403
 from .first_transaction_sent import *  # noqa: F401,F403
 from .first_user_context_sent import *  # noqa: F401,F403
@@ -35,6 +35,7 @@ from .join_request_link_viewed import *  # noqa: F401,F403
 from .manual_issue_assignment import *  # noqa: F401,F403
 from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
+from .monitor_mark_failed import *  # noqa: F401,F403
 from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403

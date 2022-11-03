@@ -173,11 +173,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
-                      <Button onClick={this.toggleSidebar}>
+                      <Button size="sm" onClick={this.toggleSidebar}>
                         {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                       </Button>
                       {results && (
-                        <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                        <Button
+                          size="sm"
+                          icon={<IconOpen />}
+                          href={eventJsonUrl}
+                          external
+                        >
                           {t('JSON')} (<FileSize bytes={event.size} />)
                         </Button>
                       )}
@@ -226,7 +231,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               organization={organization}
                               event={event}
                               project={_projects[0] as Project}
-                              showExampleCommit={false}
                               showTagSummary={false}
                               location={location}
                               api={this.api}
