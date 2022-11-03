@@ -120,7 +120,7 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
     });
   }
 
-  const {allTasks, customTasks, active, upcoming, complete} = getTasks(
+  const {allTasks, customTasks, active, upcoming, complete} = useGetTasks(
     organization,
     projects,
     onboardingState
