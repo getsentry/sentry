@@ -157,6 +157,7 @@ SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
     GroupCategory.PERFORMANCE: _query_params_for_perf,
 }
 
+
 SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
     GroupCategory.ERROR: lambda search_filters: search_filters,
     GroupCategory.PERFORMANCE: lambda search_filters: search_filters,
