@@ -48,11 +48,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-    # This flag is used to decide whether to run this migration in a transaction or not. Generally
-    # we don't want to run in a transaction here, since for long running operations like data
-    # back-fills this results in us locking an increasing number of rows until we finally commit.
-    atomic = False
-
 %(replaces_str)s%(initial_str)s
     dependencies = [
 %(dependencies)s\
