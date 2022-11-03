@@ -152,15 +152,6 @@ def _query_params_for_perf(
     return None
 
 
-def _error_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequence[SearchFilter]:
-    return search_filters
-
-
-def _perf_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequence[SearchFilter]:
-    # need to remove this search filter, so we don't constrain the returned transactions
-    return [sf for sf in search_filters if sf.key.name != "message"]
-
-
 SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
     GroupCategory.ERROR: _query_params_for_error,
     GroupCategory.PERFORMANCE: _query_params_for_perf,
