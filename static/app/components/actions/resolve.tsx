@@ -165,7 +165,6 @@ class ResolveActions extends Component<Props> {
         label: t('The next release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleNextReleaseResolution),
-        showDividers: !actionTitle,
       },
       {
         key: 'current-release',
@@ -174,19 +173,16 @@ class ResolveActions extends Component<Props> {
           : t('The current release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleCurrentReleaseResolution),
-        showDividers: !actionTitle,
       },
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
         onAction: () => this.openCustomReleaseModal(),
-        showDividers: !actionTitle,
       },
       {
         key: 'a-commit',
         label: t('A commit\u2026'),
         onAction: () => this.openCustomCommitModal(),
-        showDividers: !actionTitle,
       },
     ];
 

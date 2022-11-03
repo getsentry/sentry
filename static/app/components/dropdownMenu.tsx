@@ -118,15 +118,17 @@ function DropdownMenu({
     [menuProps, hasFocus]
   );
 
+  const showDividers = stateCollection.some(item => !!item.props.details);
+
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     return (
       <MenuItem
         node={node}
-        isLastNode={isLastNode}
         state={state}
         onClose={closeRootMenu}
         closeOnSelect={closeOnSelect}
+        showDivider={showDividers && !isLastNode}
       />
     );
   };
@@ -137,9 +139,9 @@ function DropdownMenu({
       <MenuItem
         renderAs="div"
         node={node}
-        isLastNode={isLastNode}
         state={state}
         isSubmenuTrigger
+        showDivider={showDividers && !isLastNode}
         {...submenuTriggerProps}
       />
     );
