@@ -56,8 +56,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry.models import Team
+        from sentry.services.hybrid_cloud.user import APIUser as APIUserClass
 
-        if isinstance(actor, APIUser):
+        if isinstance(actor, APIUserClass):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
