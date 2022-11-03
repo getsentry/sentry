@@ -282,7 +282,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       errorMessage,
       loading,
       widget,
-      organization,
       onZoom,
       legendOptions,
       expandNumbers,

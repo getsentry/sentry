@@ -334,12 +334,10 @@ class Dashboard extends Component<Props, State> {
     };
 
     const key = constructGridItemKey(widget);
-    const dragId = key;
     return (
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
           {...widgetProps}
-          dragId={dragId}
           isMobile={isMobile}
           windowWidth={windowWidth}
           index={String(index)}
