@@ -217,7 +217,7 @@ export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
  * (i.e. Per-Project Spike Protection + Spend Allocations)
  */
 export type SpendVisibilityHooks = {
-  'spend-visibility:project-settings-field': GenericProjectComponentHook;
+  'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
 };
 
 /**
@@ -255,6 +255,9 @@ type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
 
+/**
+ * Receives a project object and should return a React node.
+ */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the
