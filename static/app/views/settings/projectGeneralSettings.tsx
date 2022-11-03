@@ -286,7 +286,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             fields={[fields.subjectPrefix]}
           />
         </Form>
-        <Hook name="spend-visibility:project-settings-field" project={project} />
+        <Hook
+          name="spend-visibility:spike-protection-project-settings"
+          project={project}
+        />
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
