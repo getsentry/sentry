@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.utils.snuba import Dataset, SnubaTSResult
 
@@ -12,6 +12,7 @@ def query(
     selected_columns: List[str],
     query: Optional[str],
     params: ParamsType,
+    snuba_params: Optional[SnubaParams] = None,
     equations: Optional[List[str]] = None,
     orderby: Optional[List[str]] = None,
     offset: int = 0,
@@ -33,6 +34,7 @@ def query(
         dataset=Dataset.Profiles,
         params=params,
         query=query,
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
         auto_fields=auto_fields,
