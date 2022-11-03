@@ -1,5 +1,5 @@
 ---
-created: '2022-09-20T14:56:11.090449Z'
+created: '2022-11-02T22:46:13.339101Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -146,6 +146,8 @@ config:
         - '@mac'
         type: multiple
   quotas: []
+  spanAttributes:
+  - exclusive-time
   trustedRelays: []
 disabled: false
 slug: bar
