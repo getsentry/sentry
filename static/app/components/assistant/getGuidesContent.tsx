@@ -3,10 +3,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
-    if (localStorage.getItem('new-walkthrough') === '1') {
+    if (isDemoWalkthrough()) {
       return getDemoModeGuidesV2();
     }
     return getDemoModeGuides();

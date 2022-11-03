@@ -11,6 +11,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
+  isDemoWalkthrough,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
@@ -19,13 +20,11 @@ export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
 
-  const walkthrough = localStorage.getItem('new-walkthrough');
-
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   let docsBtn, reqDemoBtn, signUpBtn;
 
-  if (walkthrough === '1') {
+  if (isDemoWalkthrough()) {
     docsBtn = (
       <DocsDemoBtn
         onClick={() =>
