@@ -118,10 +118,7 @@ function DropdownMenu({
     [menuProps, hasFocus]
   );
 
-  const showDividers = useMemo(
-    () => stateCollection.some(item => !!item.props.details),
-    [stateCollection]
-  );
+  const showDividers = stateCollection.some(item => !!item.props.details);
 
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
