@@ -5,8 +5,6 @@ import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
-import {closestCenter, DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -45,7 +43,7 @@ import {
   Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -322,8 +320,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview, dashboard, location} =
-      this.props;
+    const {isEditing, widgetLimitReached, isPreview, dashboard, location} = this.props;
 
     const widgetProps = {
       widget,
@@ -453,15 +450,8 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-releases');
-      }
-      return true;
-    });
+    const {isEditing, dashboard, widgetLimitReached} = this.props;
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -509,25 +499,6 @@ class Dashboard extends Component<Props, State> {
 }
 
 export default withApi(withPageFilters(Dashboard));
-
-const WidgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
 
 // A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved
