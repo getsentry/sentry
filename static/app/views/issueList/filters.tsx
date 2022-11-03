@@ -46,15 +46,17 @@ function IssueListFilters({
         query={query || ''}
         onSearch={onSearch}
         excludedTags={['environment']}
-        actionBarItems={[
-          ...(!organization.features.includes('issue-list-saved-searches-v2')
-            ? [makePinSearchAction({sort, pinnedSearch, location})]
-            : []),
-          makeSaveSearchAction({
-            sort,
-            disabled: !organization.access.includes('org:write'),
-          }),
-        ]}
+        actionBarItems={
+          organization.features.includes('issue-list-saved-searches-v2')
+            ? []
+            : [
+                makePinSearchAction({sort, pinnedSearch, location}),
+                makeSaveSearchAction({
+                  sort,
+                  disabled: !organization.access.includes('org:write'),
+                }),
+              ]
+        }
       />
     </SearchContainer>
   );
