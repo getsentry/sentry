@@ -48,7 +48,7 @@ def build_test_message(
 
     return {
         "text": "",
-        "color": "#E03E2F",
+        "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
             {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
@@ -194,7 +194,8 @@ class BuildGroupAttachmentTest(TestCase):
         ):
             event = perf_event_manager.save(self.project.id)
         event = event.for_group(event.groups[0])
-        attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        with self.feature("organizations:performance-issues"):
+            attachments = SlackIssuesMessageBuilder(event.group).build()  # do not pass the event
 
         assert attachments["title"] == "N+1 Query"
         assert (
@@ -202,7 +203,8 @@ class BuildGroupAttachmentTest(TestCase):
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
-        assert attachments["color"] == "#2788CE"
+        assert attachments["color"] == "#2788CE"  # blue for info level
+        assert False
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
