@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -32,7 +32,7 @@ function isIssueContext(contextType: ContextType): boolean {
   return contextType === ContextType.ISSUE;
 }
 
-const fiveMinuteInMs = 5 * 60 * 1000;
+const fiveMinutesInMs = 5 * 60 * 1000;
 
 type IssueContextProps = {
   api: Client;
@@ -43,7 +43,7 @@ type IssueContextProps = {
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
   const {isLoading, isError, data} = useQuery({
-    queryKey: ['quick-context-issue', `${props.dataRow['issue.id']}`],
+    queryKey: ['quick-context', 'issue', `${props.dataRow['issue.id']}`],
     queryFn: () =>
       props.api.requestPromise(`/issues/${props.dataRow['issue.id']}/`, {
         method: 'GET',
@@ -55,7 +55,7 @@ function IssueContext(props: IssueContextProps) {
     onSuccess: group => {
       GroupStore.add([group]);
     },
-    staleTime: fiveMinuteInMs,
+    staleTime: fiveMinutesInMs,
     retry: false,
   });
 
@@ -140,15 +140,10 @@ type ContextProps = {
 export function QuickContextHoverWrapper(props: ContextProps) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const [ishovering, setisHovering] = useState<boolean>(false);
-
-  const handleHoverState = () => {
-    setisHovering(prevState => !prevState);
-  };
 
   useEffect(() => {
     return () => {
-      queryClient.invalidateQueries({queryKey: ['quick-context-issue']});
+      queryClient.invalidateQueries({queryKey: ['quick-context']});
     };
   }, [queryClient]);
 
@@ -174,9 +169,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
       >
         <StyledIconInfo
           data-test-id="quick-context-hover-trigger"
-          onMouseEnter={handleHoverState}
-          onMouseLeave={handleHoverState}
-          ishovering={ishovering ? 1 : 0}
           onClick={e => e.preventDefault()}
         />
       </StyledHovercard>
@@ -196,9 +188,13 @@ const StyledHovercard = styled(Hovercard)`
   min-width: 300px;
 `;
 
-const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
-  color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
+const StyledIconInfo = styled(IconInfo)`
+  color: ${p => p.theme.gray200};
   min-width: max-content;
+
+  &:hover {
+    color: ${p => p.theme.gray300};
+  }
 `;
 
 const HoverWrapper = styled('div')`
