@@ -9,7 +9,6 @@ from django.urls import resolve, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.models import Organization

@@ -4,7 +4,6 @@ from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from sentry import options
 from sentry.models import User, UserAvatar
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 from sentry.utils.http import absolute_uri

@@ -4,7 +4,6 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import BitField
-from sentry import options
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
