@@ -2257,6 +2257,33 @@ class MetricsQueryBuilder(QueryBuilder):
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
+        if self.use_metrics_layer:
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            return Request(
+                dataset=self.dataset.value,
+                app_id="default",
+                query=Query(
+                    match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                    # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                    select=self.aggregates
+                    + [
+                        # Team key transaction is a special case sigh
+                        col
+                        for col in self.columns
+                        if isinstance(col, Function) and col.function == "team_key_transaction"
+                    ],
+                    array_join=self.array_join,
+                    where=self.where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=self.orderby,
+                    limit=self.limit,
+                    offset=self.offset,
+                    limitby=self.limitby,
+                ),
+                flags=Flags(turbo=self.turbo),
+            )
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
         primary_framework = query_framework.pop(primary)
@@ -2396,62 +2423,44 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        self.validate_having_clause()
-        self.validate_orderby_clause()
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
-                tranform_mqb_query_to_metrics_query,
+                transform_mqb_query_to_metrics_query,
             )
 
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-
-            snuba_query = Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                limitby=self.limitby,
-            )
+            # bit of a misnomer since this is a metric layer snql query
+            snuba_query = self.get_snql_query().query
             try:
-                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
-                metrics_data = get_series(
-                    projects=self.projects,
-                    metrics_query=metric_query,
-                    use_case_id=use_case_id,
-                    include_meta=True,
-                )
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                    )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
-            # series does some strange stuff to the clickhouse response, turn it back so we can handle it
-            metric_layer_result: Any = {
-                "data": [],
-                "meta": metrics_data["meta"],
-            }
-            for group in metrics_data["groups"]:
-                data = group["by"]
-                data.update(group["totals"])
-                metric_layer_result["data"].append(data)
-                for meta in metric_layer_result["meta"]:
-                    if data[meta["name"]] is None:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
-            return metric_layer_result
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data[meta["name"]] is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+                return metric_layer_result
+        self.validate_having_clause()
+        self.validate_orderby_clause()
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
 
@@ -2750,6 +2759,32 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         This is because different functions will use different entities
         """
+        if self.use_metrics_layer:
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            return [
+                Request(
+                    dataset=self.dataset.value,
+                    app_id="default",
+                    query=Query(
+                        match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                        # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                        select=self.aggregates
+                        + [
+                            # Team key transaction is a special case sigh
+                            col
+                            for col in self.columns
+                            if isinstance(col, Function) and col.function == "team_key_transaction"
+                        ],
+                        array_join=self.array_join,
+                        where=self.where,
+                        having=self.having,
+                        groupby=self.groupby,
+                        orderby=[],
+                        granularity=self.granularity,
+                    ),
+                )
+            ]
         # No need for primary from the query framework since there's no orderby to worry about
         _, query_framework = self._create_query_framework()
 
@@ -2779,62 +2814,46 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
-                tranform_mqb_query_to_metrics_query,
+                transform_mqb_query_to_metrics_query,
             )
 
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+            snuba_query = self.get_snql_query()[0].query
 
-            snuba_query = Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=[],
-                granularity=self.granularity,
-            )
             try:
-                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
-                metrics_data = get_series(
-                    projects=self.projects,
-                    metrics_query=metric_query,
-                    use_case_id=use_case_id,
-                    include_meta=True,
-                )
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                    )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
-            metric_layer_result: Any = {
-                "data": [],
-                "meta": metrics_data["meta"],
-            }
-            # metric layer adds bucketed time automatically but doesn't remove it
-            for meta in metric_layer_result["meta"]:
-                if meta["name"] == "bucketed_time":
-                    meta["name"] = "time"
-            for index, interval in enumerate(metrics_data["intervals"]):
-                # the metric layer changes the intervals to datetime objects when we want the isoformat
-                data = {self.time_alias: interval.isoformat()}
-                # only need the first thing in groups since we don't groupby
-                for key, value_list in (
-                    metrics_data.get("groups", [{}])[0].get("series", {}).items()
-                ):
-                    data[key] = value_list[index]
-                metric_layer_result["data"].append(data)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                # metric layer adds bucketed time automatically but doesn't remove it
                 for meta in metric_layer_result["meta"]:
-                    if meta["name"] not in data:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
+                    if meta["name"] == "bucketed_time":
+                        meta["name"] = "time"
+                for index, interval in enumerate(metrics_data["intervals"]):
+                    # the metric layer changes the intervals to datetime objects when we want the isoformat
+                    data = {self.time_alias: interval.isoformat()}
+                    # only need the first thing in groups since we don't groupby, and top-n isn't supported by mep yet
+                    for key, value_list in (
+                        metrics_data.get("groups", [{}])[0].get("series", {}).items()
+                    ):
+                        data[key] = value_list[index]
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if meta["name"] not in data:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
             return metric_layer_result
         queries = self.get_snql_query()
         if self.dry_run:
