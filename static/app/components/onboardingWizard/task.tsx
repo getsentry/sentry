@@ -15,6 +15,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -66,14 +67,8 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
-    switch (task.task) {
-      case OnboardingTaskKey.SIDEBAR_GUIDE:
-        DemoWalkthroughStore.activateGuideAnchor('sidebar');
-        break;
-      case OnboardingTaskKey.ISSUE_GUIDE:
-        DemoWalkthroughStore.activateGuideAnchor('issue');
-        break;
-      default:
+    if (isDemoWalkthrough()) {
+      DemoWalkthroughStore.activateGuideAnchor(task.task);
     }
 
     if (task.actionType === 'external') {

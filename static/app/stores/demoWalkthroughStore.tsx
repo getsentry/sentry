@@ -1,5 +1,7 @@
 import {createStore, StoreDefinition} from 'reflux';
 
+import {OnboardingTaskKey} from 'sentry/types';
+
 interface DemoWalkthroughStoreDefinition extends StoreDefinition {
   activateGuideAnchor(guide: string): void;
   get(guide: string): boolean;
@@ -12,13 +14,14 @@ const storeConfig: DemoWalkthroughStoreDefinition = {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
   },
-  activateGuideAnchor(guide: string) {
-    switch (guide) {
-      case 'issue':
+
+  activateGuideAnchor(task: OnboardingTaskKey) {
+    switch (task) {
+      case OnboardingTaskKey.ISSUE_GUIDE:
         this.issueGuideAnchor = true;
         this.trigger(this.issueGuideAnchor);
         break;
-      case 'sidebar':
+      case OnboardingTaskKey.SIDEBAR_GUIDE:
         this.sidebarGuideAnchor = true;
         this.trigger(this.sidebarGuideAnchor);
         break;
