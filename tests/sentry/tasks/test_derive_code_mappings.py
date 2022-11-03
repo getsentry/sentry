@@ -1,12 +1,20 @@
 from copy import deepcopy
+from unittest.mock import patch
 
+from sentry.integrations.utils.code_mapping import CodeMapping, Repo
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
-from sentry.tasks.derive_code_mappings import identify_stacktrace_paths
+from sentry.tasks.derive_code_mappings import (
+    derive_code_mappings,
+    derive_missing_codemappings,
+    identify_stacktrace_paths,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 
 
-class TestCommitContext(TestCase):
+class TestIdentfiyStacktracePaths(TestCase):
     def setUp(self):
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
@@ -51,12 +59,9 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_1, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
@@ -70,42 +75,14 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_2, project_id=project_2.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
-        assert project_2.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[project_2.slug]) == [
-            "sentry/models/test_file.py",
-            "sentry/test_file.py",
-        ]
-
-    def test_finds_stacktrace_paths_multiple_orgs(self):
-        new_org = self.create_organization()
-        new_project = self.create_project(
-            organization=new_org,
-            platform="python",
-        )
-        self.store_event(self.test_data_1, project_id=self.project.id)
-        self.store_event(data=self.test_data_2, project_id=new_project.id)
-
-        with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization, new_org])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
-            "sentry/models/release.py",
-            "sentry/tasks.py",
-        ]
-        assert new_org.slug in mapping
-        stacktrace_paths = mapping[new_org.slug]
-        assert new_project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[new_project.slug]) == [
+        assert project_2 in stacktrace_paths
+        assert sorted(stacktrace_paths[project_2]) == [
             "sentry/models/test_file.py",
             "sentry/test_file.py",
         ]
@@ -116,10 +93,8 @@ class TestCommitContext(TestCase):
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths()
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug not in stacktrace_paths
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project not in stacktrace_paths
 
     def test_skips_outdated_events(self):
         stale_event = deepcopy(self.test_data_2)
@@ -128,11 +103,9 @@ class TestCommitContext(TestCase):
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
@@ -144,12 +117,10 @@ class TestCommitContext(TestCase):
         self.store_event(data=nonpython_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
 
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
@@ -161,13 +132,58 @@ class TestCommitContext(TestCase):
         self.store_event(data=duplicate_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/models/test_file.py",
             "sentry/tasks.py",
             "sentry/test_file.py",
         ]
+
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch(
+        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        return_value=[
+            CodeMapping(
+                repo=Repo(name="repo", branch="master"),
+                stacktrace_root="sentry/models",
+                source_path="src/sentry/models",
+            )
+        ],
+    )
+    def test_derive_code_mappings_single_project(
+        self, mock_generate_code_mappings, mock_get_trees_for_org
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+        )
+        self.store_event(data=self.test_data_2, project_id=self.project.id)
+
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+        with patch(
+            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+            return_value={
+                self.project: ["sentry/models/release.py", "sentry/tasks.py"],
+            },
+        ) as mock_identify_stacktraces, self.tasks():
+            derive_code_mappings(self.organization.id)
+
+        assert mock_identify_stacktraces.call_count == 1
+        assert mock_get_trees_for_org.call_count == 1
+        assert mock_generate_code_mappings.call_count == 1
+        code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
+        assert code_mapping.exists()
+        assert code_mapping.first().automatically_generated is True
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings.delay")
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_missing_code_mappings(self, mock_derive_code_mappings):
+        self.create_organization()
+        with self.tasks():
+            derive_missing_codemappings(self)
+
+        assert mock_derive_code_mappings.call_count == 3
