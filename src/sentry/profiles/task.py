@@ -309,7 +309,6 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         stack = profile["profile"]["stacks"][stack_id]
 
         if len(stack) < 2:
-            profile["profile"]["stacks"] = stack
             continue
 
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
