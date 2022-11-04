@@ -79,7 +79,7 @@ class OrganizationMixin:
             )
 
         if active_organization and active_organization.member:
-            auth.set_active_org(request, active_organization.slug)
+            auth.set_active_org(request, active_organization.organization.slug)
 
         self.active_organization = active_organization
 
