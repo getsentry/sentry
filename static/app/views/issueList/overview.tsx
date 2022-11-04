@@ -57,6 +57,7 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -104,6 +105,7 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
+  isSavedSearchesOpen: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -172,6 +174,7 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
+      isSavedSearchesOpen: false,
       issuesLoading: true,
       memberList: {},
     };
@@ -950,6 +953,9 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+      is_global: savedSearch.isGlobal,
+      query: savedSearch.query,
+      visibility: savedSearch.visibility,
     });
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
@@ -1097,6 +1103,12 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchData(true);
   };
 
+  onToggleSavedSearches = (isOpen: boolean) => {
+    this.setState({
+      isSavedSearchesOpen: isOpen,
+    });
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getSelectedProjectIds();
@@ -1118,6 +1130,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
+      isSavedSearchesOpen,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1128,8 +1141,15 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, savedSearches, selection, location, router} =
-      this.props;
+    const {
+      organization,
+      savedSearch,
+      savedSearches,
+      savedSearchLoading,
+      selection,
+      location,
+      router,
+    } = this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1172,6 +1192,8 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <StyledPageContent>
         <IssueListHeader
+          isSavedSearchesOpen={isSavedSearchesOpen}
+          onToggleSavedSearches={this.onToggleSavedSearches}
           organization={organization}
           query={query}
           sort={this.getSort()}
@@ -1248,6 +1270,19 @@ class IssueListOverview extends Component<Props, State> {
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
           </StyledMain>
+          <SavedIssueSearches
+            {...{
+              savedSearches,
+              savedSearch,
+              savedSearchLoading,
+              organization,
+              query,
+            }}
+            isOpen={isSavedSearchesOpen}
+            onSavedSearchDelete={this.onSavedSearchDelete}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+            sort={this.getSort()}
+          />
         </StyledBody>
       </StyledPageContent>
     );
