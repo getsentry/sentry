@@ -52,13 +52,13 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe_actor(
         self,
         group: "Group",
-        actor: Union["Team", "APIUser"],
+        actor: Union["Team", "User", "APIUser"],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
-        from sentry.models import Team
+        from sentry.models import Team, User
         from sentry.services.hybrid_cloud.user import APIUser as APIUserClass
 
-        if isinstance(actor, APIUserClass):
+        if isinstance(actor, APIUserClass) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
