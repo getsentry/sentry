@@ -81,6 +81,10 @@ class OrganizationSerializerTest(TestCase):
         assert "test-feature" in result["features"]
         assert "disabled-feature" not in result["features"]
 
+    @mock.patch("sentry.constants.ORGANIZATION_OPTIONS_AS_FEATURES")
+    def test_organization_options_as_flasg(self, mock_options_as_features):
+        mock_options_as_features = {"sentry:some_organization_option": "my-frontend-option-flag"}
+
 
 @region_silo_test
 class DetailedOrganizationSerializerTest(TestCase):
