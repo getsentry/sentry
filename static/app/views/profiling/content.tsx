@@ -100,6 +100,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const transactions = useProfileEvents<FieldType>({
     cursor,
     fields: FIELDS,
+    query,
     sort,
   });
 

@@ -63,7 +63,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     const search = new MutableSearch(rawQuery);
 
     if (defined(transaction)) {
-      search.setFilterValues('transaction_name', [transaction]);
+      search.setFilterValues('transaction', [transaction]);
     }
 
     return search.formatString();

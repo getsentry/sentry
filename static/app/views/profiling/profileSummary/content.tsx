@@ -53,6 +53,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
     fields: FIELDS,
+    query: props.query,
     sort,
     limit: 5,
   });
@@ -64,7 +65,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   const functions = useFunctions({
     cursor: functionsCursor,
     project: props.project,
-    query: props.query,
+    query: '', // TODO: This doesnt support the same filters
     selection: props.selection,
     transaction: props.transaction,
     sort: functionsSort,
