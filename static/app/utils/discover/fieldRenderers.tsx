@@ -590,13 +590,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.RELEASE}
-            organization={organization}
-          >
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper
+              dataRow={data}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+            </QuickContextHoverWrapper>
+          ) : (
             <Version version={data.release} anchor={false} tooltipRawVersion truncate />
-          </QuickContextHoverWrapper>
+          )}
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>
