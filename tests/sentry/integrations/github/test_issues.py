@@ -4,12 +4,17 @@ import responses
 from django.test import RequestFactory
 from exam import fixture
 
+from sentry.event_manager import EventManager
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 from sentry.utils import json
+from sentry.utils.samples import load_data
 
 
 @region_silo_test
@@ -95,6 +100,47 @@ class GitHubIssueBasicTest(TestCase):
         assert request.headers["Authorization"] == "token token_1"
         payload = json.loads(request.body)
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
+
+    def test_performance_issues_description(self):
+        """Test that a GitHub issue created from a performance issue has span evidence data in it's description"""
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        description = GitHubIssueBasic().get_group_description(event.group, event)
+        assert "db - SELECT `books_author`.`id`, `books_author" in description
+
+    def test_error_issues_description(self):
+        """Test that a GitHub issue created from an error issue has message  data in it's description"""
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        description = GitHubIssueBasic().get_group_description(event.group, event)
+        assert "oh no" in description
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
