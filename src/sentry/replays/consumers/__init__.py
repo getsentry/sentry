@@ -5,6 +5,7 @@ from typing import Any, MutableMapping
 
 from arroyo import Topic
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.commit import IMMEDIATE
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
@@ -28,6 +29,7 @@ def get_replays_recordings_consumer(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=ProcessReplayRecordingStrategyFactory(),
+        commit_policy=IMMEDIATE,
     )
 
     def handler(signum: int, frame: Any) -> None:

@@ -5,6 +5,7 @@ import sentry_sdk
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import AbstractBatchWorker, BatchProcessingStrategy
@@ -48,6 +49,7 @@ def get_region_to_control_consumer(
                 max_batch_time=max_batch_time,
             )
         ),
+        commit_policy=IMMEDIATE,
     )
 
     def handler(*args) -> None:
