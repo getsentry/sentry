@@ -242,9 +242,7 @@ function AddToDashboardModal({
               >
                 <WidgetCard
                   organization={organization}
-                  currentWidgetDragging={false}
                   isEditing={false}
-                  isSorting={false}
                   widgetLimitReached={false}
                   selection={
                     organization.features.includes('dashboards-top-level-filter') &&

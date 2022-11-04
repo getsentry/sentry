@@ -118,8 +118,6 @@ export function VisualizationStep({
               <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
-          isSorting={false}
-          currentWidgetDragging={false}
           noLazyLoad
           showStoredAlert
           noDashboardsMEPProvider={noDashboardsMEPProvider}

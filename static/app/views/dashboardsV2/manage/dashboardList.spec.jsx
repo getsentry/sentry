@@ -57,14 +57,23 @@ describe('Dashboards > DashboardList', function () {
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
-        widgetDisplay: [],
+        widgetPreview: [],
       }),
       TestStubs.Dashboard(widgets, {
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
-        widgetDisplay: ['line', 'table'],
+        widgetPreview: [
+          {
+            displayType: 'line',
+            layout: {},
+          },
+          {
+            displayType: 'table',
+            layout: {},
+          },
+        ],
       }),
     ];
     deleteMock = MockApiClient.addMockResponse({
@@ -208,7 +217,7 @@ describe('Dashboards > DashboardList', function () {
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
-        widgetDisplay: [],
+        widgetPreview: [],
       }),
     ];
     const wrapper = mountWithTheme(
