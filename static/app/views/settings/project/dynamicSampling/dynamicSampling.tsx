@@ -116,7 +116,7 @@ export function DynamicSampling({project}: Props) {
         <SettingsPageHeader
           title={
             <Fragment>
-              {t('Dynamic Sampling')} <FeatureBadge type="beta" />
+              {t('Dynamic Sampling')} <FeatureBadge type="new" />
             </Fragment>
           }
           action={<SamplingFeedback />}
