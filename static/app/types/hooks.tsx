@@ -5,8 +5,6 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import type {OnboardingTask} from 'sentry/types';
-import type {OnboardingState} from 'sentry/views/onboarding/types';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -195,23 +193,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
-  'onboarding:sandbox-tasks': (opts: {
-    onboardingState: OnboardingState | null;
-    organization: Organization;
-    projects: Project[];
-  }) => {
-    active: OnboardingTask[];
-    allTasks: OnboardingTask[];
-    complete: OnboardingTask[];
-    customTasks: OnboardingTask[];
-    upcoming: OnboardingTask[];
-  };
   'onboarding:show-sidebar': (organization: Organization) => boolean;
-  'onboarding:sidebar-tasks': (opts: {
-    onboardingState: OnboardingState | null;
-    organization: Organization;
-    projects: Project[];
-  }) => OnboardingTask[];
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
