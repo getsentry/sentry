@@ -280,8 +280,8 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("user.jsx")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -294,7 +294,7 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_single_user_no_teams(self):
@@ -344,16 +344,22 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_fallthrough(self):
         event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
+            ExternalProviders.SLACK: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
         }
 
     def test_without_fallthrough(self):

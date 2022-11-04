@@ -25,7 +25,6 @@ from sentry.utils.services import build_instance_from_options
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
-    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger("sentry")
 
@@ -191,6 +190,7 @@ def handle_group_owners(project, group, issue_owners):
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import APIUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
@@ -248,7 +248,7 @@ def handle_group_owners(project, group, issue_owners):
                     )
                     user_id = None
                     team_id = None
-                    if owner_type is User:
+                    if owner_type is APIUser:
                         user_id = owner_id
                     if owner_type is Team:
                         team_id = owner_id
