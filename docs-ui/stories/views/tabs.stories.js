@@ -80,6 +80,50 @@ Default.argTypes = {
   className: {control: {type: 'disabed'}},
 };
 
+const TABS_LINKS = [
+  {
+    key: 'details',
+    label: 'Details',
+    content:
+      'These tabs act like links. You can command/ctrl/shift-click to open in a new browser tab/window.',
+    to: '/?path=/story/views-tabs--tab-links&args=selectedValue:details',
+  },
+  {
+    key: 'activity',
+    label: 'Activity',
+    content:
+      'These tabs act like links. You can command/ctrl/shift-click to open in a new browser tab/window.',
+    to: '/?path=/story/views-tabs--tab-links&args=selectedValue:activity',
+  },
+];
+
+export const TabLinks = ({selectedValue, ...args}) => {
+  return (
+    <Tabs {...args} value={selectedValue}>
+      <TabList>
+        {TABS_LINKS.map(tab => (
+          <Item key={tab.key} to={tab.to}>
+            {tab.label}
+          </Item>
+        ))}
+      </TabList>
+      <StyledTabPanels orientation={args.orientation}>
+        {TABS_LINKS.map(tab => (
+          <Item key={tab.key}>{tab.content}</Item>
+        ))}
+      </StyledTabPanels>
+    </Tabs>
+  );
+};
+
+TabLinks.storyName = 'Tab Links';
+TabLinks.args = Default.args;
+TabLinks.argTypes = {
+  value: {control: false},
+  defaultValue: {control: false},
+  selectedValue: {control: false},
+};
+
 // To add styles to tab panels, wrap styled() around `TabPanels`, not `Item`
 const StyledTabPanels = styled(TabPanels)`
   ${p =>
