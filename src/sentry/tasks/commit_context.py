@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import Commit, CommitAuthor, Organization, Project, RepositoryProjectPathConfig
+from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
@@ -47,10 +47,7 @@ def process_commit_context(
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
-            organization: Organization = Organization.objects.get_from_cache(
-                id=project.organization_id
-            )
-            set_tag("organization.slug", organization.slug)
+            set_tag("organization.slug", project.organization.slug)
 
             owners = GroupOwner.objects.filter(
                 group_id=group_id,
