@@ -6,6 +6,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {
   EventsResults,
+  formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -80,5 +81,51 @@ describe('useProfileEvents', function () {
 
     await waitFor(() => result.current.isError);
     expect(result.current.status).toEqual('error');
+  });
+});
+
+describe('formatSort', function () {
+  it('uses the desc fallback', function () {
+    const sort = formatSort(undefined, ['count()'], {
+      key: 'count()',
+      order: 'desc' as const,
+    });
+    expect(sort).toEqual({
+      key: 'count()',
+      order: 'desc',
+    });
+  });
+
+  it('uses the asc fallback', function () {
+    const sort = formatSort(undefined, ['count()'], {
+      key: 'count()',
+      order: 'asc' as const,
+    });
+    expect(sort).toEqual({
+      key: 'count()',
+      order: 'asc',
+    });
+  });
+
+  it('uses the desc value', function () {
+    const sort = formatSort('-p95()', ['p95()', 'count()'], {
+      key: 'count()',
+      order: 'asc' as const,
+    });
+    expect(sort).toEqual({
+      key: 'p95()',
+      order: 'desc',
+    });
+  });
+
+  it('uses the asc value', function () {
+    const sort = formatSort('p95()', ['p95()', 'count()'], {
+      key: 'count()',
+      order: 'desc' as const,
+    });
+    expect(sort).toEqual({
+      key: 'p95()',
+      order: 'asc',
+    });
   });
 });

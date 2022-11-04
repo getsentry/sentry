@@ -8,12 +8,14 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+type Sort<F> = {
+  key: F;
+  order: 'asc' | 'desc';
+};
+
 interface UseProfileEventsOptions<F> {
   fields: F[];
-  sort: {
-    key: F;
-    order: 'asc' | 'desc';
-  };
+  sort: Sort<F>;
   cursor?: string;
   limit?: number;
   query?: string;
@@ -76,4 +78,20 @@ export function useProfileEvents<F extends string>({
     refetchOnWindowFocus: false,
     retry: false,
   });
+}
+
+export function formatSort<F extends string>(
+  value: string | undefined,
+  allowedKeys: F[],
+  fallback: Sort<F>
+): Sort<F> {
+  value = value || '';
+  const order: Sort<F>['order'] = value[0] === '-' ? 'desc' : 'asc';
+  const key = order === 'asc' ? value : value.substring(1);
+
+  if (!allowedKeys.includes(key as F)) {
+    return fallback;
+  }
+
+  return {key: key as F, order};
 }
