@@ -14,7 +14,7 @@ type Sort<F> = {
 };
 
 interface UseProfileEventsOptions<F> {
-  fields: readonly F[];
+  fields: F[];
   sort: Sort<F>;
   cursor?: string;
   limit?: number;
@@ -82,7 +82,7 @@ export function useProfileEvents<F extends string>({
 
 export function formatSort<F extends string>(
   value: string | undefined,
-  allowedKeys: readonly F[],
+  allowedKeys: F[],
   fallback: Sort<F>
 ): Sort<F> {
   value = value || '';

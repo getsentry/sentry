@@ -26,13 +26,10 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p75()'] as const;
 
-export function ProfileCharts({router, selection}: ProfileChartsProps) {
+export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
   const theme = useTheme();
 
-  const profileStats = useProfileStats({
-    query: '', // TODO: This doesnt support the same filters
-    selection,
-  });
+  const profileStats = useProfileStats({query, selection});
   const series: Series[] = useMemo(() => {
     if (profileStats.type !== 'resolved') {
       return [];
