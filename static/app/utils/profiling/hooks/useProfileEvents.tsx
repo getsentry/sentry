@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface UseProfileEventsOptions<F> {
-  fields: readonly F[];
+  fields: F[];
   sort: {
     key: F;
     order: 'asc' | 'desc';
@@ -19,8 +19,6 @@ interface UseProfileEventsOptions<F> {
   query?: string;
 }
 
-type Type = FieldValueType;
-
 type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
 type EventsResultsDataRow<F extends string> = {
@@ -28,7 +26,7 @@ type EventsResultsDataRow<F extends string> = {
 };
 
 type EventsResultsMeta<F extends string> = {
-  fields: {[K in F]: Type};
+  fields: {[K in F]: FieldValueType};
   units: {[K in F]: Unit};
 };
 
