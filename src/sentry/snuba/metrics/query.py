@@ -264,6 +264,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
             end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
 
             range_in_sec = (end - start).total_seconds()
+            if range_in_sec == 0:
+                raise InvalidParams("Rounded start and end time are the same")
+
             denominator = interval
         return math.ceil(range_in_sec / denominator)
 
