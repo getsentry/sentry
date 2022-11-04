@@ -36,7 +36,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
+  const [tab, setTab] = useState<'bottom up' | 'call order'>('bottom up');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
