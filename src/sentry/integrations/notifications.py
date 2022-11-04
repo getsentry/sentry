@@ -26,7 +26,7 @@ def get_context(
 
 
 def get_channel_and_integration_by_user(
-    user: APIUser,
+    user: User,
     organization: Organization,
     provider: ExternalProviders,
 ) -> Mapping[str, Integration]:
@@ -86,8 +86,8 @@ def get_channel_and_integration_by_team(
 
 
 def get_integrations_by_channel_by_recipient(
-    organization: Organization, recipients: Iterable[Team | APIUser], provider: ExternalProviders
-) -> MutableMapping[Team | APIUser, Mapping[str, Integration]]:
+    organization: Organization, recipients: Iterable[Team | User], provider: ExternalProviders
+) -> MutableMapping[Team | User, Mapping[str, Integration]]:
     output: MutableMapping[Team | User, Mapping[str, Integration]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (

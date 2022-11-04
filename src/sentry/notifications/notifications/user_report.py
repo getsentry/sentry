@@ -15,7 +15,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project, Team
+    from sentry.models import Project, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class UserReportNotification(ProjectNotification):
         }
 
     def get_recipient_context(
-        self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}

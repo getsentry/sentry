@@ -11,7 +11,7 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.db.models import Model
-    from sentry.models import Team
+    from sentry.models import Team, User
 
 
 class AutoSyncNotification(ProjectNotification):
@@ -37,7 +37,7 @@ class AutoSyncNotification(ProjectNotification):
         return {"project_name": self.project.name}
 
     def get_recipient_context(
-        self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["url"] = str(
