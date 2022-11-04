@@ -297,7 +297,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.Apdex]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
-    valueType: null,
+    valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.UserMisery]: {
     desc: t(
