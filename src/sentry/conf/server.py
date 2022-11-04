@@ -1107,8 +1107,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable release health widgets in dashboards
-    "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
     "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets

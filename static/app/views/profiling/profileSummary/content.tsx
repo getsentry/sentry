@@ -8,32 +8,25 @@ import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
-import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
+import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
+import {
+  formatSort,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
-
-const PROFILES_COLUMN_ORDER = [
-  'failed',
-  'id',
-  'timestamp',
-  'version_name',
-  'device_model',
-  'device_classification',
-  'trace_duration_ms',
-] as const;
 
 interface ProfileSummaryContentProps {
   location: Location;
   project: Project;
   query: string;
+  selection: PageFilters;
   transaction: string;
-  selection?: PageFilters;
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
@@ -52,11 +45,17 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.functionsSort]
   );
 
-  const profiles = useProfiles({
+  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), FIELDS, {
+    key: 'timestamp',
+    order: 'desc',
+  });
+
+  const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    limit: 5,
+    fields: FIELDS,
     query: props.query,
-    selection: props.selection,
+    sort,
+    limit: 5,
   });
 
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
@@ -66,7 +65,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   const functions = useFunctions({
     cursor: functionsCursor,
     project: props.project,
-    query: props.query,
+    query: '', // TODO: This doesnt support the same filters
     selection: props.selection,
     transaction: props.transaction,
     sort: functionsSort,
@@ -85,15 +84,20 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       <TableHeader>
         <SectionHeading>{t('Recent Profiles')}</SectionHeading>
         <StyledPagination
-          pageLinks={profiles.type === 'resolved' ? profiles.data.pageLinks : null}
+          pageLinks={
+            profiles.status === 'success'
+              ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+              : null
+          }
           size="xs"
         />
       </TableHeader>
-      <ProfilesTable
-        error={profiles.type === 'errored' ? profiles.error : null}
-        isLoading={profiles.type === 'initial' || profiles.type === 'loading'}
-        traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-        columnOrder={PROFILES_COLUMN_ORDER}
+      <ProfileEventsTable
+        columns={FIELDS}
+        data={profiles.status === 'success' ? profiles.data[0] : null}
+        error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+        isLoading={profiles.status === 'loading'}
+        sort={sort}
       />
       <TableHeader>
         <CompactSelect
@@ -131,6 +135,10 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     </Layout.Main>
   );
 }
+
+const FIELDS = ['id', 'timestamp', 'release', 'profile.duration'] as const;
+
+type FieldType = typeof FIELDS[number];
 
 const TableHeader = styled('div')`
   display: flex;

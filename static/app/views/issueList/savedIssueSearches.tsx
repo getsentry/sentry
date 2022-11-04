@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -39,6 +40,8 @@ type CreateNewSavedSearchButtonProps = Pick<
   SavedIssueSearchesProps,
   'query' | 'sort' | 'organization'
 >;
+
+const MAX_SHOWN_SEARCHES = 5;
 
 const SavedSearchItem = ({
   organization,
@@ -149,6 +152,8 @@ const SavedIssueSearches = ({
   query,
   sort,
 }: SavedIssueSearchesProps) => {
+  const [showAll, setShowAll] = useState(false);
+
   if (!isOpen) {
     return null;
   }
@@ -165,10 +170,16 @@ const SavedIssueSearches = ({
     );
   }
 
-  const orgSavedSearches = savedSearches.filter(
-    search => !search.isGlobal && !search.isPinned
+  const orgSavedSearches = orderBy(
+    savedSearches.filter(search => !search.isGlobal && !search.isPinned),
+    'dateCreated',
+    'desc'
   );
   const recommendedSavedSearches = savedSearches.filter(search => search.isGlobal);
+
+  const shownOrgSavedSearches = showAll
+    ? orgSavedSearches
+    : orgSavedSearches.slice(0, MAX_SHOWN_SEARCHES);
 
   return (
     <StyledSidebar>
@@ -179,7 +190,7 @@ const SavedIssueSearches = ({
             <CreateNewSavedSearchButton {...{organization, query, sort}} />
           </HeadingContainer>
           <SearchesContainer>
-            {orgSavedSearches.map(item => (
+            {shownOrgSavedSearches.map(item => (
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
@@ -189,6 +200,11 @@ const SavedIssueSearches = ({
               />
             ))}
           </SearchesContainer>
+          {orgSavedSearches.length > shownOrgSavedSearches.length && (
+            <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
+              {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
+            </ShowAllButton>
+          )}
         </Fragment>
       )}
       {recommendedSavedSearches.length > 0 && (
@@ -295,6 +311,17 @@ const OverflowMenu = styled(DropdownMenuControl)`
   position: absolute;
   top: 12px;
   right: ${space(1)};
+`;
+
+const ShowAllButton = styled(Button)`
+  color: ${p => p.theme.linkColor};
+  font-weight: normal;
+  margin-top: 2px;
+  padding: ${space(1)} ${space(2)};
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default SavedIssueSearches;
