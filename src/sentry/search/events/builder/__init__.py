@@ -17,3 +17,20 @@ from .sessions import (  # NOQA
     SessionsV2QueryBuilder,
     TimeseriesSessionsV2QueryBuilder,
 )
+
+__all__ = [
+    "HistogramQueryBuilder",
+    "QueryBuilder",
+    "TimeseriesQueryBuilder",
+    "TopEventsQueryBuilder",
+    "UnresolvedQuery",
+    "AlertMetricsQueryBuilder",
+    "HistogramMetricQueryBuilder",
+    "MetricsQueryBuilder",
+    "TimeseriesMetricQueryBuilder",
+    "ProfilesQueryBuilder",
+    "ProfilesTimeseriesQueryBuilder",
+    "SessionsQueryBuilder",
+    "SessionsV2QueryBuilder",
+    "TimeseriesSessionsV2QueryBuilder",
+]
