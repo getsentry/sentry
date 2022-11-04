@@ -73,6 +73,12 @@ type Options = {
   projects: Project[];
 };
 
+/**
+ * This function is used to determine which tasks to show as complete/incomplete in the sidebar progress circle.
+ *
+ * TODO: Move these to the demo repo once we can use React Hooks in Hooks in the repo.
+ *
+ */
 export function useSandboxSidebarTasks({
   organization,
   projects,
@@ -124,6 +130,12 @@ export function useSandboxSidebarTasks({
   return tasks;
 }
 
+/**
+ * This function is used to determine which onboarding task is shown in the Sidebar panel in the Sandbox.
+ *
+ * TODO: Move this to the demo repo once we can use React Hooks in Hooks in the repo.
+ *
+ */
 export function useSandboxTasks({organization, projects, onboardingState}: Options) {
   const api = useApi();
 
