@@ -17,6 +17,37 @@ TRANSACTION_METRICS = {
     TransactionMetric.LCP.value: "lcp",
 }
 
+# This TTL is used to control how much the cached project threshold will be stored in cache. For now, because data
+# changes very infrequently, we opted for a TTL of 1 hour. The problem with such a long time is that it will create
+# cache coherence problems which in the worst case would happen if the model is changed right after the previous version
+# is inserted into the cache, in that case either we should invalidate the cache or we will have to deal with
+# out-of-date data for at most ~1 hour.
+PROJECT_TRANSACTION_THRESHOLD_CACHE_TTL = 3600
+
+
+def _get_cache_key(model_name, project_ids, org_id, order_by, value_list):
+    return "{}:{}".format(
+        model_name, md5_text(f"{project_ids}:{org_id}:{order_by}:{value_list}").hexdigest()
+    )
+
+
+def _filter_and_cache(cls, cache_key, project_id__in, organization_id, order_by, value_list):
+    cache_result = cache.get(cache_key)
+
+    if cache_result is None:
+        result = list(
+            cls.objects.filter(
+                project_id__in=project_id__in,
+                organization_id=organization_id,
+            )
+            .order_by(*order_by)
+            .values_list(*value_list)
+        )
+        cache.set(cache_key, result, PROJECT_TRANSACTION_THRESHOLD_CACHE_TTL)
+        return result
+    else:
+        return cache_result
+
 
 @region_silo_only_model
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
@@ -38,30 +69,18 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
         unique_together = (("project", "transaction"),)
 
     @classmethod
-    def get_cache_key(cls, project_ids, org_id, order_by, value_list):
-        return "sentry_projecttransactionthreshold:{}".format(
-            md5_text(f"{project_ids}:{org_id}:{order_by}:{value_list}").hexdigest()
+    def filter(cls, project_id__in, organization_id, order_by, value_list):
+        cache_key = _get_cache_key(
+            "sentry_projecttransactionthresholdoverride",
+            project_id__in,
+            organization_id,
+            order_by,
+            value_list,
         )
 
-    @classmethod
-    def filter(cls, project_id__in, organization_id, order_by, value_list):
-        cache_key = cls.get_cache_key(project_id__in, organization_id, order_by, value_list)
-
-        cache_result = cache.get(cache_key)
-        if cache_result is None:
-            result = list(
-                cls.objects.filter(
-                    project_id__in=project_id__in,
-                    organization_id=organization_id,
-                )
-                .order_by(*order_by)
-                .values_list(*value_list)
-            )
-
-            cache.set(cache_key, result, 3600)
-            return result
-        else:
-            return cache_result
+        return _filter_and_cache(
+            cls, cache_key, project_id__in, organization_id, order_by, value_list
+        )
 
 
 @region_silo_only_model
@@ -81,27 +100,15 @@ class ProjectTransactionThreshold(DefaultFieldsModel):
         db_table = "sentry_projecttransactionthreshold"
 
     @classmethod
-    def get_cache_key(cls, project_ids, org_id, order_by, value_list):
-        return "sentry_projecttransactionthreshold:{}".format(
-            md5_text(f"{project_ids}:{org_id}:{order_by}:{value_list}").hexdigest()
+    def filter(cls, project_id__in, organization_id, order_by, value_list):
+        cache_key = _get_cache_key(
+            "sentry_projecttransactionthreshold",
+            project_id__in,
+            organization_id,
+            order_by,
+            value_list,
         )
 
-    @classmethod
-    def filter(cls, project_id__in, organization_id, order_by, value_list):
-        cache_key = cls.get_cache_key(project_id__in, organization_id, order_by, value_list)
-
-        cache_result = cache.get(cache_key)
-        if cache_result is None:
-            result = list(
-                cls.objects.filter(
-                    project_id__in=project_id__in,
-                    organization_id=organization_id,
-                )
-                .order_by(*order_by)
-                .values_list(*value_list)
-            )
-
-            cache.set(cache_key, result, 3600)
-            return result
-        else:
-            return cache_result
+        return _filter_and_cache(
+            cls, cache_key, project_id__in, organization_id, order_by, value_list
+        )

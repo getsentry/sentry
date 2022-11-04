@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from snuba_sdk import Column, Function
 
@@ -34,6 +36,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils import TestCase
+from sentry.utils.cache import cache
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -433,6 +436,41 @@ class DerivedMetricSnQLTestCase(TestCase):
             ],
             "transaction.tolerated",
         )
+
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThresholdOverride.objects.filter")
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThreshold.objects.filter")
+    def test_project_threshold_called_once_with_valid_cache(self, threshold_override, threshold):
+        satisfaction_count_transaction(
+            [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
+        )
+        tolerated_count_transaction(
+            [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
+        )
+        all_transactions([self.project.id], self.org_id, self.metric_ids, "transaction.tolerated")
+
+        # We check whether we will call the database only for the first snql resolution.
+        threshold_override.assert_called_once()
+        threshold.assert_called_once()
+
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThresholdOverride.objects.filter")
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThreshold.objects.filter")
+    def test_project_threshold_called_each_time_with_invalid_cache(
+        self, threshold_override, threshold
+    ):
+        with patch.object(cache, "get", return_value=None):
+            satisfaction_count_transaction(
+                [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
+            )
+            tolerated_count_transaction(
+                [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
+            )
+            all_transactions(
+                [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
+            )
+
+            # We check whether we will call the database for each snql resolution.
+            assert threshold_override.call_count == 3
+            assert threshold.call_count == 3
 
     def test_complement_in_sql(self):
         alias = "foo.complement"
