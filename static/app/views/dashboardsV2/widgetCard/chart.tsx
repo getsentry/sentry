@@ -231,11 +231,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       );
 
       const isModalWidget = !(widget.id || widget.tempId);
-      if (
-        !organization.features.includes('dashboard-grid-layout') ||
-        isModalWidget ||
-        isMobile
-      ) {
+      if (isModalWidget || isMobile) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
@@ -286,7 +282,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       errorMessage,
       loading,
       widget,
-      organization,
       onZoom,
       legendOptions,
       expandNumbers,
@@ -340,10 +335,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const {start, end, period, utc} = selection.datetime;
 
     // Only allow height resizing for widgets that are on a dashboard
-    const autoHeightResize = Boolean(
-      organization.features.includes('dashboard-grid-layout') &&
-        (widget.id || widget.tempId)
-    );
+    const autoHeightResize = Boolean(widget.id || widget.tempId);
 
     if (widget.displayType === 'world_map') {
       const {data, title} = processTableResults(tableResults);
