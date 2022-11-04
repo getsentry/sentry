@@ -259,7 +259,6 @@ export const replayPlatforms: PlatformKey[] = [
   'javascript',
   'javascript-react',
   'javascript-angular',
-  'javascript-angularjs',
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
@@ -268,6 +267,13 @@ export const replayPlatforms: PlatformKey[] = [
   'javascript-remix',
   'javascript-svelte',
 ];
+
+/**
+ * The list of platforms for which we have created onboarding instructions.
+ * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
+ * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
+ */
+export const replayOnboardingPlatforms: PlatformKey[] = ['javascript'];
 
 /**
  * Additional aliases used for filtering in the platform picker
