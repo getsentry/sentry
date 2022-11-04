@@ -22,6 +22,7 @@ from sentry.models import (
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
 from sentry.web.decorators import transaction_start
 
 
@@ -143,6 +144,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(kwargs.get("actions"))
 
+            if rule.data["conditions"] != kwargs["conditions"]:
+                metrics.incr("sentry.issue_alert.conditions.edited")
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(

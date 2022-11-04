@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Mapping
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import responses
 from freezegun import freeze_time
@@ -658,6 +658,41 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+    @patch("sentry.utils.metrics")
+    def test_edit_condition_metric(self, metrics):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        payload = {
+            "name": "name",
+            "owner": self.user.id,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        metrics.incr.assert_has_calls([call("sentry.issue_alert.conditions.edited")])
+
+    @patch("sentry.utils.metrics")
+    def test_edit_non_condition_metric(self, metrics):
+        payload = {
+            "name": "new name",
+            "owner": self.user.id,
+            "actionMatch": "all",
+            "filterMatch": "all",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.rule.data["conditions"],
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert call("sentry.issue_alert.conditions.edited") not in metrics.incr.call_args_list
 
 
 @region_silo_test
