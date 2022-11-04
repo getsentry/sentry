@@ -487,7 +487,9 @@ const SPECIAL_FIELDS: SpecialFields = {
               </StyledLink>
             </QuickContextHoverWrapper>
           ) : (
-            <OverflowFieldShortId shortId={`${data.issue}`} />
+            <StyledLink to={target} aria-label={issueID}>
+              <OverflowFieldShortId shortId={`${data.issue}`} />
+            </StyledLink>
           )}
         </Container>
       );
