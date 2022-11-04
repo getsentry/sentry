@@ -40,7 +40,7 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
 
-export const Heading = styled(motion.div)`
+const Heading = styled(motion.div)`
   display: flex;
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
