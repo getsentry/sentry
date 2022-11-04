@@ -29,7 +29,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 interface ProfileEventsTableProps<F extends FieldType> {
-  columns: F[];
+  columns: readonly F[];
   data: EventsResults<F> | null;
   error: string | null;
   isLoading: boolean;
@@ -425,6 +425,6 @@ function getColumnOrder<F extends FieldType>(field: F): GridColumnOrder<F> {
   };
 }
 
-function getRightAlignedColumns<F extends FieldType>(columns: F[]): Set<F> {
+function getRightAlignedColumns<F extends FieldType>(columns: readonly F[]): Set<F> {
   return new Set(columns.filter(col => RIGHT_ALIGNED_FIELDS.has(col)));
 }
