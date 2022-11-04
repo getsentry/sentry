@@ -78,7 +78,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request({})
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 0
+        assert response.data == {"data": [], "meta": {}}
 
     def test_api_key_request(self):
         self.store_event(
