@@ -68,7 +68,7 @@ export function recordFinish(
 
   const tourTask = getTourTask(guide);
 
-  if (isDemoWalkthrough() && tourTask) {
+  if (isDemoWalkthrough() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
     demoEndModal({tour, orgSlug});

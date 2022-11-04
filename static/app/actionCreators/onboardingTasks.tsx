@@ -11,7 +11,7 @@ import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
  */
 export function updateOnboardingTask(
   api: Client | null,
-  organization: Organization | null,
+  organization: Organization,
   updatedTask: Partial<Pick<OnboardingTask, 'status' | 'data'>> & {
     task: OnboardingTask['task'];
     /**
@@ -21,9 +21,6 @@ export function updateOnboardingTask(
     completionSeen?: boolean;
   }
 ) {
-  if (!organization) {
-    return;
-  }
   if (api !== null) {
     api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
       method: 'POST',
