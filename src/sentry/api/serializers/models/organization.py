@@ -29,7 +29,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
+    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -240,10 +240,11 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("api-keys")
 
         # Organization flag features (not provided through the features module)
-        if OrganizationOption.objects.filter(
-            organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists():
-            feature_list.add("legacy-rate-limits")
+        options_as_features = OrganizationOption.objects.filter(
+            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
+        )
+        for option in options_as_features:
+            feature_list.add(ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key))
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
