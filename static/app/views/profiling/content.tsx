@@ -13,7 +13,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
-import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTransactionsTable';
+import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -26,8 +26,11 @@ import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  formatSort,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -85,15 +88,21 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
-  const transactionsSort = decodeScalar(location.query.sort, '-count()');
-  const profileFilters = useProfileFilters({query: '', selection});
-  const transactions = useProfileTransactions({
-    cursor,
-    query,
-    selection,
-    sort: transactionsSort,
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+    key: 'count()',
+    order: 'desc',
   });
+
+  const profileFilters = useProfileFilters({query: '', selection});
   const {projects} = useProjects();
+
+  const transactions = useProfileEvents<FieldType>({
+    cursor,
+    fields: FIELDS,
+    query,
+    sort,
+  });
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
@@ -123,11 +132,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (transactions.type !== 'resolved') {
+    if (transactions.status !== 'success') {
       return false;
     }
 
-    if (transactions.data.transactions.length > 0) {
+    if (transactions.data[0].data.length > 0) {
       return false;
     }
     return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
@@ -194,24 +203,24 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 ) : (
                   <Fragment>
                     <ProfileCharts router={router} query={query} selection={selection} />
-                    <ProfileTransactionsTable
+                    <ProfileEventsTable
+                      columns={FIELDS.slice()}
+                      data={
+                        transactions.status === 'success' ? transactions.data[0] : null
+                      }
                       error={
-                        transactions.type === 'errored'
+                        transactions.status === 'error'
                           ? t('Unable to load profiles')
                           : null
                       }
-                      isLoading={transactions.type === 'loading'}
-                      sort={transactionsSort}
-                      transactions={
-                        transactions.type === 'resolved'
-                          ? transactions.data.transactions
-                          : []
-                      }
+                      isLoading={transactions.status === 'loading'}
+                      sort={sort}
+                      sortableColumns={new Set(FIELDS)}
                     />
                     <Pagination
                       pageLinks={
-                        transactions.type === 'resolved'
-                          ? transactions.data.pageLinks
+                        transactions.status === 'success'
+                          ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
                           : null
                       }
                     />
@@ -225,6 +234,18 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     </SentryDocumentTitle>
   );
 }
+
+const FIELDS = [
+  'transaction',
+  'project.id',
+  'last_seen()',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+] as const;
+
+type FieldType = typeof FIELDS[number];
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
