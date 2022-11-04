@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMappi
 from sentry.models import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import APIUser
+from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -62,13 +63,14 @@ def notify(
 
     # Create a new list of recipients that are full Team and User objects (as opposed to APIUser)
     """
-    user_ids = []
-    new_recipients = []
-    for r in recipients:
-        if isinstance(r, APIUser):
-            user_ids.append(r.id)
-        else:
-            new_recipients.append(r)
-    recipients = new_recipients + list(User.objects.filter(id__in=user_ids))
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        user_ids = []
+        new_recipients = []
+        for r in recipients:
+            if isinstance(r, APIUser):
+                user_ids.append(r.id)
+            else:
+                new_recipients.append(r)
+        recipients = new_recipients + list(User.objects.filter(id__in=user_ids))
     """ ###################### End Hack ###################### """
     registry[provider](notification, recipients, shared_context, extra_context_by_actor_id)
