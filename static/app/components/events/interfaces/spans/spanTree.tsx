@@ -1,8 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
@@ -178,6 +179,10 @@ class SpanTree extends Component<PropType> {
     // revealed.
     this.props.updateScrollState();
   };
+
+  renderRow({index, isScrolling, isVisible, key, parent, style}) {
+    return <div key={key} style={style}>{`Hello this is a test. ${index}`}</div>;
+  }
 
   render() {
     const {
@@ -410,9 +415,18 @@ class SpanTree extends Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        {spanTree}
-        {infoMessage}
-        {this.generateLimitExceededMessage()}
+        <ReactVirtualizedList
+          width={20000}
+          height={(spanTree.length - 50) * ROW_HEIGHT}
+          rowWidth={120}
+          rowHeight={ROW_HEIGHT}
+          rowCount={spanTree.length}
+          rowRenderer={this.renderRow}
+        >
+          {/* {spanTree}
+              {infoMessage}
+              {this.generateLimitExceededMessage()} */}
+        </ReactVirtualizedList>
       </TraceViewContainer>
     );
   }
