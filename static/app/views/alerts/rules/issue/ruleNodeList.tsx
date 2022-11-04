@@ -50,6 +50,84 @@ type Props = {
   selectType?: 'grouped';
 };
 
+const createSelectOptions = (
+  actions: IssueAlertRuleActionTemplate[]
+): Array<{label: React.ReactNode; value: IssueAlertRuleActionTemplate}> => {
+  return actions.map(node => {
+    const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+
+    if (node.id.includes('NotifyEmailAction')) {
+      return {
+        value: node,
+        label: t('Issue Owners, Team, or Member'),
+      };
+    }
+
+    return {
+      value: node,
+      label: (
+        <Fragment>
+          {isNew && <StyledFeatureBadge type="new" noTooltip />}
+          {node.prompt?.length ? node.prompt : node.label}
+        </Fragment>
+      ),
+    };
+  });
+};
+
+const groupLabels = {
+  notify: t('Send notification to\u{2026}'),
+  notifyIntegration: t('Notify integration\u{2026}'),
+  ticket: t('Create new\u{2026}'),
+  change: t('Issue state change'),
+  frequency: t('Issue frequency'),
+};
+
+/**
+ * Group options by category
+ */
+const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
+  const grouped = actions.reduce<
+    Record<
+      keyof typeof groupLabels,
+      IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[]
+    >
+  >(
+    (acc, curr) => {
+      if (curr.actionType === 'ticket') {
+        acc.ticket.push(curr);
+      } else if (curr.id.includes('event_frequency')) {
+        acc.frequency.push(curr);
+      } else if (
+        curr.id.includes('sentry.rules.conditions') &&
+        !curr.id.includes('event_frequency')
+      ) {
+        acc.change.push(curr);
+      } else if (curr.id.includes('sentry.integrations')) {
+        acc.notifyIntegration.push(curr);
+      } else if (curr.id.includes('notify_event')) {
+        acc.notifyIntegration.push(curr);
+      } else {
+        acc.notify.push(curr);
+      }
+      return acc;
+    },
+    {
+      notify: [],
+      notifyIntegration: [],
+      ticket: [],
+      change: [],
+      frequency: [],
+    }
+  );
+
+  return Object.entries(grouped)
+    .filter(([_, values]) => values.length)
+    .map(([key, values]) => {
+      return {label: groupLabels[key], options: createSelectOptions(values)};
+    });
+};
+
 class RuleNodeList extends Component<Props> {
   componentWillUnmount() {
     window.clearTimeout(this.propertyChangeTimeout);
@@ -58,15 +136,17 @@ class RuleNodeList extends Component<Props> {
   propertyChangeTimeout: number | undefined = undefined;
 
   getNode = (
-    id: string,
+    template: IssueAlertRuleConditionTemplate | IssueAlertRuleActionTemplate,
     itemIdx: number
-  ):
-    | IssueAlertRuleActionTemplate
-    | IssueAlertRuleConditionTemplate
-    | null
-    | undefined => {
+  ): IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
-    const node = nodes ? nodes.find(n => n.id === id) : null;
+    const node = nodes?.find(n => {
+      return (
+        n.id === template.id &&
+        // Match more than just the id for sentryApp actions, they share the same id
+        n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
+      );
+    });
 
     if (!node) {
       return null;
@@ -158,76 +238,10 @@ class RuleNodeList extends Component<Props> {
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
-    const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
-      actions.map(node => {
-        const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-
-        if (node.id.includes('NotifyEmailAction')) {
-          return {
-            value: node.id,
-            label: organization.features?.includes('alert-release-notification-workflow')
-              ? t('Issue Owners, Team, Member, or Release Members')
-              : t('Issue Owners, Team, or Member'),
-          };
-        }
-
-        return {
-          value: node.id,
-          label: (
-            <Fragment>
-              {isNew && <StyledFeatureBadge type="new" noTooltip />}
-              {node.prompt?.length ? node.prompt : node.label}
-            </Fragment>
-          ),
-        };
-      });
-
-    let options: any = !selectType ? createSelectOptions(enabledNodes) : [];
-
-    if (selectType === 'grouped') {
-      const grouped = enabledNodes.reduce(
-        (acc, curr) => {
-          if (curr.actionType === 'ticket') {
-            acc.ticket.push(curr);
-          } else if (curr.id.includes('event_frequency')) {
-            acc.frequency.push(curr);
-          } else if (
-            curr.id.includes('sentry.rules.conditions') &&
-            !curr.id.includes('event_frequency')
-          ) {
-            acc.change.push(curr);
-          } else if (curr.id.includes('sentry.integrations')) {
-            acc.notifyIntegration.push(curr);
-          } else if (curr.id.includes('notify_event')) {
-            acc.notifyIntegration.push(curr);
-          } else {
-            acc.notify.push(curr);
-          }
-          return acc;
-        },
-        {
-          notify: [] as IssueAlertRuleActionTemplate[],
-          notifyIntegration: [] as IssueAlertRuleActionTemplate[],
-          ticket: [] as IssueAlertRuleActionTemplate[],
-          change: [] as IssueAlertRuleConditionTemplate[],
-          frequency: [] as IssueAlertRuleConditionTemplate[],
-        }
-      );
-
-      options = Object.entries(grouped)
-        .filter(([_, values]) => values.length)
-        .map(([key, values]) => {
-          const label = {
-            notify: t('Send notification to\u{2026}'),
-            notifyIntegration: t('Notify integration\u{2026}'),
-            ticket: t('Create new\u{2026}'),
-            change: t('Issue state change'),
-            frequency: t('Issue frequency'),
-          };
-
-          return {label: label[key], options: createSelectOptions(values)};
-        });
-    }
+    const options =
+      selectType === 'grouped'
+        ? groupSelectOptions(enabledNodes)
+        : createSelectOptions(enabledNodes);
 
     return (
       <Fragment>
@@ -237,7 +251,7 @@ class RuleNodeList extends Component<Props> {
             <RuleNode
               key={idx}
               index={idx}
-              node={this.getNode(item.id, idx)}
+              node={this.getNode(item, idx)}
               onDelete={onDeleteRow}
               onPropertyChange={onPropertyChange}
               onReset={onResetRow}
@@ -253,7 +267,9 @@ class RuleNodeList extends Component<Props> {
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
-          onChange={obj => onAddRow(obj ? obj.value : obj)}
+          onChange={obj => {
+            onAddRow(obj.value);
+          }}
           options={options}
           disabled={disabled}
         />
