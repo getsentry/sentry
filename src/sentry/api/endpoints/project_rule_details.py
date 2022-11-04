@@ -145,7 +145,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             trigger_sentry_app_action_creators_for_issues(kwargs.get("actions"))
 
             if rule.data["conditions"] != kwargs["conditions"]:
-                metrics.incr("sentry.issue_alert.conditions.edited")
+                metrics.incr("sentry.issue_alert.conditions.edited", sample_rate=1.0)
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
