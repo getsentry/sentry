@@ -139,7 +139,7 @@ def service_stubbed(
         raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
-class use_real_service(contextlib.AbstractContextManager[Any]):
+class use_real_service(contextlib.AbstractContextManager):
     service: InterfaceWithLifecycle
     silo_mode: SiloMode | None
     context: contextlib.ExitStack
@@ -157,14 +157,14 @@ class use_real_service(contextlib.AbstractContextManager[Any]):
                 self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
                 self.context.enter_context(
                     cast(
-                        contextlib.AbstractContextManager[Any],
+                        contextlib.AbstractContextManager,
                         self.service.with_replacement(None, self.silo_mode),
                     )
                 )
             else:
                 self.context.enter_context(
                     cast(
-                        contextlib.AbstractContextManager[Any],
+                        contextlib.AbstractContextManager,
                         self.service.with_replacement(None, SiloMode.get_current_mode()),
                     )
                 )
