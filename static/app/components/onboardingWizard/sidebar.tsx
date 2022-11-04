@@ -9,15 +9,14 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoWalkthrough, useSandboxTasks} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import type {OnboardingState} from 'sentry/views/onboarding/types';
+import {OnboardingState} from 'sentry/views/onboarding/types';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import ProgressHeader from './progressHeader';
@@ -40,37 +39,7 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
 
-/**
- * This is used to determine which tasks are fetched to use in the Panel.
- * The Sandbox will set this hook to allow for the walkthrough tasks
- * to show up in the panel instead of the onboarding ones.
- */
-export const useGetTasks = (
-  organization: Organization,
-  projects: Project[],
-  onboardingState: OnboardingState | null
-) => {
-  const defaultHook = useCallback(() => {
-    const all = getMergedTasks({
-      organization,
-      projects,
-      onboardingState: onboardingState || undefined,
-    }).filter(task => task.display);
-    const tasks = all.filter(task => !task.renderCard);
-    return {
-      allTasks: all,
-      customTasks: all.filter(task => task.renderCard),
-      active: tasks.filter(findActiveTasks),
-      upcoming: tasks.filter(findUpcomingTasks),
-      complete: tasks.filter(findCompleteTasks),
-    };
-  }, [organization, projects, onboardingState]);
-
-  const featureHook = HookStore.get('onboarding:sandbox-tasks')[0] || defaultHook;
-  return featureHook({organization, projects, onboardingState});
-};
-
-const Heading = styled(motion.div)`
+export const Heading = styled(motion.div)`
   display: flex;
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
@@ -100,6 +69,30 @@ const upcomingTasksHeading = (
   </Heading>
 );
 const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
+
+export const useGetTasks = (
+  organization: Organization,
+  projects: Project[],
+  onboardingState: OnboardingState | null
+) => {
+  const callback = useCallback(() => {
+    const all = getMergedTasks({
+      organization,
+      projects,
+      onboardingState: onboardingState || undefined,
+    }).filter(task => task.display);
+    const filteredTasks = all.filter(task => !task.renderCard);
+    return {
+      allTasks: all,
+      customTasks: all.filter(task => task.renderCard),
+      active: filteredTasks.filter(findActiveTasks),
+      upcoming: filteredTasks.filter(findUpcomingTasks),
+      complete: filteredTasks.filter(findCompleteTasks),
+    };
+  }, [organization, projects, onboardingState]);
+  return isDemoWalkthrough() ? useSandboxTasks : callback;
+};
+
 function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -122,12 +115,13 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
       markCompletionSeenTimeout.current = window.setTimeout(resolve, time);
     });
   }
+  const getOnboardingTasks = useGetTasks(organization, projects, onboardingState);
 
-  const {allTasks, customTasks, active, upcoming, complete} = useGetTasks(
+  const {allTasks, customTasks, active, upcoming, complete} = getOnboardingTasks({
     organization,
     projects,
-    onboardingState
-  );
+    onboardingState: onboardingState || undefined,
+  });
 
   const markTasksAsSeen = useCallback(
     async function () {

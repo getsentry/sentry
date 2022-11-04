@@ -1,3 +1,15 @@
+import {useEffect, useState} from 'react';
+
+import {getOnboardingTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {
+  findActiveTasks,
+  findCompleteTasks,
+  findUpcomingTasks,
+} from 'sentry/components/onboardingWizard/utils';
+import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import {OnboardingState} from 'sentry/views/onboarding/types';
+
 export function extraQueryParameter(): URLSearchParams {
   const extraQueryString = window.SandboxData?.extraQueryString || '';
   const extraQuery = new URLSearchParams(extraQueryString);
@@ -38,17 +50,140 @@ export function isDemoWalkthrough(): boolean {
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.
-export function getTour(guide: string): string | undefined {
+export function getTourTask(
+  guide: string
+): {task: OnboardingTaskKey; tour: string} | undefined {
   switch (guide) {
     case 'sidebar_v2':
-      return 'tabs';
+      return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
     case 'issues_v3':
-      return 'issues';
+      return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
     case 'release-details_v2':
-      return 'releases';
+      return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
     case 'transaction_details_v2':
-      return 'performance';
+      return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
     default:
       return undefined;
   }
+}
+
+type Options = {
+  onboardingState: OnboardingState | undefined;
+  organization: Organization;
+  projects: Project[];
+};
+
+export function useSandboxSidebarTasks({
+  organization,
+  projects,
+  onboardingState,
+}: Options) {
+  const api = useApi();
+
+  const [tasks, setTasks] = useState<OnboardingTask[]>([]);
+
+  useEffect(() => {
+    const getTasks = async () => {
+      const serverTasks = await api.requestPromise(
+        `/organizations/${organization.slug}/onboarding-tasks/`,
+        {method: 'GET'}
+      );
+
+      const taskDescriptors = getOnboardingTasks({
+        organization,
+        projects,
+        onboardingState,
+      });
+      // Map server task state (i.e. completed status) with tasks objects
+      const allTasks = taskDescriptors.map(
+        desc =>
+          ({
+            ...desc,
+            ...serverTasks.find(
+              serverTask =>
+                serverTask.task === desc.task || serverTask.task === desc.serverTask
+            ),
+            requisiteTasks: [],
+          } as OnboardingTask)
+      );
+
+      // Map incomplete requisiteTasks as full task objects
+      const mappedTasks = allTasks.map(task => ({
+        ...task,
+        requisiteTasks: task.requisites
+          .map(key => allTasks.find(task2 => task2.task === key)!)
+          .filter(reqTask => reqTask.status !== 'complete'),
+      }));
+
+      setTasks(mappedTasks);
+      return;
+    };
+    getTasks();
+  }, [organization, projects, onboardingState, api]);
+
+  return tasks;
+}
+
+export function useSandboxTasks({organization, projects, onboardingState}: Options) {
+  const api = useApi();
+
+  const [allTasks, setAllTasks] = useState<OnboardingTask[]>([]);
+  const [customTasks, setCustomTasks] = useState<OnboardingTask[]>([]);
+  const [activeTasks, setActiveTasks] = useState<OnboardingTask[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<OnboardingTask[]>([]);
+  const [completeTasks, setCompleteTasks] = useState<OnboardingTask[]>([]);
+
+  useEffect(() => {
+    const getTasks = async () => {
+      const serverTasks = await api.requestPromise(
+        `/organizations/${organization.slug}/onboarding-tasks/`,
+        {method: 'GET'}
+      );
+
+      const taskDescriptors = getOnboardingTasks({
+        organization,
+        projects,
+        onboardingState,
+      });
+      // Map server task state (i.e. completed status) with tasks objects
+      const totalTasks = taskDescriptors.map(
+        desc =>
+          ({
+            ...desc,
+            ...serverTasks.find(
+              serverTask =>
+                serverTask.task === desc.task || serverTask.task === desc.serverTask
+            ),
+            requisiteTasks: [],
+          } as OnboardingTask)
+      );
+
+      // Map incomplete requisiteTasks as full task objects
+      const mappedTasks = totalTasks.map(task => ({
+        ...task,
+        requisiteTasks: task.requisites
+          .map(key => totalTasks.find(task2 => task2.task === key)!)
+          .filter(reqTask => reqTask.status !== 'complete'),
+      }));
+
+      const all = mappedTasks.filter(task => task.display);
+      const tasks = all.filter(task => !task.renderCard);
+
+      setAllTasks(all);
+      setCustomTasks(all.filter(task => task.renderCard));
+      setActiveTasks(tasks.filter(findActiveTasks));
+      setUpcomingTasks(tasks.filter(findUpcomingTasks));
+      setCompleteTasks(tasks.filter(findCompleteTasks));
+      return;
+    };
+    getTasks();
+  }, [organization, projects, onboardingState, api]);
+
+  return {
+    allTasks,
+    customTasks,
+    active: activeTasks,
+    upcoming: upcomingTasks,
+    complete: completeTasks,
+  };
 }

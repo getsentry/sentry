@@ -47,17 +47,6 @@ const SentryApp = {
   Client: require('sentry/api').Client,
   // This is used in the Email Modal in the Sandbox
   IconArrow: require('sentry/icons/iconArrow').IconArrow,
-  // These are required for the Sandbox to fetch the demo walkthrough tasks and hook them into the Sidebar Panel and Sidebar Status
-  // They allow the Sandbox to replicate the functionality of getMergedTasks without relying on the organization's onboarding tasks
-  OnboardingTask: require('sentry/types').OnboardingTask,
-  getOnboardingTask: require('sentry/components/onboardingWizard/taskConfig')
-    .getOnboardingTasks,
-  findActiveTasks: require('sentry/components/onboardingWizard/utils').findActiveTasks,
-  findCompleteTasks: require('sentry/components/onboardingWizard/utils')
-    .findCompleteTasks,
-  findUpcomingTasks: require('sentry/components/onboardingWizard/utils')
-    .findUpcomingTasks,
-
 };
 
 globals.SentryApp = SentryApp;
