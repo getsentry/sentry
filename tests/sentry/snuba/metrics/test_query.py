@@ -617,15 +617,15 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
     assert mq.interval == mq.granularity.granularity
 
 
-@freeze_time("2022-11-03 10:10:00")
+@freeze_time("2022-11-03 10:30:00")
 @pytest.mark.parametrize(
     "granularity, interval, expected_granularity",
     [
         pytest.param(
             86400,
-            7200,
             3600,
-            id="day granularity with 2 hour interval",
+            60,
+            id="day granularity with 1 hour interval",
         ),
         pytest.param(
             3600,

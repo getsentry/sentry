@@ -257,16 +257,28 @@ class MetricsQuery(MetricsQueryValidationRunner):
             denominator = granularity
         else:
             assert start is not None and interval > 0
+
+            start_in_seconds = start.timestamp()
+            end_in_seconds = end.timestamp()
+            # This condition is required because the formatting of start and end uses the "int()" type conversion
+            # which automatically cuts off any decimal digits resulting in certain cases in which end - start = 0. In
+            # order to avoid this problem entirely we must make sure that the integer value of
+            # "start / interval" and "end / interval" differ by at least 1. We can model it mathematically as: Given "x"
+            # amount of seconds as start time, "z" amount of seconds as end time and an interval in seconds "y" we
+            # want the following to hold true: "(z / y) - (x / y) >= 1" which is equal to "z - x >= y" that means
+            # that "end - start >= interval" is the condition that must hold true.
+            if (end_in_seconds - start_in_seconds) < interval:
+                raise InvalidParams(
+                    "The difference between start and end must be greater or equal than the interval"
+                )
+
             # Format start and end
             start = datetime.fromtimestamp(
-                int(start.timestamp() / interval) * interval, timezone.utc
+                int(start_in_seconds / interval) * interval, timezone.utc
             )
-            end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
+            end = datetime.fromtimestamp(int(end_in_seconds / interval) * interval, timezone.utc)
 
             range_in_sec = (end - start).total_seconds()
-            if range_in_sec == 0:
-                raise InvalidParams("Rounded start and end time are the same")
-
             denominator = interval
         return math.ceil(range_in_sec / denominator)
 
