@@ -3,6 +3,7 @@ import {
   AutoSizer,
   List as ReactVirtualizedList,
   OverscanIndicesGetterParams,
+  WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -29,7 +30,6 @@ import {
 } from './types';
 import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
-import {SPAN_TREE_MAX_HEIGHT} from './constants';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
@@ -449,22 +449,32 @@ class SpanTree extends Component<PropType> {
     const limitExceededMessage = this.generateLimitExceededMessage();
     limitExceededMessage && spanTree.push(limitExceededMessage);
 
-    const height =
-      ROW_HEIGHT * spanTree.length < SPAN_TREE_MAX_HEIGHT
-        ? ROW_HEIGHT * spanTree.length
-        : SPAN_TREE_MAX_HEIGHT;
+    // const height =
+    //   ROW_HEIGHT * spanTree.length < SPAN_TREE_MAX_HEIGHT
+    //     ? ROW_HEIGHT * spanTree.length
+    //     : SPAN_TREE_MAX_HEIGHT;
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        <ReactVirtualizedList
-          width={this.props.traceViewRef.current?.clientWidth} // TODO: You may need to use AutoSizer to get the real width
-          height={height}
-          rowHeight={ROW_HEIGHT}
-          rowCount={spanTree.length}
-          rowRenderer={props => this.renderRow(props, spanTree)}
-          overscanRowCount={30}
-          overscanIndicesGetter={this.overscanIndicesGetter}
-        />
+        <WindowScroller>
+          {({height, isScrolling, onChildScroll, scrollTop}) => {
+            return (
+              <ReactVirtualizedList
+                autoHeight
+                isScrolling={isScrolling}
+                onScroll={onChildScroll}
+                scrollTop={scrollTop}
+                width={this.props.traceViewRef.current?.clientWidth} // TODO: You may need to use AutoSizer to get the real width
+                height={height}
+                rowHeight={ROW_HEIGHT}
+                rowCount={spanTree.length}
+                rowRenderer={props => this.renderRow(props, spanTree)}
+                overscanRowCount={30}
+                overscanIndicesGetter={this.overscanIndicesGetter}
+              />
+            );
+          }}
+        </WindowScroller>
       </TraceViewContainer>
     );
   }
