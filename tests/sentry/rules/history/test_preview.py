@@ -256,10 +256,12 @@ class ProjectRulePreviewTest(TestCase):
 class GetEventsTest(TestCase):
     def test_get_first_seen(self):
         prev_hour = timezone.now() - timedelta(hours=1)
+        two_hours = timezone.now() - timedelta(hours=2)
+        self.store_event(project_id=self.project.id, data={"timestamp": iso_format(prev_hour)})
         event = self.store_event(
-            project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
+            project_id=self.project.id, data={"timestamp": iso_format(two_hours)}
         )
-        event.group.update(first_seen=prev_hour)
+        event.group.update(first_seen=two_hours)
 
         activity = [
             ConditionActivity(
