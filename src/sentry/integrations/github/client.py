@@ -11,10 +11,31 @@ from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
+
+
+class GithubRateLimitInfo:
+    # https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limit-http-headers
+    def __init__(self, headers):
+        # The time when the rate limit request was made
+        self.date = headers["Date"]  # Fri, 04 Nov 2022 13:01:31 GMT
+        # The maximum number of requests you're permitted to make per hour.
+        self.quota = headers["X-RateLimit-Limit"]
+        # The number of requests remaining in the current rate limit window.
+        self.remaining = headers["X-RateLimit-Remaining"]
+        # The number of requests you've made in the current rate limit window.
+        self.used = headers["X-RateLimit-Used"]
+        # The time at which the current rate limit window resets in UTC epoch seconds.
+        self.reset_time = int(headers["X-RateLimit-Reset"])
+        # https://docs.github.com/en/rest/rate-limit#understanding-your-rate-limit-status
+        self.resource = headers["X-RateLimit-Resource"]  # e.g. core or search
+
+    def next_window(self):
+        return datetime.utcfromtimestamp(self.reset_time).strftime("%H:%M:%S")
 
 
 class GitHubClientMixin(ApiClient):  # type: ignore
@@ -102,7 +123,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(self, org_name: str) -> JSONData:
+    # https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limit-http-headers
+    def get_rate_limit(self) -> JSONData:
+        """This gives information of the current rate limit"""
+        # XXX: Determine what value to send. It has to do with the installation
+        response: BaseApiResponse = self.head("/")
+        return GithubRateLimitInfo(response.headers)
+
+    def get_trees_for_org(self) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
