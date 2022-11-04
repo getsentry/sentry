@@ -4,9 +4,9 @@ from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from sentry import options
-from sentry.models import BaseUser, UserAvatar
+from sentry.models import User, UserAvatar
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
+from sentry.utils.http import absolute_uri
 
 register = template.Library()
 
@@ -33,7 +33,7 @@ def profile_photo_url(context, user_id, size=None):
     url = reverse("sentry-user-avatar-url", args=[avatar.ident])
     if size:
         url += "?" + urlencode({"s": size})
-    return options.get("system.url-prefix") + url
+    return absolute_uri(url)
 
 
 # Don't use this in any situations where you're rendering more
@@ -46,7 +46,7 @@ def email_avatar(context, display_name, identifier, size=None, try_gravatar=True
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, BaseUser):
+    if isinstance(user, User):
         user_id = user.id
         email = user.email
     else:
@@ -67,7 +67,7 @@ def avatar(user, size=36):
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar_for_email(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, BaseUser):
+    if isinstance(user, User):
         user_id = user.id
         email = user.email
     else:

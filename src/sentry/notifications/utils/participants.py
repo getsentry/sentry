@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import features
 from sentry.models import (
     ActorTuple,
-    BaseUser,
     Commit,
     Group,
     GroupSubscription,
@@ -33,6 +32,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -49,8 +49,8 @@ AVAILABLE_PROVIDERS = {
 
 
 def get_providers_from_which_to_remove_user(
-    user: User,
-    participants_by_provider: Mapping[ExternalProviders, Mapping[User, int]],
+    user: APIUser,
+    participants_by_provider: Mapping[ExternalProviders, Mapping[APIUser, int]],
 ) -> set[ExternalProviders]:
     """
     Given a mapping of provider to mappings of users to why they should receive
@@ -72,10 +72,10 @@ def get_providers_from_which_to_remove_user(
 
 
 def get_participants_for_group(
-    group: Group, user: User | None = None
+    group: Group, user: APIUser | None = None
 ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
     participants_by_provider: MutableMapping[
-        ExternalProviders, MutableMapping[Team | User, int]
+        ExternalProviders, MutableMapping[Team | APIUser, int]
     ] = GroupSubscription.objects.get_participants(group)
     if user:
         # Optionally remove the actor that created the activity from the recipients list.
@@ -137,15 +137,15 @@ def get_participants_for_release(
 
 
 def split_participants_and_context(
-    participants_with_reasons: Mapping[Team | User, int]
-) -> tuple[Iterable[Team | User], Mapping[int, Mapping[str, Any]]]:
+    participants_with_reasons: Mapping[Team | APIUser, int]
+) -> tuple[Iterable[Team | APIUser], Mapping[int, Mapping[str, Any]]]:
     return participants_with_reasons.keys(), {
         participant.actor_id: {"reason": reason}
         for participant, reason in participants_with_reasons.items()
     }
 
 
-def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | User]:
+def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | APIUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -164,7 +164,7 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
-        recipients = User.objects.filter(id__in=project.member_set.values_list("user", flat=True))
+        recipients = user_service.get_from_project(project.id)
 
     else:
         outcome = "match"
@@ -216,7 +216,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-) -> Iterable[Team | User]:
+) -> Iterable[Team | APIUser]:
     """
     Either get the individual recipient from the target type/id or the
     owners as determined by rules for this project and event.
@@ -290,7 +290,7 @@ def get_send_to(
     target_identifier: int | None = None,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-) -> Mapping[ExternalProviders, set[Team | User]]:
+) -> Mapping[ExternalProviders, set[Team | APIUser]]:
     recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
     return get_recipients_by_provider(project, recipients, notification_type)
 
@@ -327,7 +327,7 @@ def partition_recipients(
 ) -> tuple[Iterable[Team], Iterable[User]]:
     teams, users = set(), set()
     for recipient in recipients:
-        if isinstance(recipient, BaseUser):
+        if recipient.class_name() == "User":
             users.add(recipient)
         else:
             teams.add(recipient)
@@ -368,7 +368,7 @@ def combine_recipients_by_provider(
 
 def get_recipients_by_provider(
     project: Project,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[Team | APIUser],
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""

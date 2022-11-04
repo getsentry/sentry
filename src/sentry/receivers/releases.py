@@ -134,6 +134,7 @@ def resolved_in_commit(instance, created, **kwargs):
                             group=group,
                             reason=GroupSubscriptionReason.status_change,
                         )
+
                 activity_kwargs = {
                     "project_id": group.project_id,
                     "group": group,
@@ -145,6 +146,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     activity_kwargs["user_id"] = acting_user.id
 
                 Activity.objects.create(**activity_kwargs)
+
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )

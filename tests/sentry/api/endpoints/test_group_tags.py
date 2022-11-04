@@ -196,3 +196,47 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert {tag["key"] for tag in response.data} >= {"biz", "environment", "foo"}
+
+    def test_readable_tag_values(self):
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"device": "SM-G9910"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"device": "iPhone14,3"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"device": "random-model"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event1.group.id}/tags/?readable=true&key=device"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["key"] == "device"
+
+        top_values = sorted(response.data[0]["topValues"], key=lambda r: r["value"])
+        assert len(top_values) == 3
+        assert top_values[0]["value"] == "SM-G9910"
+        assert top_values[0]["readable"] == "Galaxy S21 5G"
+        assert top_values[1]["value"] == "iPhone14,3"
+        assert top_values[1]["readable"] == "iPhone 13 Pro Max"
+        assert top_values[2]["value"] == "random-model"
+        assert "readable" not in top_values[2]

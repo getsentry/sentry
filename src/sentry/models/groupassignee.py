@@ -28,21 +28,21 @@ class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | User | APIUser,
+        assigned_to: Team | APIUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity, BaseUser, GroupSubscription, Team
+        from sentry.models import Activity, GroupSubscription, Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
         assigned_to_id = assigned_to.id
-        if isinstance(assigned_to, BaseUser):
+        if assigned_to.class_name() == "User":
             assignee_type = "user"
             assignee_type_attr = "user_id"
             other_type = "team"

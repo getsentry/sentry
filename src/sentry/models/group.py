@@ -41,7 +41,8 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, Team, User
+    from sentry.models import Integration, Organization, Team
+    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ class GroupStatus:
 
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES = {
+STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
@@ -652,7 +653,7 @@ class Group(Model):
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
-    def get_assignee(self) -> Team | User | None:
+    def get_assignee(self) -> Team | APIUser | None:
         from sentry.models import GroupAssignee
 
         try:

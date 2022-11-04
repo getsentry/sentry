@@ -39,12 +39,12 @@ class DatabaseBackedUserOptionService(UserOptionService):
         key: str,
         project: Optional[Project],
     ) -> List[UserOption]:
-        queryset = UserOption.objects.filter(user_id__in=user_ids, key=key)
+        queryset = UserOption.objects.filter(user_id__in=user_ids, key=key)  # type: ignore
         if project is not None:
             queryset = queryset.filter(project=project)
-        return queryset
+        return list(queryset)
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -52,8 +52,8 @@ StubUserOptionService = CreateStubFromBase(DatabaseBackedUserOptionService)
 
 user_option_service: UserOptionService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: DatabaseBackedUserOptionService,
-        SiloMode.REGION: StubUserOptionService,
-        SiloMode.CONTROL: DatabaseBackedUserOptionService,
+        SiloMode.MONOLITH: lambda: DatabaseBackedUserOptionService(),
+        SiloMode.REGION: lambda: StubUserOptionService(),
+        SiloMode.CONTROL: lambda: DatabaseBackedUserOptionService(),
     }
 )

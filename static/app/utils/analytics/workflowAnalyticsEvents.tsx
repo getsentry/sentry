@@ -94,6 +94,7 @@ export type TeamInsightsEventParameters = {
       integration_assignment_source?: string;
       issue_level?: string;
       issue_status?: string;
+      project_has_replay?: boolean;
       project_platform?: string;
     };
   'new_alert_rule.viewed': RuleViewed & {

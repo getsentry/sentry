@@ -11,6 +11,7 @@ from sentry.notifications.types import (
 from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.services.hybrid_cloud.user import APIUser, UserService
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -279,8 +280,8 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("user.jsx")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -293,7 +294,7 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_single_user_no_teams(self):
@@ -343,16 +344,22 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_fallthrough(self):
         event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
+            ExternalProviders.SLACK: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
         }
 
     def test_without_fallthrough(self):
@@ -409,11 +416,14 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, User]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:
-            assert recipient in received
+            if isinstance(recipient, User):
+                assert UserService.serialize_user(recipient) in received
+            else:
+                assert recipient in received
 
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):

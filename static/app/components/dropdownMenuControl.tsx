@@ -153,7 +153,10 @@ function DropdownMenuControl({
     isDismissable: !isSubmenu && isDismissable,
     shouldCloseOnBlur: !isSubmenu && shouldCloseOnBlur,
     shouldCloseOnInteractOutside: target =>
-      target && triggerRef.current !== target && !triggerRef.current?.contains(target),
+      !isSubmenu &&
+      target &&
+      triggerRef.current !== target &&
+      !triggerRef.current?.contains(target),
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(

@@ -56,6 +56,8 @@ def serialize(
     # sets aren't predictable, so generally you should use a list, but it's
     # supported out of convenience
     elif not isinstance(objects, (list, tuple, set, frozenset)):
+        if isinstance(objects, dict):
+            return objects
         return serialize([objects], user=user, serializer=serializer, **kwargs)[0]
 
     if serializer is None:
@@ -68,7 +70,6 @@ def serialize(
                 pass
         else:
             return objects
-
     with sentry_sdk.start_span(op="serialize", description=type(serializer).__name__) as span:
         span.set_data("Object Count", len(objects))
 

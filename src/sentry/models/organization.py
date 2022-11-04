@@ -36,7 +36,8 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.services.hybrid_cloud.user import APIUser
+
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -251,7 +252,7 @@ class Organization(Model, SnowflakeIdMixin):
             "default_role": self.default_role,
         }
 
-    def get_owners(self) -> Sequence[User]:
+    def get_owners(self) -> Sequence[APIUser]:
         from sentry.services.hybrid_cloud.user import user_service
 
         owner_memberships = OrganizationMember.objects.filter(
@@ -259,7 +260,7 @@ class Organization(Model, SnowflakeIdMixin):
         ).values_list("user_id", flat=True)
         return user_service.get_many(owner_memberships)
 
-    def get_default_owner(self):
+    def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner

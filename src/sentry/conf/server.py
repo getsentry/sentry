@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Tuple
+from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -965,6 +965,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
+    # Enables automatically deriving of code mappings as a dry run for early adopters
+    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1105,8 +1107,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable release health widgets in dashboards
-    "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
     "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
@@ -1136,18 +1136,12 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": False,
-    # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable autogrouping of sibling spans
-    "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
@@ -1239,8 +1233,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1436,6 +1428,24 @@ SENTRY_CACHE_OPTIONS = {}
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS = {}
+
+# Replays blob cache backend.
+#
+# To ease first time setup, we default to whatever SENTRY_CACHE is configured as. If you're
+# handling a large amount of replays you should consider setting up an isolated cache provider.
+
+# To override the default configuration you need to provide the string path of a function or
+# class as the `SENTRY_REPLAYS_CACHE` value and optionally provide keyword arguments on the
+# `SENTRY_REPLAYS_CACHE_OPTIONS` value.  Its expected that you will use one of the classes
+# defined within `sentry/cache/` but it is not required.
+
+# For reference, this cache will store binary blobs of data up to 1MB in size.  This data is
+# ephemeral and will be deleted as soon as the ingestion pipeline finishes processing a replay
+# recording segment. You can determine the average size of the chunks being cached by running
+# queries against the ReplayRecordingSegment model with the File model joined. The File model has
+# a size attribute.
+SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
+SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
@@ -1736,7 +1746,6 @@ SENTRY_ROLES = (
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
-        "is_global": True,
         "scopes": {
             "event:read",
             "event:write",
@@ -1757,6 +1766,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
     {
         "id": "owner",
@@ -1768,7 +1778,6 @@ SENTRY_ROLES = (
             billing and plan changes.
             """
         ),
-        "is_global": True,
         "scopes": {
             "org:read",
             "org:write",
@@ -1790,6 +1799,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
 )
 
@@ -2873,6 +2883,7 @@ SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS"
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
@@ -2888,5 +2899,5 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Flag if we are in SaaS mode
-SENTRY_IS_SAAS = False
+# Show session replay banner on login page
+SHOW_SESSION_REPLAY_BANNER = False

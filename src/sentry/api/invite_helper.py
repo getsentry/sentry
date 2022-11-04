@@ -9,8 +9,8 @@ from sentry.models import (
     Authenticator,
     AuthIdentity,
     AuthProvider,
-    BaseUser,
     OrganizationMember,
+    User,
     UserEmail,
 )
 from sentry.signals import member_joined
@@ -226,7 +226,7 @@ class ApiInviteHelper:
 
         user = self.request.user
         primary_email_is_verified = (
-            isinstance(user, BaseUser) and UserEmail.objects.get_primary_email(user).is_verified
+            isinstance(user, User) and UserEmail.objects.get_primary_email(user).is_verified
         )
         return not primary_email_is_verified
 

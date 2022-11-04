@@ -250,8 +250,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         parent: Organization | Project,
         recipients: Iterable[Team | User | APIUser],
     ) -> QuerySet:
-        from sentry.models import Team, User
-        from sentry.services.hybrid_cloud.user import APIUser
+        from sentry.models import Team
 
         """
         Find all of a project/organization's notification settings for a list of
@@ -264,7 +263,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)
-            if type(recipient) == User or type(recipient) == APIUser:
+            if recipient.class_name() == "User":
                 user_ids.add(recipient.id)
             actor_ids.add(recipient.actor_id)
 
@@ -293,9 +292,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[Team | User],
+        recipients: Iterable[Team | APIUser],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    ) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and

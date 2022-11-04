@@ -1288,7 +1288,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_identity(
-        user: User, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,

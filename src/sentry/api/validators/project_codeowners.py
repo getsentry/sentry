@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db.models import Subquery
 
@@ -14,6 +14,9 @@ from sentry.models import (
 )
 from sentry.ownership.grammar import parse_code_owners
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def validate_association(
@@ -58,7 +61,7 @@ def validate_codeowners_associations(
     for external_actor in external_actors:
         type = actor_type_to_string(external_actor.actor.type)
         if type == "user":
-            user = external_actor.actor.resolve()
+            user: APIUser = external_actor.actor.resolve()
             organization_members_ids = OrganizationMember.objects.filter(
                 user_id=user.id, organization_id=project.organization_id
             ).values_list("id", flat=True)
@@ -70,7 +73,7 @@ def validate_codeowners_associations(
             if project in projects:
                 users_dict[external_actor.external_name] = user.email
             else:
-                users_without_access.append(f"{user.get_display_name()}")
+                users_without_access.append(f"{user.display_name}")
         elif type == "team":
             team = external_actor.actor.resolve()
             # make sure the sentry team has access to the project
