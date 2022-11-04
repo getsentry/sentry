@@ -117,15 +117,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repo_key = "githubtrees:repo"
         # XXX: Can the same GH org be installed in different Sentry orgs?
         # XXX: We do not support more than one org atm
-        repositories = cache.get(cache_key)
-        if repositories is None:
+        cached_repositories = cache.get(cache_key, [])
+        if not cached_repositories:
             repositories = self.get_repositories(fetch_max_pages=True)
-            # repositories = self.get_repositories()
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            for repo_info in repositories[0:2]:  # XXX: Remove range
+            for repo_info in repositories:
                 full_name: str = repo_info["full_name"]
-                repositories.append(full_name)
+                cached_repositories.append(full_name)
                 branch = repo_info["default_branch"]
                 trees[full_name] = {
                     "default_branch": branch,
@@ -141,7 +140,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return trees
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Dict[str, str]]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
