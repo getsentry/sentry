@@ -13,8 +13,10 @@ const FieldControlState = styled('div')<FieldControlStateProps>`
   justify-content: end;
   align-items: center;
 
-  margin-left: ${p => (p.flexibleControlStateSize ? space(1.5) : space(0.5))};
-  ${p => !p.flexibleControlStateSize && `width: 24px`};
+  ${p =>
+    p.flexibleControlStateSize
+      ? `&:not(:empty) { margin-left: ${space(1.5)} }`
+      : `width: 24px; margin-left: ${space(0.5)};`};
 `;
 
 export default FieldControlState;
