@@ -9,11 +9,12 @@ type FieldControlStateProps = Pick<FieldGroupProps, 'flexibleControlStateSize'>;
 const FieldControlState = styled('div')<FieldControlStateProps>`
   display: flex;
   position: relative;
-  ${p => !p.flexibleControlStateSize && `width: 24px`};
   flex-shrink: 0;
   justify-content: end;
   align-items: center;
-  margin-left: ${space(0.5)};
+
+  margin-left: ${p => (p.flexibleControlStateSize ? space(1.5) : space(0.5))};
+  ${p => !p.flexibleControlStateSize && `width: 24px`};
 `;
 
 export default FieldControlState;
