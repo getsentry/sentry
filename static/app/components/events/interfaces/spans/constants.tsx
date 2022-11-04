@@ -14,3 +14,5 @@ export const MINIMAP_CONTAINER_HEIGHT =
 export const VIEW_HANDLE_HEIGHT = 18;
 
 export const MERGE_LABELS_THRESHOLD_PERCENT = 10;
+
+export const SPAN_TREE_MAX_HEIGHT = 600;

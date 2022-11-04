@@ -1,5 +1,9 @@
 import {Component} from 'react';
-import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
+import {
+  AutoSizer,
+  List as ReactVirtualizedList,
+  OverscanIndicesGetterParams,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -25,6 +29,7 @@ import {
 } from './types';
 import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
+import {SPAN_TREE_MAX_HEIGHT} from './constants';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
@@ -410,15 +415,15 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     });
 
-    const limitExceededMessage = this.generateLimitExceededMessage();
-
     spanTree.push(infoMessage);
-    spanTree.push(limitExceededMessage);
 
     return spanTree;
   };
 
   renderRow({index, isScrolling, isVisible, key, parent, style}, spanTree) {
+    if (isVisible) {
+      console.log(spanTree[index].props.span.op);
+    }
     return (
       <div key={key} style={style}>
         {spanTree[index]}
@@ -426,23 +431,40 @@ class SpanTree extends Component<PropType> {
     );
   }
 
+  overscanIndicesGetter(params: OverscanIndicesGetterParams) {
+    const {startIndex, stopIndex, overscanCellsCount, cellCount} = params;
+    return {
+      overscanStartIndex: Math.max(0, startIndex - overscanCellsCount),
+      overscanStopIndex: Math.min(cellCount - 1, stopIndex + overscanCellsCount),
+    };
+  }
+
   render() {
     const spanTree = this.generateSpanTree();
+    const infoMessage = spanTree[spanTree.length - 1];
+    if (!infoMessage) {
+      spanTree.pop();
+    }
+
+    const limitExceededMessage = this.generateLimitExceededMessage();
+    limitExceededMessage && spanTree.push(limitExceededMessage);
+
+    const height =
+      ROW_HEIGHT * spanTree.length < SPAN_TREE_MAX_HEIGHT
+        ? ROW_HEIGHT * spanTree.length
+        : SPAN_TREE_MAX_HEIGHT;
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         <ReactVirtualizedList
-          width={this.props.traceViewRef.current?.clientWidth ?? 20000}
-          height={ROW_HEIGHT * 50}
-          rowWidth={120}
+          width={this.props.traceViewRef.current?.clientWidth} // TODO: You may need to use AutoSizer to get the real width
+          height={height}
           rowHeight={ROW_HEIGHT}
           rowCount={spanTree.length}
           rowRenderer={props => this.renderRow(props, spanTree)}
-        >
-          {/* {spanTree}
-              {infoMessage}
-              {this.generateLimitExceededMessage()} */}
-        </ReactVirtualizedList>
+          overscanRowCount={30}
+          overscanIndicesGetter={this.overscanIndicesGetter}
+        />
       </TraceViewContainer>
     );
   }
