@@ -49,7 +49,10 @@ export function useSortableColumns<T extends string>(options: {
   );
 
   const sortCompareFn = useCallback(
-    (a: Partial<Record<T, string | number>>, b: Partial<Record<T, string | number>>) => {
+    (
+      a: Partial<Record<T, string | number | any[]>>,
+      b: Partial<Record<T, string | number | any[]>>
+    ) => {
       const aValue = a[currentSort.key];
       const bValue = b[currentSort.key];
       if (!aValue || !bValue) {

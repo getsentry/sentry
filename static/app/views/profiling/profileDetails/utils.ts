@@ -44,10 +44,10 @@ export function pluckUniqueValues<T extends Record<string, any>>(
 
 export type Row<K extends string = string> = Record<
   Extract<K, string>,
-  string | number | undefined
+  string | number | any[]
 >;
 export interface AggregateColumnConfig<K extends string> {
-  compute: (data: Row<K>[]) => number;
+  compute: (data: Row<K>[]) => number | any[];
   key: string;
 }
 export function aggregate<T extends string>(
@@ -71,6 +71,7 @@ export function aggregate<T extends string>(
       // ex: { a: "foo", b: "bar", sum: 123 }
       row[agg.key] = agg.compute(groupedValues);
     });
+
     rows.push(row);
   }
   return rows;

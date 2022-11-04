@@ -27,7 +27,7 @@ import {useColumnFilters} from '../hooks/useColumnFilters';
 import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
 import {useSortableColumns} from '../hooks/useSortableColumn';
-import {aggregate, AggregateColumnConfig, collectProfileFrames} from '../utils';
+import {aggregate, AggregateColumnConfig, collectProfileFrames, Row} from '../utils';
 
 const RESULTS_PER_PAGE = 50;
 
@@ -53,7 +53,7 @@ export function ProfileDetailsTable() {
 
   const cursor = paginationCursor ? parseInt(paginationCursor, 10) : 0;
 
-  const allData: TableDataRow[] = useMemo(() => {
+  const allData = useMemo(() => {
     const data =
       state.type === 'resolved' ? state.data.profiles.flatMap(collectProfileFrames) : [];
 
@@ -70,12 +70,8 @@ export function ProfileDetailsTable() {
     [search]
   );
 
-  const [filteredDataBySearch, setFilteredDataBySearch] = useState<TableDataRow[]>(() => {
-    if (!searchQuery) {
-      return [];
-    }
-    return search(searchQuery);
-  });
+  const [filteredDataBySearch, setFilteredDataBySearch] =
+    useState<TableDataRow[]>(allData);
 
   const [typeFilter, setTypeFilter] = useQuerystringState<string[]>({
     key: 'type',
@@ -113,9 +109,6 @@ export function ProfileDetailsTable() {
   );
 
   useEffectAfterFirstRender(() => {
-    if (!searchQuery) {
-      return;
-    }
     setFilteredDataBySearch(search(searchQuery));
     // purposely omitted `searchQuery` as we only want this to run once.
     // future search filters are called by handleSearch
@@ -296,7 +289,7 @@ function ProfilingFunctionsTableCell({
               profileId: eventId,
               query: {
                 highlightAll: delimiter.join(dataRow.symbol, dataRow.image),
-                tid: dataRow.thread as string,
+                tid: (dataRow.thread ?? dataRow.tids?.[0]) as string,
               },
             })}
           >
@@ -318,19 +311,23 @@ const tableColumnKey = [
   'type',
   'self weight',
   'total weight',
+  // computed columns
   'p75',
   'p95',
   'count',
+  'tids',
 ] as const;
 
 type TableColumnKey = typeof tableColumnKey[number];
 
-type TableDataRow = Partial<Record<TableColumnKey, string | number>>;
+type TableDataRow = Partial<Row<TableColumnKey>>;
+
+// Partial<Record<TableColumnKey, string | number>>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 
 // TODO: looks like these column names change depending on the platform?
-const COLUMNS: Record<TableColumnKey, TableColumn> = {
+const COLUMNS: Record<Exclude<TableColumnKey, 'tids'>, TableColumn> = {
   symbol: {
     key: 'symbol',
     name: t('Symbol'),
@@ -410,6 +407,18 @@ const countAggregateColumn: AggregateColumnConfig<TableColumnKey> = {
   compute: rows => rows.length,
 };
 
+const uniqueTidAggregateColumn: AggregateColumnConfig<TableColumnKey> = {
+  key: 'tids',
+  compute: rows =>
+    rows.reduce((acc, val) => {
+      const thread = val.thread as number;
+      if (!acc.includes(thread)) {
+        acc.push(thread);
+      }
+      return acc;
+    }, [] as number[]),
+};
+
 interface GroupByOptions<T> {
   columns: T[];
   option: {
@@ -430,7 +439,7 @@ interface GroupByOptions<T> {
   };
   transform: (
     data: Partial<Record<Extract<T, string>, string | number | undefined>>[]
-  ) => Record<Extract<T, string>, string | number | undefined>[];
+  ) => Row<Extract<T, string>>[];
 }
 
 const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
@@ -468,7 +477,12 @@ const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
       aggregate(
         data,
         ['symbol', 'type', 'image'],
-        [p75AggregateColumn, p95AggregateColumn, countAggregateColumn]
+        [
+          p75AggregateColumn,
+          p95AggregateColumn,
+          countAggregateColumn,
+          uniqueTidAggregateColumn,
+        ]
       ),
     sort: {
       sortableColumns: ['p75', 'p95', 'count'],

@@ -348,6 +348,7 @@ function FlamegraphZoomView({
     }
   }, [flamegraph, flamegraphState.profiles.highlightFrame]);
 
+  const [onNodeHighlightRegistered, setOnNodeHighlightRegistered] = useState(false);
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
       return undefined;
@@ -381,9 +382,11 @@ function FlamegraphZoomView({
     scheduler.on('highlight frame', onNodeHighlight);
     scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
     scheduler.draw();
+    setOnNodeHighlightRegistered(true);
 
     return () => {
       scheduler.off('highlight frame', onNodeHighlight);
+      setOnNodeHighlightRegistered(false);
       scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
     };
   }, [
@@ -510,13 +513,17 @@ function FlamegraphZoomView({
   const didHydrateHighlightState = useRef(false);
   useEffect(() => {
     if (
-      !highlightAllSelection ||
+      !onNodeHighlightRegistered ||
       flamegraph.frames.length === 0 ||
       didHydrateHighlightState.current
     ) {
       return;
     }
 
+    if (!highlightAllSelection) {
+      didHydrateHighlightState.current = true;
+      return;
+    }
     const [frameName, packageName] = delimiter.split(highlightAllSelection);
 
     dispatchHighlightFrame({
@@ -526,7 +533,12 @@ function FlamegraphZoomView({
     });
 
     didHydrateHighlightState.current = true;
-  }, [dispatchHighlightFrame, highlightAllSelection, flamegraph]);
+  }, [
+    dispatchHighlightFrame,
+    highlightAllSelection,
+    flamegraph,
+    onNodeHighlightRegistered,
+  ]);
 
   const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
     const logicalMousePos = vec2.fromValues(
