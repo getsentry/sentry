@@ -7,7 +7,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {GridColumnSortBy} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -27,8 +26,10 @@ import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileEventsSort} from 'sentry/utils/profiling/hooks/useProfileEventsSort';
+import {
+  formatSort,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -88,10 +89,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const sort: GridColumnSortBy<FieldType> = useProfileEventsSort<FieldType>({
-    allowedKeys: FIELDS,
-    fallback: {key: 'count()', order: 'desc'},
-    key: 'sort',
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+    key: 'count()',
+    order: 'desc',
   });
 
   const profileFilters = useProfileFilters({query: '', selection});

@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import CompactSelect from 'sentry/components/compactSelect';
-import {GridColumnSortBy} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
@@ -14,8 +13,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileEventsSort} from 'sentry/utils/profiling/hooks/useProfileEventsSort';
+import {
+  formatSort,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
@@ -29,12 +30,6 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const sort: GridColumnSortBy<FieldType> = useProfileEventsSort<FieldType>({
-    allowedKeys: FIELDS,
-    fallback: {key: 'timestamp', order: 'desc'},
-    key: 'sort',
-  });
-
   const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
     [props.location.query.cursor]
@@ -49,6 +44,11 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     () => decodeScalar(props.location.query.functionsSort, '-p99'),
     [props.location.query.functionsSort]
   );
+
+  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), FIELDS, {
+    key: 'timestamp',
+    order: 'desc',
+  });
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
@@ -92,7 +92,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         />
       </TableHeader>
       <ProfileEventsTable
-        columns={FIELDS.slice()}
+        columns={FIELDS}
         data={profiles.status === 'success' ? profiles.data[0] : null}
         error={profiles.status === 'error' ? t('Unable to load profiles') : null}
         isLoading={profiles.status === 'loading'}
