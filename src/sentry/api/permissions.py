@@ -80,52 +80,53 @@ class SentryPermission(ScopedPermission):
             request.access = access.from_request(
                 request, organization, scopes=request.auth.get_scopes()
             )
+            return
 
-        elif request.auth:
+        if request.auth:
             request.access = access.from_auth(request.auth, organization)
+            return
 
-        else:
-            request.access = access.from_request(request, organization)
+        request.access = access.from_request(request, organization)
 
-            extra = {"organization_id": organization.id, "user_id": request.user.id}
+        extra = {"organization_id": organization.id, "user_id": request.user.id}
 
-            if auth.is_user_signed_request(request):
-                # if the user comes from a signed request
-                # we let them pass if sso is enabled
+        if auth.is_user_signed_request(request):
+            # if the user comes from a signed request
+            # we let them pass if sso is enabled
+            logger.info(
+                "access.signed-sso-passthrough",
+                extra=extra,
+            )
+        elif request.user.is_authenticated:
+            # session auth needs to confirm various permissions
+            if self.needs_sso(request, organization):
+
                 logger.info(
-                    "access.signed-sso-passthrough",
+                    "access.must-sso",
                     extra=extra,
                 )
-            elif request.user.is_authenticated:
-                # session auth needs to confirm various permissions
-                if self.needs_sso(request, organization):
 
-                    logger.info(
-                        "access.must-sso",
-                        extra=extra,
-                    )
+                after_login_redirect = request.META.get("HTTP_REFERER", "")
+                if not auth.is_valid_redirect(
+                    after_login_redirect, allowed_hosts=(request.get_host(),)
+                ):
+                    after_login_redirect = None
 
-                    after_login_redirect = request.META.get("HTTP_REFERER", "")
-                    if not auth.is_valid_redirect(
-                        after_login_redirect, allowed_hosts=(request.get_host(),)
-                    ):
-                        after_login_redirect = None
+                raise SsoRequired(organization, after_login_redirect=after_login_redirect)
 
-                    raise SsoRequired(organization, after_login_redirect=after_login_redirect)
+            if self.is_not_2fa_compliant(request, organization):
+                logger.info(
+                    "access.not-2fa-compliant",
+                    extra=extra,
+                )
+                if request.user.is_superuser and organization.id != Superuser.org_id:
+                    raise SuperuserRequired()
 
-                if self.is_not_2fa_compliant(request, organization):
-                    logger.info(
-                        "access.not-2fa-compliant",
-                        extra=extra,
-                    )
-                    if request.user.is_superuser and organization.id != Superuser.org_id:
-                        raise SuperuserRequired()
+                raise TwoFactorRequired()
 
-                    raise TwoFactorRequired()
-
-                if self.is_member_disabled_from_limit(request, organization):
-                    logger.info(
-                        "access.member-disabled-from-limit",
-                        extra=extra,
-                    )
-                    raise MemberDisabledOverLimit(organization)
+            if self.is_member_disabled_from_limit(request, organization):
+                logger.info(
+                    "access.member-disabled-from-limit",
+                    extra=extra,
+                )
+                raise MemberDisabledOverLimit(organization)
