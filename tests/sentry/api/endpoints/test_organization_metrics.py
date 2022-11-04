@@ -84,13 +84,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
             response = self.send_get_request(token, *endpoint)
             assert response.status_code in (200, 400, 404)
 
-    def test_feature_flag(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
-
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
-            assert response.status_code == 404
-
 
 @region_silo_test
 class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
