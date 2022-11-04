@@ -16,7 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, MAX_DISTRIBUTION_NAME_LENGTH
 from sentry.db.models import (
     ArrayField,
     BaseQuerySet,
@@ -805,7 +805,7 @@ class Release(Model):
         if date_added is None:
             date_added = timezone.now()
 
-        name = truncatechars(name, 64)
+        name = truncatechars(name, MAX_DISTRIBUTION_NAME_LENGTH)
 
         return Distribution.objects.get_or_create(
             release=self,
