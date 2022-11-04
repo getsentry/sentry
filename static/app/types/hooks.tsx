@@ -36,6 +36,7 @@ export interface Hooks
     InterfaceChromeHooks,
     OnboardingHooks,
     SettingsHooks,
+    FeatureSpecificHooks,
     ReactHooks,
     CallbackHooks {
   _: any;
@@ -207,6 +208,19 @@ export type SettingsHooks = {
 };
 
 /**
+ * Feature Specific Hooks
+ */
+export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+
+/**
+ * Hooks related to Spend Visibitlity
+ * (i.e. Per-Project Spike Protection + Spend Allocations)
+ */
+export type SpendVisibilityHooks = {
+  'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
+};
+
+/**
  * Hooks that are actually React Hooks as well
  */
 export type ReactHooks = {
@@ -240,6 +254,11 @@ type RoutesHook = () => Route[];
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
+
+/**
+ * Receives a project object and should return a React node.
+ */
+type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the
 // GenericOrganizationComponentHook, passing org as a prop object, not direct
