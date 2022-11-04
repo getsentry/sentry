@@ -9,6 +9,9 @@ from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import rules
 from sentry.rules.processor import get_match_function
+from sentry.snuba.dataset import Dataset
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.utils.snuba import raw_query
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -74,3 +77,40 @@ def preview(
             group_last_fire[event.group_id] = event.timestamp
 
     return Group.objects.filter(id__in=group_ids)
+
+
+def get_events(
+    project: Project, condition_activity: Sequence[ConditionActivity]
+) -> Dict[str, Dict[str, str]]:
+    """
+    Returns events that have caused issue state changes.
+    """
+    group_ids = []
+    event_ids = []
+    for act in condition_activity:
+        if act.type == ConditionActivityType.CREATE_ISSUE:
+            group_ids.append(act.group_id)
+        elif act.type in (ConditionActivityType.REGRESSION, ConditionActivityType.REAPPEARED):
+            event_id = act.data.get("event_id", None)
+            if event_id is not None:
+                event_ids.append(event_id)
+
+    # TODO: Add more columns as more event filters are supported
+    columns = ["event_id"]
+    events_from_group_ids = raw_query(  # retrieves the first event for each group
+        dataset=Dataset.Events,
+        filter_keys={"project_id": [project.id], "group_id": group_ids},
+        orderby=["group_id", "timestamp"],
+        limitby=(1, "group_id"),
+        selected_columns=columns,
+    )
+    events_from_event_ids = raw_query(
+        dataset=Dataset.Events,
+        filter_keys={"project_id": [project.id], "event_id": event_ids},
+        selected_columns=columns,
+    )
+
+    return {
+        event["event_id"]: event
+        for event in events_from_group_ids["data"] + events_from_event_ids["data"]
+    }
