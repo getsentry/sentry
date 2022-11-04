@@ -52,9 +52,3 @@ def is_self_hosted():
         return settings.SENTRY_SELF_HOSTED
     except AttributeError:
         return settings.SENTRY_ONPREMISE
-
-
-def is_saas():
-    from django.conf import settings
-
-    return settings.SENTRY_IS_SAAS

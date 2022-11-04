@@ -104,7 +104,7 @@ const defaultRule: UnsavedIssueAlertRule = {
   conditions: [],
   filters: [],
   name: '',
-  frequency: 30,
+  frequency: 60 * 24,
   environment: ALL_ENVIRONMENTS_KEY,
 };
 
@@ -880,13 +880,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ownerId = rule?.owner?.split(':')[1];
 
     return (
-      <StyledField
-        extraMargin
-        label={null}
-        help={null}
-        disabled={disabled}
-        flexibleControlStateSize
-      >
+      <StyledField label={null} help={null} disabled={disabled} flexibleControlStateSize>
         <TeamSelector
           value={this.getTeamId()}
           project={project}
@@ -1188,44 +1182,120 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               >
                 <List symbol="colored-numeric">
                   {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
-                  <StyledListItem>{t('Add alert settings')}</StyledListItem>
-                  <SettingsContainer>
-                    {this.renderEnvironmentSelect(disabled)}
-                    {this.renderProjectSelect(disabled)}
-                  </SettingsContainer>
+                  <StyledListItem>
+                    <StepHeader>{t('Select an environment and project')}</StepHeader>
+                  </StyledListItem>
+                  <ContentIndent>
+                    <SettingsContainer>
+                      {this.renderEnvironmentSelect(disabled)}
+                      {this.renderProjectSelect(disabled)}
+                    </SettingsContainer>
+                  </ContentIndent>
                   <SetConditionsListItem>
-                    {t('Set conditions')}
+                    <StepHeader>{t('Set conditions')}</StepHeader>
                     <SetupAlertIntegrationButton
                       projectSlug={project.slug}
                       organization={organization}
                     />
                   </SetConditionsListItem>
-                  <ConditionsPanel>
-                    <PanelBody>
-                      <Step>
-                        <StepConnector />
+                  <ContentIndent>
+                    <ConditionsPanel>
+                      <PanelBody>
+                        <Step>
+                          <StepConnector />
+                          <StepContainer>
+                            <ChevronContainer>
+                              <IconChevron
+                                color="gray200"
+                                isCircled
+                                direction="right"
+                                size="sm"
+                              />
+                            </ChevronContainer>
+                            <StepContent>
+                              <StepLead>
+                                {tct(
+                                  '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                                  {
+                                    when: <Badge />,
+                                    selector: (
+                                      <EmbeddedWrapper>
+                                        <EmbeddedSelectField
+                                          className={classNames({
+                                            error: this.hasError('actionMatch'),
+                                          })}
+                                          styles={{
+                                            control: provided => ({
+                                              ...provided,
+                                              minHeight: '21px',
+                                              height: '21px',
+                                            }),
+                                          }}
+                                          inline={false}
+                                          isSearchable={false}
+                                          isClearable={false}
+                                          name="actionMatch"
+                                          required
+                                          flexibleControlStateSize
+                                          options={ACTION_MATCH_OPTIONS_MIGRATED}
+                                          onChange={val =>
+                                            this.handleChange('actionMatch', val)
+                                          }
+                                          size="xs"
+                                          disabled={disabled}
+                                        />
+                                      </EmbeddedWrapper>
+                                    ),
+                                  }
+                                )}
+                              </StepLead>
+                              <RuleNodeList
+                                nodes={this.getConditions()}
+                                items={conditions ?? []}
+                                selectType="grouped"
+                                placeholder={t('Add optional trigger...')}
+                                onPropertyChange={this.handleChangeConditionProperty}
+                                onAddRow={this.handleAddCondition}
+                                onResetRow={this.handleResetCondition}
+                                onDeleteRow={this.handleDeleteCondition}
+                                organization={organization}
+                                project={project}
+                                disabled={disabled}
+                                error={
+                                  this.hasError('conditions') && (
+                                    <StyledAlert type="error">
+                                      {detailedError?.conditions[0]}
+                                    </StyledAlert>
+                                  )
+                                }
+                                incompatibleRule={incompatibleCondition}
+                              />
+                            </StepContent>
+                          </StepContainer>
+                        </Step>
 
-                        <StepContainer>
-                          <ChevronContainer>
-                            <IconChevron
-                              color="gray200"
-                              isCircled
-                              direction="right"
-                              size="sm"
-                            />
-                          </ChevronContainer>
+                        <Step>
+                          <StepConnector />
 
-                          <StepContent>
-                            <StepLead>
-                              {tct(
-                                '[when:When] an event is captured by Sentry and [selector] of the following happens',
-                                {
-                                  when: <Badge />,
+                          <StepContainer>
+                            <ChevronContainer>
+                              <IconChevron
+                                color="gray200"
+                                isCircled
+                                direction="right"
+                                size="sm"
+                              />
+                            </ChevronContainer>
+
+                            <StepContent>
+                              <StepLead>
+                                {tct('[if:If][selector] of these filters match', {
+                                  if: <Badge />,
                                   selector: (
                                     <EmbeddedWrapper>
                                       <EmbeddedSelectField
                                         className={classNames({
-                                          error: this.hasError('actionMatch'),
+                                          error: this.hasError('filterMatch'),
                                         })}
                                         styles={{
                                           control: provided => ({
@@ -1237,199 +1307,138 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         inline={false}
                                         isSearchable={false}
                                         isClearable={false}
-                                        name="actionMatch"
+                                        name="filterMatch"
                                         required
                                         flexibleControlStateSize
-                                        options={ACTION_MATCH_OPTIONS_MIGRATED}
+                                        options={ACTION_MATCH_OPTIONS}
                                         onChange={val =>
-                                          this.handleChange('actionMatch', val)
+                                          this.handleChange('filterMatch', val)
                                         }
                                         size="xs"
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
                                   ),
+                                })}
+                              </StepLead>
+                              <RuleNodeList
+                                nodes={this.state.configs?.filters ?? null}
+                                items={filters ?? []}
+                                placeholder={t('Add optional filter...')}
+                                onPropertyChange={this.handleChangeFilterProperty}
+                                onAddRow={this.handleAddFilter}
+                                onResetRow={this.handleResetFilter}
+                                onDeleteRow={this.handleDeleteFilter}
+                                organization={organization}
+                                project={project}
+                                disabled={disabled}
+                                error={
+                                  this.hasError('filters') && (
+                                    <StyledAlert type="error">
+                                      {detailedError?.filters[0]}
+                                    </StyledAlert>
+                                  )
                                 }
-                              )}
-                            </StepLead>
-                            <RuleNodeList
-                              nodes={this.getConditions()}
-                              items={conditions ?? []}
-                              selectType="grouped"
-                              placeholder={t('Add optional trigger...')}
-                              onPropertyChange={this.handleChangeConditionProperty}
-                              onAddRow={this.handleAddCondition}
-                              onResetRow={this.handleResetCondition}
-                              onDeleteRow={this.handleDeleteCondition}
-                              organization={organization}
-                              project={project}
-                              disabled={disabled}
-                              error={
-                                this.hasError('conditions') && (
-                                  <StyledAlert type="error">
-                                    {detailedError?.conditions[0]}
-                                  </StyledAlert>
-                                )
-                              }
-                              incompatibleRule={incompatibleCondition}
-                            />
-                          </StepContent>
-                        </StepContainer>
-                      </Step>
+                                incompatibleRule={incompatibleFilter}
+                              />
+                            </StepContent>
+                          </StepContainer>
+                        </Step>
 
-                      <Step>
-                        <StepConnector />
+                        <Step>
+                          <StepContainer>
+                            <ChevronContainer>
+                              <IconChevron
+                                isCircled
+                                color="gray200"
+                                direction="right"
+                                size="sm"
+                              />
+                            </ChevronContainer>
+                            <StepContent>
+                              <StepLead>
+                                {tct('[then:Then] perform these actions', {
+                                  then: <Badge />,
+                                })}
+                              </StepLead>
 
-                        <StepContainer>
-                          <ChevronContainer>
-                            <IconChevron
-                              color="gray200"
-                              isCircled
-                              direction="right"
-                              size="sm"
-                            />
-                          </ChevronContainer>
-
-                          <StepContent>
-                            <StepLead>
-                              {tct('[if:If][selector] of these filters match', {
-                                if: <Badge />,
-                                selector: (
-                                  <EmbeddedWrapper>
-                                    <EmbeddedSelectField
-                                      className={classNames({
-                                        error: this.hasError('filterMatch'),
-                                      })}
-                                      styles={{
-                                        control: provided => ({
-                                          ...provided,
-                                          minHeight: '21px',
-                                          height: '21px',
-                                        }),
-                                      }}
-                                      inline={false}
-                                      isSearchable={false}
-                                      isClearable={false}
-                                      name="filterMatch"
-                                      required
-                                      flexibleControlStateSize
-                                      options={ACTION_MATCH_OPTIONS}
-                                      onChange={val =>
-                                        this.handleChange('filterMatch', val)
-                                      }
-                                      size="xs"
-                                      disabled={disabled}
-                                    />
-                                  </EmbeddedWrapper>
-                                ),
-                              })}
-                            </StepLead>
-                            <RuleNodeList
-                              nodes={this.state.configs?.filters ?? null}
-                              items={filters ?? []}
-                              placeholder={t('Add optional filter...')}
-                              onPropertyChange={this.handleChangeFilterProperty}
-                              onAddRow={this.handleAddFilter}
-                              onResetRow={this.handleResetFilter}
-                              onDeleteRow={this.handleDeleteFilter}
-                              organization={organization}
-                              project={project}
-                              disabled={disabled}
-                              error={
-                                this.hasError('filters') && (
-                                  <StyledAlert type="error">
-                                    {detailedError?.filters[0]}
-                                  </StyledAlert>
-                                )
-                              }
-                              incompatibleRule={incompatibleFilter}
-                            />
-                          </StepContent>
-                        </StepContainer>
-                      </Step>
-
-                      <Step>
-                        <StepContainer>
-                          <ChevronContainer>
-                            <IconChevron
-                              isCircled
-                              color="gray200"
-                              direction="right"
-                              size="sm"
-                            />
-                          </ChevronContainer>
-                          <StepContent>
-                            <StepLead>
-                              {tct('[then:Then] perform these actions', {
-                                then: <Badge />,
-                              })}
-                            </StepLead>
-
-                            <RuleNodeList
-                              nodes={this.state.configs?.actions ?? null}
-                              selectType="grouped"
-                              items={actions ?? []}
-                              placeholder={t('Add action...')}
-                              onPropertyChange={this.handleChangeActionProperty}
-                              onAddRow={this.handleAddAction}
-                              onResetRow={this.handleResetAction}
-                              onDeleteRow={this.handleDeleteAction}
-                              organization={organization}
-                              project={project}
-                              disabled={disabled}
-                              ownership={ownership}
-                              error={
-                                this.hasError('actions') && (
-                                  <StyledAlert type="error">
-                                    {detailedError?.actions[0]}
-                                  </StyledAlert>
-                                )
-                              }
-                            />
-                            <Feature
-                              organization={organization}
-                              features={['issue-alert-test-notifications']}
-                            >
-                              <TestButtonWrapper>
-                                <Button
-                                  type="button"
-                                  onClick={this.testNotifications}
-                                  disabled={
-                                    sendingNotification ||
-                                    rule?.actions === undefined ||
-                                    rule?.actions.length === 0
-                                  }
-                                >
-                                  {t('Test Notifications')}
-                                </Button>
-                              </TestButtonWrapper>
-                            </Feature>
-                          </StepContent>
-                        </StepContainer>
-                      </Step>
-                    </PanelBody>
-                  </ConditionsPanel>
+                              <RuleNodeList
+                                nodes={this.state.configs?.actions ?? null}
+                                selectType="grouped"
+                                items={actions ?? []}
+                                placeholder={t('Add action...')}
+                                onPropertyChange={this.handleChangeActionProperty}
+                                onAddRow={this.handleAddAction}
+                                onResetRow={this.handleResetAction}
+                                onDeleteRow={this.handleDeleteAction}
+                                organization={organization}
+                                project={project}
+                                disabled={disabled}
+                                ownership={ownership}
+                                error={
+                                  this.hasError('actions') && (
+                                    <StyledAlert type="error">
+                                      {detailedError?.actions[0]}
+                                    </StyledAlert>
+                                  )
+                                }
+                              />
+                              <Feature
+                                organization={organization}
+                                features={['issue-alert-test-notifications']}
+                              >
+                                <TestButtonWrapper>
+                                  <Button
+                                    type="button"
+                                    onClick={this.testNotifications}
+                                    disabled={
+                                      sendingNotification ||
+                                      rule?.actions === undefined ||
+                                      rule?.actions.length === 0
+                                    }
+                                  >
+                                    {t('Send Test Notification')}
+                                  </Button>
+                                </TestButtonWrapper>
+                              </Feature>
+                            </StepContent>
+                          </StepContainer>
+                        </Step>
+                      </PanelBody>
+                    </ConditionsPanel>
+                  </ContentIndent>
                   <StyledListItem>
-                    {t('Set action interval')}
+                    <StepHeader>{t('Set action interval')}</StepHeader>
                     <StyledFieldHelp>
                       {t('Perform the actions above once this often for an issue')}
                     </StyledFieldHelp>
                   </StyledListItem>
-                  {this.renderActionInterval(disabled)}
+                  <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
                   <Feature organization={organization} features={['issue-alert-preview']}>
                     <StyledListItem>
                       <StyledListItemSpaced>
                         <div>
-                          {t('Preview')}
+                          <StepHeader>{t('Preview')}</StepHeader>
                           <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
                         </div>
                       </StyledListItemSpaced>
                     </StyledListItem>
-                    {this.renderPreviewTable()}
+                    <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
                   </Feature>
-                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                  {this.renderRuleName(disabled)}
-                  {this.renderTeamSelect(disabled)}
+                  <StyledListItem>
+                    <StepHeader>{t('Add a name and owner')}</StepHeader>
+                    <StyledFieldHelp>
+                      {t(
+                        'This name will show up in notifications and the owner will give permissions to your whole team to edit and view this alert.'
+                      )}
+                    </StyledFieldHelp>
+                  </StyledListItem>
+                  <ContentIndent>
+                    <StyledFieldWrapper>
+                      {this.renderRuleName(disabled)}
+                      {this.renderTeamSelect(disabled)}
+                    </StyledFieldWrapper>
+                  </ContentIndent>
                 </List>
               </StyledForm>
             </Main>
@@ -1468,6 +1477,9 @@ const StyledListItemSpaced = styled('div')`
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin-left: -${space(4)};
+  }
 `;
 
 const SetConditionsListItem = styled(StyledListItem)`
@@ -1480,6 +1492,10 @@ const Step = styled('div')`
   display: flex;
   align-items: flex-start;
   margin: ${space(4)} ${space(4)} ${space(3)} ${space(1)};
+`;
+
+const StepHeader = styled('h5')`
+  margin-bottom: ${space(1)};
 `;
 
 const StepContainer = styled('div')`
@@ -1554,11 +1570,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean}>`
-  :last-child {
-    padding-bottom: ${space(2)};
-  }
-
+const StyledField = styled(Field)`
   border-bottom: none;
   padding: 0;
 
@@ -1566,8 +1578,22 @@ const StyledField = styled(Field)<{extraMargin?: boolean}>`
     padding: 0;
     width: 100%;
   }
+  margin-bottom: ${space(1)};
+`;
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
+const StyledFieldWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: ${space(1)};
+  }
+  margin-bottom: 60px;
+`;
+
+const ContentIndent = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    margin-left: ${space(4)};
+  }
 `;
 
 const Main = styled(Layout.Main)`

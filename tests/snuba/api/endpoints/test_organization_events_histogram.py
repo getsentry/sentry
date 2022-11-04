@@ -1156,3 +1156,12 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         expected_response = self.as_response_data(expected)
         expected_response["meta"] = {"isMetricsData": True}
         assert response.data == expected_response
+
+
+@region_silo_test
+class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True

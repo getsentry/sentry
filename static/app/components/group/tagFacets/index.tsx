@@ -1,7 +1,9 @@
-import {Fragment, ReactNode, useEffect, useState} from 'react';
+import {ReactNode, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
+import {TagSegment} from 'sentry/actionCreators/events';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -12,11 +14,13 @@ import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import Button from '../button';
-import ButtonBar from '../buttonBar';
-import BreakdownBars from '../charts/breakdownBars';
+import Button from '../../button';
+import ButtonBar from '../../buttonBar';
+
+import TagBreakdown from './tagBreakdown';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
+
 export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
@@ -31,15 +35,22 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
           };
         }),
       };
+    } else if (tagKey === 'device') {
+      transformedTagsData[tagKey] = {
+        ...tagsData[tagKey],
+        topValues: tagsData[tagKey].topValues.map(topValue => {
+          return {
+            ...topValue,
+            name: topValue.readable ?? topValue.name,
+          };
+        }),
+      };
     } else {
       transformedTagsData[tagKey] = tagsData[tagKey];
     }
   });
   return transformedTagsData;
 }
-
-const LESS_ITEMS = 4;
-const MORE_ITEMS = 8;
 
 type Props = {
   environments: Environment[];
@@ -59,6 +70,8 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
+const MAX_ITEMS = 5;
+
 export function TagFacets({
   groupId,
   tagKeys,
@@ -75,6 +88,7 @@ export function TagFacets({
   });
   const api = useApi();
   const organization = useOrganization();
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,9 +97,19 @@ export function TagFacets({
         query: {
           key: tagKeys,
           environment: environments.map(env => env.name),
+          readable: true,
         },
       });
-      setState({...state, tagsData: keyBy(data, 'key'), loading: false});
+      const tagsData = keyBy(data, 'key');
+      const defaultSelectedTag = tagKeys.find(tagKey =>
+        Object.keys(tagsData).includes(tagKey)
+      );
+      setState({
+        ...state,
+        tagsData,
+        loading: false,
+        selectedTag: defaultSelectedTag ?? state.selectedTag,
+      });
     };
     setState({...state, loading: true});
     fetchData().catch(() => {
@@ -95,16 +119,28 @@ export function TagFacets({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
+  const breakdownBarColors = [
+    theme.purple400,
+    theme.red400,
+    theme.green400,
+    theme.yellow400,
+    theme.blue400,
+    theme.translucentGray100,
+  ];
+
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
-  const points =
+  const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${state.selectedTag}/?referrer=tag-distribution-meter`;
+  const segments: TagSegment[] =
     tagsData[state.selectedTag]?.topValues.map(({name, value, count}) => {
       const isTagValueOfCurrentEvent =
         event?.tags.find(({key}) => key === state.selectedTag)?.value === value;
       return {
-        label: name,
-        value: count,
+        name,
+        value: name,
+        count,
+        url,
         active: isTagValueOfCurrentEvent,
         tooltip: isTagValueOfCurrentEvent
           ? t('This is also the tag value of the error event you are viewing.')
@@ -118,13 +154,21 @@ export function TagFacets({
   if (availableTagKeys.length > 0) {
     return (
       <SidebarSection.Wrap>
-        <SidebarSection.Title>{title ?? t('Tag Summary')}</SidebarSection.Title>
+        <Title>
+          {title ?? t('Tag Summary')}
+          <Button
+            size="xs"
+            to={`/organizations/${organization.slug}/issues/${groupId}/tags/`}
+          >
+            {t('View All Tags')}
+          </Button>
+        </Title>
         <TagFacetsContainer>
-          <ButtonBar merged active={state.selectedTag}>
+          <StyledButtonBar merged active={state.selectedTag}>
             {availableTagKeys.map(tagKey => {
               return (
                 <Button
-                  size="xs"
+                  size="sm"
                   key={tagKey}
                   barId={tagKey}
                   onClick={() => {
@@ -135,33 +179,15 @@ export function TagFacets({
                 </Button>
               );
             })}
-          </ButtonBar>
-          <BreakdownBarsContainer>
-            <BreakdownBars
-              data={points}
-              maxItems={state.showMore ? MORE_ITEMS : LESS_ITEMS}
+          </StyledButtonBar>
+          <BreakdownContainer>
+            <TagBreakdown
+              segments={segments}
+              maxItems={MAX_ITEMS}
+              colors={breakdownBarColors}
+              selectedTag={state.selectedTag}
             />
-          </BreakdownBarsContainer>
-          <ButtonContainer>
-            {points.length > LESS_ITEMS && (
-              <Fragment>
-                {state.showMore && (
-                  <Button
-                    size="xs"
-                    to={getTagUrl(organization.slug, groupId, state.selectedTag)}
-                  >
-                    {t('View all')}
-                  </Button>
-                )}
-                <Button
-                  size="xs"
-                  onClick={() => setState({...state, showMore: !state.showMore})}
-                >
-                  {state.showMore ? t('Show less') : t('Show more')}
-                </Button>
-              </Fragment>
-            )}
-          </ButtonContainer>
+          </BreakdownContainer>
         </TagFacetsContainer>
       </SidebarSection.Wrap>
     );
@@ -169,22 +195,22 @@ export function TagFacets({
   return null;
 }
 
-function getTagUrl(orgSlug: string, groupId: string, tag: string) {
-  return `/organizations/${orgSlug}/issues/${groupId}/tags/${tag}/`;
-}
-
 const TagFacetsContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const BreakdownBarsContainer = styled('div')`
+const BreakdownContainer = styled('div')`
   margin-top: ${space(2)};
   overflow: hidden;
 `;
 
-const ButtonContainer = styled('div')`
-  margin-top: ${space(1)};
+const StyledButtonBar = styled(ButtonBar)`
   display: flex;
-  column-gap: ${space(0.5)};
-  justify-content: flex-end;
+`;
+
+const Title = styled(SidebarSection.Title)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
 `;
