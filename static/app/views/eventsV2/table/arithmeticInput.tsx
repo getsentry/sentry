@@ -307,36 +307,39 @@ type TermDropdownProps = {
 function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
   return (
     <DropdownContainer isOpen={isOpen}>
-      <DropdownItemsList>
-        {optionGroups.map(group => {
-          const {title, options} = group;
-          return (
-            <Fragment key={title}>
-              <ListItem>
-                <DropdownTitle>{title}</DropdownTitle>
-              </ListItem>
-              {options.map(option => {
-                return (
-                  <DropdownListItem
-                    key={option.value}
-                    className={option.active ? 'active' : undefined}
-                    onClick={() => handleSelect(option)}
-                    // prevent the blur event on the input from firing
-                    onMouseDown={event => event.preventDefault()}
-                    // scroll into view if it is the active element
-                    ref={element =>
-                      option.active && element?.scrollIntoView?.({block: 'nearest'})
-                    }
-                  >
-                    <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
-                  </DropdownListItem>
-                );
-              })}
-              {options.length === 0 && <Info>{t('No items found')}</Info>}
-            </Fragment>
-          );
-        })}
-      </DropdownItemsList>
+      {isOpen && (
+        <DropdownItemsList>
+          {optionGroups.map(group => {
+            const {title, options} = group;
+            return (
+              <Fragment key={title}>
+                <ListItem>
+                  <DropdownTitle>{title}</DropdownTitle>
+                </ListItem>
+                {options.map(option => {
+                  return (
+                    <DropdownListItem
+                      key={option.value}
+                      className={option.active ? 'active' : undefined}
+                      onClick={() => handleSelect(option)}
+                      // prevent the blur event on the input from firing
+                      onMouseDown={event => event.preventDefault()}
+                      // scroll into view if it is the active element
+                      ref={element =>
+                        option.active && element?.scrollIntoView?.({block: 'nearest'})
+                      }
+                      aria-label={option.value}
+                    >
+                      <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
+                    </DropdownListItem>
+                  );
+                })}
+                {options.length === 0 && <Info>{t('No items found')}</Info>}
+              </Fragment>
+            );
+          })}
+        </DropdownItemsList>
+      )}
     </DropdownContainer>
   );
 }
