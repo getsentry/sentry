@@ -5,7 +5,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface UseProfileEventsSortOptions<F> {
-  allowedKeys: readonly F[];
+  allowedKeys: F[];
   fallback: {
     key: F;
     order: 'asc' | 'desc';
