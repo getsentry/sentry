@@ -4,6 +4,9 @@ import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getTour, isDemoWalkthrough} from 'sentry/utils/demoMode';
+
+import {demoEndModal} from './modal';
 
 const api = new Client();
 
@@ -47,7 +50,11 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
   closeGuide(true);
 }
 
-export function recordFinish(guide: string, orgId: string | null) {
+export function recordFinish(
+  guide: string,
+  orgId: string | null,
+  orgSlug: string | null
+) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -55,6 +62,12 @@ export function recordFinish(guide: string, orgId: string | null) {
       status: 'viewed',
     },
   });
+
+  const tour = getTour(guide);
+
+  if (isDemoWalkthrough() && tour) {
+    demoEndModal({tour, orgSlug});
+  }
 
   const user = ConfigStore.get('user');
   if (!user) {
