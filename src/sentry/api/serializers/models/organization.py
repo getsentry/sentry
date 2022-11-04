@@ -244,7 +244,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
         )
         for option in options_as_features:
-            feature_list.add(ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key))
+            feature, func = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            if func is None or func(option):
+                feature_list.add(feature)
+
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
