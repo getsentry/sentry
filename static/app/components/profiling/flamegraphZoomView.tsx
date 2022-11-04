@@ -336,15 +336,15 @@ function FlamegraphZoomView({
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   useEffect(() => {
-    if (flamegraphState.profiles.highlightFrame) {
+    if (flamegraphState.profiles.highlightAllFrames) {
       selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightFrame.name,
-        flamegraphState.profiles.highlightFrame.package
+        flamegraphState.profiles.highlightAllFrames.name,
+        flamegraphState.profiles.highlightAllFrames.package
       );
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
+  }, [flamegraph, flamegraphState.profiles.highlightAllFrames]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
@@ -389,7 +389,7 @@ function FlamegraphZoomView({
     flamegraphCanvas,
     scheduler,
     flamegraph,
-    flamegraphState.profiles.highlightFrame,
+    flamegraphState.profiles.highlightAllFrames,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -500,6 +500,10 @@ function FlamegraphZoomView({
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
 
+        dispatch({
+          type: 'set highlight all frames',
+          payload: null,
+        });
         canvasPoolManager.dispatch('highlight frame', [
           hoveredNode ? [hoveredNode] : null,
           'selected',
@@ -735,17 +739,26 @@ function FlamegraphZoomView({
       )
     ) {
       setHighlightingAllOccurences(false);
+      dispatch({type: 'set highlight all frames', payload: null});
       canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
       scheduler.draw();
       return;
     }
 
     setHighlightingAllOccurences(true);
+    dispatch({
+      type: 'set highlight all frames',
+      payload: {
+        name: hoveredNodeOnContextMenuOpen.current.frame.name,
+        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+      },
+    });
+
     canvasPoolManager.dispatch('highlight frame', [
       flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
       'selected',
     ]);
-  }, [canvasPoolManager, flamegraph, scheduler]);
+  }, [canvasPoolManager, flamegraph, scheduler, dispatch]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {

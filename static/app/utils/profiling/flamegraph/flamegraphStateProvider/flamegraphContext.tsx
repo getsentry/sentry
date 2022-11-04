@@ -13,7 +13,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     selectedRoot: null,
     threadId: null,
-    highlightFrame: null,
+    highlightAllFrames: null,
   },
   position: {
     view: Rect.Empty(),

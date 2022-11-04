@@ -68,7 +68,7 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
-      highlightFrame:
+      highlightAllFrames:
         typeof query.frameName === 'string' && typeof query.framePackage === 'string'
           ? {
               name: query.frameName,
@@ -103,10 +103,10 @@ export function decodeFlamegraphStateFromQueryParams(
 }
 
 export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
-  const highlightFrame = state.profiles.highlightFrame
+  const highlightFrame = state.profiles.highlightAllFrames
     ? {
-        frameName: state.profiles.highlightFrame?.name,
-        framePackage: state.profiles.highlightFrame?.package,
+        frameName: state.profiles.highlightAllFrames?.name,
+        framePackage: state.profiles.highlightAllFrames?.package,
       }
     : {};
 
@@ -127,7 +127,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
 }
 
 function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
-  if (!state.profiles.highlightFrame && query.frameName && query.framePackage) {
+  if (!state.profiles.highlightAllFrames && query.frameName && query.framePackage) {
     const {frameName: _, framePackage: __, ...rest} = query;
     return rest;
   }
