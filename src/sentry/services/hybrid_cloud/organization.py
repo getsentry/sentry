@@ -2,7 +2,7 @@ import dataclasses
 from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Iterable, List, MutableMapping, Optional, Set
+from typing import Iterable, List, MutableMapping, Optional, Set, cast
 
 from sentry.models import (
     Organization,
@@ -99,7 +99,7 @@ class ApiUserOrganizationContext:
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[ApiOrganizationMember] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
 
@@ -299,7 +299,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.VISIBLE:
                 raise Organization.DoesNotExist
-            return org.id
+            return cast(int, org.id)
         except Organization.DoesNotExist:
             logger.info("Organization by slug [%s] not found", slug)
 

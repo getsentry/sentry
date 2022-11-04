@@ -139,7 +139,7 @@ def service_stubbed(
         raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
-class use_real_service(contextlib.AbstractContextManager):
+class use_real_service(contextlib.AbstractContextManager[Any]):
     service: InterfaceWithLifecycle
     silo_mode: SiloMode | None
     context: contextlib.ExitStack
@@ -149,7 +149,7 @@ class use_real_service(contextlib.AbstractContextManager):
         self.service = service
         self.context = contextlib.ExitStack()
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         from django.test import override_settings
 
         if isinstance(self.service, DelegatedBySiloMode):
@@ -157,23 +157,23 @@ class use_real_service(contextlib.AbstractContextManager):
                 self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
                 self.context.enter_context(
                     cast(
-                        contextlib.AbstractContextManager,
+                        contextlib.AbstractContextManager[Any],
                         self.service.with_replacement(None, self.silo_mode),
                     )
                 )
             else:
                 self.context.enter_context(
                     cast(
-                        contextlib.AbstractContextManager,
+                        contextlib.AbstractContextManager[Any],
                         self.service.with_replacement(None, SiloMode.get_current_mode()),
                     )
                 )
         else:
             raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
 
-    def __call__(self, f: Callable) -> Callable:
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
-        def wrapped(*args, **kwds):
+        def wrapped(*args: Any, **kwds: Any) -> Any:
             with self:
                 return f(*args, **kwds)
 

@@ -67,11 +67,16 @@ class OrganizationMixin:
         )
 
         if active_organization is None and backup_organization:
-
             if not is_implicit:
                 self.active_organization = None
                 return
-            active_organization = backup_organization
+            active_organization = ApiUserOrganizationContext(
+                user_id=request.user.id,
+                organization=backup_organization,
+                member=organization_service.check_membership_by_id(
+                    organization_id=backup_organization.id, user_id=request.user.id
+                ),
+            )
 
         if active_organization and active_organization.member:
             auth.set_active_org(request, active_organization.slug)
