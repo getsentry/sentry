@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -35,6 +36,8 @@ describe('SavedIssueSearches', function () {
     organization,
     onSavedSearchSelect: jest.fn(),
     onSavedSearchDelete: jest.fn(),
+    query: 'is:unresolved',
+    sort: 'date',
   };
 
   beforeEach(() => {
@@ -45,6 +48,23 @@ describe('SavedIssueSearches', function () {
     const {container} = render(<SavedIssueSearches {...defaultProps} />);
 
     expect(container).toSnapshot();
+  });
+
+  it('hides saves searches by default past first 5', function () {
+    render(
+      <SavedIssueSearches
+        {...defaultProps}
+        savedSearches={[...new Array(6)].map((_, i) => ({
+          ...orgSearch,
+          name: 'Test Search',
+          id: i,
+        }))}
+      />
+    );
+
+    expect(screen.getAllByText('Test Search')).toHaveLength(5);
+    userEvent.click(screen.getByRole('button', {name: /show all 6 saved searches/i}));
+    expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
 
   it('can select a saved search', function () {
@@ -104,5 +124,57 @@ describe('SavedIssueSearches', function () {
     expect(
       screen.getByText('You do not have permission to delete this search.')
     ).toBeInTheDocument();
+  });
+
+  it('can create a new saved search', async function () {
+    const mockSave = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      method: 'POST',
+      body: {},
+    });
+
+    render(<SavedIssueSearches {...defaultProps} />);
+    renderGlobalModal();
+
+    userEvent.click(screen.getByRole('button', {name: /create a new saved search/i}));
+
+    const modal = screen.getByRole('dialog');
+
+    userEvent.type(
+      within(modal).getByRole('textbox', {name: 'Name'}),
+      'new saved search'
+    );
+
+    userEvent.click(within(modal).getByRole('button', {name: /save/i}));
+
+    expect(mockSave).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'new saved search',
+          query: 'is:unresolved',
+        }),
+      })
+    );
+
+    // Modal should close
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+  });
+
+  it('disables saved search creation without org:write permission', function () {
+    render(
+      <SavedIssueSearches
+        {...defaultProps}
+        organization={{
+          ...organization,
+          access: organization.access.filter(access => access !== 'org:write'),
+        }}
+      />
+    );
+    renderGlobalModal();
+
+    expect(
+      screen.getByRole('button', {name: /create a new saved search/i})
+    ).toBeDisabled();
   });
 });

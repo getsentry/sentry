@@ -110,13 +110,13 @@ const SidebarItem = ({
     labelString = label?.props?.children ?? label;
   }
   // take off the query params for matching
-  const toPathWithourReferrer = to?.split('?')[0];
+  const toPathWithoutReferrer = to?.split('?')[0];
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
     (!hasPanel &&
       router &&
-      toPathWithourReferrer &&
-      location.pathname.startsWith(toPathWithourReferrer)) ||
+      toPathWithoutReferrer &&
+      location.pathname.startsWith(toPathWithoutReferrer)) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||

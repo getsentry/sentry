@@ -6,6 +6,7 @@ from typing import Any, Mapping, Optional, Set, Union
 import rapidjson
 from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies.factory import KafkaConsumerStrategyFactory, StreamMessageFilter
@@ -192,4 +193,5 @@ def get_last_seen_updater(
         KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
         Topic(ingest_config.output_topic),
         processing_factory,
+        IMMEDIATE,
     )

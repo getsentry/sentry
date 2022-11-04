@@ -70,18 +70,12 @@ class SavedSearch(Model):
     # is_global does NOT have an associated organization_id
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
 
-    # XXX(epurkhiser): This is different from "creator". Owner is a misnomer
-    # for this column, as this actually indicates that the search is "pinned"
-    # by the user. A user may only have one pinned search epr (org, type)
-    #
-    # XXX(epurkhiser): Once the visibility column is correctly in use this
-    # column will be used essentially as "created_by"
+    # Creator of the saved search. When visibility is
+    # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
+    # search is visibile to.
     owner = FlexibleForeignKey("sentry.User", null=True)
 
     # Defines who can see the saved search
-    #
-    # NOTE: `owner_pinned` has special behavior in that the saved search will
-    # not appear in the user saved search list
     visibility = models.CharField(
         max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices(include_pinned=True)
     )

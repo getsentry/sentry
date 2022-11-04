@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
@@ -597,6 +599,37 @@ def process_rules(job: PostProcessJob) -> None:
     return
 
 
+def process_code_mappings(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from sentry.tasks.derive_code_mappings import derive_code_mappings
+
+    try:
+        event = job["event"]
+        project = event.project
+
+        cache_key = f"code-mappings:{project.organization_id}"
+        organization_queued = cache.get(cache_key)
+        # TODO(snigdha): Change the cache to per-project once we're able to optimize get_trees_for_org.
+        # This will only process code mappings one project per org per hour but we can do better.
+        if organization_queued is None:
+            cache.set(cache_key, True, 3600)
+            logger.info(
+                f"derive_code_mappings: Events from {project.id} in {project.organization_id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
+            )
+
+        if organization_queued or not features.has(
+            "organizations:derive-code-mappings", event.project.organization
+        ):
+            return
+
+        derive_code_mappings.delay(project.id, event.data)
+
+    except Exception:
+        logger.exception("Failed to set auto-assignment")
+
+
 def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -779,6 +812,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
+        process_code_mappings,
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
