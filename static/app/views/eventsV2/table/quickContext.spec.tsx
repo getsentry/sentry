@@ -411,9 +411,9 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/by/i)).toHaveLength(2);
-      expect(screen.getByText(/2 authors/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/2/i)).toHaveLength(2);
+      expect(screen.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -430,9 +430,9 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/by/i)).toHaveLength(2);
-      expect(screen.getByText(/you and 1 other/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/1/i)).toHaveLength(2);
+      expect(screen.getByText(/other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
