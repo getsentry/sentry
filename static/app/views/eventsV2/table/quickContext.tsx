@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -20,8 +19,9 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Organization, User} from 'sentry/types';
+import {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 // Will extend this enum as we add contexts for more columns
@@ -50,54 +50,65 @@ type IssueContextProps = {
 
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
-  const {isLoading, isError, data} = useQuery({
-    queryKey: ['quick-context', 'issue', `${props.dataRow['issue.id']}`],
-    queryFn: () =>
-      props.api.requestPromise(`/issues/${props.dataRow['issue.id']}/`, {
-        method: 'GET',
+
+  const {isLoading, isError, data} = useQuery<Group>(
+    [
+      `/issues/${props.dataRow['issue.id']}/`,
+      {
         query: {
           collapse: 'release',
           expand: 'inbox',
         },
-      }),
-    onSuccess: group => {
-      GroupStore.add([group]);
-    },
-    staleTime: fiveMinutesInMs,
-    retry: false,
-  });
-
-  const renderStatus = () => (
-    <IssueContextContainer data-test-id="quick-context-issue-status-container">
-      <ContextTitle>
-        {statusTitle}
-        <FeatureBadge type="alpha" />
-      </ContextTitle>
-      <ContextBody>
-        {data.status === 'ignored' ? (
-          <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
-        ) : data.status === 'resolved' ? (
-          <IconCheckmark color="gray500" size="sm" />
-        ) : (
-          <IconNot
-            data-test-id="quick-context-unresolved-icon"
-            color="gray500"
-            size="sm"
-          />
-        )}
-        <StatusText>{data.status}</StatusText>
-      </ContextBody>
-    </IssueContextContainer>
+      },
+    ],
+    undefined,
+    {
+      onSuccess: group => {
+        GroupStore.add([group]);
+      },
+      staleTime: fiveMinutesInMs,
+      retry: false,
+    }
   );
 
-  const renderAssigneeSelector = () => (
-    <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-      <AssignedTo group={data} projectId={data.project.id} />
-    </IssueContextContainer>
-  );
+  const renderStatus = () =>
+    data && (
+      <IssueContextContainer data-test-id="quick-context-issue-status-container">
+        <ContextTitle>
+          {statusTitle}
+          <FeatureBadge type="alpha" />
+        </ContextTitle>
+        <ContextBody>
+          {data.status === 'ignored' ? (
+            <IconMute
+              data-test-id="quick-context-ignored-icon"
+              color="gray500"
+              size="sm"
+            />
+          ) : data.status === 'resolved' ? (
+            <IconCheckmark color="gray500" size="sm" />
+          ) : (
+            <IconNot
+              data-test-id="quick-context-unresolved-icon"
+              color="gray500"
+              size="sm"
+            />
+          )}
+          <StatusText>{data.status}</StatusText>
+        </ContextBody>
+      </IssueContextContainer>
+    );
+
+  const renderAssigneeSelector = () =>
+    data && (
+      <IssueContextContainer data-test-id="quick-context-assigned-to-container">
+        <AssignedTo group={data} projectId={data.project.id} />
+      </IssueContextContainer>
+    );
 
   const renderSuspectCommits = () =>
-    props.eventID && (
+    props.eventID &&
+    data && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
           project={data.project}
@@ -145,33 +156,34 @@ type ReleaseContextProps = {
 };
 
 function ReleaseContext(props: ReleaseContextProps) {
-  const {isLoading, isError, data} = useQuery({
-    queryKey: ['quick-context', 'release', `${props.dataRow.release}`],
-    queryFn: () =>
-      props.api.requestPromise(
-        `/organizations/${props.organization?.slug}/releases/${props.dataRow.release}/`
-      ),
-    staleTime: fiveMinutesInMs,
-    retry: false,
-  });
+  const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
+    [`/organizations/${props.organization?.slug}/releases/${props.dataRow.release}/`],
+    undefined,
+    {
+      staleTime: fiveMinutesInMs,
+      retry: false,
+    }
+  );
 
   const getCommitAuthorTitle = () => {
-    const {commitCount, authors} = data;
     const user = ConfigStore.get('user');
     const userInAuthors =
+      data &&
       data.authors.length >= 1 &&
       data.authors.find((author: User) => author.id && user.id && author.id === user.id);
     return tct('[commitCount] [commitDesc] by [authorDesc]', {
-      commitCount,
-      commitDesc: commitCount !== 1 ? 'commits' : 'commit',
+      commitCount: data?.commitCount,
+      commitDesc: data?.commitCount !== 1 ? 'commits' : 'commit',
       authorDesc: userInAuthors
-        ? `you and ${authors.length - 1} ${authors.length - 1 !== 1 ? 'others' : 'other'}`
-        : `${authors.length} ${authors.length !== 1 ? 'authors' : 'author'}`,
+        ? `you and ${data.authors.length - 1} ${
+            data.authors.length - 1 !== 1 ? 'others' : 'other'
+          }`
+        : `${data?.authors.length} ${data?.authors.length !== 1 ? 'authors' : 'author'}`,
     });
   };
 
   const renderReleaseDetails = () => {
-    const statusText = data.status === 'open' ? t('Active') : t('Archived');
+    const statusText = data?.status === 'open' ? t('Active') : t('Archived');
     return (
       <ReleaseContextContainer data-test-id="quick-context-release-details-container">
         <ContextTitle>
@@ -181,7 +193,7 @@ function ReleaseContext(props: ReleaseContextProps) {
         <ContextBody>
           <StyledKeyValueTable>
             <KeyValueTableRow keyName={t('Status')} value={statusText} />
-            {data.status === 'open' && (
+            {data?.status === 'open' && (
               <Fragment>
                 <KeyValueTableRow
                   keyName={t('Created')}
@@ -206,6 +218,7 @@ function ReleaseContext(props: ReleaseContextProps) {
   };
 
   const renderLastCommit = () =>
+    data &&
     data.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
         <ContextTitle>{t('Last Commit')}</ContextTitle>
@@ -217,22 +230,23 @@ function ReleaseContext(props: ReleaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  const renderIssueCountAndAuthors = () => (
-    <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
-      <ContextRow>
-        <div>
-          <ContextTitle>{t('New Issues')}</ContextTitle>
-          <ReleaseStatusBody>{data.newGroups}</ReleaseStatusBody>
-        </div>
-        <div>
-          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
-          <ReleaseAuthorsBody>
-            <AvatarList users={data.authors} />
-          </ReleaseAuthorsBody>
-        </div>
-      </ContextRow>
-    </ReleaseContextContainer>
-  );
+  const renderIssueCountAndAuthors = () =>
+    data && (
+      <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
+        <ContextRow>
+          <div>
+            <ContextTitle>{t('New Issues')}</ContextTitle>
+            <ReleaseStatusBody>{data.newGroups}</ReleaseStatusBody>
+          </div>
+          <div>
+            <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+            <ReleaseAuthorsBody>
+              <AvatarList users={data.authors} />
+            </ReleaseAuthorsBody>
+          </div>
+        </ContextRow>
+      </ReleaseContextContainer>
+    );
 
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
