@@ -617,12 +617,14 @@ def process_code_mappings(job: PostProcessJob) -> None:
                 f"derive_code_mappings: Events from {project.id} in {project.organization_id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
             )
 
-        if organization_queued or not features.has(
-            "organizations:derive-code-mappings", event.project.organization
-        ):
+        if organization_queued:
             return
 
-        derive_code_mappings.delay(project.id, event.data)
+        if features.has("organizations:derive-code-mappings", event.project.organization):
+            derive_code_mappings.delay(project.id, event.data)
+        # Derive code mappings with dry_run=True to validate the generated mappings.
+        elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
+            derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
         logger.exception("Failed to set auto-assignment")
