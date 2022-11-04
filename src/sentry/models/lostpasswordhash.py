@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.lostpasswordhash import APILostPasswordHash
 
 
-class BaseLostPasswordHash:
+class LostPasswordHashMixin:
     def get_absolute_url(self, mode="recover"):
         url_key = "sentry-account-recover-confirm"
         if mode == "set_password":
@@ -24,7 +24,7 @@ class BaseLostPasswordHash:
 
 
 @control_silo_only_model
-class LostPasswordHash(Model, BaseLostPasswordHash):
+class LostPasswordHash(Model, LostPasswordHashMixin):
     __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)

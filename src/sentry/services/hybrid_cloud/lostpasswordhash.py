@@ -2,7 +2,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from sentry.models import BaseLostPasswordHash, LostPasswordHash
+from sentry.models import LostPasswordHash, LostPasswordHashMixin
 from sentry.services.hybrid_cloud import (
     CreateStubFromBase,
     InterfaceWithLifecycle,
@@ -12,7 +12,7 @@ from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APILostPasswordHash(BaseLostPasswordHash):
+class APILostPasswordHash(LostPasswordHashMixin):
     id: int = -1
     user_id: int = -1
     hash: str = ""
