@@ -120,14 +120,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             for repo_info in repositories:
-                full_name: str = repo_info["full_name"]
-                cached_repositories.append(full_name)
-                branch = repo_info["default_branch"]
-                trees[full_name] = {
-                    "default_branch": branch,
-                    "files": self.get_tree(full_name, branch),
-                }
-                cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
+                try:
+                    full_name: str = repo_info["full_name"]
+                    branch = repo_info["default_branch"]
+                    trees[full_name] = {
+                        "default_branch": branch,
+                        "files": self.get_tree(full_name, branch),
+                    }
+                    cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
+                except Exception:
+                    # Catching the exception ensures that we can make progress with the rest
+                    # of the repositories
+                    logger.exception(f"We have failed to fetch the tree for {repo_info}.")
             cache.set(cache_key, repositories, cache_seconds)
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until {next_time}.")
@@ -138,7 +142,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return trees
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Dict[str, str]]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
