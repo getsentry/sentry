@@ -33,7 +33,7 @@ interface ProfileSummaryPageProps {
   params: {
     projectId?: Project['slug'];
   };
-  selection?: PageFilters;
+  selection: PageFilters;
 }
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
