@@ -2,7 +2,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {generateOnboardingDocKeys} from 'sentry/components/performanceOnboarding/usePerformanceOnboardingDocs';
 import SidebarContainer from 'sentry/components/sidebar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -11,6 +10,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
+import {generateDocKeys} from './utils';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -233,7 +234,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     ProjectsStore.loadInitialData([project]);
 
     const docApiMocks: any = {};
-    const docKeys = generateOnboardingDocKeys(project.platform);
+    const docKeys = generateDocKeys(project.platform);
 
     docKeys.forEach(docKey => {
       docApiMocks[docKey] = MockApiClient.addMockResponse({

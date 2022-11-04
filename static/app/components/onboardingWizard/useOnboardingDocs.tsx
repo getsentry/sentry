@@ -2,26 +2,22 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {
-  PlatformKey,
-  withoutPerformanceSupport,
-  withPerformanceOnboarding,
-} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {Project} from 'sentry/types';
+import {PlatformIntegration, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-export function generateOnboardingDocKeys(platform: PlatformKey): string[] {
-  return ['1-install', '2-configure', '3-verify'].map(
-    key => `${platform}-performance-onboarding-${key}`
-  );
-}
 
 const INITIAL_LOADING_DOCS = {};
 const INITIAL_DOC_CONTENTS = {};
 
-function usePerformanceOnboardingDocs(project: Project) {
+type Options = {
+  generateDocKeys: (platform: PlatformKey) => string[];
+  isPlatformSupported: (platform: undefined | PlatformIntegration) => boolean;
+  project: Project;
+};
+
+function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Options) {
   const organization = useOrganization();
   const api = useApi();
 
@@ -34,16 +30,11 @@ function usePerformanceOnboardingDocs(project: Project) {
     ? platforms.find(p => p.id === project.platform)
     : undefined;
 
-  const hasPerformanceOnboarding = currentPlatform
-    ? withPerformanceOnboarding.has(currentPlatform.id)
-    : false;
-
-  const doesNotSupportPerformance = currentPlatform
-    ? withoutPerformanceSupport.has(currentPlatform.id)
-    : false;
+  const isSupported = isPlatformSupported(currentPlatform);
+  const docKeys = currentPlatform && generateDocKeys(currentPlatform.id);
 
   useEffect(() => {
-    if (!currentPlatform || !hasPerformanceOnboarding || doesNotSupportPerformance) {
+    if (!isSupported) {
       if (loadingDocs !== INITIAL_LOADING_DOCS) {
         setLoadingDocs(INITIAL_LOADING_DOCS);
       }
@@ -53,9 +44,7 @@ function usePerformanceOnboardingDocs(project: Project) {
       return;
     }
 
-    const docKeys = generateOnboardingDocKeys(currentPlatform.id);
-
-    docKeys.forEach(docKey => {
+    docKeys?.forEach(docKey => {
       if (docKey in loadingDocs) {
         // If a documentation content is loading, we should not attempt to fetch it again.
         // otherwise, if it's not loading, we should only fetch at most once.
@@ -101,8 +90,8 @@ function usePerformanceOnboardingDocs(project: Project) {
     });
   }, [
     currentPlatform,
-    hasPerformanceOnboarding,
-    doesNotSupportPerformance,
+    docKeys,
+    isSupported,
     api,
     loadingDocs,
     organization.slug,
@@ -110,7 +99,7 @@ function usePerformanceOnboardingDocs(project: Project) {
     docContents,
   ]);
 
-  if (!currentPlatform || !hasPerformanceOnboarding || doesNotSupportPerformance) {
+  if (!currentPlatform || !isSupported) {
     return {
       isLoading: false,
       hasOnboardingContents: false,
@@ -118,17 +107,17 @@ function usePerformanceOnboardingDocs(project: Project) {
     };
   }
 
-  const docKeys = generateOnboardingDocKeys(currentPlatform.id);
+  const isLoading = Boolean(
+    docKeys?.some(key => {
+      if (key in loadingDocs) {
+        return !!loadingDocs[key];
+      }
+      return true;
+    })
+  );
 
-  const isLoading = docKeys.some(key => {
-    if (key in loadingDocs) {
-      return !!loadingDocs[key];
-    }
-    return true;
-  });
-
-  const hasOnboardingContents = docKeys.every(
-    key => typeof docContents[key] === 'string'
+  const hasOnboardingContents = Boolean(
+    docKeys?.every(key => typeof docContents[key] === 'string')
   );
 
   return {
@@ -138,4 +127,4 @@ function usePerformanceOnboardingDocs(project: Project) {
   };
 }
 
-export default usePerformanceOnboardingDocs;
+export default useOnboardingDocs;

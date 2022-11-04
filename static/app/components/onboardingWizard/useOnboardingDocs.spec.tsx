@@ -1,12 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import usePerformanceOnboardingDocs, {
-  generateOnboardingDocKeys,
-} from 'sentry/components/performanceOnboarding/usePerformanceOnboardingDocs';
+import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import {
+  generateDocKeys,
+  isPlatformSupported,
+} from 'sentry/components/performanceOnboarding/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-describe('usePerformanceOnboardingDocs', function () {
+describe('useOnboardingDocs', function () {
   it('fetches onboarding documentation steps', async function () {
     const {organization} = initializeOrg({
       router: {
@@ -26,13 +28,7 @@ describe('usePerformanceOnboardingDocs', function () {
 
     const apiMocks: any = {};
 
-    const docKeys = generateOnboardingDocKeys(project.platform);
-
-    expect(docKeys).toEqual([
-      'javascript-react-performance-onboarding-1-install',
-      'javascript-react-performance-onboarding-2-configure',
-      'javascript-react-performance-onboarding-3-verify',
-    ]);
+    const docKeys = generateDocKeys(project.platform);
 
     docKeys.forEach(docKey => {
       apiMocks[docKey] = MockApiClient.addMockResponse({
@@ -42,13 +38,10 @@ describe('usePerformanceOnboardingDocs', function () {
       });
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      usePerformanceOnboardingDocs,
-      {
-        initialProps: project,
-        wrapper,
-      }
-    );
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
+      initialProps: {project, generateDocKeys, isPlatformSupported},
+      wrapper,
+    });
     await waitForNextUpdate();
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
@@ -83,13 +76,7 @@ describe('usePerformanceOnboardingDocs', function () {
 
     const apiMocks: any = {};
 
-    const docKeys = generateOnboardingDocKeys(project.platform);
-
-    expect(docKeys).toEqual([
-      'javascript-angular-performance-onboarding-1-install',
-      'javascript-angular-performance-onboarding-2-configure',
-      'javascript-angular-performance-onboarding-3-verify',
-    ]);
+    const docKeys = generateDocKeys(project.platform);
 
     docKeys.forEach(docKey => {
       apiMocks[docKey] = MockApiClient.addMockResponse({
@@ -99,9 +86,9 @@ describe('usePerformanceOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(usePerformanceOnboardingDocs, {
+    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+      initialProps: {project, generateDocKeys, isPlatformSupported},
       wrapper,
-      initialProps: project,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
@@ -113,7 +100,7 @@ describe('usePerformanceOnboardingDocs', function () {
     });
   });
 
-  it('project with no performance support', function () {
+  it('project with no support', function () {
     const {organization} = initializeOrg({
       router: {
         location: {query: {}, search: ''},
@@ -132,13 +119,7 @@ describe('usePerformanceOnboardingDocs', function () {
 
     const apiMocks: any = {};
 
-    const docKeys = generateOnboardingDocKeys(project.platform);
-
-    expect(docKeys).toEqual([
-      'elixir-performance-onboarding-1-install',
-      'elixir-performance-onboarding-2-configure',
-      'elixir-performance-onboarding-3-verify',
-    ]);
+    const docKeys = generateDocKeys(project.platform);
 
     docKeys.forEach(docKey => {
       apiMocks[docKey] = MockApiClient.addMockResponse({
@@ -148,9 +129,9 @@ describe('usePerformanceOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(usePerformanceOnboardingDocs, {
+    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+      initialProps: {project, generateDocKeys, isPlatformSupported},
       wrapper,
-      initialProps: project,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
