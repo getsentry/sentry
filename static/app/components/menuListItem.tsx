@@ -353,7 +353,6 @@ const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
