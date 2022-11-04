@@ -12,18 +12,16 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
-from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth
 
 
 def _org_exists(slug):
     if not slug:
         return False
-    try:
-        Organization.objects.get_from_cache(slug=slug)
-        return True
-    except Organization.DoesNotExist:
-        return False
+    return (
+        organization_service.check_organization_by_slug(slug=slug, only_visible=False) is not None
+    )
 
 
 def _query_string(request):

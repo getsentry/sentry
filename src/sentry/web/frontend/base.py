@@ -21,7 +21,11 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
-from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.organization import (
+    ApiOrganization,
+    ApiUserOrganizationContext,
+    organization_service,
+)
 from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -37,7 +41,7 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 class OrganizationMixin:
     # This attribute will only be set once determine_active_organization is called.  Subclasses should likely invoke
     # that method, passing along the organization_slug context that might exist (or might not).
-    active_organization: Optional[ApiOrganization]
+    active_organization: Optional[ApiUserOrganizationContext]
 
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
@@ -76,8 +80,8 @@ class OrganizationMixin:
 
     def _lookup_organizations(
         self, is_implicit: bool, organization_slug: Optional[str], request: Request
-    ) -> Tuple[Optional[ApiOrganization], Optional[ApiOrganization]]:
-        active_organization: Optional[ApiOrganization] = self._try_superuser_org_lookup(
+    ) -> Tuple[Optional[ApiUserOrganizationContext], Optional[ApiOrganization]]:
+        active_organization: Optional[ApiUserOrganizationContext] = self._try_superuser_org_lookup(
             organization_slug, request
         )
         backup_organization: Optional[ApiOrganization] = None
@@ -101,26 +105,36 @@ class OrganizationMixin:
         organization_slug: str,
         organizations: List[ApiOrganization],
         request: Request,
-    ) -> Optional[ApiOrganization]:
+    ) -> Optional[ApiUserOrganizationContext]:
         try:
-            active_organization = next(o for o in organizations if o.slug == organization_slug)
+            backup_org: Optional[ApiOrganization] = next(
+                o for o in organizations if o.slug == organization_slug
+            )
         except StopIteration:
             logger.info("Active organization [%s] not found in scope", organization_slug)
             if is_implicit:
                 session = request.session
                 if session and "activeorg" in session:
                     del session["activeorg"]
-            active_organization = None
-        return active_organization
+            backup_org = None
+
+        if backup_org is not None:
+            membership = organization_service.check_membership_by_id(
+                organization_id=backup_org.id, user_id=request.user.id
+            )
+            return ApiUserOrganizationContext(
+                user_id=request.user.id, organization=backup_org, member=membership
+            )
+        return None
 
     def _try_superuser_org_lookup(
         self, organization_slug: str, request: Request
-    ) -> Optional[ApiOrganization]:
-        active_organization: Optional[ApiOrganization] = None
+    ) -> Optional[ApiUserOrganizationContext]:
+        active_organization: Optional[ApiUserOrganizationContext] = None
         if organization_slug is not None:
             if is_active_superuser(request):
                 active_organization = organization_service.get_organization_by_slug(
-                    user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
+                    user_id=request.user.id, slug=organization_slug, only_visible=True
                 )
         return active_organization
 
@@ -172,7 +186,7 @@ class OrganizationMixin:
 
         # TODO(dcramer): deal with case when the user cannot create orgs
         if self.active_organization:
-            url = Organization.get_url(self.active_organization.slug)
+            url = Organization.get_url(self.active_organization.organization.slug)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
@@ -384,8 +398,11 @@ class OrganizationView(BaseView):
         if not self.active_organization:
             # Require auth if we there is an organization associated with the slug that we just cannot access
             # for some reason.
-            return organization_service.get_organization_by_slug(
-                user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
+            return (
+                organization_service.get_organization_by_slug(
+                    user_id=None, slug=organization_slug, only_visible=True
+                )
+                is not None
             )
 
         return False
@@ -432,11 +449,11 @@ class OrganizationView(BaseView):
         # TODO:  Extract separate view base classes based on control vs region / monolith,
         # with distinct convert_args implementation.
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            kwargs["organization"] = self.active_organization
+            kwargs["organization"] = self.active_organization.organization
         else:
             organization: Optional[Organization] = None
             if self.active_organization:
-                for org in Organization.objects.filter(id=self.active_organization.id):
+                for org in Organization.objects.filter(id=self.active_organization.organization.id):
                     organization = org
 
             kwargs["organization"] = organization
@@ -488,7 +505,7 @@ class ProjectView(OrganizationView):
         organization: Optional[Organization] = None
         active_project: Optional[Project] = None
         if self.active_organization:
-            for org in Organization.objects.filter(id=self.active_organization.id):
+            for org in Organization.objects.filter(id=self.active_organization.organization.id):
                 organization = org
 
             if organization:
