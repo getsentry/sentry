@@ -12,6 +12,7 @@ from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
+from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -102,18 +103,42 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(self, org_name: str) -> JSONData:
+    def get_trees_for_org(
+        self, gh_org: str, org_slug: str, cache_seconds: int = 3600 * 24
+    ) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
+        # print("FOO")
+        logger.info("INFO")
+        logger.warning("WARNING")
         trees: JSONData = {}
-        repositories = self.get_repositories(fetch_max_pages=True)
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        for repo_info in repositories:
-            full_name: str = repo_info["full_name"]
-            branch = repo_info["default_branch"]
-            trees[full_name] = {"default_branch": branch, "files": self.get_tree(full_name, branch)}
+        cache_key = f"githubtrees:repositories:{org_slug}"
+        repo_key = "githubtrees:repo"
+        # XXX: Can the same GH org be installed in different Sentry orgs?
+        # XXX: We do not support more than one org atm
+        repositories = cache.get(cache_key)
+        if repositories is None:
+            repositories = self.get_repositories(fetch_max_pages=True)
+            # repositories = self.get_repositories()
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            for repo_info in repositories[0:2]:  # XXX: Remove range
+                full_name: str = repo_info["full_name"]
+                repositories.append(full_name)
+                branch = repo_info["default_branch"]
+                trees[full_name] = {
+                    "default_branch": branch,
+                    "files": self.get_tree(full_name, branch),
+                }
+                cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
+            cache.set(cache_key, repositories, cache_seconds)
+            logger.info(f"Caching trees for {gh_org} org until TBD.")
+        else:
+            for repo_info in repositories:
+                trees[full_name] = cache.get(f"{repo_key}:{repo_info['full_name']}")
+            logger.info("Using cached trees until TBD.")
+
         return trees
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
@@ -130,7 +155,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
-        return [repo for repo in repos if not repo.get("archived")]
+        return [
+            {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+            for repo in repos
+            if not repo.get("archived")
+        ]
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
