@@ -25,19 +25,19 @@ TRANSACTION_METRICS = {
 PROJECT_TRANSACTION_THRESHOLD_CACHE_TTL = 3600
 
 
-def _get_cache_key(model_name, project_ids, org_id, order_by, value_list):
+def get_project_threshold_cache_key(model_name, project_ids, org_id, order_by, value_list):
     return "{}:{}".format(
         model_name, md5_text(f"{project_ids}:{org_id}:{order_by}:{value_list}").hexdigest()
     )
 
 
-def _filter_and_cache(cls, cache_key, project_id__in, organization_id, order_by, value_list):
+def _filter_and_cache(cls, cache_key, project_ids, organization_id, order_by, value_list):
     cache_result = cache.get(cache_key)
 
     if cache_result is None:
         result = list(
             cls.objects.filter(
-                project_id__in=project_id__in,
+                project_id__in=project_ids,
                 organization_id=organization_id,
             )
             .order_by(*order_by)
@@ -69,18 +69,16 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
         unique_together = (("project", "transaction"),)
 
     @classmethod
-    def filter(cls, project_id__in, organization_id, order_by, value_list):
-        cache_key = _get_cache_key(
+    def filter(cls, project_ids, organization_id, order_by, value_list):
+        cache_key = get_project_threshold_cache_key(
             "sentry_projecttransactionthresholdoverride",
-            project_id__in,
+            project_ids,
             organization_id,
             order_by,
             value_list,
         )
 
-        return _filter_and_cache(
-            cls, cache_key, project_id__in, organization_id, order_by, value_list
-        )
+        return _filter_and_cache(cls, cache_key, project_ids, organization_id, order_by, value_list)
 
 
 @region_silo_only_model
@@ -100,15 +98,13 @@ class ProjectTransactionThreshold(DefaultFieldsModel):
         db_table = "sentry_projecttransactionthreshold"
 
     @classmethod
-    def filter(cls, project_id__in, organization_id, order_by, value_list):
-        cache_key = _get_cache_key(
+    def filter(cls, project_ids, organization_id, order_by, value_list):
+        cache_key = get_project_threshold_cache_key(
             "sentry_projecttransactionthreshold",
-            project_id__in,
+            project_ids,
             organization_id,
             order_by,
             value_list,
         )
 
-        return _filter_and_cache(
-            cls, cache_key, project_id__in, organization_id, order_by, value_list
-        )
+        return _filter_and_cache(cls, cache_key, project_ids, organization_id, order_by, value_list)

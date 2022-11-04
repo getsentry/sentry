@@ -30,14 +30,14 @@ def resolve_project_threshold_config(
 
     project_threshold_configs = ProjectTransactionThreshold.filter(
         organization_id=org_id,
-        project_id__in=project_ids,
+        project_ids=project_ids,
         order_by=["project_id"],
         value_list=["project_id", "metric"],
     )
 
     transaction_threshold_configs = ProjectTransactionThresholdOverride.filter(
         organization_id=org_id,
-        project_id__in=project_ids,
+        project_ids=project_ids,
         order_by=["project_id"],
         value_list=["transaction", "project_id", "metric"],
     )
