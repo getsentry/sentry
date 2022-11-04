@@ -157,7 +157,7 @@ type ReleaseContextProps = {
 
 function ReleaseContext(props: ReleaseContextProps) {
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
-    [`/organizations/${props.organization?.slug}/releases/${props.dataRow.release}/`],
+    [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
     undefined,
     {
       staleTime: fiveMinutesInMs,
@@ -167,19 +167,59 @@ function ReleaseContext(props: ReleaseContextProps) {
 
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
+    const commitCount = data?.commitCount || 0;
+    let authorsCount = data?.authors.length || 0;
+
     const userInAuthors =
       data &&
       data.authors.length >= 1 &&
       data.authors.find((author: User) => author.id && user.id && author.id === user.id);
-    return tct('[commitCount] [commitDesc] by [authorDesc]', {
-      commitCount: data?.commitCount,
-      commitDesc: data?.commitCount !== 1 ? 'commits' : 'commit',
-      authorDesc: userInAuthors
-        ? `you and ${data.authors.length - 1} ${
-            data.authors.length - 1 !== 1 ? 'others' : 'other'
-          }`
-        : `${data?.authors.length} ${data?.authors.length !== 1 ? 'authors' : 'author'}`,
-    });
+
+    if (userInAuthors) {
+      authorsCount = authorsCount - 1;
+      return data.authors.length - 1 !== 1 && data.commitCount !== 1
+        ? tct('[commitCount] commits by you and [authorsCount] others', {
+            commitCount,
+            authorsCount,
+          })
+        : data.commitCount !== 1
+        ? tct('[commitCount] commits by you and [authorsCount] other', {
+            commitCount,
+            authorsCount,
+          })
+        : data.authors.length - 1 !== 1
+        ? tct('[commitCount] commit by you and [authorsCount] others', {
+            commitCount,
+            authorsCount,
+          })
+        : tct('[commitCount] commit by you and [authorsCount] other', {
+            commitCount,
+            authorsCount,
+          });
+    }
+
+    return (
+      data &&
+      (data.authors.length !== 1 && data.commitCount !== 1
+        ? tct('[commitCount] commits by [authorsCount] authors', {
+            commitCount,
+            authorsCount,
+          })
+        : data.commitCount !== 1
+        ? tct('[commitCount] commits by [authorsCount] author', {
+            commitCount,
+            authorsCount,
+          })
+        : data.authors.length !== 1
+        ? tct('[commitCount] commit by [authorsCount] authors', {
+            commitCount,
+            authorsCount,
+          })
+        : tct('[commitCount] commit by [authorsCount] author', {
+            commitCount,
+            authorsCount,
+          }))
+    );
   };
 
   const renderReleaseDetails = () => {
@@ -241,7 +281,11 @@ function ReleaseContext(props: ReleaseContextProps) {
           <div>
             <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
             <ReleaseAuthorsBody>
-              <AvatarList users={data.authors} />
+              {data.commitCount === 0 ? (
+                <IconNot color="gray500" size="md" />
+              ) : (
+                <AvatarList users={data.authors} />
+              )}
             </ReleaseAuthorsBody>
           </div>
         </ContextRow>
