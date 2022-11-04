@@ -6,7 +6,14 @@ from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
+from sentry.notifications.utils import (
+    get_parent_and_repeating_spans,
+    get_span_and_problem,
+    get_span_evidence_value,
+    get_span_evidence_value_problem,
+)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
 
 
@@ -18,6 +25,49 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
+
+    def truncate_data(self, data):
+        return (data[:50] + "..") if len(data) > 50 else data
+
+    def build_performance_issue_description(self, event):
+        spans, matched_problem = get_span_and_problem(event)
+        if not matched_problem:
+            return ""
+
+        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+        transaction_name = get_span_evidence_value_problem(matched_problem)
+        parent_span = get_span_evidence_value(parent_span)
+        repeating_spans = get_span_evidence_value(repeating_spans)
+        num_repeating_spans = (
+            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
+        )
+        # TODO(ceo): Consolidate the above code w/ the Jira code. put truncate in a util
+        body = "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        body += f"| **Transaction Name** | {self.truncate_data(transaction_name)} |\n"
+        body += f"| **Parent Span** | {self.truncate_data(parent_span)} |\n"
+        body += f"| **Repeating Spans ({num_repeating_spans})** | {self.truncate_data(repeating_spans)} |"
+        return body
+
+    def get_group_description(self, group, event, **kwargs):
+        params = {}
+        if kwargs.get("link_referrer"):
+            params["referrer"] = kwargs.get("link_referrer")
+        output = [
+            "Sentry Issue: [{}]({})".format(
+                group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
+            )
+        ]
+
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            body = self.build_performance_issue_description(event)
+            output.extend([body])
+
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "```", body, "```"])
+        return "\n".join(output)
 
     def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
