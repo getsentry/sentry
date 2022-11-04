@@ -79,9 +79,7 @@ def preview(
     return Group.objects.filter(id__in=group_ids)
 
 
-def get_events(
-    project: Project, condition_activity: Sequence[ConditionActivity]
-) -> Dict[str, Dict[str, str]]:
+def get_events(project: Project, condition_activity: Sequence[ConditionActivity]) -> Dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
@@ -97,8 +95,8 @@ def get_events(
 
     # TODO: Add more columns as more event filters are supported
     columns = ["event_id"]
-    events_from_group_ids = {"data": []}
-    events_from_event_ids = {"data": []}
+    events_from_group_ids: Dict[str, Any] = {"data": []}
+    events_from_event_ids: Dict[str, Any] = {"data": []}
     if len(group_ids) > 0:
         events_from_group_ids = raw_query(  # retrieves the first event for each group
             dataset=Dataset.Events,
