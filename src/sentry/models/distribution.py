@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.constants import MAX_DISTRIBUTION_NAME_LENGTH
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
@@ -16,7 +17,7 @@ class Distribution(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=MAX_DISTRIBUTION_NAME_LENGTH)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
