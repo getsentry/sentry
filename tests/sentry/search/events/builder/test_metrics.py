@@ -1459,8 +1459,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Handled by the discover transform later so its fine that this is nan
         assert math.isnan(data["p50"])
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
-    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
     def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
         query = MetricsQueryBuilder(
             self.params,
@@ -1480,7 +1480,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert not mock_indexer.called
         assert not mock_query.called
 
-    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
+    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
     def test_multiple_references_only_resolve_index_once(self, mock_indexer):
         MetricsQueryBuilder(
             self.params,
