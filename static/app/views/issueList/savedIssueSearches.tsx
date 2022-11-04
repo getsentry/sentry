@@ -94,6 +94,7 @@ const SavedSearchItem = ({
           position="bottom-end"
           items={actions}
           size="sm"
+          minMenuWidth={200}
           trigger={props => (
             <Button
               {...props}
