@@ -97,18 +97,22 @@ def get_events(
 
     # TODO: Add more columns as more event filters are supported
     columns = ["event_id"]
-    events_from_group_ids = raw_query(  # retrieves the first event for each group
-        dataset=Dataset.Events,
-        filter_keys={"project_id": [project.id], "group_id": group_ids},
-        orderby=["group_id", "timestamp"],
-        limitby=(1, "group_id"),
-        selected_columns=columns,
-    )
-    events_from_event_ids = raw_query(
-        dataset=Dataset.Events,
-        filter_keys={"project_id": [project.id], "event_id": event_ids},
-        selected_columns=columns,
-    )
+    events_from_group_ids = {"data": []}
+    events_from_event_ids = {"data": []}
+    if len(group_ids) > 0:
+        events_from_group_ids = raw_query(  # retrieves the first event for each group
+            dataset=Dataset.Events,
+            filter_keys={"project_id": [project.id], "group_id": group_ids},
+            orderby=["group_id", "timestamp"],
+            limitby=(1, "group_id"),
+            selected_columns=columns,
+        )
+    if len(event_ids) > 0:
+        events_from_event_ids = raw_query(
+            dataset=Dataset.Events,
+            filter_keys={"project_id": [project.id], "event_id": event_ids},
+            selected_columns=columns,
+        )
 
     return {
         event["event_id"]: event
