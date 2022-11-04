@@ -274,7 +274,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
-      queryClient.invalidateQueries({queryKey: ['quick-context']});
+      queryClient.clear();
     };
   }, [queryClient]);
 
