@@ -1,7 +1,8 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
@@ -15,7 +16,7 @@ import {IconCheckmark, IconInfo, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 
@@ -26,83 +27,37 @@ export enum ContextType {
 }
 
 const HOVER_DELAY: number = 400;
-const DATA_FETCH_DELAY: number = 200;
 
 function isIssueContext(contextType: ContextType): boolean {
   return contextType === ContextType.ISSUE;
 }
 
-type RequestParams = {
-  path: string;
-  options?: RequestOptions;
-};
-
-// NOTE: Will extend when we add more type of contexts. Context is only relevant to issue and release columns for now.
-function getRequestParams(
-  dataRow: EventData,
-  contextType: ContextType,
-  organization?: Organization
-): RequestParams {
-  return isIssueContext(contextType)
-    ? {
-        path: `/issues/${dataRow['issue.id']}/`,
-        options: {
-          method: 'GET',
-          query: {
-            collapse: 'release',
-            expand: 'inbox',
-          },
-        },
-      }
-    : {
-        path: `/organizations/${organization?.slug}/releases/${dataRow.release}/`,
-      };
-}
-
-type QuickContextProps = {
-  contextType: ContextType;
-  data: Group | null;
-  dataRow: EventData;
-  error: boolean;
-  loading: boolean;
-};
-
-export default function QuickContext({
-  loading,
-  error,
-  data,
-  contextType,
-  dataRow,
-}: QuickContextProps) {
-  return (
-    <Wrapper>
-      {loading ? (
-        <NoContextWrapper>
-          <LoadingIndicator
-            data-test-id="quick-context-loading-indicator"
-            hideMessage
-            size={32}
-          />
-        </NoContextWrapper>
-      ) : error ? (
-        <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
-      ) : isIssueContext(contextType) && data ? (
-        <IssueContext data={data} eventID={dataRow.id} />
-      ) : (
-        <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
-      )}
-    </Wrapper>
-  );
-}
+const fiveMinutesInMs = 5 * 60 * 1000;
 
 type IssueContextProps = {
-  data: Group;
+  api: Client;
+  dataRow: EventData;
   eventID?: string;
 };
 
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
-  const {status} = props.data;
+  const {isLoading, isError, data} = useQuery({
+    queryKey: ['quick-context', 'issue', `${props.dataRow['issue.id']}`],
+    queryFn: () =>
+      props.api.requestPromise(`/issues/${props.dataRow['issue.id']}/`, {
+        method: 'GET',
+        query: {
+          collapse: 'release',
+          expand: 'inbox',
+        },
+      }),
+    onSuccess: group => {
+      GroupStore.add([group]);
+    },
+    staleTime: fiveMinutesInMs,
+    retry: false,
+  });
 
   const renderStatus = () => (
     <IssueContextContainer data-test-id="quick-context-issue-status-container">
@@ -111,9 +66,9 @@ function IssueContext(props: IssueContextProps) {
         <FeatureBadge type="alpha" />
       </ContextTitle>
       <ContextBody>
-        {status === 'ignored' ? (
+        {data.status === 'ignored' ? (
           <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
-        ) : status === 'resolved' ? (
+        ) : data.status === 'resolved' ? (
           <IconCheckmark color="gray500" size="sm" />
         ) : (
           <IconNot
@@ -122,14 +77,14 @@ function IssueContext(props: IssueContextProps) {
             size="sm"
           />
         )}
-        <StatusText>{status}</StatusText>
+        <StatusText>{data.status}</StatusText>
       </ContextBody>
     </IssueContextContainer>
   );
 
   const renderAssigneeSelector = () => (
     <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-      <AssignedTo group={props.data} projectId={props.data.project.id} />
+      <AssignedTo group={data} projectId={data.project.id} />
     </IssueContextContainer>
   );
 
@@ -137,12 +92,16 @@ function IssueContext(props: IssueContextProps) {
     props.eventID && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
-          project={props.data.project}
+          project={data.project}
           eventId={props.eventID}
           commitRow={QuickContextCommitRow}
         />
       </IssueContextContainer>
     );
+
+  if (isLoading || isError) {
+    return <NoContext isLoading={isLoading} />;
+  }
 
   return (
     <Fragment>
@@ -150,6 +109,24 @@ function IssueContext(props: IssueContextProps) {
       {renderAssigneeSelector()}
       {renderSuspectCommits()}
     </Fragment>
+  );
+}
+
+type NoContextProps = {
+  isLoading: boolean;
+};
+
+function NoContext({isLoading}: NoContextProps) {
+  return isLoading ? (
+    <NoContextWrapper>
+      <LoadingIndicator
+        data-test-id="quick-context-loading-indicator"
+        hideMessage
+        size={32}
+      />
+    </NoContextWrapper>
+  ) : (
+    <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
   );
 }
 
@@ -162,51 +139,13 @@ type ContextProps = {
 
 export function QuickContextHoverWrapper(props: ContextProps) {
   const api = useApi();
-  const [ishovering, setisHovering] = useState<boolean>(false);
-  const [error, setError] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<Group | null>(null);
-  const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
+  const queryClient = useQueryClient();
 
-  const handleHoverState = () => {
-    setisHovering(prevState => !prevState);
-  };
-
-  const fetchData = () => {
-    if (!data) {
-      const params = getRequestParams(
-        props.dataRow,
-        props.contextType,
-        props.organization
-      );
-      api
-        .requestPromise(params.path, params.options)
-        .then(response => {
-          setData(response);
-          if (isIssueContext(props.contextType)) {
-            GroupStore.add([response]);
-          }
-        })
-        .catch(() => {
-          setError(true);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  };
-
-  const handleMouseEnter = () => {
-    handleHoverState();
-    delayOpenTimeoutRef.current = window.setTimeout(() => {
-      fetchData();
-    }, DATA_FETCH_DELAY);
-  };
-
-  const handleMouseLeave = () => {
-    handleHoverState();
-    window.clearTimeout(delayOpenTimeoutRef.current);
-  };
+  useEffect(() => {
+    return () => {
+      queryClient.invalidateQueries({queryKey: ['quick-context']});
+    };
+  }, [queryClient]);
 
   return (
     <HoverWrapper>
@@ -215,20 +154,21 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         skipWrapper
         delay={HOVER_DELAY}
         body={
-          <QuickContext
-            loading={loading}
-            error={error}
-            data={data}
-            contextType={props.contextType}
-            dataRow={props.dataRow}
-          />
+          <Wrapper data-test-id="quick-context-hover-body">
+            {isIssueContext(props.contextType) ? (
+              <IssueContext
+                api={api}
+                dataRow={props.dataRow}
+                eventID={props.dataRow.id}
+              />
+            ) : (
+              <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
+            )}
+          </Wrapper>
         }
       >
         <StyledIconInfo
           data-test-id="quick-context-hover-trigger"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          ishovering={ishovering ? 1 : 0}
           onClick={e => e.preventDefault()}
         />
       </StyledHovercard>
@@ -248,9 +188,13 @@ const StyledHovercard = styled(Hovercard)`
   min-width: 300px;
 `;
 
-const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
-  color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
+const StyledIconInfo = styled(IconInfo)`
+  color: ${p => p.theme.gray200};
   min-width: max-content;
+
+  &:hover {
+    color: ${p => p.theme.gray300};
+  }
 `;
 
 const HoverWrapper = styled('div')`
@@ -276,6 +220,13 @@ const IssueContextContainer = styled(ContextContainer)`
   ${CauseHeader}, ${SidebarSection.Title} {
     margin-top: ${space(2)};
   }
+
+  ${CauseHeader} > h3,
+  ${CauseHeader} > button {
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-weight: 600;
+    text-transform: uppercase;
+  }
 `;
 
 const ContextTitle = styled('h6')`
@@ -283,7 +234,6 @@ const ContextTitle = styled('h6')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;
 
@@ -312,7 +262,7 @@ const NoContextWrapper = styled('div')`
   color: ${p => p.theme.subText};
   height: 50px;
   padding: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   flex-direction: column;
   align-items: center;
