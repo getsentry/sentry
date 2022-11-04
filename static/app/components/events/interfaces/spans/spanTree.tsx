@@ -1,7 +1,7 @@
 import {Component} from 'react';
+import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
@@ -180,11 +180,7 @@ class SpanTree extends Component<PropType> {
     this.props.updateScrollState();
   };
 
-  renderRow({index, isScrolling, isVisible, key, parent, style}) {
-    return <div key={key} style={style}>{`Hello this is a test. ${index}`}</div>;
-  }
-
-  render() {
+  generateSpanTree = () => {
     const {
       waterfallModel,
       spans,
@@ -196,6 +192,7 @@ class SpanTree extends Component<PropType> {
       markSpanInView,
       storeSpanBar,
     } = this.props;
+
     const generateBounds = waterfallModel.generateBounds({
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
@@ -413,15 +410,34 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     });
 
+    const limitExceededMessage = this.generateLimitExceededMessage();
+
+    spanTree.push(infoMessage);
+    spanTree.push(limitExceededMessage);
+
+    return spanTree;
+  };
+
+  renderRow({index, isScrolling, isVisible, key, parent, style}, spanTree) {
+    return (
+      <div key={key} style={style}>
+        {spanTree[index]}
+      </div>
+    );
+  }
+
+  render() {
+    const spanTree = this.generateSpanTree();
+
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         <ReactVirtualizedList
-          width={20000}
-          height={(spanTree.length - 50) * ROW_HEIGHT}
+          width={this.props.traceViewRef.current?.clientWidth ?? 20000}
+          height={ROW_HEIGHT * 50}
           rowWidth={120}
           rowHeight={ROW_HEIGHT}
           rowCount={spanTree.length}
-          rowRenderer={this.renderRow}
+          rowRenderer={props => this.renderRow(props, spanTree)}
         >
           {/* {spanTree}
               {infoMessage}
