@@ -103,19 +103,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(
-        self, gh_org: str, org_slug: str, cache_seconds: int = 3600 * 24
-    ) -> JSONData:
+    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
-        # print("FOO")
-        logger.info("INFO")
-        logger.warning("WARNING")
         trees: JSONData = {}
-        cache_key = f"githubtrees:repositories:{org_slug}"
+        cache_key = f"githubtrees:repositories:{gh_org}"
         repo_key = "githubtrees:repo"
-        # XXX: Can the same GH org be installed in different Sentry orgs?
         # XXX: We do not support more than one org atm
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:
@@ -134,8 +128,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             cache.set(cache_key, repositories, cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until TBD.")
         else:
-            for repo_info in repositories:
-                trees[full_name] = cache.get(f"{repo_key}:{repo_info['full_name']}")
+            for repo_info in cached_repositories:
+                trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
             logger.info("Using cached trees until TBD.")
 
         return trees
