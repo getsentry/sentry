@@ -577,6 +577,8 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
       selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
 
+      userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+
       expect(screen.getByText('Operators')).toBeInTheDocument();
       expect(screen.queryByText('Fields')).not.toBeInTheDocument();
     });
