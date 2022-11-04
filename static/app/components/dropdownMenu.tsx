@@ -40,20 +40,19 @@ type Props = {
    * Title to display on top of the menu
    */
   menuTitle?: string;
+  /**
+   * Minimum menu width
+   */
+  minWidth?: number;
   onClose?: () => void;
   size?: MenuItemProps['size'];
-  /**
-   * Current width of the trigger element. This is used as the menu's minimum
-   * width.
-   */
-  triggerWidth?: number;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
 
 function DropdownMenu({
   closeOnSelect = true,
-  triggerWidth,
+  minWidth,
   size,
   isSubmenu,
   menuTitle,
@@ -201,7 +200,7 @@ function DropdownMenu({
             {...mergeProps(modifiedMenuProps, keyboardProps)}
             style={{
               maxHeight: overlayPositionProps.style?.maxHeight,
-              minWidth: triggerWidth,
+              minWidth,
             }}
           >
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
