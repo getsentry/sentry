@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
@@ -21,12 +23,26 @@ export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> 
     return (
       <Fragment>
         <h1>New Monitor</h1>
+        <HelpText>
+          {t(
+            `Creating a monitor will allow you to track the executions of a scheduled
+             job in your organization. For example, ensure a cron job that is
+             scheduled to run once a day executes and finishes within a specified
+             duration.`
+          )}
+        </HelpText>
         <MonitorForm
           apiMethod="POST"
           apiEndpoint={`/organizations/${this.props.params.orgId}/monitors/`}
           onSubmitSuccess={this.onSubmitSuccess}
+          submitLabel={t('Next Steps')}
         />
       </Fragment>
     );
   }
 }
+
+const HelpText = styled('p')`
+  color: ${p => p.theme.subText};
+  max-width: 760px;
+`;
