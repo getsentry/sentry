@@ -2314,6 +2314,49 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         assert not self.make_query(search_filter_query="issue.category:performance tea")
 
+    def test_search_message_error_and_perf_issues(self):
+        tx = self.store_event(
+            data={
+                "level": "info",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "event_id": "e" * 32,
+                "timestamp": iso_format(self.base_datetime),
+                "start_timestamp": iso_format(self.base_datetime),
+                "type": "transaction",
+                "transaction": "N + 1 Query",
+            },
+            project_id=self.project.id,
+        )
+        perf_issue = tx.groups[0]
+        assert perf_issue
+
+        error = self.store_event(
+            data={
+                "fingerprint": ["another-random-group"],
+                "event_id": "d" * 32,
+                "message": "Uncaught exception when querying for groups",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        error_issue = error.group
+        assert error_issue
+
+        assert error_issue != perf_issue
+
+        with self.feature("organizations:performance-issues"):
+            assert set(self.make_query(search_filter_query="is:unresolved query")) == {
+                perf_issue,
+                error_issue,
+            }
+
+        assert set(self.make_query(search_filter_query="query")) == {error_issue}
+
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
     @property
