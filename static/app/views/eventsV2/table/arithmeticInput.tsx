@@ -259,6 +259,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   render() {
     const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
+
     return (
       <Container isOpen={dropdownVisible}>
         <Input
