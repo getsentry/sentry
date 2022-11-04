@@ -113,7 +113,7 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
   });
 
-  it('changes tabs on key press', () => {
+  it('changes tabs using keyboard navigation', () => {
     render(
       <Tabs>
         <TabList>
@@ -134,7 +134,7 @@ describe('Tabs', () => {
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab to the right (Activity)
-    userEvent.keyboard('{arrowRight}');
+    userEvent.keyboard('{arrowRight}{enter}');
 
     // The Activity tab is selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
@@ -165,7 +165,7 @@ describe('Tabs', () => {
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab below (Activity)
-    userEvent.keyboard('{arrowDown}');
+    userEvent.keyboard('{arrowDown}{enter}');
 
     // The Activity tab should now be selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
