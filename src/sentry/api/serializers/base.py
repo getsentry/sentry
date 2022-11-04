@@ -56,8 +56,6 @@ def serialize(
     # sets aren't predictable, so generally you should use a list, but it's
     # supported out of convenience
     elif not isinstance(objects, (list, tuple, set, frozenset)):
-        if isinstance(objects, dict):
-            return objects
         return serialize([objects], user=user, serializer=serializer, **kwargs)[0]
 
     if serializer is None:

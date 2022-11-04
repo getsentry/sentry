@@ -67,7 +67,6 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -192,11 +191,7 @@ class GroupSerializerBase(Serializer, ABC):
         resolved_actors = {}
         for t, actors in actors_by_type.items():
             serializable = ActorTuple.resolve_many(actors)
-            if t == Team:
-                resolved_actors[t] = {actor.id: actor for actor in serializable}
-            if t == User:
-                serialized = user_service.serialize_users([u.id for u in serializable])
-                resolved_actors[t] = {u.id: j for u, j in zip(serializable, serialized)}
+            resolved_actors[t] = {actor.id: actor for actor in serializable}
 
         return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
 
