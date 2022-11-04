@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
@@ -110,10 +110,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: JSONData = {}
         cache_key = f"githubtrees:repositories:{gh_org}"
         repo_key = "githubtrees:repo"
-        # XXX: We do not support more than one org atm
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:
-            repositories = self.get_repositories(fetch_max_pages=True)
+            # Simply removing unnecessary fields from the response
+            repositories = [
+                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+                for repo in self.get_repositories(fetch_max_pages=True)
+            ]
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             for repo_info in repositories:
@@ -126,11 +129,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 }
                 cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
             cache.set(cache_key, repositories, cache_seconds)
-            logger.info(f"Caching trees for {gh_org} org until TBD.")
+            next_time = datetime.now() + timedelta(seconds=cache_seconds)
+            logger.info(f"Caching trees for {gh_org} org until {next_time}.")
         else:
             for repo_info in cached_repositories:
                 trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
-            logger.info("Using cached trees until TBD.")
+            logger.info(f"Using cached trees for {gh_org}.")
 
         return trees
 
@@ -148,11 +152,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
-        return [
-            {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-            for repo in repos
-            if not repo.get("archived")
-        ]
+        return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:

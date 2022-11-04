@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
@@ -592,9 +593,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
+
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             assert not cache.get("githubtrees:repositories:Test-Organization")
+            # This allows checking for caching related output
+            self._caplog.set_level(logging.INFO, logger="sentry")
             trees = installation.get_trees_for_org()
+
+            # These checks are useful since they will be available in the GCP logs
+            expected_msg = "The Github App does not have access to Test-Organization/baz."
+            assert self._caplog.records[8].message == expected_msg
+            assert self._caplog.records[8].levelname == "ERROR"
+            # XXX: We would need to patch timezone to make sure the time is always the same
+            assert self._caplog.records[9].message.startswith("Caching trees for Test-Organization")
+            assert self._caplog.records[9].levelname == "INFO"
+
             assert cache.get("githubtrees:repositories:Test-Organization") == [
                 {"full_name": "Test-Organization/foo", "default_branch": "master"},
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
@@ -604,15 +617,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "default_branch": "master",
                 "files": ["src/sentry/api/endpoints/auth_login.py"],
             }
-            # This check is useful since it will be available in the GCP logs
-            assert (
-                self._caplog.records[0].message
-                == "The Github App does not have access to Test-Organization/baz."
-            )
-            assert self._caplog.records[0].levelname == "ERROR"
 
             assert trees == expected_trees
 
             # Calling a second time should produce the same results
             trees = installation.get_trees_for_org()
+            assert self._caplog.records[10].message == "Using cached trees for Test-Organization."
+            assert self._caplog.records[10].levelname == "INFO"
+
             assert trees == expected_trees
