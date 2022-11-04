@@ -160,7 +160,12 @@ SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
 
 SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
     GroupCategory.ERROR: lambda search_filters: search_filters,
-    GroupCategory.PERFORMANCE: lambda search_filters: search_filters,
+    GroupCategory.PERFORMANCE: lambda search_filters: [
+        # need to remove this search filter, so we don't constrain the returned transactions
+        sf
+        for sf in search_filters
+        if sf.key.name != "message"
+    ],
 }
 
 
