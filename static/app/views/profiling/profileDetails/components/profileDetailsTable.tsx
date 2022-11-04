@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {createDelimiter} from 'sentry/utils/profiling/strings';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -244,7 +243,6 @@ interface ProfilingFunctionsTableCellProps {
   dataRow: TableDataRow;
   rowIndex: number;
 }
-const delimiter = createDelimiter();
 const formatter = makeFormatter('nanoseconds');
 function ProfilingFunctionsTableCell({
   column,
@@ -288,7 +286,8 @@ function ProfilingFunctionsTableCell({
               projectSlug: projectId,
               profileId: eventId,
               query: {
-                highlightAll: delimiter.join(dataRow.symbol, dataRow.image),
+                frameName: dataRow.symbol as string,
+                framePackage: dataRow.image as string,
                 tid: (dataRow.thread ?? dataRow.tids?.[0]) as string,
               },
             })}

@@ -28,9 +28,7 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
-import {createDelimiter} from 'sentry/utils/profiling/strings';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useQuerystringState} from 'sentry/utils/useQuerystringState';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
@@ -338,17 +336,16 @@ function FlamegraphZoomView({
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   useEffect(() => {
-    if (flamegraphState.profiles.highlightFrame) {
+    if (flamegraphState.profiles.highlightAllFrames) {
       selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightFrame.name,
-        flamegraphState.profiles.highlightFrame.package
+        flamegraphState.profiles.highlightAllFrames.name,
+        flamegraphState.profiles.highlightAllFrames.package
       );
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
+  }, [flamegraph, flamegraphState.profiles.highlightAllFrames]);
 
-  const [onNodeHighlightRegistered, setOnNodeHighlightRegistered] = useState(false);
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
       return undefined;
@@ -382,11 +379,9 @@ function FlamegraphZoomView({
     scheduler.on('highlight frame', onNodeHighlight);
     scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
     scheduler.draw();
-    setOnNodeHighlightRegistered(true);
 
     return () => {
       scheduler.off('highlight frame', onNodeHighlight);
-      setOnNodeHighlightRegistered(false);
       scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
     };
   }, [
@@ -394,7 +389,7 @@ function FlamegraphZoomView({
     flamegraphCanvas,
     scheduler,
     flamegraph,
-    flamegraphState.profiles.highlightFrame,
+    flamegraphState.profiles.highlightAllFrames,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -466,80 +461,6 @@ function FlamegraphZoomView({
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [canvasPoolManager, scheduler]);
 
-  const [highlightAllSelection, setHighlightAllSelection] = useQuerystringState({
-    key: 'highlightAll',
-  });
-
-  const dispatchHighlightFrame = useCallback(
-    (
-      args:
-        | {
-            frame: FlamegraphFrame | null;
-            highlightAll?: boolean;
-          }
-        | {frameName: string; highlightAll?: boolean; packageName?: string}
-    ) => {
-      const frames: FlamegraphFrame[] = [];
-
-      if ('frame' in args) {
-        if (!args.frame) {
-          canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
-          return;
-        }
-
-        if (args.highlightAll) {
-          setHighlightAllSelection(
-            delimiter.join(args.frame.frame.name, args.frame.frame.image)
-          );
-          frames.push(...flamegraph.findAllMatchingFrames(args.frame));
-        } else {
-          setHighlightAllSelection(undefined);
-          frames.push(args.frame);
-        }
-      }
-
-      if ('frameName' in args) {
-        setHighlightAllSelection(delimiter.join(args.frameName, args.packageName));
-        frames.push(
-          ...flamegraph.findAllMatchingFrames(args.frameName, args.packageName)
-        );
-      }
-
-      canvasPoolManager.dispatch('highlight frame', [frames, 'selected']);
-    },
-    [canvasPoolManager, flamegraph, setHighlightAllSelection]
-  );
-
-  const didHydrateHighlightState = useRef(false);
-  useEffect(() => {
-    if (
-      !onNodeHighlightRegistered ||
-      flamegraph.frames.length === 0 ||
-      didHydrateHighlightState.current
-    ) {
-      return;
-    }
-
-    if (!highlightAllSelection) {
-      didHydrateHighlightState.current = true;
-      return;
-    }
-    const [frameName, packageName] = delimiter.split(highlightAllSelection);
-
-    dispatchHighlightFrame({
-      frameName,
-      packageName,
-      highlightAll: true,
-    });
-
-    didHydrateHighlightState.current = true;
-  }, [
-    dispatchHighlightFrame,
-    highlightAllSelection,
-    flamegraph,
-    onNodeHighlightRegistered,
-  ]);
-
   const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
     const logicalMousePos = vec2.fromValues(
       evt.nativeEvent.offsetX,
@@ -579,10 +500,14 @@ function FlamegraphZoomView({
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
 
-        dispatchHighlightFrame({
-          frame: hoveredNode,
+        dispatch({
+          type: 'set highlight all frames',
+          payload: null,
         });
-
+        canvasPoolManager.dispatch('highlight frame', [
+          hoveredNode ? [hoveredNode] : null,
+          'selected',
+        ]);
         dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
@@ -596,7 +521,6 @@ function FlamegraphZoomView({
       hoveredNode,
       canvasPoolManager,
       lastInteraction,
-      dispatchHighlightFrame,
     ]
   );
 
@@ -815,19 +739,26 @@ function FlamegraphZoomView({
       )
     ) {
       setHighlightingAllOccurences(false);
-      dispatchHighlightFrame({
-        frame: null,
-      });
+      dispatch({type: 'set highlight all frames', payload: null});
+      canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
       scheduler.draw();
       return;
     }
 
     setHighlightingAllOccurences(true);
-    dispatchHighlightFrame({
-      frame: hoveredNodeOnContextMenuOpen.current,
-      highlightAll: true,
+    dispatch({
+      type: 'set highlight all frames',
+      payload: {
+        name: hoveredNodeOnContextMenuOpen.current.frame.name,
+        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+      },
     });
-  }, [dispatchHighlightFrame, scheduler]);
+
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
+      'selected',
+    ]);
+  }, [canvasPoolManager, flamegraph, scheduler, dispatch]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {
@@ -948,5 +879,5 @@ function handleFlamegraphKeyboardNavigation(
 
   return nextSelection;
 }
-const delimiter = createDelimiter();
+
 export {FlamegraphZoomView};
