@@ -245,7 +245,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
         )
         for option in options_as_features:
             feature, func = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
-            if func is None or func(option):
+            if not callable(func) or func(option):
                 feature_list.add(feature)
 
         if getattr(obj.flags, "allow_joinleave"):
