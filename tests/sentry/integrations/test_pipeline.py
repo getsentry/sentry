@@ -12,6 +12,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -25,6 +26,7 @@ def naive_build_integration(data):
     return data
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
@@ -143,26 +145,30 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.assertDialogSuccess(resp)
 
-        integration = Integration.objects.get(
-            provider=self.provider.key, external_id=self.external_id
-        )
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
+        with exempt_from_silo_limits():
+            integration = Integration.objects.get(
+                provider=self.provider.key, external_id=self.external_id
+            )
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            )
         assert org_integration.default_auth_id is not None
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
     def test_default_identity_does_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
-        integration = Integration.objects.create(
-            provider=self.provider.key,
-            external_id=self.external_id,
-            metadata={"url": "https://example.com"},
-        )
-        OrganizationIntegration.objects.create(
-            organization=self.organization, integration=integration, default_auth_id=old_identity_id
-        )
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(
+                provider=self.provider.key,
+                external_id=self.external_id,
+                metadata={"url": "https://example.com"},
+            )
+            OrganizationIntegration.objects.create(
+                organization=self.organization,
+                integration=integration,
+                default_auth_id=old_identity_id,
+            )
         self.pipeline.state.data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -321,6 +327,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert call.called
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
