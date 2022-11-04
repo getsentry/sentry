@@ -110,7 +110,7 @@ class MessageBuilder:
 
     def __render_html_body(self) -> str | None:
         if self.html_template:
-            html_body = render_to_string(self.html_template, self.context)
+            html_body: str | None = render_to_string(self.html_template, self.context)
         else:
             html_body = self._html_body
 

@@ -18,7 +18,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initializeData() {
   const organization = TestStubs.Organization({
-    features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
+    features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -170,6 +170,8 @@ describe('Performance Transaction Events Content', function () {
             eventsDisplayFilterName={EventsDisplayFilterName.p100}
             onChangeEventsDisplayFilter={() => {}}
             setError={() => {}}
+            projectId="123"
+            projects={[]}
           />
         </OrganizationContext.Provider>
       </RouteContext.Provider>,
@@ -212,6 +214,8 @@ describe('Performance Transaction Events Content', function () {
             onChangeEventsDisplayFilter={() => {}}
             webVital={WebVital.LCP}
             setError={() => {}}
+            projectId="123"
+            projects={[]}
           />
         </OrganizationContext.Provider>
       </RouteContext.Provider>,

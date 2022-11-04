@@ -1,14 +1,21 @@
 import logging
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional, Set
+from typing import Any, List, Mapping, Tuple
 
-from django.utils import timezone
+import sentry_sdk
+from sentry_sdk import set_tag, set_user
 
+from sentry import features
 from sentry.db.models.fields.node import NodeData
+from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
-from sentry.models.group import Group
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.tasks.base import instrumented_task
+from sentry.utils.json import JSONData
 from sentry.utils.safe import get_path
 
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
@@ -18,62 +25,57 @@ logger = logging.getLogger("sentry.tasks.derive_code_mappings")
 
 
 @instrumented_task(  # type: ignore
-    name="sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
-def identify_stacktrace_paths(
-    organizations: Optional[List[Organization]] = None,
-) -> Mapping[str, Mapping[str, List[str]]]:
+def derive_code_mappings(
+    project_id: int,
+    data: NodeData,
+    dry_run=False,
+) -> None:
     """
-    Generate a map of projects to stacktrace paths for specified organizations,
-    or all active organizations if unspecified.
+    Derive code mappings for a project given data from a recent event.
 
-    This filters out non-python projects, or projects without an event
-    in the last 7 days.
+    This task is queued at most once per hour per project, based on the ingested events.
     """
-    if organizations is None:
-        organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+    project = Project.objects.get(id=project_id)
+    organization: Organization = Organization.objects.get(id=project.organization_id)
+    set_tag("organization.slug", organization.slug)
+    # When you look at the performance page the user is a default column
+    set_user({"username": organization.slug})
 
-    filename_maps = {}
-    for org in organizations:
-        projects = Project.objects.filter(
-            organization=org,
-            first_event__isnull=False,
+    # Check the feature flag again to ensure the feature is still enabled.
+    if not features.has("organizations:derive-code-mappings", organization):
+        return
+
+    stacktrace_paths: List[str] = identify_stacktrace_paths(data)
+    if not stacktrace_paths:
+        return
+
+    installation, organization_integration = get_installation(organization)
+    if not installation:
+        return
+
+    trees: JSONData = installation.get_trees_for_org()
+    trees_helper = CodeMappingTreesHelper(trees)
+    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+    if dry_run:
+        set_tag("project.slug", project.slug)
+        sentry_sdk.capture_message(
+            f"Dry run {project.slug=}: would create these code mapping based on {stacktrace_paths=}: {code_mappings}"
         )
-        projects = [
-            project
-            for project in projects
-            if Group.objects.filter(
-                project=project,
-                last_seen__gte=timezone.now() - ACTIVE_PROJECT_THRESHOLD,
-            ).exists()
-        ]
+        return
 
-        project_file_map = {project.slug: get_all_stacktrace_paths(project) for project in projects}
-        filename_maps[org.slug] = project_file_map
-    return filename_maps
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
-def get_all_stacktrace_paths(project: Project) -> List[str]:
-    groups = Group.objects.filter(
-        project=project,
-        last_seen__gte=timezone.now() - GROUP_ANALYSIS_RANGE,
-        platform="python",
-    )
-
-    all_stacktrace_paths = set()
-    for group in groups:
-        event = group.get_latest_event()
-        all_stacktrace_paths.update(get_stacktrace_paths(event.data))
-
-    return list(all_stacktrace_paths)
-
-
-def get_stacktrace_paths(data: NodeData) -> Set[str]:
+def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
-    Get the stacktrace_paths from the stacktrace for the latest event for an issue.
+    Get the stacktrace_paths from the event data.
     """
+    if data["platform"] != "python":
+        return []
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
@@ -82,7 +84,7 @@ def get_stacktrace_paths(data: NodeData) -> Set[str]:
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project {project.slug}")
-    return stacktrace_paths
+    return list(stacktrace_paths)
 
 
 def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
@@ -95,3 +97,60 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
         return [stacktrace]
 
     return []
+
+
+def get_installation(organization: Organization) -> Tuple[Integration, OrganizationIntegration]:
+    integration = None
+    try:
+        integration = Integration.objects.filter(
+            organizations=organization,
+            provider="github",
+        )
+    except Integration.DoesNotExist:
+        logger.exception(f"Github integration not found for {organization.id}")
+        return None, None
+
+    if not integration.exists():
+        return None, None
+
+    integration = integration.first()
+    organization_integration = OrganizationIntegration.objects.filter(
+        organization=organization, integration=integration
+    )
+    if not organization_integration.exists():
+        return None, None
+
+    organization_integration = organization_integration.first()
+    return integration.get_installation(organization.id), organization_integration
+
+
+def set_project_codemappings(
+    code_mappings: List[CodeMapping],
+    organization_integration: OrganizationIntegration,
+    project: Project,
+) -> None:
+    """
+    Given a list of code mappings, create a new repository project path
+    config for each mapping.
+    """
+    organization_id = organization_integration.organization_id
+    for code_mapping in code_mappings:
+        repository, _ = Repository.objects.get_or_create(
+            name=code_mapping.repo.name,
+            organization_id=organization_id,
+            defaults={
+                "name": code_mapping.repo.name,
+                "organization_id": organization_id,
+                "integration_id": organization_integration.integration_id,
+            },
+        )
+
+        RepositoryProjectPathConfig.objects.create(
+            project=project,
+            repository=repository,
+            organization_integration=organization_integration,
+            stack_root=code_mapping.stacktrace_root,
+            source_root=code_mapping.source_path,
+            default_branch=code_mapping.repo.branch,
+            automatically_generated=True,
+        )

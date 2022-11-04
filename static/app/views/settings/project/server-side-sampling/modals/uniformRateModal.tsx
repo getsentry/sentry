@@ -369,7 +369,7 @@ export function UniformRateModal({
             {
               learnMoreLink: (
                 <ExternalLink
-                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sampling-rate`}
+                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sample-rate`}
                 />
               ),
             }

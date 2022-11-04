@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import audit_log
 from sentry.api import client
 from sentry.models import Organization, OrganizationStatus
-from sentry.services.hybrid_cloud import organization_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -37,7 +37,7 @@ class RestoreOrganizationView(OrganizationView):
         organization = organization_service.get_organization_by_slug(
             user_id=request.user.id, slug=organization_slug, only_visible=False, allow_stale=False
         )
-        if organization.member:
+        if organization and organization.member:
             self.active_organization = organization
         else:
             self.active_organization = None

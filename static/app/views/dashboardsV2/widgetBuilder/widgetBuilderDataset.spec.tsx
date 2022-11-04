@@ -246,7 +246,6 @@ describe('WidgetBuilder', function () {
       body: {
         incompatible_projects: [],
         compatible_projects: [1],
-        dynamic_sampling_projects: [1],
       },
     });
 
@@ -272,32 +271,15 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    const releaseHealthFeatureFlags = [...defaultOrgFeatures, 'dashboards-releases'];
-
-    it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
-      });
-
-      expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Releases (Sessions, Crash rates)')
-      ).not.toBeInTheDocument();
-    });
-
-    it('shows the Release Health dataset if there is the dashboards-releases flag', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+    it('shows the Release Health dataset', async function () {
+      renderTestComponent();
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
       expect(screen.getByText('Releases (Sessions, Crash rates)')).toBeInTheDocument();
     });
 
     it('maintains the selected dataset when display type is changed', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -313,9 +295,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('displays releases tags', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -338,9 +318,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not display tags as params', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -358,9 +336,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort by when session.status is selected', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -380,9 +356,7 @@ describe('WidgetBuilder', function () {
 
     it('does not allow sort on tags except release', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -415,9 +389,7 @@ describe('WidgetBuilder', function () {
 
     it('makes the appropriate sessions call', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -447,9 +419,7 @@ describe('WidgetBuilder', function () {
 
     it('calls the session endpoint with the right limit', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -485,9 +455,7 @@ describe('WidgetBuilder', function () {
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -520,9 +488,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('displays the correct options for area chart', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -546,9 +512,7 @@ describe('WidgetBuilder', function () {
 
     it('sets widgetType to release', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
@@ -578,7 +542,6 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
         dashboard,
         params: {
           widgetIndex: '0',
@@ -599,7 +562,6 @@ describe('WidgetBuilder', function () {
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
         },
-        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Table'));
@@ -620,9 +582,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('renders with a release search bar', async function () {
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       userEvent.type(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
@@ -646,9 +606,7 @@ describe('WidgetBuilder', function () {
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({
-        orgFeatures: releaseHealthFeatureFlags,
-      });
+      renderTestComponent();
 
       userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
@@ -770,7 +728,6 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');

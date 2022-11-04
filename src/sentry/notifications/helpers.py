@@ -262,11 +262,12 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
         NotificationSettingTypes.WORKFLOW,
         NotificationSettingTypes.ISSUE_ALERTS,
         NotificationSettingTypes.ACTIVE_RELEASE,
+        NotificationSettingTypes.SPIKE_PROTECTION,
     ]:
         return NotificationScopeType.PROJECT
 
     raise Exception(
-        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings, quotaSpendAllocations"
+        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings, quotaSpendAllocations, spikeProtection"
     )
 
 

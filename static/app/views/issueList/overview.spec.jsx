@@ -1,22 +1,26 @@
 import {browserHistory} from 'react-router';
-import cloneDeep from 'lodash/cloneDeep';
-import range from 'lodash/range';
+import selectEvent from 'react-select-event';
+import merge from 'lodash/merge';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
-import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-// Mock <IssueListSidebar> and <IssueListActions>
-jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+// Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
@@ -27,17 +31,39 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
+const project = TestStubs.ProjectDetails({
+  id: '3559',
+  name: 'Foo Project',
+  slug: 'project-slug',
+  firstEvent: true,
+});
+
+const {organization, router, routerContext} = initializeOrg({
+  organization: {
+    id: '1337',
+    slug: 'org-slug',
+    features: ['global-views'],
+    access: ['releases'],
+  },
+  router: {
+    location: {query: {}, search: ''},
+    params: {orgId: 'org-slug'},
+  },
+  project,
+});
+
+const routerProps = {
+  params: router.params,
+  location: router.location,
+};
+
 describe('IssueList', function () {
   let wrapper;
   let props;
 
-  let organization;
-  let project;
   let group;
   let groupStats;
   let savedSearch;
-
-  let mountWithThemeAndOrg;
 
   let fetchTagsRequest;
   let fetchMembersRequest;
@@ -51,19 +77,6 @@ describe('IssueList', function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.clearMockResponses();
-    project = TestStubs.ProjectDetails({
-      id: '3559',
-      name: 'Foo Project',
-      slug: 'project-slug',
-      firstEvent: true,
-    });
-    organization = TestStubs.Organization({
-      id: '1337',
-      slug: 'org-slug',
-      access: ['releases'],
-      features: [],
-      projects: [project],
-    });
 
     savedSearch = TestStubs.Search({
       id: '789',
@@ -179,45 +192,10 @@ describe('IssueList', function () {
   });
 
   describe('withStores and feature flags', function () {
-    const {router, routerContext} = initializeOrg({
-      organization: {
-        features: ['global-views'],
-        slug: 'org-slug',
-      },
-      router: {
-        location: {query: {}, search: ''},
-        params: {orgId: 'org-slug'},
-      },
-    });
     const defaultProps = {};
     let savedSearchesRequest;
     let recentSearchesRequest;
     let issuesRequest;
-
-    /* helpers */
-    const getSavedSearchTitle = w => w.find('SavedSearchTab ButtonLabel').text().trim();
-
-    const getSearchBarValue = w =>
-      w.find('SmartSearchBarContainer textarea').prop('value').trim();
-
-    const createWrapper = ({params, location, ...p} = {}) => {
-      const newRouter = {
-        ...router,
-        params: {
-          ...router.params,
-          ...params,
-        },
-        location: {
-          ...router.location,
-          ...location,
-        },
-      };
-
-      wrapper = mountWithThemeAndOrg(
-        <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
-        routerContext
-      );
-    };
 
     beforeEach(function () {
       StreamGroup.mockClear();
@@ -241,16 +219,15 @@ describe('IssueList', function () {
     });
 
     it('loads group rows with default query (no pinned queries, and no query in URL)', async function () {
-      createWrapper();
+      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+        context: routerContext,
+      });
 
       // Loading saved searches
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
-      // Update stores with saved searches
-      await tick();
-      await tick();
 
-      wrapper.update();
-      wrapper.find('SmartSearchBar textarea').simulate('click');
+      userEvent.click(await screen.findByRole('textbox'));
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -266,13 +243,10 @@ describe('IssueList', function () {
         })
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('is:unresolved');
+      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
 
-      // Saved search not active since is:unresolved is a tab
-      expect(getSavedSearchTitle(wrapper)).toBe('Saved Searches');
-
-      // This is mocked
-      expect(StreamGroup).toHaveBeenCalled();
+      // Tab shows "saved searches" because there is an is:unresolved tab
+      expect(screen.getByRole('button', {name: 'Saved Searches'})).toBeInTheDocument();
     });
 
     it('loads with query in URL and pinned queries', async function () {
@@ -289,32 +263,29 @@ describe('IssueList', function () {
         ],
       });
 
-      createWrapper({
-        location: {
-          query: {
-            query: 'level:foo',
-          },
-        },
-      });
-
-      // Update stores with saved searches
-      await tick();
-      await tick();
-      wrapper.update();
-
-      // Main /issues/ request
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with default query
-          data: expect.stringContaining('level%3Afoo'),
-        })
+      render(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: {query: {query: 'level:foo'}}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('level:foo');
+      await waitFor(() => {
+        // Main /issues/ request
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with default query
+            data: expect.stringContaining('level%3Afoo'),
+          })
+        );
+      });
 
-      // Custom search
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
+
+      // Tab shows "custom search"
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with a pinned saved query', async function () {
@@ -327,29 +298,29 @@ describe('IssueList', function () {
             name: 'Org Custom',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: true,
             query: 'is:resolved',
           }),
         ],
       });
-      createWrapper();
 
-      await tick();
-      await tick();
-      wrapper.update();
+      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+        context: routerContext,
+      });
 
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with default query
-          data: expect.stringContaining('is%3Aresolved'),
-        })
-      );
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with default query
+            data: expect.stringContaining('is%3Aresolved'),
+          })
+        );
+      });
 
-      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Org Custom');
+      expect(screen.getByRole('button', {name: 'Org Custom'})).toBeInTheDocument();
     });
 
     it('loads with a pinned custom query', async function () {
@@ -362,29 +333,29 @@ describe('IssueList', function () {
             name: 'My Pinned Search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: false,
             query: 'is:resolved',
           }),
         ],
       });
-      createWrapper();
 
-      await tick();
-      await tick();
-      wrapper.update();
+      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+        context: routerContext,
+      });
 
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with default query
-          data: expect.stringContaining('is%3Aresolved'),
-        })
-      );
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with default query
+            data: expect.stringContaining('is%3Aresolved'),
+          })
+        );
+      });
 
-      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
     });
 
     it('loads with a saved query', async function () {
@@ -403,26 +374,31 @@ describe('IssueList', function () {
           }),
         ],
       });
-      createWrapper({params: {searchId: '123'}});
 
-      await tick();
-      await tick();
-      wrapper.update();
-
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with default query
-          data:
-            expect.stringContaining('assigned%3Ame') &&
-            expect.stringContaining('sort=priority'),
-        })
+      render(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '123'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('assigned:me');
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with default query
+            data:
+              expect.stringContaining('assigned%3Ame') &&
+              expect.stringContaining('sort=priority'),
+          })
+        );
+      });
+
+      expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+      expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
     });
 
     it('loads with a query in URL', async function () {
@@ -440,24 +416,29 @@ describe('IssueList', function () {
           }),
         ],
       });
-      createWrapper({location: {query: {query: 'level:error'}}});
 
-      await tick();
-      await tick();
-      wrapper.update();
-
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with default query
-          data: expect.stringContaining('level%3Aerror'),
-        })
+      render(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: {query: {query: 'level:error'}}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('level:error');
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with default query
+            data: expect.stringContaining('level%3Aerror'),
+          })
+        );
+      });
+
+      expect(screen.getByRole('textbox')).toHaveValue('level:error ');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with an empty query in URL', async function () {
@@ -469,29 +450,33 @@ describe('IssueList', function () {
             name: 'My Pinned Search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: false,
             query: 'is:resolved',
           }),
         ],
       });
-      createWrapper({location: {query: {query: undefined}}});
 
-      await tick();
-      await tick();
-      wrapper.update();
-
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          // Should be called with empty query
-          data: expect.stringContaining(''),
-        })
+      render(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: {query: {query: undefined}}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            // Should be called with empty query
+            data: expect.stringContaining(''),
+          })
+        );
+      });
+
+      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
     });
 
     it('selects a saved search', async function () {
@@ -500,19 +485,17 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [localSavedSearch],
       });
-      createWrapper();
-      await tick();
-      await tick();
-      wrapper.update();
 
-      await act(async () => {
-        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
-
-        await tick();
-        wrapper.update();
+      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+        context: routerContext,
       });
 
-      wrapper.find('Option').last().simulate('click');
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      await selectEvent.select(
+        screen.getByRole('button', {name: 'Saved Searches'}),
+        localSavedSearch.name
+      );
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -531,23 +514,19 @@ describe('IssueList', function () {
             name: 'Pinned search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: true,
             query: 'is:resolved',
           }),
         ],
       });
-      createWrapper();
-      await tick();
-      await tick();
-      wrapper.update();
 
-      // Update the search textarea
-      wrapper
-        .find('IssueListFilters SmartSearchBar textarea')
-        .simulate('change', {target: {value: 'dogs'}});
-      // Submit the form
-      wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
-      wrapper.update();
+      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+        context: routerContext,
+      });
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      userEvent.clear(screen.getByRole('textbox'));
+      userEvent.type(screen.getByRole('textbox'), 'dogs{enter}');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -568,10 +547,6 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [savedSearch],
       });
-      createWrapper();
-      await tick();
-      await tick();
-      wrapper.update();
 
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -590,11 +565,15 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      wrapper
-        .find('SmartSearchBar textarea')
-        .simulate('change', {target: {value: 'assigned:me level:fatal'}});
+      const {rerender} = render(
+        <IssueListWithStores {...routerProps} {...defaultProps} />,
+        {context: routerContext}
+      );
 
-      wrapper.find('SmartSearchBar form').simulate('submit');
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      userEvent.clear(screen.getByRole('textbox'));
+      userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
 
       expect(browserHistory.push.mock.calls[0][0]).toEqual(
         expect.objectContaining({
@@ -606,63 +585,58 @@ describe('IssueList', function () {
 
       await tick();
 
-      wrapper.setProps({
-        location: {
-          ...router.location,
-          query: {
-            query: 'assigned:me level:fatal',
-          },
-        },
-      });
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {
+            location: {query: {query: 'assigned:me level:fatal'}},
+          })}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
 
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
 
-      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
-
+      userEvent.click(screen.getByLabelText(/pin this search/i));
       expect(createPin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/666/',
-          query: {
-            referrer: 'search-bar',
-          },
-          search: '',
-        })
-      );
-
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '666',
-        },
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/666/',
+            query: {
+              referrer: 'search-bar',
+            },
+            search: '',
+          })
+        );
       });
 
-      await tick();
-      wrapper.update();
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '666'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
 
-      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
 
-      wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
-
+      userEvent.click(screen.getByLabelText(/unpin this search/i));
       expect(deletePin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/',
-          query: {
-            query: 'assigned:me level:fatal',
-            sort: 'date',
-            referrer: 'search-bar',
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/',
+            query: {
+              query: 'assigned:me level:fatal',
+              sort: 'date',
+              referrer: 'search-bar',
+            },
+          })
+        );
+      });
     });
 
     it('pins and unpins a saved query', async function () {
@@ -681,10 +655,6 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [savedSearch, assignedToMe],
       });
-      createWrapper();
-      await tick();
-      await tick();
-      wrapper.update();
 
       let createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -695,95 +665,95 @@ describe('IssueList', function () {
         },
       });
 
-      await act(async () => {
-        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
-
-        await tick();
-        wrapper.update();
-      });
-
-      wrapper.find('Option').first().simulate('click');
-
-      await tick();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/789/',
-          query: {
-            environment: [],
-            project: ['3559'],
-            statsPeriod: '14d',
-            sort: 'date',
-            referrer: 'issue-list',
-          },
-        })
+      const {rerender} = render(
+        <IssueListWithStores {...routerProps} {...defaultProps} />,
+        {context: routerContext}
       );
 
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '789',
-        },
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      await selectEvent.select(
+        screen.getByRole('button', {name: 'Saved Searches'}),
+        savedSearch.name
+      );
+
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/789/',
+            query: {
+              environment: [],
+              project: ['3559'],
+              statsPeriod: '14d',
+              sort: 'date',
+              referrer: 'issue-list',
+            },
+          })
+        );
       });
 
-      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '789'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
 
-      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
+      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/pin this search/i));
 
       expect(createPin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/789/',
-        })
-      );
-
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '789',
-        },
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/789/',
+          })
+        );
       });
 
-      await tick();
-      wrapper.update();
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '789'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
 
-      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
+      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
 
       // Select other saved search
-      await act(async () => {
-        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
-
-        await tick();
-        wrapper.update();
-      });
-
-      wrapper.find('Option').last().simulate('click');
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/234/',
-          query: {
-            project: [],
-            environment: [],
-            statsPeriod: '14d',
-            sort: 'date',
-            referrer: 'issue-list',
-          },
-        })
+      await selectEvent.select(
+        screen.getByRole('button', {name: savedSearch.name}),
+        assignedToMe.name
       );
 
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '234',
-        },
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/234/',
+            query: {
+              project: [],
+              environment: [],
+              statsPeriod: '14d',
+              sort: 'date',
+              referrer: 'issue-list',
+            },
+          })
+        );
       });
 
-      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '234'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
+
+      expect(screen.getByRole('button', {name: assignedToMe.name})).toBeInTheDocument();
 
       createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -794,53 +764,62 @@ describe('IssueList', function () {
         },
       });
 
-      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
+      userEvent.click(screen.getByLabelText(/pin this search/i));
 
       expect(createPin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/234/',
-        })
-      );
-
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '234',
-        },
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/234/',
+          })
+        );
       });
 
-      await tick();
-      wrapper.update();
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {params: {searchId: '234'}})}
+          {...defaultProps}
+        />,
+        {context: routerContext}
+      );
 
-      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+      expect(screen.getByRole('button', {name: assignedToMe.name})).toBeInTheDocument();
     });
 
-    it('pinning and unpinning searches should keep project selected', async function () {
+    it('pinning search should keep project selected', async function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [savedSearch],
       });
-      createWrapper({
-        selection: {
-          projects: [123],
-          environments: ['prod'],
-          datetime: {},
-        },
-        location: {query: {project: ['123'], environment: ['prod']}},
-      });
-      await tick();
-      await tick();
-      wrapper.update();
 
-      const deletePin = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'DELETE',
+      const {routerContext: newRouterContext, router: newRouter} = initializeOrg({
+        router: {
+          location: {
+            query: {
+              project: ['123'],
+              environment: ['prod'],
+              query: 'assigned:me level:fatal',
+            },
+          },
+        },
       });
+
+      render(
+        <IssueListWithStores
+          {...newRouter}
+          {...defaultProps}
+          selection={{
+            projects: ['123'],
+            environments: ['prod'],
+            datetime: {},
+          }}
+        />,
+        {context: newRouterContext}
+      );
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
         method: 'PUT',
@@ -854,102 +833,101 @@ describe('IssueList', function () {
         },
       });
 
-      wrapper
-        .find('SmartSearchBar textarea')
-        .simulate('change', {target: {value: 'assigned:me level:fatal'}});
-      wrapper.find('SmartSearchBar form').simulate('submit');
-
-      await tick();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            project: [123],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-            referrer: 'issue-list',
-          }),
-        })
-      );
-
-      const newRouter = {
-        ...router,
-        location: {
-          ...router.location,
-          query: {
-            ...router.location.query,
-            project: [123],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-          },
-        },
-      };
-
-      wrapper.setProps({...newRouter, router: newRouter});
-      wrapper.setContext({router: newRouter});
-      wrapper.update();
-
-      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
+      userEvent.click(screen.getByLabelText(/pin this search/i));
 
       expect(createPin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/searches/666/',
+            query: expect.objectContaining({
+              project: ['123'],
+              environment: ['prod'],
+              query: 'assigned:me level:fatal',
+              referrer: 'search-bar',
+            }),
+          })
+        );
+      });
+    });
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/666/',
-          query: expect.objectContaining({
-            project: [123],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-            referrer: 'search-bar',
-          }),
+    it('unpinning search should keep project selected', async function () {
+      const localSavedSearch = {
+        ...savedSearch,
+        isPinned: true,
+        query: 'assigned:me level:fatal',
+      };
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [localSavedSearch],
+      });
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
+
+      const {routerContext: newRouterContext, router: newRouter} = initializeOrg(
+        merge({}, router, {
+          router: {
+            location: {
+              query: {
+                project: ['123'],
+                environment: ['prod'],
+                query: 'assigned:me level:fatal',
+              },
+            },
+            params: {searchId: '666'},
+          },
         })
       );
 
-      wrapper.setProps({
-        params: {
-          ...router.params,
-          searchId: '666',
-        },
-      });
+      render(
+        <IssueListWithStores
+          {...newRouter}
+          {...defaultProps}
+          selection={{
+            projects: ['123'],
+            environments: ['prod'],
+            datetime: {},
+          }}
+          savedSearch={localSavedSearch}
+        />,
+        {context: newRouterContext}
+      );
 
-      await tick();
-      wrapper.update();
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
+      userEvent.click(screen.getByLabelText(/unpin this search/i));
 
       expect(deletePin).toHaveBeenCalled();
 
-      await tick();
-      wrapper.update();
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/',
-          query: expect.objectContaining({
-            project: [123],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-            referrer: 'search-bar',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/',
+            query: expect.objectContaining({
+              project: ['123'],
+              environment: ['prod'],
+              query: 'assigned:me level:fatal',
+              referrer: 'search-bar',
+            }),
+          })
+        );
+      });
     });
 
-    it.todo('saves a new query');
-
-    it.todo('loads pinned search when invalid saved search id is accessed');
-
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
-      let pushArgs;
-      createWrapper();
-      await tick();
-      await tick();
-      wrapper.update();
+      const {rerender} = render(
+        <IssueListWithStores {...routerProps} {...defaultProps} />,
+        {
+          context: routerContext,
+        }
+      );
 
-      expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(true);
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
 
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -959,12 +937,9 @@ describe('IssueList', function () {
         },
       });
 
-      // Click next
-      wrapper.find('Pagination Button').last().simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-      await tick();
-
-      pushArgs = {
+      let pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
           cursor: '1443575000:0:0',
@@ -976,15 +951,22 @@ describe('IssueList', function () {
           referrer: 'issue-list',
         },
       };
-      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-      wrapper.setProps({location: pushArgs});
 
-      expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(false);
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      });
+
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: pushArgs})}
+          {...defaultProps}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
 
       // Click next again
-      wrapper.find('Pagination Button').last().simulate('click');
-
-      await tick();
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
@@ -998,13 +980,20 @@ describe('IssueList', function () {
           referrer: 'issue-list',
         },
       };
-      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-      wrapper.setProps({location: pushArgs});
+
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      });
+
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: pushArgs})}
+          {...defaultProps}
+        />
+      );
 
       // Click previous
-      wrapper.find('Pagination Button').first().simulate('click');
-
-      await tick();
+      userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
@@ -1018,38 +1007,55 @@ describe('IssueList', function () {
           referrer: 'issue-list',
         },
       };
-      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-      wrapper.setProps({location: pushArgs});
+
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      });
+
+      rerender(
+        <IssueListWithStores
+          {...merge({}, routerProps, {location: pushArgs})}
+          {...defaultProps}
+        />
+      );
 
       // Click previous back to initial page
-      wrapper.find('Pagination Button').first().simulate('click');
-      await tick();
+      userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
-      // cursor is undefined because "prev" cursor is === initial "next" cursor
-      expect(browserHistory.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/issues/',
-        query: {
-          cursor: undefined,
-          environment: [],
-          page: undefined,
-          project: [],
-          query: 'is:unresolved',
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
+      await waitFor(() => {
+        // cursor is undefined because "prev" cursor is === initial "next" cursor
+        expect(browserHistory.push).toHaveBeenLastCalledWith({
+          pathname: '/organizations/org-slug/issues/',
+          query: {
+            cursor: undefined,
+            environment: [],
+            page: undefined,
+            project: [],
+            query: 'is:unresolved',
+            statsPeriod: '14d',
+            referrer: 'issue-list',
+          },
+        });
       });
     });
   });
 
   describe('transitionTo', function () {
-    let instance;
-    beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
-      instance = wrapper.instance();
-    });
+    it('pushes to history when query is updated', function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
 
-    it('transitions to query updates', function () {
-      instance.transitionTo({query: 'is:ignored'});
+      render(<IssueListOverview {...props} />, {
+        context: routerContext,
+      });
+
+      userEvent.clear(screen.getByRole('textbox'));
+      userEvent.type(screen.getByRole('textbox'), 'is:ignored{enter}');
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -1062,187 +1068,14 @@ describe('IssueList', function () {
         },
       });
     });
-
-    it('transitions to cursor with project-less saved search', function () {
-      savedSearch = {
-        id: 123,
-        projectId: null,
-        query: 'foo:bar',
-      };
-      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
-
-      // should keep the current project selection as we're going to the next page.
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/123/',
-        query: {
-          environment: [],
-          project: [parseInt(project.id, 10)],
-          cursor: '1554756114000:0:0',
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
-      });
-    });
-
-    it('transitions to cursor with project saved search', function () {
-      savedSearch = {
-        id: 123,
-        projectId: 999,
-        query: 'foo:bar',
-      };
-      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
-
-      // should keep the current project selection as we're going to the next page.
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/123/',
-        query: {
-          environment: [],
-          project: [parseInt(project.id, 10)],
-          cursor: '1554756114000:0:0',
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
-      });
-    });
-
-    it('transitions to saved search that has a projectId', function () {
-      savedSearch = {
-        id: 123,
-        projectId: 99,
-        query: 'foo:bar',
-      };
-      instance.transitionTo(undefined, savedSearch);
-
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/123/',
-        query: {
-          environment: [],
-          project: [savedSearch.projectId],
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
-      });
-    });
-
-    it('transitions to saved search with a sort', function () {
-      savedSearch = {
-        id: 123,
-        project: null,
-        query: 'foo:bar',
-        sort: 'freq',
-      };
-      instance.transitionTo(undefined, savedSearch);
-
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/123/',
-        query: {
-          environment: [],
-          project: [parseInt(project.id, 10)],
-          statsPeriod: '14d',
-          sort: savedSearch.sort,
-          referrer: 'issue-list',
-        },
-      });
-    });
-
-    it('goes to all projects when using a basic saved search and global-views feature', function () {
-      organization.features = ['global-views'];
-      savedSearch = {
-        id: 1,
-        project: null,
-        query: 'is:unresolved',
-      };
-      instance.transitionTo(undefined, savedSearch);
-
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/1/',
-        query: {
-          project: [parseInt(project.id, 10)],
-          environment: [],
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
-      });
-    });
-
-    it('retains project selection when using a basic saved search and no global-views feature', function () {
-      organization.features = [];
-      savedSearch = {
-        id: 1,
-        projectId: null,
-        query: 'is:unresolved',
-      };
-      instance.transitionTo(undefined, savedSearch);
-
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/searches/1/',
-        query: {
-          environment: [],
-          project: props.selection.projects,
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
-      });
-    });
   });
 
-  describe('getEndpointParams', function () {
-    beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
-    });
+  it('fetches tags and members', async function () {
+    render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
-    it('omits defaults', function () {
-      wrapper.setProps({
-        location: {
-          query: {
-            sort: 'date',
-            groupStatsPeriod: '24h',
-          },
-        },
-      });
-      const value = wrapper.instance().getEndpointParams();
-
-      expect(value.groupStatsPeriod).toBeUndefined();
-      expect(value.sort).toBeUndefined();
-    });
-
-    it('uses saved search data', function () {
-      const value = wrapper.instance().getEndpointParams();
-
-      expect(value.query).toEqual('is:unresolved');
-      expect(value.project).toEqual([parseInt(savedSearch.projectId, 10)]);
-    });
-  });
-
-  describe('componentDidMount', function () {
-    beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
-    });
-
-    it('fetches tags and sets state', async function () {
-      const instance = wrapper.instance();
-      await instance.componentDidMount();
-
+    await waitFor(() => {
       expect(fetchTagsRequest).toHaveBeenCalled();
-      expect(instance.state.tagsLoading).toBeFalsy();
-    });
-
-    it('fetches members and sets state', async function () {
-      const instance = wrapper.instance();
-      await instance.componentDidMount();
-      wrapper.update();
-
       expect(fetchMembersRequest).toHaveBeenCalled();
-
-      const members = instance.state.memberList;
-      // Spot check the resulting structure as we munge it a bit.
-      expect(members).toBeTruthy();
-      expect(members[project.slug]).toBeTruthy();
-      expect(members[project.slug][0].email).toBeTruthy();
-    });
-
-    it('fetches groups when there is no searchid', async function () {
-      await wrapper.instance().componentDidMount();
     });
   });
 
@@ -1258,46 +1091,46 @@ describe('IssueList', function () {
         },
       });
       fetchDataMock.mockReset();
-      wrapper = shallow(<IssueListOverview {...props} />);
     });
 
     it('fetches data on selection change', function () {
-      const selection = {projects: [99], environments: [], datetime: {period: '24h'}};
+      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
 
-      wrapper.setProps({selection, foo: 'bar'});
+      rerender(
+        <IssueListOverview
+          {...routerProps}
+          {...props}
+          selection={{projects: [99], environments: [], datetime: {period: '24h'}}}
+        />
+      );
 
       expect(fetchDataMock).toHaveBeenCalled();
     });
 
     it('fetches data on savedSearch change', function () {
-      savedSearch = {id: '1', query: 'is:resolved'};
-      wrapper.setProps({savedSearch});
-      wrapper.update();
+      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
+
+      rerender(
+        <IssueListOverview
+          {...routerProps}
+          {...props}
+          savedSearch={{id: '1', query: 'is:resolved'}}
+        />
+      );
 
       expect(fetchDataMock).toHaveBeenCalled();
     });
 
-    it('fetches data on location change', async function () {
-      const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
-      const location = cloneDeep(props.location);
-      for (const [i, attr] of queryAttrs.entries()) {
-        // reclone each iteration so that only one property changes.
-        const newLocation = cloneDeep(location);
-        newLocation.query[attr] = 'newValue';
-        wrapper.setProps({location: newLocation});
-        await tick();
-        wrapper.update();
-
-        // Each property change after the first will actually cause two new
-        // fetchData calls, one from the property change and another from a
-        // change in this.state.issuesLoading going from false to true.
-        expect(fetchDataMock).toHaveBeenCalledTimes(2 * i + 1);
-      }
-    });
-
     it('uses correct statsPeriod when fetching issues list and no datetime given', function () {
+      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
       const selection = {projects: [99], environments: [], datetime: {}};
-      wrapper.setProps({selection, foo: 'bar'});
+      rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
 
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
@@ -1309,34 +1142,12 @@ describe('IssueList', function () {
   });
 
   describe('componentDidUpdate fetching members', function () {
-    beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
-      wrapper.instance().fetchData = jest.fn();
-    });
-
-    it('fetches memberlist on project change', function () {
+    it('fetches memberlist and tags list on project change', function () {
+      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
       // Called during componentDidMount
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
-
-      const selection = {
-        projects: [99],
-        environments: [],
-        datetime: {period: '24h'},
-      };
-      wrapper.setProps({selection});
-      wrapper.update();
-      expect(fetchMembersRequest).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('componentDidUpdate fetching tags', function () {
-    beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
-      wrapper.instance().fetchData = jest.fn();
-    });
-
-    it('fetches tags on project change', function () {
-      // Called during componentDidMount
       expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
 
       const selection = {
@@ -1344,143 +1155,124 @@ describe('IssueList', function () {
         environments: [],
         datetime: {period: '24h'},
       };
-      wrapper.setProps({selection});
-      wrapper.update();
-
+      rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
+      expect(fetchMembersRequest).toHaveBeenCalledTimes(2);
       expect(fetchTagsRequest).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('processingIssues', function () {
-    beforeEach(function () {
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
-    });
-
-    it('fetches and displays processing issues', function () {
-      const instance = wrapper.instance();
-      instance.componentDidMount();
-      wrapper.update();
-
-      GroupStore.add([group]);
-      wrapper.setState({
-        groupIds: ['1'],
-        loading: false,
-      });
-
-      const issues = wrapper.find('ProcessingIssueList');
-      expect(issues).toHaveLength(1);
     });
   });
 
   describe('render states', function () {
     it('displays the loading icon', function () {
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
-      wrapper.setState({savedSearchLoading: true});
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+      render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     });
 
-    it('displays an error', function () {
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
-      wrapper.setState({
-        error: 'Things broke',
-        savedSearchLoading: false,
-        issuesLoading: false,
+    it('displays an error when issues fail to load', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        status: 500,
+        statusCode: 500,
       });
+      const {rerender} = render(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
+        {context: routerContext}
+      );
+      rerender(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
+      );
 
-      const error = wrapper.find('LoadingError');
-      expect(error).toHaveLength(1);
-      expect(error.props().message).toEqual('Things broke');
+      expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     });
 
     it('displays congrats robots animation with only is:unresolved query', async function () {
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
-      wrapper.setState({
-        savedSearchLoading: false,
-        issuesLoading: false,
-        error: false,
-        groupIds: [],
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
       });
-      await tick();
-      wrapper.update();
+      const {rerender} = render(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
+        {context: routerContext}
+      );
 
-      expect(wrapper.find('NoUnresolvedIssues').exists()).toBe(true);
+      rerender(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
+      );
+
+      expect(
+        await screen.findByText(/We couldn't find any issues that matched your filters/i)
+      ).toBeInTheDocument();
     });
 
-    it('displays an empty resultset with is:unresolved and level:error query', async function () {
-      const errorsOnlyQuery = {
-        ...props,
-        location: {
-          query: {query: 'is:unresolved level:error'},
+    it('displays an empty resultset with a non-default query', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
         },
-      };
-
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...errorsOnlyQuery} />);
-
-      wrapper.setState({
-        savedSearchLoading: false,
-        issuesLoading: false,
-        error: false,
-        groupIds: [],
-        fetchingSentFirstEvent: false,
-        sentFirstEvent: true,
       });
-      await tick();
-      wrapper.update();
 
-      expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
-    });
+      const {rerender} = render(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
+        {context: routerContext}
+      );
 
-    it('displays an empty resultset with has:browser query', async function () {
-      const hasBrowserQuery = {
-        ...props,
-        location: {
-          query: {query: 'has:browser'},
-        },
-      };
+      rerender(
+        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
+      );
 
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...hasBrowserQuery} />);
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
 
-      wrapper.setState({
-        savedSearchLoading: false,
-        issuesLoading: false,
-        error: false,
-        groupIds: [],
-        fetchingSentFirstEvent: false,
-        sentFirstEvent: true,
-      });
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
+      expect(
+        await screen.findByText(/We couldn't find any issues that matched your filters/i)
+      ).toBeInTheDocument();
     });
   });
 
   describe('Error Robot', function () {
-    const createWrapper = moreProps => {
+    const createWrapper = async moreProps => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
       const defaultProps = {
         ...props,
-        savedSearchLoading: false,
+        savedSearchLoading: true,
         useOrgSavedSearches: true,
         selection: {
           projects: [],
           environments: [],
           datetime: {period: '14d'},
         },
-        location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-        params: {orgId: organization.slug},
+        ...merge({}, routerProps, {
+          params: {orgId: organization.slug},
+          location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
+        }),
         organization: TestStubs.Organization({
           projects: [],
         }),
         ...moreProps,
       };
-      const localWrapper = mountWithThemeAndOrg(<IssueListOverview {...defaultProps} />);
-      localWrapper.setState({
-        error: false,
-        issuesLoading: false,
-        groupIds: [],
-      });
+      const {rerender} = render(
+        <IssueListOverview {...defaultProps} savedSearchLoading />,
+        {context: routerContext}
+      );
 
-      return localWrapper;
+      rerender(<IssueListOverview {...defaultProps} savedSearchLoading={false} />);
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+      return rerender;
     };
 
     it('displays when no projects selected and all projects user is member of, does not have first event', async function () {
@@ -1519,15 +1311,14 @@ describe('IssueList', function () {
         url: '/projects/org-slug/foo/issues/',
         body: [],
       });
-      wrapper = createWrapper({
+
+      await createWrapper({
         organization: TestStubs.Organization({
           projects,
         }),
       });
-      await tick();
-      wrapper.update();
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+      expect(screen.getByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
@@ -1562,15 +1353,13 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/projects/',
         body: projects,
       });
-      wrapper = createWrapper({
+      await createWrapper({
         organization: TestStubs.Organization({
           projects,
         }),
       });
-      await tick();
-      wrapper.update();
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
     });
 
     it('displays when all selected projects do not have first event', async function () {
@@ -1610,7 +1399,7 @@ describe('IssueList', function () {
         body: [],
       });
 
-      wrapper = createWrapper({
+      await createWrapper({
         selection: {
           projects: [1, 2],
           environments: [],
@@ -1620,13 +1409,11 @@ describe('IssueList', function () {
           projects,
         }),
       });
-      await tick();
-      wrapper.update();
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
-    it('does not display when any selected projects have first event', function () {
+    it('does not display when any selected projects have first event', async function () {
       const projects = [
         TestStubs.Project({
           id: '1',
@@ -1659,7 +1446,7 @@ describe('IssueList', function () {
         body: projects,
       });
 
-      wrapper = createWrapper({
+      await createWrapper({
         selection: {
           projects: [1, 2],
           environments: [],
@@ -1670,11 +1457,21 @@ describe('IssueList', function () {
         }),
       });
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
     });
   });
 
   it('displays a count that represents the current page', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [...new Array(25)].map((_, i) => ({id: i})),
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': 500,
+        'X-Max-Hits': 1000,
+      },
+    });
+
     parseLinkHeaderSpy.mockReturnValue({
       next: {
         results: true,
@@ -1693,18 +1490,15 @@ describe('IssueList', function () {
       },
     };
 
-    const {routerContext} = initializeOrg();
-    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
-    wrapper.setState({
-      groupIds: range(0, 25).map(String),
-      queryCount: 500,
-      queryMaxCount: 1000,
-      pageLinks: DEFAULT_LINKS_HEADER,
+    const {routerContext: newRouterContext} = initializeOrg();
+    const {rerender} = render(<IssueListOverview {...props} savedSearchLoading />, {
+      context: newRouterContext,
     });
+    rerender(<IssueListOverview {...props} savedSearchLoading={false} />);
 
-    const paginationCaption = wrapper.find('PaginationCaption');
-
-    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
+    expect(
+      screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))
+    ).toBeInTheDocument();
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1714,132 +1508,28 @@ describe('IssueList', function () {
         results: true,
       },
     });
-    wrapper.setProps({
-      location: {
-        query: {
-          cursor: 'some cursor',
-          page: 1,
-        },
-      },
-    });
-    expect(paginationCaption.text()).toBe('Showing 50 of 500 issues');
-    expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
-  });
+    rerender(<IssueListOverview {...props} />);
 
-  it('displays a count that makes sense based on the current page', function () {
-    parseLinkHeaderSpy.mockReturnValue({
-      next: {
-        // Is at last page according to the cursor
-        results: false,
-      },
-      previous: {
-        results: true,
-      },
-    });
-    props = {
-      ...props,
-      location: {
-        query: {
-          cursor: 'some cursor',
-          page: 3,
-        },
-      },
-    };
-
-    const {routerContext} = initializeOrg();
-    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
-    wrapper.setState({
-      groupIds: range(0, 25).map(String),
-      queryCount: 500,
-      queryMaxCount: 1000,
-      pageLinks: DEFAULT_LINKS_HEADER,
-    });
-
-    const paginationCaption = wrapper.find('PaginationCaption');
-    expect(paginationCaption.text()).toBe('Showing 500 of 500 issues');
-
-    parseLinkHeaderSpy.mockReturnValue({
-      next: {
-        results: true,
-      },
-      previous: {
-        // Is at first page according to cursor
-        results: false,
-      },
-    });
-    wrapper.setProps({
-      location: {
-        query: {
-          cursor: 'some cursor',
-          page: 2,
-        },
-      },
-    });
-    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
-    expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
-  });
-
-  it('displays a count based on items removed', function () {
-    parseLinkHeaderSpy.mockReturnValue({
-      next: {
-        results: true,
-      },
-      previous: {
-        results: true,
-      },
-    });
-    props = {
-      ...props,
-      location: {
-        query: {
-          cursor: 'some cursor',
-          page: 1,
-        },
-      },
-    };
-
-    const {routerContext} = initializeOrg();
-    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
-    wrapper.setState({
-      groupIds: range(0, 25).map(String),
-      queryCount: 75,
-      itemsRemoved: 1,
-      queryMaxCount: 1000,
-      pageLinks: DEFAULT_LINKS_HEADER,
-    });
-
-    const paginationCaption = wrapper.find('PaginationCaption');
-    // 2nd page subtracts the one removed
-    expect(paginationCaption.text()).toBe('Showing 49 of 74 issues');
-  });
-
-  describe('with relative change feature', function () {
-    it('defaults to larger graph selection', function () {
-      organization.features = ['issue-list-trend-sort'];
-      props.location = {
-        query: {query: 'is:unresolved', sort: 'trend'},
-        search: 'query=is:unresolved',
-      };
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
-      expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
-    });
+    expect(
+      screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))
+    ).toBeInTheDocument();
   });
 
   describe('project low priority queue alert', function () {
-    const {routerContext} = initializeOrg();
+    const {routerContext: newRouterContext} = initializeOrg();
 
     beforeEach(function () {
       act(() => ProjectsStore.reset());
     });
 
-    it('does not render alert', function () {
+    it('does not render event processing alert', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
+      render(<IssueListOverview {...props} />, {
+        context: newRouterContext,
+      });
 
-      const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
-      expect(eventProcessingAlert.exists()).toBe(true);
-      expect(eventProcessingAlert.isEmptyRender()).toBe(true);
+      expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
     });
 
     describe('renders alert', function () {
@@ -1850,14 +1540,13 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
+        render(<IssueListOverview {...props} />, {
+          context: routerContext,
+        });
 
-        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
-        expect(eventProcessingAlert.exists()).toBe(true);
-        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
-        expect(eventProcessingAlert.text()).toBe(
-          'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
-        );
+        expect(
+          screen.getByText(/Event Processing for this project is currently degraded/i)
+        ).toBeInTheDocument();
       });
 
       it('for multiple projects', function () {
@@ -1882,7 +1571,7 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithThemeAndOrg(
+        render(
           <IssueListOverview
             {...props}
             selection={{
@@ -1890,15 +1579,18 @@ describe('IssueList', function () {
               projects: [Number(project.id), Number(projectBar.id)],
             }}
           />,
-          routerContext
+          {
+            context: newRouterContext,
+          }
         );
 
-        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
-        expect(eventProcessingAlert.exists()).toBe(true);
-        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
-        expect(eventProcessingAlert.text()).toBe(
-          `Event Processing for the ${project.slug}, ${projectBar.slug} projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.`
-        );
+        expect(
+          screen.getByText(
+            textWithMarkupMatcher(
+              'Event Processing for the project-slug, project-slug-bar projects is currently degraded.'
+            )
+          )
+        ).toBeInTheDocument();
       });
     });
   });

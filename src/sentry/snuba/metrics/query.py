@@ -2,7 +2,7 @@
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
@@ -54,6 +54,13 @@ class MetricField:
     def __str__(self) -> str:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
+
+    def __eq__(self, other: object) -> bool:
+        # The equal method is called after the hash method to verify for equality of objects to insert
+        # into the set. Because by default "__eq__()" does use the "is" operator we want to override it and
+        # model MetricField's equivalence as having the same hash value, in order to reuse the comparison logic defined
+        # in the "__hash__()" method.
+        return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
         hashable_list = []
@@ -240,16 +247,34 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def calculate_intervals_len(
-        end: datetime, granularity: int, start: Optional[datetime] = None
+        end: datetime,
+        granularity: int,
+        start: Optional[datetime] = None,
+        interval: Optional[int] = None,
     ) -> int:
-        range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
-        return math.ceil(range_in_sec / granularity)
+        if interval is None:
+            range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
+            denominator = granularity
+        else:
+            assert start is not None and interval > 0
+            # Format start and end
+            start = datetime.fromtimestamp(
+                int(start.timestamp() / interval) * interval, timezone.utc
+            )
+            end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
+
+            range_in_sec = (end - start).total_seconds()
+            denominator = interval
+        return math.ceil(range_in_sec / denominator)
 
     def validate_limit(self) -> None:
         if self.limit is None:
             return
         intervals_len = self.calculate_intervals_len(
-            end=self.end, start=self.start, granularity=self.granularity.granularity
+            end=self.end,
+            start=self.start,
+            granularity=self.granularity.granularity,
+            interval=self.interval,
         )
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
@@ -286,7 +311,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         totals_limit: int = MAX_POINTS
         if self.include_series:
             intervals_len = self.calculate_intervals_len(
-                start=self.start, end=self.end, granularity=self.granularity.granularity
+                start=self.start,
+                end=self.end,
+                granularity=self.granularity.granularity,
+                interval=self.interval,
             )
             # In a series query, we also need to factor in the len of the intervals
             # array. The number of totals should never get so large that the
