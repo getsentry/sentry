@@ -621,14 +621,14 @@ def process_code_mappings(job: PostProcessJob) -> None:
         next_time = timezone.now() + timedelta(hours=1)
         if features.has("organizations:derive-code-mappings", event.project.organization):
             logger.info(
-                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=}."
+                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                 + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
             )
             derive_code_mappings.delay(project.id, event.data)
         # Derive code mappings with dry_run=True to validate the generated mappings.
         elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
             logger.info(
-                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=}."
+                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
                 + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
             )
             derive_code_mappings.delay(project.id, event.data, dry_run=True)
