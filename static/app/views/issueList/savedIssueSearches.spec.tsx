@@ -50,6 +50,23 @@ describe('SavedIssueSearches', function () {
     expect(container).toSnapshot();
   });
 
+  it('hides saves searches by default past first 5', function () {
+    render(
+      <SavedIssueSearches
+        {...defaultProps}
+        savedSearches={[...new Array(6)].map((_, i) => ({
+          ...orgSearch,
+          name: 'Test Search',
+          id: i,
+        }))}
+      />
+    );
+
+    expect(screen.getAllByText('Test Search')).toHaveLength(5);
+    userEvent.click(screen.getByRole('button', {name: /show all 6 saved searches/i}));
+    expect(screen.getAllByText('Test Search')).toHaveLength(6);
+  });
+
   it('can select a saved search', function () {
     render(<SavedIssueSearches {...defaultProps} />);
 
