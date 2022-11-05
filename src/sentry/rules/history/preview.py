@@ -103,9 +103,15 @@ def get_events(project: Project, condition_activity: Sequence[ConditionActivity]
                 filter_keys={"project_id": [project.id], "group_id": group_ids},
                 orderby=["group_id", "timestamp"],
                 limitby=(1, "group_id"),
-                selected_columns=columns,
+                selected_columns=columns + ["group_id"],
             ).get("data", [])
         )
+        # store event_ids for CREATE_ISSUE condition activities
+        group_map = {event["group_id"]: event["event_id"] for event in events}
+        for act in condition_activity:
+            if act.type == ConditionActivityType.CREATE_ISSUE:
+                act.data = {"event_id": group_map[act.group_id]}
+
     if event_ids:
         events.extend(
             raw_query(

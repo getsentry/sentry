@@ -274,6 +274,7 @@ class GetEventsTest(TestCase):
 
         assert len(events) == 1
         assert event.event_id in events
+        assert activity[0].data["event_id"] == event.event_id
 
     def test_get_activity(self):
         prev_hour = timezone.now() - timedelta(hours=1)
