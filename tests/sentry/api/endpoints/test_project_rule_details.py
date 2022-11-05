@@ -677,7 +677,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        metrics.incr.assert_has_calls([call("sentry.issue_alert.conditions.edited")])
+        metrics.incr.assert_has_calls(
+            [call("sentry.issue_alert.conditions.edited", sample_rate=1.0)]
+        )
 
     @patch("sentry.utils.metrics")
     def test_edit_non_condition_metric(self, metrics):
@@ -692,7 +694,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        assert call("sentry.issue_alert.conditions.edited") not in metrics.incr.call_args_list
+        assert (
+            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
+            not in metrics.incr.call_args_list
+        )
 
 
 @region_silo_test
