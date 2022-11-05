@@ -677,8 +677,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        metrics.incr.assert_has_calls(
-            [call("sentry.issue_alert.conditions.edited", sample_rate=1.0)]
+        assert (
+            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
+            in metrics.incr.call_args_list
         )
 
     @patch("sentry.utils.metrics")
