@@ -3,6 +3,7 @@ from typing import Any, Mapping
 from unittest.mock import call, patch
 
 import responses
+from exam import patcher
 from freezegun import freeze_time
 from pytz import UTC
 
@@ -259,6 +260,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 @region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
+    metrics = patcher("sentry.api.endpoints.project_rule_details.metrics")
     method = "PUT"
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
@@ -659,8 +661,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
 
-    @patch("sentry.utils.metrics")
-    def test_edit_condition_metric(self, metrics):
+    def test_edit_condition_metric(self):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -679,11 +680,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert (
             call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            in metrics.incr.call_args_list
+            in self.metrics.incr.call_args_list
         )
 
-    @patch("sentry.utils.metrics")
-    def test_edit_non_condition_metric(self, metrics):
+    def test_edit_non_condition_metric(self):
         payload = {
             "name": "new name",
             "owner": self.user.id,
@@ -697,7 +697,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert (
             call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            not in metrics.incr.call_args_list
+            not in self.metrics.incr.call_args_list
         )
 
 
