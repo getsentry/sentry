@@ -133,10 +133,10 @@ type SpanBarProps = {
   groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
+  measure?: () => void;
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
-  measure?: () => void;
 };
 
 type SpanBarState = {
@@ -222,7 +222,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const boundingRect = element.getBoundingClientRect();
     // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
     const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
-    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+    this.setState({showDetail: true}, () => {
+      window.scrollTo(0, offset);
+      this.props.measure?.();
+    });
   };
 
   renderDetail({
