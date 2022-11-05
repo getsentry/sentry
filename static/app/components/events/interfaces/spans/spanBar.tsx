@@ -136,6 +136,7 @@ type SpanBarProps = {
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
+  measure?: () => void;
 };
 
 type SpanBarState = {
@@ -167,6 +168,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
+      this.props.measure?.();
     }
 
     const {span} = this.props;
@@ -202,9 +204,14 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   };
 
   toggleDisplayDetail = () => {
-    this.setState(state => ({
-      showDetail: !state.showDetail,
-    }));
+    this.setState(
+      state => ({
+        showDetail: !state.showDetail,
+      }),
+      () => {
+        this.props.measure?.();
+      }
+    );
   };
 
   scrollIntoView = () => {

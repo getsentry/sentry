@@ -1,7 +1,10 @@
 import {Component} from 'react';
 import {
   AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
   List as ReactVirtualizedList,
+  ListRowProps,
   OverscanIndicesGetterParams,
   WindowScroller,
 } from 'react-virtualized';
@@ -41,6 +44,14 @@ type PropType = ScrollbarManagerChildrenProps & {
   focusedSpanIds?: Set<string>;
 };
 
+const cache = new CellMeasurerCache({
+  fixedWidth: true,
+
+  defaultHeight: ROW_HEIGHT,
+  minHeight: ROW_HEIGHT,
+});
+
+const measureFunctionMap: Record<number, () => void> = {};
 class SpanTree extends Component<PropType> {
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
@@ -82,7 +93,7 @@ class SpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): React.ReactNode {
+  }): JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -207,7 +218,7 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove: EnhancedProcessedSpanType[];
       outOfViewSpansAbove: EnhancedProcessedSpanType[];
       spanNumber: number;
-      spanTree: React.ReactNode[];
+      spanTree: JSX.Element[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
@@ -254,7 +265,9 @@ class SpanTree extends Component<PropType> {
             outOfViewSpansAbove: acc.outOfViewSpansAbove,
             isCurrentSpanFilteredOut: false,
           });
-          acc.spanTree.push(infoMessage);
+          if (infoMessage) {
+            acc.spanTree.push(infoMessage);
+          }
         }
 
         const spanNumber = acc.spanNumber;
@@ -415,22 +428,46 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     });
 
-    spanTree.push(infoMessage);
+    if (infoMessage) {
+      spanTree.push(infoMessage);
+    }
 
     return spanTree;
   };
 
-  renderRow({index, isScrolling, isVisible, key, parent, style}, spanTree) {
-    if (isVisible) {
-      console.log(spanTree[index].props.span.op);
-    }
+  renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
+    const {index, isVisible, key, parent, style, columnIndex} = params;
+
+    spanTree[index].props;
+
     return (
-      <div key={key} style={style}>
-        {spanTree[index]}
-      </div>
+      <CellMeasurer
+        key={key}
+        cache={cache}
+        parent={parent}
+        columnIndex={columnIndex}
+        rowIndex={index}
+      >
+        {({measure}) => {
+          measureFunctionMap[index] = measure;
+
+          return (
+            <div style={style}>
+              {spanTree[index].type === SpanBar ? (
+                <SpanBar {...spanTree[index].props} measure={measure} />
+              ) : (
+                spanTree[index]
+              )}
+            </div>
+          );
+        }}
+      </CellMeasurer>
     );
   }
 
+  // Overscan is necessary to ensure a smooth horizontal autoscrolling experience.
+  // This function will allow the spanTree to mount spans which are not immediately visible
+  // in the view. If they are mounted too late, the horizontal autoscroll will look super glitchy
   overscanIndicesGetter(params: OverscanIndicesGetterParams) {
     const {startIndex, stopIndex, overscanCellsCount, cellCount} = params;
     return {
@@ -449,11 +486,6 @@ class SpanTree extends Component<PropType> {
     const limitExceededMessage = this.generateLimitExceededMessage();
     limitExceededMessage && spanTree.push(limitExceededMessage);
 
-    // const height =
-    //   ROW_HEIGHT * spanTree.length < SPAN_TREE_MAX_HEIGHT
-    //     ? ROW_HEIGHT * spanTree.length
-    //     : SPAN_TREE_MAX_HEIGHT;
-
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         <WindowScroller>
@@ -464,12 +496,13 @@ class SpanTree extends Component<PropType> {
                 isScrolling={isScrolling}
                 onScroll={onChildScroll}
                 scrollTop={scrollTop}
-                width={this.props.traceViewRef.current?.clientWidth} // TODO: You may need to use AutoSizer to get the real width
+                deferredMeasurementCache={cache}
+                width={this.props.traceViewRef.current?.clientWidth ?? 1000} // TODO: You may need to use AutoSizer to get the real width
                 height={height}
-                rowHeight={ROW_HEIGHT}
+                rowHeight={cache.rowHeight}
                 rowCount={spanTree.length}
                 rowRenderer={props => this.renderRow(props, spanTree)}
-                overscanRowCount={30}
+                overscanRowCount={50}
                 overscanIndicesGetter={this.overscanIndicesGetter}
               />
             );
