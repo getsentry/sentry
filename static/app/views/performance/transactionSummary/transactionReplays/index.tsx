@@ -85,7 +85,7 @@ function ReplaysContentWrapper({
     setError(fetchError?.message);
   }, [setError, fetchError]);
 
-  if (isFetching || !eventView) {
+  if (!eventView) {
     return (
       <Layout.Main fullWidth>
         <LoadingIndicator />

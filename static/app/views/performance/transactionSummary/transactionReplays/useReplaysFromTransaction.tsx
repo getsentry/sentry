@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
@@ -50,6 +50,7 @@ function useReplaysFromTransaction({
   eventsDisplayFilterName,
 }: Options) {
   const api = useApi();
+  const eventsDataRef = useRef<TableDataRow[] | null>(null);
   const [data, setData] = useState<State>({
     fetchError: undefined,
     isFetching: true,
@@ -59,6 +60,10 @@ function useReplaysFromTransaction({
   });
 
   const load = useCallback(async () => {
+    setData(prevState => ({
+      ...prevState,
+      isFetching: true,
+    }));
     const percentilesView = getPercentilesEventView(eventsWithReplaysView.clone());
     const percentileData = await fetchPercentiles({
       api,
@@ -74,14 +79,16 @@ function useReplaysFromTransaction({
       eventsDisplayFilterName,
     });
 
-    const eventsData = await fetchEventsWithReplay({
-      api,
-      eventView: filteredEventView ?? eventsWithReplaysView,
-      location,
-      organization,
-    });
+    if (!eventsDataRef.current) {
+      eventsDataRef.current = await fetchEventsWithReplay({
+        api,
+        eventView: filteredEventView ?? eventsWithReplaysView,
+        location,
+        organization,
+      });
+    }
 
-    const replayIds = eventsData?.map(row => row.replayId);
+    const replayIds = eventsDataRef.current?.map(row => row.replayId);
 
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -107,7 +114,7 @@ function useReplaysFromTransaction({
     const replays: ReplayListRecordWithTx[] | undefined = listData.replays?.map(
       replay => {
         let slowestEvent: TableDataRow | undefined;
-        for (const event of eventsData ?? []) {
+        for (const event of eventsDataRef.current ?? []) {
           // attach the slowest tx event to the replay
           if (
             event.replayId === replay.id &&
@@ -131,8 +138,8 @@ function useReplaysFromTransaction({
       replays,
     });
   }, [
-    api,
     eventsWithReplaysView,
+    api,
     location,
     organization,
     spanOperationBreakdownFilter,
@@ -158,10 +165,16 @@ async function fetchEventsWithReplay({
   organization: Organization;
 }) {
   try {
+    // This is a hack to get the count of replays for a transaction without getting affected by the pagination queries.
+    const fakeLocation: Location = {
+      ...location,
+      query: {},
+    };
+
     const [data] = await doDiscoverQuery<TableData>(
       api,
       `/organizations/${organization.slug}/events/`,
-      eventView.getEventsAPIPayload(location, '', true)
+      eventView.getEventsAPIPayload(fakeLocation, '', false)
     );
 
     return data.data;

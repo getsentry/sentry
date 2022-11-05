@@ -1122,7 +1122,7 @@ class EventView {
   getEventsAPIPayload(
     location: Location,
     forceAppendRawQueryString?: string,
-    noPageLimit?: boolean
+    pageLimit: boolean = true
   ): EventQuery & LocationQuery {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
@@ -1161,7 +1161,7 @@ class EventView {
       }
     ) as EventQuery & LocationQuery;
 
-    if (noPageLimit) {
+    if (!pageLimit) {
       delete eventQuery.per_page;
     }
 

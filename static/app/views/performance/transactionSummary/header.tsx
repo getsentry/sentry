@@ -121,11 +121,17 @@ function TransactionHeader({
         location
       );
 
+      // This is a hack to get the count of replays for a transaction without getting affected by the pagination queries.
+      const fakeLocation: Location = {
+        ...location,
+        query: {},
+      };
+
       try {
         const [data] = await doDiscoverQuery<TableData>(
           api,
           `/organizations/${organization.slug}/events/`,
-          replayEventView.getEventsAPIPayload(location)
+          replayEventView.getEventsAPIPayload(fakeLocation)
         );
 
         setReplaysCount(Number(data.data[0]['count_unique(replayId)']));
