@@ -25,8 +25,10 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
             queryset = Team.objects.filter(
                 organization=organization, status=TeamStatus.VISIBLE
             ).order_by("slug")
-            return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))
         else:
-            return Response(
-                serialize(list(request.access.teams), request.user, TeamWithProjectsSerializer())
-            )
+            queryset = Team.objects.filter(
+                organization=organization,
+                status=TeamStatus.VISIBLE,
+                id__in=request.access.team_ids_with_membership,
+            ).order_by("slug")
+        return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))
