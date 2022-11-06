@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -100,44 +102,82 @@ class Access(abc.ABC):
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
 
-    member: Optional[OrganizationMember] = None
+    _member: OrganizationMember | None = None
 
     @property
-    def role(self) -> Optional[str]:
-        return self.member.role if self.member else None
+    def role(self) -> str | None:
+        return self._member.role if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
-        if self.member is None:
+        if self._member is None:
             return {}
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self.member, is_active=True, team__status=TeamStatus.VISIBLE
+                organizationmember=self._member, is_active=True, team__status=TeamStatus.VISIBLE
             ).select_related("team")
         }
 
     @cached_property
-    def teams(self) -> FrozenSet[Team]:
-        """Return the set of teams in which the user has actual membership."""
-        return frozenset(self._team_memberships.keys())
+    def team_ids_with_membership(self) -> FrozenSet[int]:
+        """Return the IDs of teams in which the user has actual membership.
+
+        This represents the set of all teams for which `has_team_membership` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+
+        Compare to accessible_team_ids, which is equal to this property in the
+        typical case but represents a superset of IDs in case of superuser access.
+        """
+        return frozenset(team.id for team in self._team_memberships.keys())
+
+    @property
+    def accessible_team_ids(self) -> FrozenSet[int]:
+        """Return the IDs of teams to which the user has access.
+
+        This represents the set of all teams for which `has_team_access` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+        """
+        return self.team_ids_with_membership
 
     @cached_property
-    def projects(self) -> FrozenSet[Project]:
-        """Return the set of projects to which the user has access via actual team membership."""
+    def project_ids_with_team_membership(self) -> FrozenSet[int]:
+        """Return the IDs of projects to which the user has access via actual team membership.
 
-        teams = self.teams
+        This represents the set of all projects for which `has_project_membership`
+        returns true. Use that method where possible and use this property only when
+        you need to iterate or query for all such teams.
+
+        Compare to accessible_project_ids, which is equal to this property in the
+        typical case but represents a superset of IDs in case of superuser access.
+        """
+
+        teams = self._team_memberships.keys()
         if not teams:
             return frozenset()
 
         with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams).distinct()
+                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams)
+                .distinct()
+                .values_list("id", flat=True)
             )
             span.set_data("Project Count", len(projects))
             span.set_data("Team Count", len(teams))
 
         return projects
+
+    @property
+    def accessible_project_ids(self) -> FrozenSet[int]:
+        """Return the IDs of projects to which the user has access.
+
+        This represents the set of all teams for which `has_project_access` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+        """
+        return self.project_ids_with_team_membership
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -155,7 +195,7 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    def get_organization_role(self) -> Optional[OrganizationRole]:
+    def get_organization_role(self) -> OrganizationRole | None:
         return self.role and organization_roles.get(self.role)
 
     @abc.abstractmethod
@@ -190,9 +230,9 @@ class Access(abc.ABC):
         return False
 
     def has_team_membership(self, team: Team) -> bool:
-        return team in self.teams
+        return team.id in self.team_ids_with_membership
 
-    def get_team_role(self, team: Team) -> Optional[TeamRole]:
+    def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
         return team_member and team_member.get_team_role()
 
@@ -217,7 +257,7 @@ class Access(abc.ABC):
 
         >>> access.has_project_membership(project)
         """
-        return project in self.projects
+        return project.id in self.project_ids_with_team_membership
 
     def has_project_scope(self, project: Project, scope: str) -> bool:
         """
@@ -240,15 +280,15 @@ class Access(abc.ABC):
         if any(self.has_scope(scope) for scope in scopes):
             return True
 
-        if self.member and features.has("organizations:team-roles", self.member.organization):
+        if self._member and features.has("organizations:team-roles", self._member.organization):
             with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
                 memberships = [
                     self._team_memberships[team]
                     for team in project.teams.all()
                     if team in self._team_memberships
                 ]
-                span.set_tag("organization", self.member.organization.id)
-                span.set_tag("organization.slug", self.member.organization.slug)
+                span.set_tag("organization", self._member.organization.id)
+                span.set_tag("organization.slug", self._member.organization.slug)
                 span.set_data("membership_count", len(memberships))
 
             for membership in memberships:
@@ -277,7 +317,7 @@ class OrganizationMemberAccess(Access):
         )
 
         super().__init__(
-            member=member,
+            _member=member,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=has_global_access,
@@ -288,16 +328,16 @@ class OrganizationMemberAccess(Access):
     def has_team_access(self, team: Team) -> bool:
         if team.status != TeamStatus.VISIBLE:
             return False
-        if self.has_global_access and self.member.organization.id == team.organization_id:
+        if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
-        return team in self.teams
+        return team.id in self.team_ids_with_membership
 
     def has_project_access(self, project: Project) -> bool:
         if project.status != ProjectStatus.VISIBLE:
             return False
-        if self.has_global_access and self.member.organization.id == project.organization_id:
+        if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
-        return project in self.projects
+        return project.id in self.project_ids_with_team_membership
 
 
 class OrganizationGlobalAccess(Access):
@@ -317,21 +357,33 @@ class OrganizationGlobalAccess(Access):
             and project.status == ProjectStatus.VISIBLE
         )
 
+    @cached_property
+    def accessible_team_ids(self) -> FrozenSet[int]:
+        return frozenset(
+            Team.objects.filter(
+                organization=self._organization, status=TeamStatus.VISIBLE
+            ).values_list("id", flat=True)
+        )
+
+    @cached_property
+    def accessible_project_ids(self) -> FrozenSet[int]:
+        return frozenset(
+            Project.objects.filter(
+                organization=self._organization, status=ProjectStatus.VISIBLE
+            ).values_list("id", flat=True)
+        )
+
 
 class OrganizationGlobalMembership(OrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
-    @cached_property
-    def teams(self) -> FrozenSet[Team]:
-        return frozenset(
-            Team.objects.filter(organization=self._organization, status=TeamStatus.VISIBLE)
-        )
+    @property
+    def team_ids_with_membership(self) -> FrozenSet[int]:
+        return self.accessible_team_ids
 
-    @cached_property
-    def projects(self) -> FrozenSet[Project]:
-        return frozenset(
-            Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
-        )
+    @property
+    def project_ids_with_team_membership(self) -> FrozenSet[int]:
+        return self.accessible_project_ids
 
     def has_team_membership(self, team: Team) -> bool:
         return self.has_team_access(team)
@@ -364,6 +416,18 @@ class SystemAccess(Access):
     def has_project_access(self, project: Project) -> bool:
         return True
 
+    # The semantically correct behavior for accessible_(team|project)_ids would be to
+    # query for all teams or projects in the system, which we don't want to attempt.
+    # Code paths that may have SystemAccess must avoid looking at these properties.
+
+    @property
+    def accessible_team_ids(self) -> FrozenSet[int]:
+        raise Exception("Cannot list all accessible teams for SystemAccess")
+
+    @property
+    def accessible_project_ids(self) -> FrozenSet[int]:
+        raise Exception("Cannot list all accessible projects for SystemAccess")
+
 
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
@@ -371,7 +435,7 @@ class NoAccess(OrganizationlessAccess):
 
 
 def from_request(
-    request, organization: Organization = None, scopes: Optional[Iterable[str]] = None
+    request, organization: Organization = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 
@@ -396,7 +460,7 @@ def from_request(
 
         return OrganizationGlobalAccess(
             organization=organization,
-            member=member,
+            _member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
@@ -410,7 +474,7 @@ def from_request(
 
 
 # only used internally
-def _from_sentry_app(user, organization: Optional[Organization] = None) -> Access:
+def _from_sentry_app(user, organization: Organization | None = None) -> Access:
     if not organization:
         return NoAccess()
 
@@ -429,8 +493,8 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
 
 def from_user(
     user,
-    organization: Optional[Organization] = None,
-    scopes: Optional[Iterable[str]] = None,
+    organization: Organization | None = None,
+    scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
 ) -> Access:
     if not user or user.is_anonymous or not user.is_active:
@@ -457,7 +521,7 @@ def from_user(
 
 def from_member(
     member: OrganizationMember,
-    scopes: Optional[Iterable[str]] = None,
+    scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
 ) -> Access:
     if scopes is not None:
