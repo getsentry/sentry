@@ -213,8 +213,11 @@ describe('getFieldRenderer', function () {
 
     render(renderer(data, {location, organization}));
 
+    expect(screen.queryByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/123214/`
+    );
     expect(screen.getByText('SENTRY-T6P')).toBeInTheDocument();
-    expect(screen.getByTestId('field-renderers-issue-link')).toBeInTheDocument();
   });
 
   it('can render project as an avatar', function () {
