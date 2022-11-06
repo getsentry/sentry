@@ -115,7 +115,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
     it('renders no data when empty response', async function () {
       const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
+        features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
       });
 
@@ -194,7 +194,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
+        features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
       });
 
@@ -268,7 +268,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
     it('renders header elements', async function () {
       const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
+        features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
       });
 
@@ -334,7 +334,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
     it('renders timeseries chart', async function () {
       const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
+        features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
       });
 
@@ -348,7 +348,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
     it('renders table headers', async function () {
       const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
+        features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
       });
 
@@ -365,11 +365,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
 
     describe('With histogram view feature flag enabled', function () {
-      const FEATURES = [
-        'performance-view',
-        'performance-suspect-spans-view',
-        'performance-span-histogram-view',
-      ];
+      const FEATURES = ['performance-view', 'performance-span-histogram-view'];
 
       beforeEach(function () {
         MockApiClient.addMockResponse({

@@ -89,16 +89,15 @@ class SavedSearch(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_savedsearch"
-        unique_together = (
-            # Each user can have one pinned search per org
-            ("organization", "owner", "type"),
-        )
+        unique_together = ()
         constraints = [
+            # Each user may only have one pinned search
             UniqueConstraint(
-                fields=["organization", "name", "type"],
-                condition=Q(owner__isnull=True),
-                name="sentry_savedsearch_is_global_6793a2f9e1b59b95",
+                fields=["organization", "owner", "type"],
+                condition=Q(visibility=Visibility.OWNER_PINNED),
+                name="sentry_savedsearch_pinning_constraint",
             ),
+            # Global saved searches should not have name overlaps
             UniqueConstraint(
                 fields=["is_global", "name"],
                 condition=Q(is_global=True),
@@ -108,7 +107,7 @@ class SavedSearch(Model):
 
     @property
     def is_pinned(self):
-        return self.owner is not None and self.organization is not None
+        return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")
 

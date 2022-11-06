@@ -23,11 +23,12 @@ const recordAnalyticsFirstEvent = ({
   });
 
 /**
- * Should no issue object be available (the first issue has expired) then it
- * will simply be boolean true. When no event has been received this will be
- * null. Otherwise it will be the group
+ * When no event has been received this will be set to null or false.
+ * Otherwise it will be the Group of the issue that was received.
+ * Or in the case of transactions & replay the value will be set to true.
+ * The `group.id` value is used to generate links directly into the event.
  */
-type FirstIssue = null | true | Group;
+type FirstIssue = null | boolean | Group;
 
 export interface EventWaiterProps {
   api: Client;

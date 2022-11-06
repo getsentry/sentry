@@ -2156,14 +2156,6 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
         # as the feature is under development.
         try:
             event = job["event"]
-            project = projects[job["project_id"]]
-
-            if not features.has(
-                "projects:performance-suspect-spans-ingestion",
-                project=project,
-            ):
-                continue
-
             with metrics.timer("event_manager.save.get_span_groupings.default"):
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
@@ -2281,7 +2273,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             if new_grouphashes:
                 # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
                 if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
-                    groups_to_create = new_grouphashes.copy()
+                    groups_to_ignore = set()
                     cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
                         "cluster", "default"
                     )
@@ -2289,9 +2281,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     for new_grouphash in new_grouphashes:
                         if not should_create_group(client, new_grouphash):
-                            groups_to_create.remove(new_grouphash)
+                            groups_to_ignore.add(new_grouphash)
 
-                    new_grouphashes = groups_to_create
+                    new_grouphashes = new_grouphashes - groups_to_ignore
 
                 new_grouphashes_count = len(new_grouphashes)
 
@@ -2388,7 +2380,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
-@metrics.wraps("performance.performance_issue.should_create_group")
+@metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
 def should_create_group(client: Any, grouphash: str) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(

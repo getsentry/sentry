@@ -540,7 +540,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(
         {
-            "organizations:performance-ops-breakdown": True,
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
@@ -599,12 +598,6 @@ def test_project_config_satisfaction_thresholds(
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
-    cfg = cfg.to_dict()
-    assert "spanAttributes" not in cfg["config"]
-
-    with Feature("projects:performance-suspect-spans-ingestion"):
-        cfg = get_project_config(default_project, full_config=True)
-
     cfg = cfg.to_dict()
     insta_snapshot(cfg["config"]["spanAttributes"])
 

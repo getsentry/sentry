@@ -953,6 +953,9 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+      is_global: savedSearch.isGlobal,
+      query: savedSearch.query,
+      visibility: savedSearch.visibility,
     });
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
@@ -1268,10 +1271,17 @@ class IssueListOverview extends Component<Props, State> {
             />
           </StyledMain>
           <SavedIssueSearches
-            {...{savedSearches, savedSearch, savedSearchLoading, organization}}
+            {...{
+              savedSearches,
+              savedSearch,
+              savedSearchLoading,
+              organization,
+              query,
+            }}
             isOpen={isSavedSearchesOpen}
             onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
+            sort={this.getSort()}
           />
         </StyledBody>
       </StyledPageContent>
