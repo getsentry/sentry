@@ -1,6 +1,6 @@
 import datetime
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from sentry.models import LostPasswordHash, LostPasswordHashMixin
 from sentry.services.hybrid_cloud import (
@@ -12,7 +12,7 @@ from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APILostPasswordHash(LostPasswordHashMixin):
+class APILostPasswordHash(LostPasswordHashMixin):  # type: ignore[misc]
     id: int = -1
     user_id: int = -1
     hash: str = ""
@@ -25,7 +25,7 @@ class LostPasswordHashService(InterfaceWithLifecycle):
     @abstractmethod
     def get_or_create(
         self,
-        user_id,
+        user_id: int,
     ) -> APILostPasswordHash:
         """
         This method returns a valid APILostPasswordHash for a user
@@ -33,11 +33,20 @@ class LostPasswordHashService(InterfaceWithLifecycle):
         """
         pass
 
+    @classmethod
+    def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> APILostPasswordHash:
+        args = {
+            field.name: getattr(lph, field.name)
+            for field in fields(APILostPasswordHash)
+            if hasattr(lph, field.name)
+        }
+        return APILostPasswordHash(**args)
+
 
 class DatabaseLostPasswordHashService(LostPasswordHashService):
     def get_or_create(
         self,
-        user_id,
+        user_id: int,
     ) -> APILostPasswordHash:
         # NOTE(mattrobenolt): Some security people suggest we invalidate
         # existing password hashes, but this opens up the possibility
@@ -47,12 +56,12 @@ class DatabaseLostPasswordHashService(LostPasswordHashService):
         # See: https://github.com/getsentry/sentry/pull/17299
         password_hash, created = LostPasswordHash.objects.get_or_create(user_id=user_id)
         if not password_hash.is_valid():
-            password_hash.date_added = datetime.timezone.now()
+            password_hash.date_added = datetime.datetime.now()
             password_hash.set_hash()
             password_hash.save()
-        return password_hash
+        return self.serialize_lostpasswordhash(password_hash)
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -60,8 +69,8 @@ StubUserOptionService = CreateStubFromBase(DatabaseLostPasswordHashService)
 
 lost_password_hash_service: LostPasswordHashService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: DatabaseLostPasswordHashService,
-        SiloMode.REGION: StubUserOptionService,
-        SiloMode.CONTROL: DatabaseLostPasswordHashService,
+        SiloMode.MONOLITH: lambda: DatabaseLostPasswordHashService(),
+        SiloMode.REGION: lambda: StubUserOptionService(),
+        SiloMode.CONTROL: lambda: DatabaseLostPasswordHashService(),
     }
 )

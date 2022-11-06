@@ -30,11 +30,13 @@ class DatabaseAuthProviderService(AuthProviderService):
     def get_org_ids_with_scim(
         self,
     ) -> List[int]:
-        return AuthProvider.objects.filter(
-            flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
-        ).values_list("organization_id", flat=True)
+        return list(
+            AuthProvider.objects.filter(
+                flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
+            ).values_list("organization_id", flat=True)
+        )
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -42,8 +44,8 @@ StubUserOptionService = CreateStubFromBase(DatabaseAuthProviderService)
 
 auth_provider_service: AuthProviderService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: DatabaseAuthProviderService,
-        SiloMode.REGION: StubUserOptionService,
-        SiloMode.CONTROL: DatabaseAuthProviderService,
+        SiloMode.MONOLITH: lambda: DatabaseAuthProviderService(),
+        SiloMode.REGION: lambda: StubUserOptionService(),
+        SiloMode.CONTROL: lambda: DatabaseAuthProviderService(),
     }
 )
