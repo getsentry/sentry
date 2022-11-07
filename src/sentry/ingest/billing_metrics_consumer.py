@@ -38,7 +38,6 @@ from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def get_metrics_billing_consumer(
