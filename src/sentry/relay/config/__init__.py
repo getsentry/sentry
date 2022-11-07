@@ -85,11 +85,6 @@ def get_public_key_configs(project, full_config, project_keys=None):
             "isEnabled": True,
         }
 
-        if full_config:
-            key["quotas"] = [
-                q.to_json_legacy() for q in quotas.get_quotas(project, key=project_key)
-            ]
-
         public_keys.append(key)
 
     return public_keys
