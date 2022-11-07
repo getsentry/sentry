@@ -39,7 +39,7 @@ function getProjectList(selectedProjects: PageFilters['projects'], projects: Pro
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]);
+  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
 function useShouldShowOnboardingPanel() {
