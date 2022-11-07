@@ -221,29 +221,29 @@ class AuthLoginView(BaseView):
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
                     # Refresh the organization we fetched prior to login in order to check its login state.
-                    organization = organization_service.get_organization_by_slug(
+                    org_context = organization_service.get_organization_by_slug(
                         user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
-                        allow_stale=False,
                     )
-                    if organization.member and request.user and not is_active_superuser(request):
-                        auth.set_active_org(request, organization.slug)
+                    if org_context:
+                        if org_context.member and request.user and not is_active_superuser(request):
+                            auth.set_active_org(request, org_context.organization.slug)
 
-                    if settings.SENTRY_SINGLE_ORGANIZATION:
-                        om = organization_service.check_membership_by_email(
-                            organization.id, user.email
-                        )
-                        if om is None:
-                            request.session.pop("_next", None)
-                        else:
-                            if om.user_id is None:
+                        if settings.SENTRY_SINGLE_ORGANIZATION:
+                            om = organization_service.check_membership_by_email(
+                                org_context.organization.id, user.email
+                            )
+                            if om is None:
                                 request.session.pop("_next", None)
+                            else:
+                                if om.user_id is None:
+                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:
                     onboarding_redirect = get_client_state_redirect_uri(
-                        self.active_organization.slug, None
+                        self.active_organization.organization.slug, None
                     )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect
