@@ -177,48 +177,38 @@ function ReleaseContext(props: ReleaseContextProps) {
 
     if (userInAuthors) {
       authorsCount = authorsCount - 1;
-      return data.authors.length - 1 !== 1 && data.commitCount !== 1
+      return authorsCount !== 1 && commitCount !== 1
         ? tct('[commitCount] commits by you and [authorsCount] others', {
             commitCount,
             authorsCount,
           })
-        : data.commitCount !== 1
-        ? tct('[commitCount] commits by you and [authorsCount] other', {
+        : commitCount !== 1
+        ? tct('[commitCount] commits by you and 1 other', {
             commitCount,
+          })
+        : authorsCount !== 1
+        ? tct('1 commit by you and [authorsCount] others', {
             authorsCount,
           })
-        : data.authors.length - 1 !== 1
-        ? tct('[commitCount] commit by you and [authorsCount] others', {
-            commitCount,
-            authorsCount,
-          })
-        : tct('[commitCount] commit by you and [authorsCount] other', {
-            commitCount,
-            authorsCount,
-          });
+        : t('1 commit by you and 1 other');
     }
 
     return (
       data &&
-      (data.authors.length !== 1 && data.commitCount !== 1
+      (authorsCount !== 1 && commitCount !== 1
         ? tct('[commitCount] commits by [authorsCount] authors', {
             commitCount,
             authorsCount,
           })
-        : data.commitCount !== 1
-        ? tct('[commitCount] commits by [authorsCount] author', {
+        : commitCount !== 1
+        ? tct('[commitCount] commits by 1 author', {
             commitCount,
+          })
+        : authorsCount !== 1
+        ? tct('1 commit by [authorsCount] authors', {
             authorsCount,
           })
-        : data.authors.length !== 1
-        ? tct('[commitCount] commit by [authorsCount] authors', {
-            commitCount,
-            authorsCount,
-          })
-        : tct('[commitCount] commit by [authorsCount] author', {
-            commitCount,
-            authorsCount,
-          }))
+        : t('1 commit by 1 author'))
     );
   };
 
