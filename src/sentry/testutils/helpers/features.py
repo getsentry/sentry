@@ -1,6 +1,5 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
-import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -103,8 +102,10 @@ def with_feature(feature):
 
 def apply_feature_flag_on_cls(feature_flag):
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            setattr(cls, name, with_feature(feature_flag)(fn))
+        # Wrap the [run](https://docs.python.org/3/library/unittest.html#unittest.TestCase.run) method
+        # with the with_feature decorator so all tests in the class can access the
+        # feature flag.
+        setattr(cls, "run", with_feature(feature_flag)(cls.run))
         return cls
 
     return decorate
