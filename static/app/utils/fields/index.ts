@@ -1,5 +1,7 @@
 import {t} from 'sentry/locale';
 
+// Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
+
 export enum FieldKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
