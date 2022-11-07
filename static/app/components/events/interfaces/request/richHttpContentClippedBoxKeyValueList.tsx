@@ -9,7 +9,7 @@ import getTransformedData from './getTransformedData';
 
 type Data = EntryRequest['data']['data'];
 
-type Props = {
+export type Props = {
   data: Data;
   title: string;
   defaultCollapsed?: boolean;

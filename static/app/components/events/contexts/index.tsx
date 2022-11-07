@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
@@ -16,24 +15,11 @@ type Props = {
 function Contexts({event, group}: Props) {
   const {user, contexts} = event;
 
-  console.log(contexts);
-  const {feedback, response, ...otherContexts} = contexts;
+  const {feedback, ...otherContexts} = contexts;
 
   return (
     <Fragment>
-      {response && !objectIsEmpty(response) && (
-        <ResponseChunk>
-          <Chunk
-            key="response"
-            type="response"
-            alias="response"
-            group={group}
-            event={event}
-            value={response}
-          />
-        </ResponseChunk>
-      )}
-      {/* {!objectIsEmpty(feedback) && (
+      {!objectIsEmpty(feedback) && (
         <Chunk
           key="feedback"
           type="feedback"
@@ -53,22 +39,43 @@ function Contexts({event, group}: Props) {
           value={user}
         />
       )}
-      {Object.entries(otherContexts).map(([key, value]) => (
-        <Chunk
-          key={key}
-          type={value?.type ?? ''}
-          alias={key}
-          group={group}
-          event={event}
-          value={value}
-        />
-      ))} */}
+      {Object.entries(otherContexts).map(([key, value]) => {
+        if (key === 'response') {
+          return (
+            <ResponseChunk key="response">
+              <Chunk
+                type="response"
+                alias="response"
+                group={group}
+                event={event}
+                value={value}
+              />
+            </ResponseChunk>
+          );
+        }
+
+        return (
+          <Chunk
+            key={key}
+            type={value?.type ?? ''}
+            alias={key}
+            group={group}
+            event={event}
+            value={value}
+          />
+        );
+      })}
     </Fragment>
   );
 }
 
 export default Contexts;
 
+// HACK: Styling overrides to render Response headers as key-value pairs
 const ResponseChunk = styled('div')`
-  border: 1px solid red;
+  #response-headers > pre {
+    padding: 0;
+    margin-left: 10px;
+    background: ${p => p.theme.background};
+  }
 `;

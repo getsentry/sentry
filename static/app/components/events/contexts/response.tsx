@@ -5,7 +5,10 @@ import {Wrapper} from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {RichHttpContentClippedBoxKeyValueList} from '../interfaces/request/richHttpContentClippedBoxKeyValueList';
+import {
+  Props as RichHttpContentClippedBoxKeyValueListProps,
+  RichHttpContentClippedBoxKeyValueList,
+} from '../interfaces/request/richHttpContentClippedBoxKeyValueList';
 
 type Props = {
   alias: string;
@@ -19,11 +22,14 @@ function getKnownData(data: Props['data']) {
     .map(([key, value]) => {
       if (key === 'headers') {
         return {
-          key,
+          key: 'response-headers',
           subject: startCase(key),
           value: (
             <StyledWrapper>
-              <RichHttpContentClippedBoxKeyValueList data={value} />
+              <RichHttpContentClippedBoxKeyValueList
+                title=""
+                data={value as RichHttpContentClippedBoxKeyValueListProps['data']}
+              />
             </StyledWrapper>
           ),
         };
@@ -36,22 +42,15 @@ function getKnownData(data: Props['data']) {
     });
 }
 
-const DefaultContextType = ({data}: Props) => (
-  <StyledContextBlock data={getKnownData(data)} />
-);
+const DefaultContextType = ({data}: Props) => <ContextBlock data={getKnownData(data)} />;
 
 export default DefaultContextType;
 
-const StyledContextBlock = styled(ContextBlock)`
-  pre {
-    padding: 0;
-    margin-left: 10px;
-  }
-`;
-
 const StyledWrapper = styled('div')`
-  background-color: green;
-  border: 1px solid red;
+  .val-string {
+    padding-left: 10px !important;
+  }
+
   ${Wrapper} {
     padding: 0;
 

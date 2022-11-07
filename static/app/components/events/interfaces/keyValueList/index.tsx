@@ -58,7 +58,7 @@ function KeyValueList({
                   {subject}
                 </TableSubject>
                 <td className="val" data-test-id={subjectDataTestId}>
-                  <Tablevalue>
+                  <Tablevalue id={key}>
                     {actionButton ? (
                       <ValueWithButtonContainer>
                         <Value {...valueProps} />

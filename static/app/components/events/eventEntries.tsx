@@ -507,7 +507,6 @@ function Entries({
             </EventDataSection>
           }
         >
-          {console.log(entry.type)}
           <EventEntry
             projectSlug={projectSlug}
             group={group}
