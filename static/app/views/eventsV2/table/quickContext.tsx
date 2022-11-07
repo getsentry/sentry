@@ -1,23 +1,27 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
+import AvatarList from 'sentry/components/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import {Body, Hovercard} from 'sentry/components/hovercard';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconInfo, IconMute, IconNot} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 // Will extend this enum as we add contexts for more columns
@@ -32,6 +36,10 @@ function isIssueContext(contextType: ContextType): boolean {
   return contextType === ContextType.ISSUE;
 }
 
+function isReleaseContext(contextType: ContextType): boolean {
+  return contextType === ContextType.RELEASE;
+}
+
 const fiveMinutesInMs = 5 * 60 * 1000;
 
 type IssueContextProps = {
@@ -42,54 +50,65 @@ type IssueContextProps = {
 
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
-  const {isLoading, isError, data} = useQuery({
-    queryKey: ['quick-context', 'issue', `${props.dataRow['issue.id']}`],
-    queryFn: () =>
-      props.api.requestPromise(`/issues/${props.dataRow['issue.id']}/`, {
-        method: 'GET',
+
+  const {isLoading, isError, data} = useQuery<Group>(
+    [
+      `/issues/${props.dataRow['issue.id']}/`,
+      {
         query: {
           collapse: 'release',
           expand: 'inbox',
         },
-      }),
-    onSuccess: group => {
-      GroupStore.add([group]);
-    },
-    staleTime: fiveMinutesInMs,
-    retry: false,
-  });
-
-  const renderStatus = () => (
-    <IssueContextContainer data-test-id="quick-context-issue-status-container">
-      <ContextTitle>
-        {statusTitle}
-        <FeatureBadge type="alpha" />
-      </ContextTitle>
-      <ContextBody>
-        {data.status === 'ignored' ? (
-          <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
-        ) : data.status === 'resolved' ? (
-          <IconCheckmark color="gray500" size="sm" />
-        ) : (
-          <IconNot
-            data-test-id="quick-context-unresolved-icon"
-            color="gray500"
-            size="sm"
-          />
-        )}
-        <StatusText>{data.status}</StatusText>
-      </ContextBody>
-    </IssueContextContainer>
+      },
+    ],
+    undefined,
+    {
+      onSuccess: group => {
+        GroupStore.add([group]);
+      },
+      staleTime: fiveMinutesInMs,
+      retry: false,
+    }
   );
 
-  const renderAssigneeSelector = () => (
-    <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-      <AssignedTo group={data} projectId={data.project.id} />
-    </IssueContextContainer>
-  );
+  const renderStatus = () =>
+    data && (
+      <IssueContextContainer data-test-id="quick-context-issue-status-container">
+        <ContextTitle>
+          {statusTitle}
+          <FeatureBadge type="alpha" />
+        </ContextTitle>
+        <ContextBody>
+          {data.status === 'ignored' ? (
+            <IconMute
+              data-test-id="quick-context-ignored-icon"
+              color="gray500"
+              size="sm"
+            />
+          ) : data.status === 'resolved' ? (
+            <IconCheckmark color="gray500" size="sm" />
+          ) : (
+            <IconNot
+              data-test-id="quick-context-unresolved-icon"
+              color="gray500"
+              size="sm"
+            />
+          )}
+          <StatusText>{data.status}</StatusText>
+        </ContextBody>
+      </IssueContextContainer>
+    );
+
+  const renderAssigneeSelector = () =>
+    data && (
+      <IssueContextContainer data-test-id="quick-context-assigned-to-container">
+        <AssignedTo group={data} projectId={data.project.id} />
+      </IssueContextContainer>
+    );
 
   const renderSuspectCommits = () =>
-    props.eventID && (
+    props.eventID &&
+    data && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
           project={data.project}
@@ -130,6 +149,152 @@ function NoContext({isLoading}: NoContextProps) {
   );
 }
 
+type ReleaseContextProps = {
+  api: Client;
+  dataRow: EventData;
+  organization: Organization;
+};
+
+function ReleaseContext(props: ReleaseContextProps) {
+  const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
+    [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
+    undefined,
+    {
+      staleTime: fiveMinutesInMs,
+      retry: false,
+    }
+  );
+
+  const getCommitAuthorTitle = () => {
+    const user = ConfigStore.get('user');
+    const commitCount = data?.commitCount || 0;
+    let authorsCount = data?.authors.length || 0;
+
+    const userInAuthors =
+      data &&
+      data.authors.length >= 1 &&
+      data.authors.find((author: User) => author.id && user.id && author.id === user.id);
+
+    if (userInAuthors) {
+      authorsCount = authorsCount - 1;
+      return authorsCount !== 1 && commitCount !== 1
+        ? tct('[commitCount] commits by you and [authorsCount] others', {
+            commitCount,
+            authorsCount,
+          })
+        : commitCount !== 1
+        ? tct('[commitCount] commits by you and 1 other', {
+            commitCount,
+          })
+        : authorsCount !== 1
+        ? tct('1 commit by you and [authorsCount] others', {
+            authorsCount,
+          })
+        : t('1 commit by you and 1 other');
+    }
+
+    return (
+      data &&
+      (authorsCount !== 1 && commitCount !== 1
+        ? tct('[commitCount] commits by [authorsCount] authors', {
+            commitCount,
+            authorsCount,
+          })
+        : commitCount !== 1
+        ? tct('[commitCount] commits by 1 author', {
+            commitCount,
+          })
+        : authorsCount !== 1
+        ? tct('1 commit by [authorsCount] authors', {
+            authorsCount,
+          })
+        : t('1 commit by 1 author'))
+    );
+  };
+
+  const renderReleaseDetails = () => {
+    const statusText = data?.status === 'open' ? t('Active') : t('Archived');
+    return (
+      <ReleaseContextContainer data-test-id="quick-context-release-details-container">
+        <ContextTitle>
+          {t('Release Details')}
+          <FeatureBadge type="alpha" />
+        </ContextTitle>
+        <ContextBody>
+          <StyledKeyValueTable>
+            <KeyValueTableRow keyName={t('Status')} value={statusText} />
+            {data?.status === 'open' && (
+              <Fragment>
+                <KeyValueTableRow
+                  keyName={t('Created')}
+                  value={<TimeSince date={data.dateCreated} />}
+                />
+                <KeyValueTableRow
+                  keyName={t('First Event')}
+                  value={
+                    data.firstEvent ? <TimeSince date={data.firstEvent} /> : '\u2014'
+                  }
+                />
+                <KeyValueTableRow
+                  keyName={t('Last Event')}
+                  value={data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
+                />
+              </Fragment>
+            )}
+          </StyledKeyValueTable>
+        </ContextBody>
+      </ReleaseContextContainer>
+    );
+  };
+
+  const renderLastCommit = () =>
+    data &&
+    data.lastCommit && (
+      <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
+        <ContextTitle>{t('Last Commit')}</ContextTitle>
+        <DataSection>
+          <Panel>
+            <QuickContextCommitRow commit={data.lastCommit} />
+          </Panel>
+        </DataSection>
+      </ReleaseContextContainer>
+    );
+
+  const renderIssueCountAndAuthors = () =>
+    data && (
+      <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
+        <ContextRow>
+          <div>
+            <ContextTitle>{t('New Issues')}</ContextTitle>
+            <ReleaseStatusBody>{data.newGroups}</ReleaseStatusBody>
+          </div>
+          <div>
+            <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+            <ReleaseAuthorsBody>
+              {data.commitCount === 0 ? (
+                <IconNot color="gray500" size="md" />
+              ) : (
+                <AvatarList users={data.authors} />
+              )}
+            </ReleaseAuthorsBody>
+          </div>
+        </ContextRow>
+      </ReleaseContextContainer>
+    );
+
+  if (isLoading || isError) {
+    return <NoContext isLoading={isLoading} />;
+  }
+
+  return (
+    <Fragment>
+      {renderReleaseDetails()}
+      {renderIssueCountAndAuthors()}
+      {renderLastCommit()}
+    </Fragment>
+  );
+}
+
 type ContextProps = {
   children: React.ReactNode;
   contextType: ContextType;
@@ -143,7 +308,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
-      queryClient.invalidateQueries({queryKey: ['quick-context']});
+      queryClient.clear();
     };
   }, [queryClient]);
 
@@ -160,6 +325,12 @@ export function QuickContextHoverWrapper(props: ContextProps) {
                 api={api}
                 dataRow={props.dataRow}
                 eventID={props.dataRow.id}
+              />
+            ) : isReleaseContext(props.contextType) && props.organization ? (
+              <ReleaseContext
+                api={api}
+                dataRow={props.dataRow}
+                organization={props.organization}
               />
             ) : (
               <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
@@ -268,4 +439,41 @@ const NoContextWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+`;
+
+const StyledKeyValueTable = styled(KeyValueTable)`
+  width: 100%;
+  margin: 0;
+`;
+
+const ReleaseContextContainer = styled(ContextContainer)`
+  ${Panel} {
+    margin: 0;
+    border: none;
+    box-shadow: none;
+  }
+  ${DataSection} {
+    padding: 0;
+  }
+  & + & {
+    margin-top: ${space(2)};
+  }
+`;
+
+const ReleaseAuthorsTitle = styled(ContextTitle)`
+  max-width: 200px;
+  text-align: right;
+`;
+
+const ContextRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const ReleaseAuthorsBody = styled(ContextBody)`
+  justify-content: right;
+`;
+
+const ReleaseStatusBody = styled('h4')`
+  margin-bottom: 0;
 `;
