@@ -165,10 +165,10 @@ def log_project_codemappings(
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
         sentry_sdk.capture_message(
-            f"Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
+            f"derive_code_mappings: Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
         )
         return
 
     sentry_sdk.capture_message(
-        f"Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
+        f"derive_code_mappings: Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
     )
