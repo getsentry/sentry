@@ -2,7 +2,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 
-from sentry.models import LostPasswordHash, LostPasswordHashMixin
+from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud import (
     CreateStubFromBase,
     InterfaceWithLifecycle,
@@ -12,11 +12,15 @@ from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APILostPasswordHash(LostPasswordHashMixin):  # type: ignore[misc]
+class APILostPasswordHash:  # type: ignore[misc]
     id: int = -1
     user_id: int = -1
     hash: str = ""
     date_added = datetime.datetime
+
+    # Duplicated from LostPasswordHash
+    def get_absolute_url(self, mode: str = "recover") -> str:
+        return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
 
 
 class LostPasswordHashService(InterfaceWithLifecycle):

@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -15,27 +14,8 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.lostpasswordhash import APILostPasswordHash
 
 
-class LostPasswordHashMixin(metaclass=ABCMeta):
-    @property
-    @abstractmethod
-    def user_id(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def hash(self) -> str:
-        pass
-
-    def get_absolute_url(self, mode: str = "recover") -> str:
-        url_key = "sentry-account-recover-confirm"
-        if mode == "set_password":
-            url_key = "sentry-account-set-password-confirm"
-
-        return absolute_uri(reverse(url_key, args=[self.user_id, self.hash]))
-
-
 @control_silo_only_model
-class LostPasswordHash(Model, LostPasswordHashMixin):  # type: ignore
+class LostPasswordHash(Model):  # type: ignore
     __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
@@ -82,6 +62,18 @@ class LostPasswordHash(Model, LostPasswordHashMixin):  # type: ignore
             context=context,
         )
         msg.send_async([self.user.email])
+
+    # Duplicated from APILostPasswordHash
+    def get_absolute_url(self, mode: str = "recover") -> str:
+        return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
+
+    @classmethod
+    def get_lostpassword_url(self, user_id: int, hash: str, mode: str = "recover") -> str:
+        url_key = "sentry-account-recover-confirm"
+        if mode == "set_password":
+            url_key = "sentry-account-set-password-confirm"
+
+        return absolute_uri(reverse(url_key, args=[user_id, hash]))
 
     @classmethod
     def for_user(cls, user) -> "APILostPasswordHash":
