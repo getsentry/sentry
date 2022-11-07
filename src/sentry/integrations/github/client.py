@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
@@ -12,6 +12,7 @@ from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
+from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -102,18 +103,45 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(self, org_name: str) -> JSONData:
+    def get_trees_for_org(
+        self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
+    ) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
         trees: JSONData = {}
-        repositories = self.get_repositories(fetch_max_pages=True)
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        for repo_info in repositories:
-            full_name: str = repo_info["full_name"]
-            branch = repo_info["default_branch"]
-            trees[full_name] = {"default_branch": branch, "files": self.get_tree(full_name, branch)}
+        cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
+        repo_key = "githubtrees:repo"
+        cached_repositories = cache.get(cache_key, [])
+        if not cached_repositories:
+            # Simply removing unnecessary fields from the response
+            repositories = [
+                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+                for repo in self.get_repositories(fetch_max_pages=True)
+            ]
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            for repo_info in repositories:
+                try:
+                    full_name: str = repo_info["full_name"]
+                    branch = repo_info["default_branch"]
+                    trees[full_name] = {
+                        "default_branch": branch,
+                        "files": self.get_tree(full_name, branch),
+                    }
+                    cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
+                except Exception:
+                    # Catching the exception ensures that we can make progress with the rest
+                    # of the repositories
+                    logger.exception(f"We have failed to fetch the tree for {repo_info}.")
+            cache.set(cache_key, repositories, cache_seconds)
+            next_time = datetime.now() + timedelta(seconds=cache_seconds)
+            logger.info(f"Caching trees for {gh_org} org until {next_time}.")
+        else:
+            for repo_info in cached_repositories:
+                trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
+            logger.info(f"Using cached trees for {gh_org}.")
+
         return trees
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
