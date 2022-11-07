@@ -191,6 +191,11 @@ class Referrer(Enum):
     )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
+
+    API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
+    API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
+    API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
+
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"

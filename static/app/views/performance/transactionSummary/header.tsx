@@ -128,7 +128,7 @@ function TransactionHeader({
           replayEventView.getEventsAPIPayload(location)
         );
 
-        setReplaysCount(Number(data.data[0]['count_unique(replayId)']));
+        setReplaysCount(Number(data.data?.[0]?.['count_unique(replayId)'] ?? 0));
       } catch (err) {
         Sentry.captureException(err);
         return null;

@@ -44,9 +44,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  currentWidgetDragging: boolean;
   isEditing: boolean;
-  isSorting: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
