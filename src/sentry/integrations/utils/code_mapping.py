@@ -1,6 +1,8 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
+from .repo import Repo, RepoTree
+
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
 
@@ -8,20 +10,10 @@ logger.setLevel(logging.INFO)
 NO_TOP_DIR = "NO_TOP_DIR"
 
 
-class Repo(NamedTuple):
-    name: str
-    branch: str
-
-
 class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
-
-
-class RepoTree(NamedTuple):
-    repo: Repo
-    files: List[str]
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that

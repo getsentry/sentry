@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.tree import trim_tree
+from sentry.integrations.utils.repo import Repo, RepoTree, trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -126,7 +126,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
                     files = self.get_tree(full_name, branch)
-                    trees[full_name] = {"default_branch": branch, "files": files}
+                    repo = Repo(full_name, branch)
+                    trees[full_name] = RepoTree(repo, files)
                     cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
                 except Exception:
                     # Catching the exception ensures that we can make progress with the rest
