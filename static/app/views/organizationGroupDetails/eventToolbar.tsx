@@ -194,12 +194,4 @@ const LinkContainer = styled('span')`
   }
 `;
 
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)} ${space(1)};
-  text-align: left;
-  margin: 0;
-`;
-
 export default GroupEventToolbar;

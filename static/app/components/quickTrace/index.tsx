@@ -30,7 +30,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire, IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDocsPlatform} from 'sentry/utils/docs';
@@ -66,7 +66,6 @@ type QuickTraceProps = Pick<
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceType;
-  project?: AvatarProject;
 };
 
 export default function QuickTrace({
@@ -74,7 +73,6 @@ export default function QuickTrace({
   quickTrace,
   location,
   organization,
-  project,
   anchor,
   errorDest,
   transactionDest,
@@ -90,21 +88,29 @@ export default function QuickTrace({
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const replayId = event.tags?.find(({key}) => key === 'replayId')?.value;
-  const showReplay =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   const nodes: React.ReactNode[] = [];
 
-  if (showReplay) {
+  if (organization.features.includes('session-replay-ui')) {
     nodes.push(
-      <EventNodeReplay
-        to={`/organizations/${organization.slug}/replays/${project?.slug}:${replayId}`}
-        type={replayId ? 'black' : 'white'}
-        icon={<IconPlay size="xs" />}
-        tooltipText={replayId ? '' : 'Replay cannot be found'}
-      >
-        {replayId ? 'Replay' : '???'}
-      </EventNodeReplay>
+      <Projects orgId={organization.slug} slugs={[current.project_slug]}>
+        {({projects}) => {
+          const project = projects.find(p => p.slug === current.project_slug);
+          if (projectSupportsReplay(project)) {
+            return (
+              <EventNodeReplay
+                to={`/organizations/${organization.slug}/replays/${current.project_slug}:${replayId}`}
+                type={replayId ? 'black' : 'white'}
+                icon={<IconPlay size="xs" />}
+                tooltipText={replayId ? '' : 'Replay cannot be found'}
+              >
+                {replayId ? 'Replay' : '???'}
+              </EventNodeReplay>
+            );
+          }
+          return null;
+        }}
+      </Projects>
     );
   }
 
