@@ -73,7 +73,6 @@ def test_outcomes_consumed(_gbp):
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
         max_batch_size=2,
-        max_batch_time=10000,
     )
     assert not fake_commit.mock_calls
 
