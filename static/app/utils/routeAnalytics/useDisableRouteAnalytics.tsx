@@ -4,11 +4,11 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 /**
  * Disables route analytics when called in a component.
- * Must be called within 2s after the organization context is loaded.
+ * Must be called within 4s after the organization context is loaded.
  */
 export default function useDisableRouteAnalytics() {
-  const {setDisableRouteAnalytics} = useContext(RouteAnalyticsContext);
+  const {setDisableRouteAnalytics, previousUrl} = useContext(RouteAnalyticsContext);
   useEffect(() => {
     setDisableRouteAnalytics();
-  }, [setDisableRouteAnalytics]);
+  }, [setDisableRouteAnalytics, previousUrl]);
 }

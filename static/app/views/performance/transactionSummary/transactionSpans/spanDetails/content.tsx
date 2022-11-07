@@ -19,6 +19,8 @@ import SuspectSpansQuery, {
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -46,8 +48,18 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
+  // customize the route analytics event we send
+  useRouteAnalyticsEventNames(
+    'performance_views.span_summary.view',
+    'Performance Views: Span Summary page viewed'
+  );
+  useRouteAnalyticsParams({
+    project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
+  });
+
   useEffect(() => {
-    if (project) {
+    // TODO: remove once we set this flag to true for everyone
+    if (project && !organization.features.includes('auto-capture-page-load-analytics')) {
       trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
         organization,
         project_platforms: getSelectedProjectPlatforms(location, [project]),

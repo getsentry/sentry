@@ -274,6 +274,7 @@ class ReleasesDetailContainer extends AsyncComponent<
       prevProps.params.release !== params.release ||
       prevProps.organization.slug !== organization.slug
     ) {
+      this.props.setRouteAnalyticsParams({release: this.props.params.release});
       super.componentDidUpdate(prevProps, prevState);
     }
   }
