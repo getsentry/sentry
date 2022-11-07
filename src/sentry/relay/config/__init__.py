@@ -70,11 +70,6 @@ def get_exposed_features(project: Project) -> Sequence[str]:
     return active_features
 
 
-def get_project_key_config(project_key):
-    """Returns a dict containing the information for a specific project key"""
-    return {"dsn": project_key.dsn_public}
-
-
 def get_public_key_configs(project, full_config, project_keys=None):
     public_keys = []
 

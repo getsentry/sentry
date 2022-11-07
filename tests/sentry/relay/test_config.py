@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_redis_client_for_ds,
@@ -13,7 +14,7 @@ from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import get_project_config
+from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -79,6 +80,14 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 
 
 @pytest.mark.django_db
+def test_get_project_config_non_visible(default_project):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update(status=ObjectStatus.PENDING_DELETION)
+    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    assert cfg.to_dict() == {"disabled": True}
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
@@ -122,11 +131,18 @@ def test_get_experimental_config(mock_sentry_sdk, _, default_project):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("has_custom_filters", [False, True])
-def test_project_config_uses_filter_features(default_project, has_custom_filters):
+@pytest.mark.parametrize("has_blacklisted_ips", [False, True])
+def test_project_config_uses_filter_features(
+    default_project, has_custom_filters, has_blacklisted_ips
+):
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
+    blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
+
+    if has_blacklisted_ips:
+        default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
         cfg = get_project_config(default_project, full_config=True)
@@ -134,6 +150,7 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
     cfg = cfg.to_dict()
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
+    cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
 
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
@@ -141,6 +158,34 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
+
+    if has_blacklisted_ips:
+        assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
+    else:
+        assert cfg_client_ips is None
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:custom-inbound-filters"])
+def test_project_config_exposed_features(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    cfg_features = get_path(cfg, "config", "features")
+    assert cfg_features == ["projects:custom-inbound-filters"]
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
+def test_project_config_exposed_features_raise_exc(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        with pytest.raises(RuntimeError) as exc_info:
+            get_project_config(default_project, full_config=True)
+        assert (
+            str(exc_info.value)
+            == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
+        )
 
 
 @pytest.mark.django_db
@@ -556,6 +601,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("has_metrics_extraction", (True, False))
+def test_project_config_with_organizations_metrics_extraction(
+    default_project, has_metrics_extraction
+):
+    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    session_metrics = get_path(cfg, "config", "sessionMetrics")
+    if has_metrics_extraction:
+        assert session_metrics == {"drop": False, "version": 1}
+    else:
+        assert session_metrics is None
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
 @pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
 def test_project_config_satisfaction_thresholds(
@@ -653,3 +714,49 @@ def test_accept_transaction_names(default_project, org_sample):
             if org_sample
             else "strict"
         )
+
+
+@pytest.mark.django_db
+def test_project_config_setattr(default_project):
+    project_cfg = ProjectConfig(default_project)
+    with pytest.raises(Exception) as exc_info:
+        project_cfg.foo = "bar"
+    assert str(exc_info.value) == "Trying to change read only ProjectConfig object"
+
+
+@pytest.mark.django_db
+def test_project_config_getattr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.foo == "bar"
+
+
+@pytest.mark.django_db
+def test_project_config_str(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert str(project_cfg) == '{"foo":"bar"}'
+
+    with mock.patch.object(ProjectConfig, "to_dict") as fake_to_dict:
+        fake_to_dict.side_effect = ValueError("bad data")
+        project_cfg1 = ProjectConfig(default_project)
+        assert str(project_cfg1) == "Content Error:bad data"
+
+
+@pytest.mark.django_db
+def test_project_config_repr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_to_json_string(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.to_json_string() == '{"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_get_at_path(default_project):
+    project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
+    assert project_cfg.get_at_path("b") == "The b"
+    assert project_cfg.get_at_path("bb") is None
+    assert project_cfg.get_at_path("b", "c") is None
+    assert project_cfg.get_at_path() == project_cfg
