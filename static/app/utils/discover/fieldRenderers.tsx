@@ -13,6 +13,7 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import Tooltip from 'sentry/components/tooltip';
@@ -58,6 +59,7 @@ import {
   FieldShortId,
   FlexContainer,
   NumberContainer,
+  OverflowFieldShortId,
   OverflowLink,
   UserIcon,
   VersionContainer,
@@ -479,15 +481,17 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          <OverflowLink to={target} aria-label={issueID}>
-            {organization.features.includes('discover-quick-context') ? (
-              <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
-                <FieldShortId shortId={`${data.issue}`} />
-              </QuickContextHoverWrapper>
-            ) : (
-              <FieldShortId shortId={`${data.issue}`} />
-            )}
-          </OverflowLink>
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+              <StyledLink to={target} aria-label={issueID}>
+                <OverflowFieldShortId shortId={`${data.issue}`} />
+              </StyledLink>
+            </QuickContextHoverWrapper>
+          ) : (
+            <StyledLink to={target} aria-label={issueID}>
+              <OverflowFieldShortId shortId={`${data.issue}`} />
+            </StyledLink>
+          )}
         </Container>
       );
     },
@@ -584,10 +588,20 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   release: {
     sortField: 'release',
-    renderFunc: data =>
+    renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper
+              dataRow={data}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+            </QuickContextHoverWrapper>
+          ) : (
+            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          )}
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>
@@ -888,6 +902,10 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
   background-color: ${p => p.theme.gray100};
+`;
+
+const StyledLink = styled(Link)`
+  max-width: 100%;
 `;
 
 /**

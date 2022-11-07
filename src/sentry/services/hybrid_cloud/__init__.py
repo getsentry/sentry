@@ -1,58 +1,20 @@
+from __future__ import annotations
+
 import contextlib
+import functools
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from enum import Enum
-from typing import Dict, Generic, Iterable, List, Mapping, Optional, Type, TypeVar, cast
-
-from sentry.models import Organization, OrganizationMember, OrganizationStatus
+from types import TracebackType
+from typing import Any, Callable, Dict, Generator, Generic, Mapping, Optional, Type, TypeVar, cast
 
 logger = logging.getLogger(__name__)
-
-from django.db.models import F
 
 from sentry.silo import SiloMode
 
 
-class ProjectKeyRole(Enum):
-    store = "store"
-    api = "api"
-
-    def as_orm_role(self):
-        from sentry.models import ProjectKey
-
-        if self == ProjectKeyRole.store:
-            return ProjectKey.roles.store
-        elif self == ProjectKeyRole.api:
-            return ProjectKey.roles.api
-        else:
-            raise ValueError("Unexpected project key role enum")
-
-
-@dataclass
-class ApiProjectKey:
-    dsn_public: str = ""
-
-
-@dataclass
-class ApiOrganizationMember:
-    # This can be null when the user is deleted.
-    user_id: Optional[int]
-    pass
-
-
-@dataclass
-class ApiOrganization:
-    slug: str = ""
-    id: int = -1
-    # exists iff the organization was queried with a user_id context, and that user_id
-    # was confirmed to be a member.
-    member: Optional[ApiOrganizationMember] = None
-
-
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -70,15 +32,17 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     service is closed, or when the backing service implementation changes.
     """
 
-    _constructors: Mapping[SiloMode, Type[ServiceInterface]]
+    _constructors: Mapping[SiloMode, Callable[[], ServiceInterface]]
     _singleton: Dict[SiloMode, ServiceInterface]
 
-    def __init__(self, mapping: Mapping[SiloMode, Type[ServiceInterface]]):
+    def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
         self._constructors = mapping
         self._singleton = {}
 
     @contextlib.contextmanager
-    def with_replacement(self, service: Optional[ServiceInterface], silo_mode: SiloMode):
+    def with_replacement(
+        self, service: Optional[ServiceInterface], silo_mode: SiloMode
+    ) -> Generator[None, None, None]:
         prev = self._singleton
         self.close()
 
@@ -90,161 +54,20 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         self.close()
         self._singleton = prev
 
-    def __getattr__(self, item: str):
+    def __getattr__(self, item: str) -> Any:
         cur_mode = SiloMode.get_current_mode()
         if impl := self._singleton.get(cur_mode, None):
             return getattr(impl, item)
-        if Con := self._constructors.get(cur_mode, None):
+        if con := self._constructors.get(cur_mode, None):
             self.close()
-            return getattr(self._singleton.setdefault(cur_mode, Con()), item)
+            return getattr(self._singleton.setdefault(cur_mode, con()), item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 
-    def close(self):
+    def close(self) -> None:
         for impl in self._singleton.values():
             impl.close()
         self._singleton = {}
-
-
-class ProjectKeyService(InterfaceWithLifecycle):
-    @abstractmethod
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
-        pass
-
-
-class OrganizationService(InterfaceWithLifecycle):
-    @abstractmethod
-    def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
-    ) -> List[ApiOrganization]:
-        """
-        This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
-        an appropriate set.
-        :param user_id:
-        When null, this should imply the entire set of organizations, not bound by user.  Be certain to authenticate
-        users before returning this.
-        :param scope:
-        :param only_visible:
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def check_membership_by_email(
-        self, organization_id: int, email: str
-    ) -> Optional[ApiOrganizationMember]:
-        """
-        Used to look up an organization membership by an email, used in very specific edge cases.
-        """
-        pass
-
-    @abstractmethod
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
-    ) -> Optional[ApiOrganization]:
-        pass
-
-    def _serialize_member(self, member: OrganizationMember) -> ApiOrganizationMember:
-        return ApiOrganizationMember(user_id=member.user.id if member.user is not None else None)
-
-    def _serialize_organization(
-        self, org: Organization, membership: Iterable[OrganizationMember] = tuple()
-    ) -> ApiOrganization:
-        org = ApiOrganization(slug=org.slug, id=org.id)
-
-        for member in membership:
-            if member.organization.id == org.id:
-                org.member = self._serialize_member(member)
-                break
-
-        return org
-
-
-class DatabaseBackedOrganizationService(OrganizationService):
-    def check_membership_by_email(
-        self, organization_id: int, email: str
-    ) -> Optional[ApiOrganizationMember]:
-        try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
-        except OrganizationMember.DoesNotExist:
-            return None
-
-        return self._serialize_member(member)
-
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
-    ) -> Optional[ApiOrganization]:
-        membership: List[OrganizationMember]
-        if user_id is not None:
-            membership = OrganizationMember.objects.filter(user_id=user_id)
-        else:
-            membership = []
-        try:
-            if allow_stale:
-                org = Organization.objects.get_from_cache(slug=slug)
-            else:
-                org = Organization.objects.get(slug=slug)
-
-            if only_visible and org.status != OrganizationStatus.VISIBLE:
-                raise Organization.DoesNotExist
-            return self._serialize_organization(org, membership)
-        except Organization.DoesNotExist:
-            logger.info("Active organization [%s] not found", slug)
-
-        return None
-
-    def close(self):
-        pass
-
-    def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
-    ) -> List[ApiOrganization]:
-        if user_id is None:
-            return []
-        organizations = self._query_organizations(user_id, scope, only_visible)
-        membership = OrganizationMember.objects.filter(user_id=user_id)
-        return [self._serialize_organization(o, membership) for o in organizations]
-
-    def _query_organizations(
-        self, user_id: int, scope: Optional[str], only_visible: bool
-    ) -> List[Organization]:
-        from django.conf import settings
-
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(Organization.objects.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(Organization.objects.filter())
-
-        qs = OrganizationMember.objects.filter(user_id=user_id)
-
-        qs = qs.select_related("organization")
-        if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
-
-        results = list(qs)
-
-        if scope is not None:
-            return [r.organization for r in results if scope in r.get_scopes()]
-
-        return [r.organization for r in results]
-
-
-class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def close(self):
-        pass
-
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
-        from sentry.models import ProjectKey
-
-        project_keys = ProjectKey.objects.filter(
-            project=project_id, roles=F("roles").bitor(role.as_orm_role())
-        )
-
-        if project_keys:
-            return ApiProjectKey(dsn_public=project_keys[0].dsn_public)
-
-        return None
 
 
 def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
@@ -259,15 +82,14 @@ def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
     """
     Super = base.__bases__[0]
 
-    def __init__(self, *args, **kwds):
-        Super.__init__(self, *args, **kwds)
+    def __init__(self: Any, *args: Any, **kwds: Any) -> None:
         self.backing_service = base(*args, **kwds)
 
-    def close(self):
+    def close(self: Any) -> None:
         self.backing_service.close()
 
-    def make_method(method_name: str):
-        def method(self, *args, **kwds):
+    def make_method(method_name: str) -> Any:
+        def method(self: Any, *args: Any, **kwds: Any) -> Any:
             from sentry.testutils.silo import exempt_from_silo_limits
 
             with exempt_from_silo_limits():
@@ -287,16 +109,14 @@ def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
     return cast(Type[ServiceInterface], type(f"Stub{Super.__name__}", (Super,), methods))
 
 
-StubProjectKeyService = CreateStubFromBase(DatabaseBackedProjectKeyService)
-StubOrganizationService = CreateStubFromBase(DatabaseBackedOrganizationService)
-
-
-def silo_mode_delegation(mapping: Mapping[SiloMode, Type[ServiceInterface]]) -> ServiceInterface:
+def silo_mode_delegation(
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+) -> ServiceInterface:
     """
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
     the mapping values.
     """
-    return cast(InterfaceWithLifecycle, DelegatedBySiloMode(mapping))
+    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
 
 
 @contextlib.contextmanager
@@ -304,7 +124,7 @@ def service_stubbed(
     service: InterfaceWithLifecycle,
     stub: Optional[InterfaceWithLifecycle],
     silo_mode: Optional[SiloMode] = None,
-):
+) -> Generator[None, None, None]:
     """
     Replaces a service created with silo_mode_delegation with a replacement implementation while inside of the scope,
     closing the existing implementation on enter and closing the given implementation on exit.
@@ -319,53 +139,50 @@ def service_stubbed(
         raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
-@contextlib.contextmanager
-def use_real_service(service: InterfaceWithLifecycle, silo_mode: SiloMode):
-    """
-    Removes any stubbed implementations, forcing the default configured implementation.
-    Important for integration tests that validate the integration of production service implementations.
-    """
-    from django.test import override_settings
+class use_real_service:
+    service: InterfaceWithLifecycle
+    silo_mode: SiloMode | None
+    context: contextlib.ExitStack
 
-    if silo_mode is None:
-        silo_mode = SiloMode.get_current_mode()
+    def __init__(self, service: InterfaceWithLifecycle, silo_mode: SiloMode | None):
+        self.silo_mode = silo_mode
+        self.service = service
+        self.context = contextlib.ExitStack()
 
-    if isinstance(service, DelegatedBySiloMode):
-        with override_settings(SILO_MODE=silo_mode):
-            with service.with_replacement(None, silo_mode):
-                yield
-    else:
-        raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
+    def __enter__(self) -> None:
+        from django.test import override_settings
 
+        if isinstance(self.service, DelegatedBySiloMode):
+            if self.silo_mode is not None:
+                self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
+                self.context.enter_context(
+                    cast(
+                        Any,
+                        self.service.with_replacement(None, self.silo_mode),
+                    )
+                )
+            else:
+                self.context.enter_context(
+                    cast(
+                        Any,
+                        self.service.with_replacement(None, SiloMode.get_current_mode()),
+                    )
+                )
+        else:
+            raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
 
-class RegionClientBackedProjectKeyService(ProjectKeyService):
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
-        pass
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(f)
+        def wrapped(*args: Any, **kwds: Any) -> Any:
+            with self:
+                return f(*args, **kwds)
 
-    def close(self):
-        pass
+        return wrapped
 
-
-class RegionClientBackedOrganizationService(ProjectKeyService):
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
-        pass
-
-    def close(self):
-        pass
-
-
-project_key_service: ProjectKeyService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: DatabaseBackedProjectKeyService,
-        SiloMode.REGION: DatabaseBackedProjectKeyService,
-        SiloMode.CONTROL: StubProjectKeyService,
-    }
-)
-
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: DatabaseBackedOrganizationService,
-        SiloMode.REGION: DatabaseBackedOrganizationService,
-        SiloMode.CONTROL: StubOrganizationService,
-    }
-)
+    def __exit__(
+        self,
+        __exc_type: Type[BaseException] | None,
+        __exc_value: BaseException | None,
+        __traceback: TracebackType | None,
+    ) -> bool | None:
+        return self.context.__exit__(__exc_type, __exc_value, __traceback)

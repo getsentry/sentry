@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.utils.snuba import Dataset, SnubaTSResult
 
@@ -12,6 +12,7 @@ def query(
     selected_columns: List[str],
     query: Optional[str],
     params: ParamsType,
+    snuba_params: Optional[SnubaParams] = None,
     equations: Optional[List[str]] = None,
     orderby: Optional[List[str]] = None,
     offset: int = 0,
@@ -33,11 +34,13 @@ def query(
         dataset=Dataset.Profiles,
         params=params,
         query=query,
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
         auto_fields=auto_fields,
         auto_aggregations=auto_aggregations,
         use_aggregate_conditions=use_aggregate_conditions,
+        transform_alias_to_input_format=transform_alias_to_input_format,
         functions_acl=functions_acl,
         limit=limit,
         offset=offset,
@@ -58,10 +61,12 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
+    use_metrics_layer: bool = False,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
+        query=query,
         interval=rollup,
         selected_columns=selected_columns,
         functions_acl=functions_acl,

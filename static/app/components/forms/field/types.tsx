@@ -36,10 +36,6 @@ export interface FieldGroupProps {
    */
   error?: string | boolean;
   /**
-   * The error state. Will not be rendered if hideControlState is true
-   */
-  errorState?: React.ReactNode;
-  /**
    * Allow the control state to flex based on its content. When enabled the
    * control state element will NOT take up space unless it has some state to
    * show (such as an error).
@@ -127,10 +123,6 @@ interface ChildRenderProps extends Omit<FieldGroupProps, 'className' | 'disabled
    * Same as {@link FieldGroupProps.controlState}, but will always be defined
    */
   controlState: React.ReactNode;
-  /**
-   * The error state may be null if there is no error
-   */
-  errorState: React.ReactNode | null;
   /**
    * The rendered help node
    */

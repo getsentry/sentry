@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
@@ -595,6 +597,49 @@ def process_rules(job: PostProcessJob) -> None:
     return
 
 
+def process_code_mappings(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from sentry.tasks.derive_code_mappings import derive_code_mappings
+
+    try:
+        event = job["event"]
+        project = event.project
+
+        # We're currently only processing code mappings for python events
+        if event.data["platform"] != "python":
+            return
+
+        cache_key = f"code-mappings:{project.id}"
+        project_queued = cache.get(cache_key)
+        if project_queued is None:
+            cache.set(cache_key, True, 3600)
+
+        if project_queued:
+            return
+
+        org_slug = project.organization.slug
+        next_time = timezone.now() + timedelta(hours=1)
+        if features.has("organizations:derive-code-mappings", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data, dry_run=False)
+
+        # Derive code mappings with dry_run=True to validate the generated mappings.
+        elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data, dry_run=True)
+
+    except Exception:
+        logger.exception("Failed to set auto-assignment")
+
+
 def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -777,6 +822,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
+        process_code_mappings,
         process_similarity,
         update_existing_attachments,
         fire_error_processed,

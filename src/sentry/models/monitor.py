@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -27,6 +28,8 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
+
+logger = logging.getLogger("sentry.monitors")
 
 
 def generate_secret():
@@ -178,6 +181,15 @@ class Monitor(Model):
         else:
             next_checkin_base = last_checkin
 
+        logger.info(
+            "monitor.failed.last-checkin",
+            extra={
+                "monitor_id": self.id,
+                "current_last_checkin": last_checkin,
+                "monitor_last_checkin": self.last_checkin,
+            },
+        )
+
         affected = (
             type(self)
             .objects.filter(
@@ -190,6 +202,14 @@ class Monitor(Model):
             )
         )
         if not affected:
+            logger.info(
+                "monitor.failed.not-affected",
+                extra={
+                    "monitor_id": self.id,
+                    "next_checkin_base": next_checkin_base,
+                    "monitor_next_checkin": self.next_checkin,
+                },
+            )
             return False
 
         event_manager = EventManager(
@@ -203,5 +223,13 @@ class Monitor(Model):
         event_manager.normalize()
         data = event_manager.get_data()
         insert_data_to_database_legacy(data)
+        logger.info(
+            "monitor.failed.event-created",
+            extra={
+                "monitor_id": self.id,
+                "project_id": self.project_id,
+                "event_id": data["event_id"],
+            },
+        )
         monitor_failed.send(monitor=self, sender=type(self))
         return True

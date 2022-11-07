@@ -8,7 +8,8 @@ import {Form, SelectField, TextField} from 'sentry/components/forms';
 import FormField from 'sentry/components/forms/formField';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, SavedSearchVisibility} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -55,10 +56,20 @@ function CreateSavedSearchModal({
     label: getSortLabel(sortOption),
   }));
 
+  const selectFieldVisibilityOptions = [
+    {value: SavedSearchVisibility.Owner, label: t('Only me')},
+    {value: SavedSearchVisibility.Organization, label: t('Users in my organization')},
+  ];
+
+  const canChangeVisibility = organization.access.includes('org:write');
+
   const initialData = {
     name: '',
     query,
     sort: validateSortOption(sort),
+    visibility: organization.features.includes('issue-list-saved-searches-v2')
+      ? SavedSearchVisibility.Owner
+      : SavedSearchVisibility.Organization,
   };
 
   const handleSubmit: OnSubmitCallback = async (
@@ -72,13 +83,23 @@ function CreateSavedSearchModal({
 
     addLoadingMessage(t('Saving Changes'));
 
+    trackAdvancedAnalyticsEvent('search.saved_search_create', {
+      name: data.name,
+      organization,
+      query: data.query,
+      search_type: 'issues',
+      sort: data.sort,
+      visibility: data.visibility,
+    });
+
     try {
       await createSavedSearch(
         api,
         organization.slug,
         data.name,
         data.query,
-        validateSortOption(data.sort)
+        validateSortOption(data.sort),
+        data.visibility
       );
 
       closeModal();
@@ -110,11 +131,10 @@ function CreateSavedSearchModal({
       <Body>
         {error && <Alert type="error">{error}</Alert>}
 
-        <p>{t('All team members will now have access to this search.')}</p>
         <TextField
           key="name"
           name="name"
-          label={t('Name')}
+          label={t('Add a name')}
           placeholder="e.g. My Search Results"
           inline={false}
           stacked
@@ -124,7 +144,7 @@ function CreateSavedSearchModal({
         <FormField
           key="query"
           name="query"
-          label={t('Query')}
+          label={t('Filter issues')}
           inline={false}
           stacked
           flexibleControlStateSize
@@ -146,7 +166,7 @@ function CreateSavedSearchModal({
         <SelectField
           key="sort"
           name="sort"
-          label={t('Sort By')}
+          label={t('Sort issues')}
           options={selectFieldSortOptions}
           required
           clearable={false}
@@ -154,6 +174,22 @@ function CreateSavedSearchModal({
           stacked
           flexibleControlStateSize
         />
+        {organization.features.includes('issue-list-saved-searches-v2') && (
+          <SelectField
+            disabled={!canChangeVisibility}
+            disabledReason={t(
+              'Only organization admins can create global saved searches.'
+            )}
+            name="visibility"
+            label={t('Choose who can view this saved search')}
+            options={selectFieldVisibilityOptions}
+            required
+            clearable={false}
+            inline={false}
+            stacked
+            flexibleControlStateSize
+          />
+        )}
       </Body>
     </Form>
   );
