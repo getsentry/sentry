@@ -206,6 +206,20 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
+  it('renders release version with hyperlink', function () {
+    const renderer = getFieldRenderer('release', {release: 'string'});
+
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
+
+    expect(screen.queryByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/`
+    );
+    expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
+  });
+
   it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
