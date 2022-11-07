@@ -262,7 +262,7 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
+        dsn: 'https://5d5ea6127ab24401a2f343829de3139e@128f-72-74-53-227.ngrok.io/1',
         environment: CI ? 'ci' : 'local',
         tracesSampleRate: 1,
         profilesSampleRate: 0.1,
