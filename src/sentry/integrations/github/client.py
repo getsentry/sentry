@@ -103,12 +103,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> JSONData:
+    def get_trees_for_org(
+        self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
+    ) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
         trees: JSONData = {}
-        cache_key = f"githubtrees:repositories:{gh_org}"
+        cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
         repo_key = "githubtrees:repo"
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:
