@@ -607,17 +607,19 @@ def process_code_mappings(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
 
-        cache_key = f"code-mappings:{project.organization_id}"
-        organization_queued = cache.get(cache_key)
-        # TODO(snigdha): Change the cache to per-project once we're able to optimize get_trees_for_org.
-        # This will only process code mappings one project per org per hour but we can do better.
-        if organization_queued is None:
+        # We're currently only processing code mappings for python events
+        if event.data["platform"] != "python":
+            return
+
+        cache_key = f"code-mappings:{project.id}"
+        project_queued = cache.get(cache_key)
+        if project_queued is None:
             cache.set(cache_key, True, 3600)
             logger.info(
                 f"derive_code_mappings: Events from {project.id} in {project.organization_id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
             )
 
-        if organization_queued or not features.has(
+        if project_queued or not features.has(
             "organizations:derive-code-mappings", event.project.organization
         ):
             return
