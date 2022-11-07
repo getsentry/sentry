@@ -465,6 +465,7 @@ const inviteRowGrid = css`
   display: grid;
   gap: ${space(1.5)};
   grid-template-columns: 3fr 180px 2fr max-content;
+  align-items: start;
 `;
 
 const InviteeHeadings = styled('div')`
