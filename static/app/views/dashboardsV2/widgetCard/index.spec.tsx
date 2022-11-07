@@ -115,8 +115,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -144,8 +142,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -182,8 +178,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -223,8 +217,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -261,8 +253,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -300,8 +290,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -332,8 +320,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -362,8 +348,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached
       />
@@ -392,8 +376,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={mock}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -422,8 +404,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -459,8 +439,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           tableItemLimit={20}
@@ -496,8 +474,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
         />
@@ -543,8 +519,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           tableItemLimit={20}
@@ -579,8 +553,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -609,8 +581,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
         showWidgetViewerButton
@@ -652,8 +622,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
         showStoredAlert
@@ -697,8 +665,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
             tableItemLimit={20}
@@ -734,8 +700,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
           />
@@ -781,8 +745,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
             tableItemLimit={20}
@@ -823,8 +785,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           showStoredAlert
@@ -900,8 +860,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
         />
@@ -933,8 +891,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           isPreview

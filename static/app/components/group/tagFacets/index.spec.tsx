@@ -122,9 +122,7 @@ describe('Tag Facets', function () {
     expect(screen.getByText('org.mozilla.ios.Fennec@106.0')).toBeInTheDocument();
   });
 
-  // Skipping because this behaviour will be re-introduced
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('shows tooltip', async function () {
+  it('shows tooltip', async function () {
     render(
       <TagFacets
         environments={[]}
@@ -224,5 +222,41 @@ describe('Tag Facets', function () {
     userEvent.click(await screen.findByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.queryByText('Other')).not.toBeInTheDocument();
+  });
+
+  it('renders readable device name when available', async () => {
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/issues/1/tags/',
+      body: {
+        device: {
+          key: 'device',
+          topValues: [
+            {
+              name: 'abcdef123456',
+              readable: 'Galaxy S22',
+              count: 2,
+            },
+          ],
+        },
+      },
+    });
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    userEvent.click(screen.getByText('device'));
+    expect(screen.getByText('Galaxy S22')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
   });
 });

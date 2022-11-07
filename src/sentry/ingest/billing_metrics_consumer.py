@@ -25,6 +25,7 @@ from arroyo.backends.kafka.configuration import (
     build_kafka_configuration,
     build_kafka_consumer_configuration,
 )
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.abstract import MessageRejected
@@ -63,6 +64,7 @@ def get_metrics_billing_consumer(
         ),
         topic=Topic(topic),
         processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
+        commit_policy=IMMEDIATE,
     )
 
 

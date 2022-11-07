@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
@@ -36,7 +37,9 @@ function TagBreakdown({segments, maxItems, selectedTag, colors}: TagBreakdownPro
         return (
           <BreakdownRow key={segment.name}>
             <LegendIcon color={colors[index]} />
-            {segment.name}
+            <Tooltip title={segment.tooltip}>
+              <TagLabel active={segment.active}>{segment.name}</TagLabel>
+            </Tooltip>
             <Percent>
               {formatPercentage(
                 Math.floor(percent(segment.count, segmentsTotal)) / 100,
@@ -49,7 +52,9 @@ function TagBreakdown({segments, maxItems, selectedTag, colors}: TagBreakdownPro
       {!!(maxItems && otherTotal) && (
         <BreakdownRow key={t('Other')}>
           <LegendIcon color={colors[colors.length - 1]} />
-          <OtherLabel>{t('Other')}</OtherLabel>
+          <TagLabel>
+            <OtherLabel>{t('Other')}</OtherLabel>
+          </TagLabel>
           <Percent>
             {formatPercentage(Math.floor(percent(otherTotal, segmentsTotal)) / 100, 0)}
           </Percent>
@@ -80,11 +85,22 @@ const Percent = styled('div')`
 const BreakdownRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const Container = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const TagLabel = styled('div')<{active?: boolean}>`
+  padding: 0 ${space(0.5)};
+
+  ${p =>
+    p.active &&
+    `
+    background-color: ${p.theme.gray200};
+    border-radius: 4px;
+  `}
 `;

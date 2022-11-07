@@ -218,7 +218,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         assigned_role = result.get("role")
-        if assigned_role:
+        if assigned_role and (assigned_role != member.role):
             allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
@@ -235,7 +235,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_role != member.role):
+            if member.user == request.user:
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (

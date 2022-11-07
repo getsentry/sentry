@@ -36,6 +36,7 @@ export type Project = {
   groupingConfig: string;
   hasAccess: boolean;
   hasProfiles: boolean;
+  hasReplays: boolean;
   hasSessions: boolean;
   id: string;
   isBookmarked: boolean;
