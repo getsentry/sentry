@@ -6,6 +6,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.organization import OrganizationStatus
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -77,6 +78,23 @@ class TestIdentfiyStacktracePaths(TestCase):
             "sentry/tasks.py",
         ]
 
+    @with_feature({"organizations:derive-code-mappings": False})
+    def test_feature_off(self):
+        event = self.store_event(data=self.test_data, project_id=self.project.id)
+
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+        with patch(
+            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+            return_value={
+                self.project: ["sentry/models/release.py", "sentry/tasks.py"],
+            },
+        ) as mock_identify_stacktraces, self.tasks():
+            derive_code_mappings(self.project.id, event.data)
+
+        assert mock_identify_stacktraces.call_count == 0
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     @patch(
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
@@ -88,6 +106,7 @@ class TestIdentfiyStacktracePaths(TestCase):
             )
         ],
     )
+    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
@@ -102,9 +121,7 @@ class TestIdentfiyStacktracePaths(TestCase):
 
         with patch(
             "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-            return_value={
-                self.project: ["sentry/models/release.py", "sentry/tasks.py"],
-            },
+            return_value=["sentry/models/release.py", "sentry/tasks.py"],
         ) as mock_identify_stacktraces, self.tasks():
             derive_code_mappings(self.project.id, event.data)
 
@@ -114,3 +131,43 @@ class TestIdentfiyStacktracePaths(TestCase):
         code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
         assert code_mapping.exists()
         assert code_mapping.first().automatically_generated is True
+
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch(
+        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        return_value=[
+            CodeMapping(
+                repo=Repo(name="repo", branch="master"),
+                stacktrace_root="sentry/models",
+                source_path="src/sentry/models",
+            )
+        ],
+    )
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_dry_run(
+        self, mock_generate_code_mappings, mock_get_trees_for_org
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+        )
+        event = self.store_event(data=self.test_data, project_id=self.project.id)
+
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+        with patch(
+            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+            return_value=["sentry/models/release.py", "sentry/tasks.py"],
+        ) as mock_identify_stacktraces, patch(
+            "sentry_sdk.capture_message"
+        ) as capture_message, self.tasks():
+            derive_code_mappings(self.project.id, event.data, dry_run=True)
+
+        assert capture_message.call_count == 1
+        assert mock_identify_stacktraces.call_count == 1
+        assert mock_get_trees_for_org.call_count == 1
+        assert mock_generate_code_mappings.call_count == 1
+
+        # We should not create the code mapping for dry runs
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
