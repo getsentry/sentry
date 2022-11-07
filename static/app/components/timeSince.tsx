@@ -43,6 +43,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   suffix?: string;
 
+  tooltipBody?: React.ReactNode;
   tooltipShowSeconds?: boolean;
   tooltipTitle?: React.ReactNode;
   tooltipUnderlineColor?: ColorOrAlias;
@@ -54,6 +55,7 @@ function TimeSince({
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
   tooltipTitle,
+  tooltipBody,
   tooltipUnderlineColor,
   shorten,
   extraShort,
@@ -105,7 +107,7 @@ function TimeSince({
       title={
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
-          {tooltip}
+          {tooltipBody ?? tooltip}
         </Fragment>
       }
     >

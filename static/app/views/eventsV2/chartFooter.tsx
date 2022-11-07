@@ -66,7 +66,7 @@ export default function ChartFooter({
 }: Props) {
   const elements: React.ReactNode[] = [];
 
-  elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
+  elements.push(<SectionHeading key="total-label">{t('Event Count')}</SectionHeading>);
   elements.push(
     total === null || loadingProcessedTotals === true ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">
@@ -94,7 +94,7 @@ export default function ChartFooter({
       <InlineContainer>
         <Feature organization={organization} features={['discover-metrics-baseline']}>
           <Fragment>
-            <SwitchLabel>{t('Processed events')}</SwitchLabel>
+            <SwitchLabel>{t('Total Transactions')}</SwitchLabel>
             <Switch
               data-test-id="processed-events-toggle"
               isActive={showBaseline}
@@ -121,7 +121,7 @@ export default function ChartFooter({
               position="top"
               size="sm"
               title={tct(
-                'Show a baseline of client-side [processedEventsLink: processed events].[break]Available on the Total Period display for y-axes scoped to [transactionEventsLink: transaction events].',
+                'The baseline is only available for [transactionEventsLink: transaction events] when displaying the Top Period.[break]The baseline shows the [processedEventsLink: total transactions] matching your query, compared to the sampled transactions.',
                 {
                   transactionEventsLink: (
                     <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/event-detail/" />
