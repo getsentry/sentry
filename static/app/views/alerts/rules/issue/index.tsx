@@ -769,10 +769,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddCondition = (id: string) => this.handleAddRow('conditions', id);
+  handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('conditions', template);
   handleAddAction = (template: IssueAlertRuleActionTemplate) =>
     this.handleAddRow('actions', template);
-  handleAddFilter = (id: string) => this.handleAddRow('filters', id);
+  handleAddFilter = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('filters', template);
   handleDeleteCondition = (ruleIndex: number) =>
     this.handleDeleteRow('conditions', ruleIndex);
   handleDeleteAction = (ruleIndex: number) => this.handleDeleteRow('actions', ruleIndex);

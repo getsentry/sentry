@@ -35,7 +35,9 @@ type Props = {
    * All available actions or conditions
    */
   nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
-  onAddRow: (value: string) => void;
+  onAddRow: (
+    value: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate
+  ) => void;
   onDeleteRow: (ruleIndex: number) => void;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onResetRow: (ruleIndex: number, name: string, value: string) => void;
@@ -136,7 +138,7 @@ class RuleNodeList extends Component<Props> {
   propertyChangeTimeout: number | undefined = undefined;
 
   getNode = (
-    template: IssueAlertRuleConditionTemplate | IssueAlertRuleActionTemplate,
+    template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
   ): IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
@@ -247,22 +249,24 @@ class RuleNodeList extends Component<Props> {
       <Fragment>
         <RuleNodes>
           {error}
-          {items.map((item, idx) => (
-            <RuleNode
-              key={idx}
-              index={idx}
-              node={this.getNode(item, idx)}
-              onDelete={onDeleteRow}
-              onPropertyChange={onPropertyChange}
-              onReset={onResetRow}
-              data={item}
-              organization={organization}
-              project={project}
-              disabled={disabled}
-              ownership={ownership}
-              incompatibleRule={incompatibleRule === idx}
-            />
-          ))}
+          {items.map(
+            (item: IssueAlertRuleAction | IssueAlertRuleCondition, idx: number) => (
+              <RuleNode
+                key={idx}
+                index={idx}
+                node={this.getNode(item, idx)}
+                onDelete={onDeleteRow}
+                onPropertyChange={onPropertyChange}
+                onReset={onResetRow}
+                data={item}
+                organization={organization}
+                project={project}
+                disabled={disabled}
+                ownership={ownership}
+                incompatibleRule={incompatibleRule === idx}
+              />
+            )
+          )}
         </RuleNodes>
         <StyledSelectControl
           placeholder={placeholder}
