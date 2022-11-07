@@ -62,13 +62,13 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             None,
         )
 
-    def _get_sentry_app_installation_uuid(self) -> str | None:
+    def _get_sentry_app_installation_uuid(self) -> Any:
         sentry_app_installation_uuid = self.data.get("sentryAppInstallationUuid")
         if not sentry_app_installation_uuid:
             raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
         return sentry_app_installation_uuid
 
-    def _get_alert_rule_component(self, sentry_app_id: int, sentry_app_name):
+    def _get_alert_rule_component(self, sentry_app_id: int, sentry_app_name: str) -> Any:
         try:
             alert_rule_component = SentryAppComponent.objects.get(
                 sentry_app_id=sentry_app_id, type="alert-rule-action"
@@ -155,7 +155,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             schema_defined_settings=self.get_option("settings"),
         )
 
-    def render_label(self) -> str | None:
+    def render_label(self) -> str:
         sentry_app_installation_uuid = self._get_sentry_app_installation_uuid()
 
         try:
@@ -165,4 +165,4 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        return alert_rule_component.schema.get("title")
+        return str(alert_rule_component.schema.get("title"))
