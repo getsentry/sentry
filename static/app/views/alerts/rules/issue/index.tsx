@@ -449,21 +449,51 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         }
       }
     }
-    // Check for 'FirstSeenEventCondition' and 'IssueOccurrencesFilter'
+    // Check for 'FirstSeenEventCondition' and ('IssueOccurrencesFilter' or 'AgeComparisonFilter')
+    // Considers the case where filterMatch is 'any' and all filters are incompatible
     const firstSeen = conditions.some(condition =>
       condition.id.endsWith('FirstSeenEventCondition')
     );
-    if (
-      firstSeen &&
-      (rule.actionMatch === 'all' || conditions.length === 1) &&
-      (rule.filterMatch === 'all' || (rule.filterMatch === 'any' && filters.length === 1))
-    ) {
+    if (firstSeen && (rule.actionMatch === 'all' || conditions.length === 1)) {
+      let incompatibleFilters = 0;
       for (let i = 0; i < filters.length; i++) {
-        const id = filters[i].id;
-        if (id.endsWith('IssueOccurrencesFilter') && filters[i].value > 1) {
-          this.setState({incompatibleFilter: i});
-          return;
+        const filter = filters[i];
+        const id = filter.id;
+        if (id.endsWith('IssueOccurrencesFilter')) {
+          if (
+            (rule.filterMatch === 'all' && filter.value > 1) ||
+            (rule.filterMatch === 'none' && filter.value <= 1)
+          ) {
+            this.setState({incompatibleFilter: i});
+            return;
+          }
+          if (rule.filterMatch === 'any' && filter.value > 1) {
+            incompatibleFilters += 1;
+          }
+        } else if (id.endsWith('AgeComparisonFilter')) {
+          if (rule.filterMatch !== 'none') {
+            if (
+              (filter.comparison_type === 'older' && filter.value >= 0) ||
+              (filter.comparison_type === 'newer' && filter.value <= 0)
+            ) {
+              if (rule.filterMatch === 'all') {
+                this.setState({incompatibleFilter: i});
+                return;
+              }
+              incompatibleFilters += 1;
+            }
+          } else if (
+            (filter.comparison_type === 'older' && filter.value < 0) ||
+            (filter.comparison_type === 'newer' && filter.value > 0)
+          ) {
+            this.setState({incompatibleFilter: i});
+            return;
+          }
         }
+      }
+      if (incompatibleFilters === filters.length) {
+        this.setState({incompatibleFilter: incompatibleFilters - 1});
+        return;
       }
     }
   }, 500);
