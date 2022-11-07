@@ -25,16 +25,11 @@ function useProfileFilters({query, selection}: ProfileFiltersOptions): TagCollec
     fetchProfileFilters(api, organization, query, selection).then(response => {
       const withPredefinedFilters = response.reduce(
         (filters: TagCollection, tag: Tag) => {
-          if (TAG_KEY_MAPPING[tag.key]) {
-            // for now, we're going to use this translation to handle auto
-            // completion but we should update the response in the future
-            tag.key = TAG_KEY_MAPPING[tag.key];
-            filters[tag.key] = {
-              ...tag,
-              // predefined allows us to specify a list of possible values
-              predefined: true,
-            };
-          }
+          filters[tag.key] = {
+            ...tag,
+            // predefined allows us to specify a list of possible values
+            predefined: true,
+          };
           return filters;
         },
         {}
@@ -65,18 +60,5 @@ function fetchProfileFilters(
     },
   });
 }
-
-const TAG_KEY_MAPPING = {
-  version: 'release',
-  device_locale: 'device.locale',
-  platform: 'platform.name',
-  transaction_name: 'transaction',
-  device_os_build_number: 'os.build',
-  device_os_name: 'os.name',
-  device_os_version: 'os.version',
-  device_model: 'device.model',
-  device_manufacturer: 'device.manufacturer',
-  device_classification: 'device.classification',
-};
 
 export {useProfileFilters};
