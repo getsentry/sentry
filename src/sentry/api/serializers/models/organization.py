@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
@@ -29,7 +29,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
+    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -240,10 +240,18 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("api-keys")
 
         # Organization flag features (not provided through the features module)
-        if OrganizationOption.objects.filter(
-            organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists():
-            feature_list.add("legacy-rate-limits")
+        options_as_features = OrganizationOption.objects.filter(
+            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
+        )
+        for option in options_as_features:
+            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            if not option_feature:
+                continue
+            feature: str = option_feature[0]  # feature flag string
+            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
+            if not callable(func) or func(option):
+                feature_list.add(feature)
+
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
@@ -404,9 +412,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "availableRoles": [
                     {"id": r.id, "name": r.name} for r in roles.get_all()
                 ],  # Deprecated
-                "orgRoleList": serialize(roles.get_all(), serializer=OrganizationRoleSerializer()),
+                "orgRoleList": serialize(
+                    roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
+                ),
                 "teamRoleList": serialize(
-                    roles.team_roles.get_all(), serializer=TeamRoleSerializer()
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),

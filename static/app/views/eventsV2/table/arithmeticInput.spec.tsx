@@ -1,200 +1,244 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 describe('ArithmeticInput', function () {
-  let wrapper;
-  let query: string;
-  let handleQueryChange: (value: string) => void;
-  let numericColumns: Column[];
-  let columns: Column[];
   const operators = ['+', '-', '*', '/', '(', ')'];
 
-  beforeEach(function () {
-    query = '';
-    handleQueryChange = q => {
-      query = q;
-    };
-    numericColumns = [
-      {kind: 'field', field: 'transaction.duration'},
-      {kind: 'field', field: 'measurements.lcp'},
-      {kind: 'field', field: 'spans.http'},
-      {kind: 'function', function: ['p50', '', undefined, undefined]},
-      {
-        kind: 'function',
-        function: ['percentile', 'transaction.duration', '0.25', undefined],
-      },
-      {kind: 'function', function: ['count', '', undefined, undefined]},
-    ];
-    columns = [
-      ...numericColumns,
-      // these columns will not be rendered in the dropdown
-      {kind: 'function', function: ['any', 'transaction.duration', undefined, undefined]},
-      {kind: 'field', field: 'transaction'},
-      {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
-      {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
-    ];
+  const numericColumns: Column[] = [
+    {kind: 'field', field: 'transaction.duration'},
+    {kind: 'field', field: 'measurements.lcp'},
+    {kind: 'field', field: 'spans.http'},
+    {kind: 'function', function: ['p50', '', undefined, undefined]},
+    {
+      kind: 'function',
+      function: ['percentile', 'transaction.duration', '0.25', undefined],
+    },
+    {kind: 'function', function: ['count', '', undefined, undefined]},
+  ];
 
-    wrapper = mountWithTheme(
+  const columns: Column[] = [
+    ...numericColumns,
+    // these columns will not be rendered in the dropdown
+    {kind: 'function', function: ['any', 'transaction.duration', undefined, undefined]},
+    {kind: 'field', field: 'transaction'},
+    {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
+    {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
+  ];
+
+  it('can toggle autocomplete dropdown on focus and blur', function () {
+    render(
       <ArithmeticInput
         name="refinement"
         key="parameter:text"
         type="text"
         required
-        value={query}
-        onUpdate={handleQueryChange}
+        value=""
+        onUpdate={jest.fn()}
         options={columns}
       />
     );
-  });
 
-  afterEach(function () {
-    wrapper?.unmount();
-  });
-
-  it('can toggle autocomplete dropdown on focus and blur', function () {
-    expect(wrapper.find('TermDropdown').props().isOpen).toBeFalsy();
+    expect(screen.queryByText('Fields')).not.toBeInTheDocument();
 
     // focus the input
-    wrapper.find('input').simulate('focus');
+    userEvent.click(screen.getByRole('textbox'));
 
-    expect(wrapper.find('TermDropdown').props().isOpen).toBeTruthy();
+    expect(screen.getByText('Fields')).toBeInTheDocument();
 
-    // blur the input
-    wrapper.find('input').simulate('blur');
+    // moves focus away from the input
+    userEvent.tab();
 
-    expect(wrapper.find('TermDropdown').props().isOpen).toBeFalsy();
+    expect(screen.queryByText('Fields')).not.toBeInTheDocument();
   });
 
   it('renders only numeric options in autocomplete', function () {
-    wrapper.find('input').simulate('focus');
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
+    );
 
-    const options = wrapper.find('DropdownListItem');
-    expect(options).toHaveLength(numericColumns.length + operators.length);
+    // focus the input
+    userEvent.click(screen.getByRole('textbox'));
+
+    const listItems = screen.getAllByRole('listitem');
+
+    // options + headers that are inside listitem
+    expect(listItems).toHaveLength(numericColumns.length + operators.length + 2);
+
+    const options = listItems.filter(
+      item => item.textContent !== 'Fields' && item.textContent !== 'Operators'
+    );
+
     options.forEach((option, i) => {
       if (i < numericColumns.length) {
-        expect(option.text()).toEqual(generateFieldAsString(numericColumns[i]));
-      } else {
-        expect(option.text()).toEqual(operators[i - numericColumns.length]);
+        expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]));
+        return;
       }
+      expect(option).toHaveTextContent(operators[i - numericColumns.length]);
     });
   });
 
   it('can use keyboard to select an option', function () {
-    const input = wrapper.find('input');
-    input.simulate('focus');
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
+    );
 
-    expect(wrapper.find('DropdownListItem .active').exists()).toBeFalsy();
+    // focus the input
+    userEvent.click(screen.getByRole('textbox'));
 
     for (const column of numericColumns) {
-      input.simulate('keydown', {key: 'ArrowDown'});
-      expect(wrapper.find('DropdownListItem .active').text()).toEqual(
-        generateFieldAsString(column)
-      );
+      userEvent.keyboard('{ArrowDown}');
+      expect(
+        screen.getByRole('listitem', {name: generateFieldAsString(column)})
+      ).toHaveClass('active', {exact: false});
     }
 
     for (const operator of operators) {
-      input.simulate('keydown', {key: 'ArrowDown'});
-      expect(wrapper.find('DropdownListItem .active').text()).toEqual(operator);
+      userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('listitem', {name: operator})).toHaveClass('active', {
+        exact: false,
+      });
     }
 
     // wrap around to the first option again
-    input.simulate('keydown', {key: 'ArrowDown'});
+    userEvent.keyboard('{ArrowDown}');
 
     for (const operator of [...operators].reverse()) {
-      input.simulate('keydown', {key: 'ArrowUp'});
-      expect(wrapper.find('DropdownListItem .active').text()).toEqual(operator);
+      userEvent.keyboard('{ArrowUp}');
+      expect(screen.getByRole('listitem', {name: operator})).toHaveClass('active', {
+        exact: false,
+      });
     }
 
     for (const column of [...numericColumns].reverse()) {
-      input.simulate('keydown', {key: 'ArrowUp'});
-      expect(wrapper.find('DropdownListItem .active').text()).toEqual(
-        generateFieldAsString(column)
-      );
+      userEvent.keyboard('{ArrowUp}');
+      expect(
+        screen.getByRole('listitem', {name: generateFieldAsString(column)})
+      ).toHaveClass('active', {
+        exact: false,
+      });
     }
 
     // the update is buffered until blur happens
-    input.simulate('keydown', {key: 'Enter'});
-    expect(query).toEqual('');
+    userEvent.keyboard('{enter}');
+    userEvent.keyboard('{esc}');
 
-    input.simulate('blur');
-    expect(query).toEqual(`${generateFieldAsString(numericColumns[0])} `);
+    expect(screen.getByRole('textbox')).toHaveValue(
+      `${generateFieldAsString(numericColumns[0])} `
+    );
   });
 
   it('can use mouse to select an option', function () {
-    const input = wrapper.find('input');
-    input.simulate('focus');
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
+    );
 
-    // the update is buffered until blur happens
-    wrapper.find('DropdownListItem').first().simulate('click');
+    userEvent.click(screen.getByRole('textbox'));
 
-    input.simulate('blur');
-    expect(query).toEqual(`${generateFieldAsString(numericColumns[0])} `);
+    userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2])));
+
+    expect(screen.getByRole('textbox')).toHaveValue(
+      `${generateFieldAsString(numericColumns[2])} `
+    );
   });
 
   it('autocompletes the current term when it is in the front', function () {
-    const input = wrapper.find('input');
-    input.simulate('focus');
-
-    const value = 'lcp + transaction.duration';
-    input.simulate('change', {target: {value}});
-    const inputElem = input.getDOMNode();
-    inputElem.selectionStart = 2;
-    inputElem.selectionEnd = 2;
-    input.simulate('change');
-
-    const option = wrapper.find('DropdownListItem');
-    expect(option).toHaveLength(1);
-    expect(option.text()).toEqual(
-      generateFieldAsString({
-        kind: 'field',
-        field: 'measurements.lcp',
-      })
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
     );
 
-    option.simulate('click');
-    input.simulate('blur');
-    expect(query).toEqual(`measurements.lcp  + transaction.duration`);
+    const element = screen.getByRole('textbox') as HTMLInputElement;
+
+    userEvent.type(element, 'lcp + transaction.duration');
+
+    element.setSelectionRange(2, 2);
+
+    userEvent.click(screen.getByRole('textbox'));
+
+    userEvent.click(screen.getByText('measurements.lcp'));
+
+    expect(screen.getByRole('textbox')).toHaveValue(
+      'measurements.lcp  + transaction.duration'
+    );
   });
 
   it('autocompletes the current term when it is in the end', function () {
-    const input = wrapper.find('input');
-    input.simulate('focus');
-
-    const value = 'transaction.duration + lcp';
-    input.simulate('change', {target: {value}});
-    const inputElem = input.getDOMNode();
-    inputElem.selectionStart = value.length - 1;
-    inputElem.selectionEnd = value.length - 1;
-    input.simulate('change');
-
-    const option = wrapper.find('DropdownListItem');
-    expect(option).toHaveLength(1);
-    const column = numericColumns.find(
-      c => c.kind === 'field' && c.field.includes('lcp')
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
     );
-    expect(option.text()).toEqual(generateFieldAsString(column!));
 
-    option.simulate('click');
-    input.simulate('blur');
-    expect(query).toEqual(`transaction.duration + measurements.lcp `);
+    userEvent.type(screen.getByRole('textbox'), 'transaction.duration + lcp');
+
+    userEvent.click(screen.getByText('measurements.lcp'));
+
+    expect(screen.getByRole('textbox')).toHaveValue(
+      'transaction.duration + measurements.lcp '
+    );
   });
 
   it('handles autocomplete on invalid term', function () {
-    const input = wrapper.find('input');
-    input.simulate('focus');
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        required
+        value=""
+        onUpdate={jest.fn()}
+        options={columns}
+      />
+    );
 
-    const value = 'foo + bar';
-    input.simulate('change', {target: {value}});
-    input.simulate('keydown', {key: 'ArrowDown'});
+    // focus the input
+    userEvent.type(screen.getByRole('textbox'), 'foo + bar');
+    userEvent.keyboard('{keydown}');
 
-    const option = wrapper.find('DropdownListItem');
-    expect(option).toHaveLength(0);
+    expect(screen.getAllByText('No items found')).toHaveLength(2);
   });
 
   it('can hide Fields options', function () {
-    wrapper = mountWithTheme(
+    render(
       <ArithmeticInput
         name="refinement"
         type="text"
@@ -206,8 +250,10 @@ describe('ArithmeticInput', function () {
       />
     );
 
-    const optionGroupHeaders = wrapper.find('header');
-    expect(optionGroupHeaders).toHaveLength(1);
-    expect(optionGroupHeaders.text()).toBe('Operators');
+    // focus the input
+    userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Operators')).toBeInTheDocument();
+    expect(screen.queryByText('Fields')).not.toBeInTheDocument();
   });
 });

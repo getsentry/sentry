@@ -1481,65 +1481,64 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert data["type"] == "transaction"
 
     def test_transaction_event_span_grouping(self):
-        with self.feature("projects:performance-suspect-spans-ingestion"):
-            manager = EventManager(
-                make_event(
-                    **{
-                        "transaction": "wait",
-                        "contexts": {
-                            "trace": {
-                                "parent_span_id": "bce14471e0e9654d",
-                                "op": "foobar",
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "span_id": "bf5be759039ede9a",
-                            }
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
                         },
-                        "spans": [
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "a" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span a",
-                            },
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "b" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span a",
-                            },
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "c" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span b",
-                            },
-                        ],
-                        "timestamp": "2019-06-14T14:01:40Z",
-                        "start_timestamp": "2019-06-14T14:01:40Z",
-                        "type": "transaction",
-                    }
-                )
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                }
             )
-            manager.normalize()
-            event = manager.save(self.project.id)
-            data = event.data
-            assert data["type"] == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
-            spans = [{"hash": span["hash"]} for span in data["spans"]]
-            # the basic strategy is to simply use the description
-            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        data = event.data
+        assert data["type"] == "transaction"
+        assert data["span_grouping_config"]["id"] == "default:2022-10-27"
+        spans = [{"hash": span["hash"]} for span in data["spans"]]
+        # the basic strategy is to simply use the description
+        assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
     def test_sdk(self):
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
@@ -2154,7 +2153,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):
@@ -2162,17 +2160,40 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
-            expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
+            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event.get_event_type() == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-27"
             assert data["hashes"] == [expected_hash]
-            spans = [{"hash": span["hash"]} for span in data["spans"]]
-            # the basic strategy is to simply use the description
-            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+            span_hashes = [span["hash"] for span in data["spans"]]
+            assert span_hashes == [
+                "0f43fb6f6e01ca52",
+                "3dc5dd68b38e1730",
+                "424c6ae1641f0f0e",
+                "d5da18d7274b34a1",
+                "ac72fc0a4f5fe381",
+                "ac1468d8e11a0553",
+                "d8681423cab4275f",
+                "e853d2eb7fb9ebb0",
+                "6a992d5529f459a4",
+                "b640a0ce465fa2a4",
+                "a3605e201eaf6c45",
+                "061710eb39a66089",
+                "c031296784b22ea9",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+            ]
             assert len(event.groups) == 1
             group = event.groups[0]
             assert group.title == "N+1 Query"
-            assert group.message == "/books/"
+            assert group.message == "N+1 Query"
             assert group.culprit == "/books/"
             assert group.get_event_type() == "transaction"
             description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
@@ -2181,6 +2202,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "title": "N+1 Query",
                 "value": description,
             }
+            assert event.search_message == "/books/"
             assert group.location() == "/books/"
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
@@ -2216,7 +2238,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):
@@ -2250,7 +2271,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
-            assert group.message == "/books/"
+            assert group.message == "nope"
             assert group.culprit == "/books/"
 
     @override_options({"performance.issues.all.problem-creation": 1.0})
@@ -2354,7 +2375,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             data1 = event1.data
             data2 = event2.data
             data3 = event3.data
-            expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
+            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event1.get_event_type() == "transaction"
             assert event2.get_event_type() == "transaction"
             assert event3.get_event_type() == "transaction"

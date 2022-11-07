@@ -2,8 +2,10 @@ import logging
 from datetime import timedelta
 from typing import Any, List, Mapping, Tuple
 
+import sentry_sdk
 from sentry_sdk import set_tag, set_user
 
+from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
@@ -43,6 +45,10 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
 
+    # Check the feature flag again to ensure the feature is still enabled.
+    if not features.has("organizations:derive-code-mappings", organization):
+        return
+
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
         return
@@ -54,7 +60,11 @@ def derive_code_mappings(
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project, dry_run)
+    if dry_run:
+        log_project_codemappings(code_mappings, stacktrace_paths, project)
+        return
+
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
@@ -115,7 +125,6 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -142,3 +151,24 @@ def set_project_codemappings(
             default_branch=code_mapping.repo.branch,
             automatically_generated=True,
         )
+
+
+def log_project_codemappings(
+    code_mappings: List[CodeMapping],
+    stacktrace_paths: List[str],
+    project: Project,
+) -> None:
+    """
+    Log the code mappings that would be created for a project.
+    """
+    set_tag("project.slug", project.slug)
+    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
+    if existing_code_mappings.exists():
+        sentry_sdk.capture_message(
+            f"derive_code_mappings: Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
+        )
+        return
+
+    sentry_sdk.capture_message(
+        f"derive_code_mappings: Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
+    )

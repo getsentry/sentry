@@ -135,6 +135,7 @@ def query(
     selected_columns,
     query,
     params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -189,6 +190,7 @@ def query(
     builder = QueryBuilder(
         Dataset.Discover,
         params,
+        snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
         equations=equations,
@@ -285,8 +287,8 @@ def timeseries_query(
                 {
                     "data": zerofill(
                         result["data"],
-                        snql_query.params["start"],
-                        snql_query.params["end"],
+                        snql_query.params.start,
+                        snql_query.params.end,
                         rollup,
                         "time",
                     )

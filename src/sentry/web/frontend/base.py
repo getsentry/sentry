@@ -15,7 +15,6 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
@@ -30,6 +29,7 @@ from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
+from sentry.utils.http import absolute_uri
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -197,8 +197,7 @@ class OrganizationMixin:
         else:
             url = "/organizations/new/"
             if request.subdomain:
-                base = options.get("system.url-prefix")
-                url = f"{base}{url}"
+                url = absolute_uri(url)
         return HttpResponseRedirect(url)
 
 

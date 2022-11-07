@@ -39,6 +39,8 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_PROFILING_LANDING_TABLE.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
     Referrer.API_REPLAY_DETAILS_PAGE.value,
     Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
     Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
@@ -189,9 +191,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
-            return Response([])
+            return Response(
+                {
+                    "data": [],
+                    "meta": {
+                        "tips": {
+                            "query": "Need at least one valid project to query.",
+                        },
+                    },
+                }
+            )
         except InvalidParams as err:
             raise ParseError(err)
 
@@ -247,6 +258,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "selected_columns": self.get_field_list(organization, request),
                 "query": request.GET.get("query"),
                 "params": params,
+                "snuba_params": snuba_params,
                 "equations": self.get_equation_list(organization, request),
                 "orderby": self.get_orderby(request),
                 "offset": offset,

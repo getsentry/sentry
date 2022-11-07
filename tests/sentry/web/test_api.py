@@ -146,6 +146,13 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == ["organizations:create"]
 
+            # Customer domain feature is injected if a customer domain is used.
+            resp = self.client.get(self.path, HTTP_HOST="albertos-apples.testserver")
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200

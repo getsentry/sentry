@@ -93,6 +93,13 @@ class ApiOrganization:
 
 @dataclass
 class ApiUserOrganizationContext:
+    """
+    This object wraps an organization result inside of its membership context in terms of an (optional) use id.
+    This is due to the large number of callsites that require an organization and a user's membership at the
+    same time and in a consistency state.  This object allows a nice envelop for both of these ideas from a single
+    transactional query.  Used by access, determine_active_organization, and others.
+    """
+
     user_id: Optional[int]
     organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
     # Set iff the user_id in this object has a membership for the requested organization.

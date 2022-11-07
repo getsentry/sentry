@@ -70,18 +70,12 @@ class SavedSearch(Model):
     # is_global does NOT have an associated organization_id
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
 
-    # XXX(epurkhiser): This is different from "creator". Owner is a misnomer
-    # for this column, as this actually indicates that the search is "pinned"
-    # by the user. A user may only have one pinned search epr (org, type)
-    #
-    # XXX(epurkhiser): Once the visibility column is correctly in use this
-    # column will be used essentially as "created_by"
+    # Creator of the saved search. When visibility is
+    # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
+    # search is visibile to.
     owner = FlexibleForeignKey("sentry.User", null=True)
 
     # Defines who can see the saved search
-    #
-    # NOTE: `owner_pinned` has special behavior in that the saved search will
-    # not appear in the user saved search list
     visibility = models.CharField(
         max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices(include_pinned=True)
     )
@@ -89,16 +83,15 @@ class SavedSearch(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_savedsearch"
-        unique_together = (
-            # Each user can have one pinned search per org
-            ("organization", "owner", "type"),
-        )
+        unique_together = ()
         constraints = [
+            # Each user may only have one pinned search
             UniqueConstraint(
-                fields=["organization", "name", "type"],
-                condition=Q(owner__isnull=True),
-                name="sentry_savedsearch_is_global_6793a2f9e1b59b95",
+                fields=["organization", "owner", "type"],
+                condition=Q(visibility=Visibility.OWNER_PINNED),
+                name="sentry_savedsearch_pinning_constraint",
             ),
+            # Global saved searches should not have name overlaps
             UniqueConstraint(
                 fields=["is_global", "name"],
                 condition=Q(is_global=True),
@@ -108,7 +101,7 @@ class SavedSearch(Model):
 
     @property
     def is_pinned(self):
-        return self.owner is not None and self.organization is not None
+        return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")
 
