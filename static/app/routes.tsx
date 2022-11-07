@@ -1779,11 +1779,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const profilingRoutes = (
-    <Route
-      path="/organizations/:orgId/profiling/"
-      component={make(() => import('sentry/views/profiling'))}
-    >
+  const profilingChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="summary/:projectId/"
@@ -1802,6 +1799,16 @@ function buildRoutes() {
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
+    </Fragment>
+  );
+
+  const profilingRoutes = (
+    <Route
+      path="/organizations/:orgId/profiling/"
+      component={make(() => import('sentry/views/profiling'))}
+      key="org-profiling"
+    >
+      {profilingChildRoutes}
     </Route>
   );
 
