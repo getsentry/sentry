@@ -103,6 +103,7 @@ export default function QuickTrace({
           if (projectSupportsReplay(project)) {
             return (
               <EventNodeReplay
+                data-test-id="replay-node"
                 to={`/organizations/${organization.slug}/replays/${current.project_slug}:${replayId}`}
                 type={replayId ? 'black' : 'white'}
                 icon={<IconPlay size="xs" />}

@@ -5,6 +5,8 @@ import QuickTrace from 'sentry/components/quickTrace';
 import {Event} from 'sentry/types/event';
 import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
+jest.mock('sentry/utils/replays/projectSupportsReplay', () => jest.fn(() => true));
+
 describe('Quick Trace', function () {
   let location;
   let organization;
@@ -377,6 +379,92 @@ describe('Quick Trace', function () {
       ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
         (text, i) => expect(nodes[i]).toHaveTextContent(text)
       );
+    });
+
+    it('renders trace with missing replay id', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
+      render(
+        <QuickTrace
+          event={makeTransactionEvent(5) as Event}
+          quickTrace={{
+            type: 'full',
+            trace: [
+              ...makeQuickTraceEvents(0),
+              ...makeQuickTraceEvents(1),
+              ...makeQuickTraceEvents(2),
+              ...makeQuickTraceEvents(3),
+              ...makeQuickTraceEvents(4),
+              ...makeQuickTraceEvents(5),
+              ...makeQuickTraceEvents(6),
+              ...makeQuickTraceEvents(7),
+              ...makeQuickTraceEvents(8),
+              ...makeQuickTraceEvents(9),
+            ],
+          }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
+          location={location}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'session-replay-ui'],
+          }}
+        />
+      );
+      const nodes = await screen.findAllByTestId('event-node');
+      expect(nodes.length).toEqual(6);
+      ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
+        (text, i) => expect(nodes[i]).toHaveTextContent(text)
+      );
+      expect(screen.getByTestId('replay-node')).toHaveTextContent('???');
+    });
+
+    it('renders trace with replay', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
+      const event = makeTransactionEvent(5) as Event;
+
+      render(
+        <QuickTrace
+          event={{...event, tags: [{key: 'replayId', value: '123'}]}}
+          quickTrace={{
+            type: 'full',
+            trace: [
+              ...makeQuickTraceEvents(0),
+              ...makeQuickTraceEvents(1),
+              ...makeQuickTraceEvents(2),
+              ...makeQuickTraceEvents(3),
+              ...makeQuickTraceEvents(4),
+              ...makeQuickTraceEvents(5),
+              ...makeQuickTraceEvents(6),
+              ...makeQuickTraceEvents(7),
+              ...makeQuickTraceEvents(8),
+              ...makeQuickTraceEvents(9),
+            ],
+          }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
+          location={location}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'session-replay-ui'],
+          }}
+        />
+      );
+      const nodes = await screen.findAllByTestId('event-node');
+      expect(nodes.length).toEqual(6);
+      ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
+        (text, i) => expect(nodes[i]).toHaveTextContent(text)
+      );
+      expect(screen.getByTestId('replay-node')).toHaveTextContent('Replay');
     });
   });
 
