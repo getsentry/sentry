@@ -179,7 +179,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example"},

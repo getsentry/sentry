@@ -264,7 +264,8 @@ const config: Config.InitialOptions = {
         // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
         environment: CI ? 'ci' : 'local',
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 1,
+        profilesSampleRate: 0.1,
       },
       transactionOptions: {
         tags: {
