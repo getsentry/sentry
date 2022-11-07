@@ -488,14 +488,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return super().get_attrs(item_list, user)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
-        member_projects = list(access.projects)
-        member_project_ids = [p.id for p in member_projects]
-        other_projects = list(
-            Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE).exclude(
-                id__in=member_project_ids
-            )
+        project_list = list(
+            Project.objects.filter(
+                organization=organization, status=ProjectStatus.VISIBLE
+            ).order_by("slug")
         )
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)  # type: ignore
 
         for project in project_list:
             project.set_cached_field_value("organization", organization)
@@ -503,14 +500,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return project_list
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
-        member_teams = list(access.teams)
-        member_team_ids = [p.id for p in member_teams]
-        other_teams = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).exclude(
-                id__in=member_team_ids
+        team_list = list(
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+                "slug"
             )
         )
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)  # type: ignore
 
         for team in team_list:
             team.set_cached_field_value("organization", organization)
