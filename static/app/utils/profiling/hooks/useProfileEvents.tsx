@@ -15,6 +15,7 @@ type Sort<F> = {
 
 interface UseProfileEventsOptions<F> {
   fields: readonly F[];
+  referrer: string;
   sort: Sort<F>;
   cursor?: string;
   limit?: number;
@@ -40,6 +41,7 @@ export type EventsResults<F extends string> = {
 export function useProfileEvents<F extends string>({
   fields,
   limit,
+  referrer,
   query,
   sort,
   cursor,
@@ -52,6 +54,7 @@ export function useProfileEvents<F extends string>({
   const endpointOptions = {
     query: {
       dataset: 'profiles',
+      referrer,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),

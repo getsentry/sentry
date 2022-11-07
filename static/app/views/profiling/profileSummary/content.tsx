@@ -56,6 +56,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     query: props.query,
     sort,
     limit: 5,
+    referrer: 'api.profiling.profile-summary-table',
   });
 
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(

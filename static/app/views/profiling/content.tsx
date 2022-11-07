@@ -102,6 +102,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     fields: FIELDS,
     query,
     sort,
+    referrer: 'api.profiling.landing-table',
   });
 
   useEffect(() => {
