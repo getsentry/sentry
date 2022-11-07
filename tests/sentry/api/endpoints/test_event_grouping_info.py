@@ -99,14 +99,14 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
             "6a992d5529f459a4"
         ]
         assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["evidence"]["offender_span_hashes"] == [
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
-            "63f1e89e6a073441",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
         ]

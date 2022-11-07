@@ -1535,7 +1535,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         event = manager.save(self.project.id)
         data = event.data
         assert data["type"] == "transaction"
-        assert data["span_grouping_config"]["id"] == "default:2022-10-04"
+        assert data["span_grouping_config"]["id"] == "default:2022-10-27"
         spans = [{"hash": span["hash"]} for span in data["spans"]]
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
@@ -2160,13 +2160,36 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
-            expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
+            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event.get_event_type() == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-27"
             assert data["hashes"] == [expected_hash]
-            spans = [{"hash": span["hash"]} for span in data["spans"]]
-            # the basic strategy is to simply use the description
-            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+            span_hashes = [span["hash"] for span in data["spans"]]
+            assert span_hashes == [
+                "0f43fb6f6e01ca52",
+                "3dc5dd68b38e1730",
+                "424c6ae1641f0f0e",
+                "d5da18d7274b34a1",
+                "ac72fc0a4f5fe381",
+                "ac1468d8e11a0553",
+                "d8681423cab4275f",
+                "e853d2eb7fb9ebb0",
+                "6a992d5529f459a4",
+                "b640a0ce465fa2a4",
+                "a3605e201eaf6c45",
+                "061710eb39a66089",
+                "c031296784b22ea9",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+                "d74ed7012596c3fb",
+            ]
             assert len(event.groups) == 1
             group = event.groups[0]
             assert group.title == "N+1 Query"
@@ -2351,7 +2374,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             data1 = event1.data
             data2 = event2.data
             data3 = event3.data
-            expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
+            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event1.get_event_type() == "transaction"
             assert event2.get_event_type() == "transaction"
             assert event3.get_event_type() == "transaction"
