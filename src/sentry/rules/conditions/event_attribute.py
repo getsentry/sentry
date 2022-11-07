@@ -166,6 +166,19 @@ class EventAttributeCondition(EventCondition):
                         if frame.post_context:
                             result.extend(frame.post_context)
             return result
+
+        elif path[0] == "device":
+            if path[1] in (
+                "screen_density",
+                "screen_dpi",
+                "screen_height_pixels",
+                "screen_width_pixels",
+            ):
+                contexts = event.data["contexts"]
+                device = contexts.get("device")
+                if device is None:
+                    device = []
+                return [device.get(path[1])]
         return []
 
     def render_label(self) -> str:
