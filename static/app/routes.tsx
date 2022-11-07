@@ -1172,11 +1172,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const monitorsRoutes = (
-    <Route
-      path="/organizations/:orgId/monitors/"
-      component={make(() => import('sentry/views/monitors'))}
-    >
+  const monitorsChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
       <Route
         path="/organizations/:orgId/monitors/create/"
@@ -1190,6 +1187,16 @@ function buildRoutes() {
         path="/organizations/:orgId/monitors/:monitorId/edit/"
         component={make(() => import('sentry/views/monitors/edit'))}
       />
+    </Fragment>
+  );
+
+  const monitorsRoutes = (
+    <Route
+      path="/organizations/:orgId/monitors/"
+      component={make(() => import('sentry/views/monitors'))}
+      key="org-monitors"
+    >
+      {monitorsChildRoutes}
     </Route>
   );
 
