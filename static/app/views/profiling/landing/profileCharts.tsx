@@ -31,6 +31,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
 
   const profileStats = useProfileEventsStats({
     query,
+    referrer: 'api.profiling.landing-chart',
     yAxes: SERIES_ORDER,
   });
 

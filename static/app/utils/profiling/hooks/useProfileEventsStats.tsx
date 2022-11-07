@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface UseProfileEventStatsOptions<F> {
+  referrer: string;
   yAxes: readonly F[];
   interval?: string;
   query?: string;
@@ -17,6 +18,7 @@ export function useProfileEventsStats<F extends string>({
   yAxes,
   interval,
   query,
+  referrer,
 }: UseProfileEventStatsOptions<F>) {
   const api = useApi();
   const organization = useOrganization();
@@ -26,6 +28,7 @@ export function useProfileEventsStats<F extends string>({
   const endpointOptions = {
     query: {
       dataset: 'profiles',
+      referrer,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -143,8 +146,8 @@ function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
   };
   const meta: EventsStatsSeries<F>['meta'] = {
     dataset: 'profiles',
-    end: rawSeries.start,
-    start: rawSeries.end,
+    end: rawSeries.end,
+    start: rawSeries.start,
   };
   const timestamps: EventsStatsSeries<F>['timestamps'] = [];
 
