@@ -25,6 +25,12 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
+from sentry.notifications.utils import (
+    get_parent_and_repeating_spans,
+    get_span_and_problem,
+    get_span_evidence_value,
+    get_span_evidence_value_problem,
+)
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -33,6 +39,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
+from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
@@ -324,6 +331,29 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
+    def truncate_data(self, data):
+        return (data[:50] + "..") if len(data) > 50 else data
+
+    def build_performance_issue_description(self, event):
+        spans, matched_problem = get_span_and_problem(event)
+        if not matched_problem:
+            return ""
+
+        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+        transaction_name = get_span_evidence_value_problem(matched_problem)
+        parent_span = get_span_evidence_value(parent_span)
+        repeating_spans = get_span_evidence_value(repeating_spans)
+        num_repeating_spans = (
+            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
+        )
+
+        body = f"| *Transaction Name* | {self.truncate_data(transaction_name)} |\n"
+        body += f"| *Parent Span* | {self.truncate_data(parent_span)} |\n"
+        body += (
+            f"| *Repeating Spans ({num_repeating_spans})* | {self.truncate_data(repeating_spans)} |"
+        )
+        return body
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             "Sentry Issue: [{}|{}]".format(
@@ -331,9 +361,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
             )
         ]
-        body = self.get_group_body(group, event)
-        if body:
-            output.extend(["", "{code}", body, "{code}"])
+
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            body = self.build_performance_issue_description(event)
+            output.extend([body])
+
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
     def get_client(self):
