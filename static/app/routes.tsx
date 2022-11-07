@@ -1206,31 +1206,49 @@ function buildRoutes() {
     </Route>
   );
 
+  const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    return (
+      <Fragment>
+        <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
+        <Route
+          path=":release/"
+          component={make(() => import('sentry/views/releases/detail'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/releases/detail/overview'))}
+          />
+          <Route
+            path="commits/"
+            component={make(
+              () => import('sentry/views/releases/detail/commitsAndFiles/commits')
+            )}
+          />
+          <Route
+            path="files-changed/"
+            component={make(
+              () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
+            )}
+          />
+          {forCustomerDomain ? null : (
+            <Fragment>
+              <Redirect
+                from="new-events/"
+                to="/organizations/:orgId/releases/:release/"
+              />
+              <Redirect
+                from="all-events/"
+                to="/organizations/:orgId/releases/:release/"
+              />
+            </Fragment>
+          )}
+        </Route>
+      </Fragment>
+    );
+  };
+
   const releasesRoutes = (
-    <Route path="/organizations/:orgId/releases/">
-      <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
-      <Route
-        path=":release/"
-        component={make(() => import('sentry/views/releases/detail'))}
-      >
-        <IndexRoute
-          component={make(() => import('sentry/views/releases/detail/overview'))}
-        />
-        <Route
-          path="commits/"
-          component={make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/commits')
-          )}
-        />
-        <Route
-          path="files-changed/"
-          component={make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
-          )}
-        />
-        <Redirect from="new-events/" to="/organizations/:orgId/releases/:release/" />
-        <Redirect from="all-events/" to="/organizations/:orgId/releases/:release/" />
-      </Route>
+    <Route path="/organizations/:orgId/releases/" key="org-releases">
+      {releasesChildRoutes({forCustomerDomain: false})}
     </Route>
   );
 
