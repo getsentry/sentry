@@ -2193,7 +2193,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert len(event.groups) == 1
             group = event.groups[0]
             assert group.title == "N+1 Query"
-            assert group.message == "/books/"
+            assert group.message == "N+1 Query"
             assert group.culprit == "/books/"
             assert group.get_event_type() == "transaction"
             description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
@@ -2202,6 +2202,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "title": "N+1 Query",
                 "value": description,
             }
+            assert event.search_message == "/books/"
             assert group.location() == "/books/"
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
@@ -2270,7 +2271,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
-            assert group.message == "/books/"
+            assert group.message == "nope"
             assert group.culprit == "/books/"
 
     @override_options({"performance.issues.all.problem-creation": 1.0})

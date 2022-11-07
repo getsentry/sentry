@@ -1767,7 +1767,11 @@ def _process_existing_aggregate(
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
-    if event.search_message and event.search_message != group.message:
+    if (
+        event.search_message
+        and event.search_message != group.message
+        and event.get_event_type() != TransactionEvent.key
+    ):
         extra["message"] = event.search_message
     if group.level != data["level"]:
         extra["level"] = data["level"]
@@ -2303,6 +2307,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
                         )
+                        if group_kwargs["data"]["metadata"].get("title"):
+                            group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
 
                         group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
@@ -2346,6 +2352,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                         group_kwargs["data"]["metadata"], problem
                     )
+                    if group_kwargs["data"]["metadata"].get("title"):
+                        group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=group_kwargs, release=job["release"]
