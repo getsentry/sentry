@@ -135,7 +135,6 @@ def test_internal_relays_should_receive_full_configs(
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["isEnabled"]
-    assert "quotas" in public_key
 
     assert safe.get_path(cfg, "slug") == default_project.slug
     last_change = safe.get_path(cfg, "lastChange")
