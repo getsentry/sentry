@@ -182,7 +182,7 @@ export function MetricsBaselineContainer({
           let seriesWithOrdering: SeriesWithOrdering[] = [];
 
           seriesWithOrdering = Object.keys(response).map((seriesName: string) => {
-            const prefixedName = `processed events: ${seriesName}`;
+            const prefixedName = `total transactions: ${seriesName}`;
             const seriesData: EventsStats = response[seriesName];
             return [
               seriesData.order || 0,
@@ -217,7 +217,7 @@ export function MetricsBaselineContainer({
           );
         } else {
           const field = yAxis[0];
-          const prefixedName = `processed events: ${field}`;
+          const prefixedName = `total transactions: ${field}`;
           const transformed = transformSeries(response, prefixedName, field);
           additionalSeries.push(
             LineSeries({

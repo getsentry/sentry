@@ -90,11 +90,6 @@ def get_public_key_configs(project, full_config, project_keys=None):
             "isEnabled": True,
         }
 
-        if full_config:
-            key["quotas"] = [
-                q.to_json_legacy() for q in quotas.get_quotas(project, key=project_key)
-            ]
-
         public_keys.append(key)
 
     return public_keys
@@ -253,8 +248,8 @@ def _get_project_config(project, full_config=True, project_keys=None):
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
 
-    if features.has("organizations:performance-ops-breakdown", project.organization):
-        config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+    config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
             config,

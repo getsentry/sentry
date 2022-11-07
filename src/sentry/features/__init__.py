@@ -71,9 +71,7 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:customer-domains", OrganizationFeature, True)
 default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
-default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-top-level-filter", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
@@ -121,7 +119,6 @@ default_manager.add("organizations:notification-all-recipients", OrganizationFea
 default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
-default_manager.add("organizations:performance-autogroup-sibling-spans", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
@@ -203,13 +200,13 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
-default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
+default_manager.add("organizations:derive-code-mappings-dry-run", OrganizationFeature)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature)

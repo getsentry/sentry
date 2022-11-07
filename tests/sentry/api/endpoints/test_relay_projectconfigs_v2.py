@@ -18,6 +18,10 @@ _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 def _get_all_keys(config):
     for key in config:
         yield key
+        if key == "breakdownsV2":
+            # Breakdown keys are not field names and may contain underscores,
+            # e.g. span_ops
+            continue
         if isinstance(config[key], dict):
             for key in _get_all_keys(config[key]):
                 yield key
@@ -132,7 +136,6 @@ def test_internal_relays_should_receive_full_configs(
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
-    assert "quotas" in public_key
 
     assert safe.get_path(cfg, "slug") == default_project.slug
     last_change = safe.get_path(cfg, "lastChange")

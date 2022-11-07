@@ -487,7 +487,9 @@ const SPECIAL_FIELDS: SpecialFields = {
               </StyledLink>
             </QuickContextHoverWrapper>
           ) : (
-            <OverflowFieldShortId shortId={`${data.issue}`} />
+            <StyledLink to={target} aria-label={issueID}>
+              <OverflowFieldShortId shortId={`${data.issue}`} />
+            </StyledLink>
           )}
         </Container>
       );
@@ -585,10 +587,20 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   release: {
     sortField: 'release',
-    renderFunc: data =>
+    renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper
+              dataRow={data}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+            </QuickContextHoverWrapper>
+          ) : (
+            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          )}
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>
