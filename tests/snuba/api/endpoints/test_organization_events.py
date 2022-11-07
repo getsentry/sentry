@@ -112,14 +112,18 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_environment_filter(self):
         self.create_environment(self.project, name="production")
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+            },
             project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": self.ten_mins_ago,
+                "timestamp": self.ten_mins_ago_iso,
             },
             project_id=self.project.id,
         )
