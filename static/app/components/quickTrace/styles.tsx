@@ -55,6 +55,10 @@ export const EventNode = styled(Tag)`
   }
 `;
 
+export const EventNodeReplay = styled(EventNode)`
+  margin-right: ${space(1)};
+`;
+
 export const TraceConnector = styled('div')`
   width: ${space(1)};
   border-top: 1px solid ${p => p.theme.textColor};

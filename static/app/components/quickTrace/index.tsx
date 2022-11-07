@@ -4,6 +4,21 @@ import {Location, LocationDescriptor} from 'history';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
+  DropdownContainer,
+  DropdownItem,
+  DropdownItemSubContainer,
+  DropdownMenuHeader,
+  ErrorNodeContent,
+  EventNode,
+  EventNodeReplay,
+  ExternalDropdownLink,
+  QuickTraceContainer,
+  QuickTraceValue,
+  SectionSubtext,
+  SingleEventHoverText,
+  TraceConnector,
+} from 'sentry/components/quickTrace/styles';
+import {
   ErrorDestination,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
@@ -13,9 +28,9 @@ import {
 } from 'sentry/components/quickTrace/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
-import {IconFire} from 'sentry/icons';
+import {IconFire, IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {AvatarProject, OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDocsPlatform} from 'sentry/utils/docs';
@@ -28,25 +43,11 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {Theme} from 'sentry/utils/theme';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
-
-import {
-  DropdownContainer,
-  DropdownItem,
-  DropdownItemSubContainer,
-  DropdownMenuHeader,
-  ErrorNodeContent,
-  EventNode,
-  ExternalDropdownLink,
-  QuickTraceContainer,
-  QuickTraceValue,
-  SectionSubtext,
-  SingleEventHoverText,
-  TraceConnector,
-} from './styles';
 
 const TOOLTIP_PREFIX = {
   root: 'root',
@@ -65,6 +66,7 @@ type QuickTraceProps = Pick<
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceType;
+  project?: AvatarProject;
 };
 
 export default function QuickTrace({
@@ -72,6 +74,7 @@ export default function QuickTrace({
   quickTrace,
   location,
   organization,
+  project,
   anchor,
   errorDest,
   transactionDest,
@@ -86,7 +89,24 @@ export default function QuickTrace({
   const traceLength = quickTrace.trace && quickTrace.trace.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
+  const replayId = event.tags?.find(({key}) => key === 'replayId')?.value;
+  const showReplay =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+
   const nodes: React.ReactNode[] = [];
+
+  if (showReplay) {
+    nodes.push(
+      <EventNodeReplay
+        to={`/organizations/${organization.slug}/replays/${project?.slug}:${replayId}`}
+        type={replayId ? 'black' : 'white'}
+        icon={<IconPlay size="xs" />}
+        tooltipText={replayId ? '' : 'Replay cannot be found'}
+      >
+        {replayId ? 'Replay' : '???'}
+      </EventNodeReplay>
+    );
+  }
 
   if (root) {
     nodes.push(

@@ -96,6 +96,7 @@ export default function QuickTraceMeta({
             anchor={anchor}
             errorDest={errorDest}
             transactionDest={transactionDest}
+            project={project}
           />
         </ErrorBoundary>
       );
