@@ -94,7 +94,7 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
 @click.option(
-    "--pretty/--no-pretty", default=True, help="Stylize various outputs from the devserver"
+    "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
 )
 @click.option(
     "--styleguide/--no-styleguide",
