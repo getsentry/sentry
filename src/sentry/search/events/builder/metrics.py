@@ -22,14 +22,12 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
-    EventsResponse,
     HistogramParams,
     ParamsType,
     QueryFramework,
@@ -60,9 +58,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self.tag_values_are_strings = options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        )
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -142,7 +137,7 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance and self.tag_values_are_strings:
+        if self.is_performance:
             return f"tags_raw[{tag_id}]"
         else:
             return f"tags[{tag_id}]"
@@ -330,7 +325,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance and self.tag_values_are_strings or self.use_metrics_layer:
+        if self.is_performance or self.use_metrics_layer:
             return value
         if self.dry_run:
             return -1
@@ -414,10 +409,8 @@ class MetricsQueryBuilder(QueryBuilder):
         for value in values_set:
             if value:
                 values.append(self._resolve_environment_filter_value(value))
-            elif self.tag_values_are_strings:
-                values.append("")
             else:
-                values.append(0)
+                values.append("")
         values.sort()
         environment = self.column("environment")
         if len(values) == 1:
@@ -736,41 +729,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     row[meta["name"]] = self.get_default_value(meta["type"])
 
         return result
-
-    def process_results(self, results: Any) -> EventsResponse:
-        """Go through the results of a metrics query and reverse resolve its tags"""
-        processed_results: EventsResponse = super().process_results(results)
-        tags: List[str] = []
-        cached_resolves: Dict[int, Optional[str]] = {}
-        # no-op if they're already strings
-        if self.tag_values_are_strings:
-            return processed_results
-
-        with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-            for column in self.columns:
-                if (
-                    isinstance(column, AliasedExpression)
-                    and column.exp.subscriptable == "tags"
-                    and column.alias
-                ):
-                    tags.append(column.alias)
-                # transaction is a special case since we use a transform null & unparam
-                if column.alias in ["transaction", "title"]:
-                    tags.append(column.alias)
-
-            for tag in tags:
-                for row in processed_results["data"]:
-                    if isinstance(row[tag], int):
-                        if row[tag] not in cached_resolves:
-                            resolved_tag = indexer.reverse_resolve(
-                                UseCaseKey.PERFORMANCE, self.organization_id, row[tag]
-                            )
-                            cached_resolves[row[tag]] = resolved_tag
-                        row[tag] = cached_resolves[row[tag]]
-                if tag in processed_results["meta"]["fields"]:
-                    processed_results["meta"]["fields"][tag] = "string"
-
-        return processed_results
 
     @staticmethod
     def get_default_value(meta_type: str) -> Any:
