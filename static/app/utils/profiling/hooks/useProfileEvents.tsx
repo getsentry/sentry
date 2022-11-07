@@ -14,7 +14,8 @@ type Sort<F> = {
 };
 
 interface UseProfileEventsOptions<F> {
-  fields: F[];
+  fields: readonly F[];
+  referrer: string;
   sort: Sort<F>;
   cursor?: string;
   limit?: number;
@@ -28,8 +29,8 @@ type EventsResultsDataRow<F extends string> = {
 };
 
 type EventsResultsMeta<F extends string> = {
-  fields: {[K in F]: FieldValueType};
-  units: {[K in F]: Unit};
+  fields: Partial<{[K in F]: FieldValueType}>;
+  units: Partial<{[K in F]: Unit}>;
 };
 
 export type EventsResults<F extends string> = {
@@ -40,6 +41,7 @@ export type EventsResults<F extends string> = {
 export function useProfileEvents<F extends string>({
   fields,
   limit,
+  referrer,
   query,
   sort,
   cursor,
@@ -52,6 +54,7 @@ export function useProfileEvents<F extends string>({
   const endpointOptions = {
     query: {
       dataset: 'profiles',
+      referrer,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -82,7 +85,7 @@ export function useProfileEvents<F extends string>({
 
 export function formatSort<F extends string>(
   value: string | undefined,
-  allowedKeys: F[],
+  allowedKeys: readonly F[],
   fallback: Sort<F>
 ): Sort<F> {
   value = value || '';
