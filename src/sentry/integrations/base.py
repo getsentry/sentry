@@ -166,7 +166,6 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        assert type(organization_id) == int
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property

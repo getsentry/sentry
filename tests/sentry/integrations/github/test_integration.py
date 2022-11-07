@@ -388,7 +388,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
@@ -403,7 +403,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
@@ -420,7 +420,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
@@ -449,7 +449,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
@@ -476,7 +476,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -507,7 +507,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
@@ -516,7 +516,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_message_from_error(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization)
         base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
