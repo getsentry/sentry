@@ -1204,12 +1204,24 @@ function buildRoutes() {
   );
 
   const replayRoutes = (
-    <Route
-      path="/organizations/:orgId/replays/"
-      component={make(() => import('sentry/views/replays'))}
-    >
-      {replayChildRoutes}
-    </Route>
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/replays/"
+          component={withDomainRequired(make(() => import('sentry/views/replays')))}
+          key="orgless-replays-route"
+        >
+          {replayChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/replays/"
+        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
+        key="org-replays"
+      >
+        {replayChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const releasesRoutes = (
