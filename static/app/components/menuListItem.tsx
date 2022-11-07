@@ -207,7 +207,18 @@ function getTextColor({
   }
 }
 
-function getFocusBackground({theme, priority}: {priority: Priority; theme: Theme}) {
+function getFocusBackground({
+  theme,
+  priority,
+  disabled,
+}: {
+  disabled: boolean;
+  priority: Priority;
+  theme: Theme;
+}) {
+  if (disabled) {
+    return theme.hover;
+  }
   switch (priority) {
     case 'primary':
       return theme.purple100;
