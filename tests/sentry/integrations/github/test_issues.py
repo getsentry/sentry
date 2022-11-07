@@ -127,6 +127,11 @@ class GitHubIssueBasicTest(TestCase):
 
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
+        title = GitHubIssueBasic().get_group_title(event.group, event)
+        assert (
+            title
+            == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
+        )
 
     def test_error_issues_description(self):
         """Test that a GitHub issue created from an error issue has message  data in it's description"""
