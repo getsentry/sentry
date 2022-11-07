@@ -1,5 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -39,6 +41,8 @@ type CreateNewSavedSearchButtonProps = Pick<
   'query' | 'sort' | 'organization'
 >;
 
+const MAX_SHOWN_SEARCHES = 5;
+
 const SavedSearchItem = ({
   organization,
   onSavedSearchDelete,
@@ -77,17 +81,20 @@ const SavedSearchItem = ({
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
         hasMenu={!savedSearch.isGlobal}
+        borderless
+        align="left"
       >
-        <div>
+        <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
           <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
-        </div>
+        </TitleDescriptionWrapper>
       </StyledItemButton>
       {!savedSearch.isGlobal && (
         <OverflowMenu
           position="bottom-end"
           items={actions}
           size="sm"
+          minMenuWidth={200}
           trigger={props => (
             <Button
               {...props}
@@ -146,6 +153,8 @@ const SavedIssueSearches = ({
   query,
   sort,
 }: SavedIssueSearchesProps) => {
+  const [showAll, setShowAll] = useState(false);
+
   if (!isOpen) {
     return null;
   }
@@ -162,10 +171,16 @@ const SavedIssueSearches = ({
     );
   }
 
-  const orgSavedSearches = savedSearches.filter(
-    search => !search.isGlobal && !search.isPinned
+  const orgSavedSearches = orderBy(
+    savedSearches.filter(search => !search.isGlobal && !search.isPinned),
+    'dateCreated',
+    'desc'
   );
   const recommendedSavedSearches = savedSearches.filter(search => search.isGlobal);
+
+  const shownOrgSavedSearches = showAll
+    ? orgSavedSearches
+    : orgSavedSearches.slice(0, MAX_SHOWN_SEARCHES);
 
   return (
     <StyledSidebar>
@@ -176,7 +191,7 @@ const SavedIssueSearches = ({
             <CreateNewSavedSearchButton {...{organization, query, sort}} />
           </HeadingContainer>
           <SearchesContainer>
-            {orgSavedSearches.map(item => (
+            {shownOrgSavedSearches.map(item => (
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
@@ -186,6 +201,11 @@ const SavedIssueSearches = ({
               />
             ))}
           </SearchesContainer>
+          {orgSavedSearches.length > shownOrgSavedSearches.length && (
+            <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
+              {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
+            </ShowAllButton>
+          )}
         </Fragment>
       )}
       {recommendedSavedSearches.length > 0 && (
@@ -252,16 +272,24 @@ const SearchListItem = styled('li')`
   margin: 0;
 `;
 
-const StyledItemButton = styled('button')<{hasMenu?: boolean}>`
-  width: 100%;
-  background: ${p => p.theme.white};
-  border: 0;
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: left;
+const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
   display: block;
-
-  padding: ${space(1)} ${p => (p.hasMenu ? '60px' : space(2))} ${space(1)} ${space(2)};
+  width: 100%;
+  text-align: left;
+  height: auto;
+  font-weight: normal;
+  line-height: ${p => p.theme.text.lineHeightBody};
   margin-top: 2px;
+
+  ${p =>
+    p.hasMenu &&
+    css`
+      padding-right: 60px;
+    `}
+`;
+
+const TitleDescriptionWrapper = styled('div')`
+  overflow: hidden;
 `;
 
 const SavedSearchItemTitle = styled('div')`
@@ -284,6 +312,17 @@ const OverflowMenu = styled(DropdownMenuControl)`
   position: absolute;
   top: 12px;
   right: ${space(1)};
+`;
+
+const ShowAllButton = styled(Button)`
+  color: ${p => p.theme.linkColor};
+  font-weight: normal;
+  margin-top: 2px;
+  padding: ${space(1)} ${space(2)};
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default SavedIssueSearches;

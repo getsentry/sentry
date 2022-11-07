@@ -106,8 +106,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_trees_for_org(self) -> JSONData:
-        return self.get_client().get_trees_for_org(self.model.name)
+    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> JSONData:
+        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
+        return self.get_client().get_trees_for_org(
+            org_slug=self.org_integration.organization.slug,
+            gh_org=gh_org,
+            cache_seconds=cache_seconds,
+        )
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False
@@ -329,7 +334,7 @@ class GitHubInstallationRedirect(PipelineView):
                 # post install to migrate repos do not work.
                 integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                     integration__provider=GitHubIntegrationProvider.key,
-                    organization_id=self.active_organization.id,
+                    organization_id=self.active_organization.organization.id,
                     status=ObjectStatus.PENDING_DELETION,
                 ).exists()
 
