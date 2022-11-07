@@ -20,6 +20,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -54,6 +55,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
+from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -246,6 +248,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
+        request = env.request
+        if request and is_using_customer_domain(request):
+            # If the current request is using a customer domain, then we activate the feature for this organization.
+            feature_list.add("customer-domains")
 
         if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
@@ -398,9 +404,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "availableRoles": [
                     {"id": r.id, "name": r.name} for r in roles.get_all()
                 ],  # Deprecated
-                "orgRoleList": serialize(roles.get_all(), serializer=OrganizationRoleSerializer()),
+                "orgRoleList": serialize(
+                    roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
+                ),
                 "teamRoleList": serialize(
-                    roles.team_roles.get_all(), serializer=TeamRoleSerializer()
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
@@ -480,14 +488,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return super().get_attrs(item_list, user)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
-        member_projects = list(access.projects)
-        member_project_ids = [p.id for p in member_projects]
-        other_projects = list(
-            Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE).exclude(
-                id__in=member_project_ids
-            )
+        project_list = list(
+            Project.objects.filter(
+                organization=organization, status=ProjectStatus.VISIBLE
+            ).order_by("slug")
         )
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)  # type: ignore
 
         for project in project_list:
             project.set_cached_field_value("organization", organization)
@@ -495,14 +500,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return project_list
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
-        member_teams = list(access.teams)
-        member_team_ids = [p.id for p in member_teams]
-        other_teams = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).exclude(
-                id__in=member_team_ids
+        team_list = list(
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+                "slug"
             )
         )
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)  # type: ignore
 
         for team in team_list:
             team.set_cached_field_value("organization", organization)

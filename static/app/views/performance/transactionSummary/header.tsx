@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -70,13 +71,12 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasSuspectSpansView = organization.features?.includes(
-    'performance-suspect-spans-view'
-  );
   const hasAnomalyDetection = organization.features?.includes(
     'performance-anomaly-detection-ui'
   );
-  const hasSessionReplay = organization.features?.includes('session-replay-ui');
+
+  const hasSessionReplay =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -134,7 +134,7 @@ function TransactionHeader({
           replayEventView.getEventsAPIPayload(fakeLocation)
         );
 
-        setReplaysCount(Number(data.data[0]['count_unique(replayId)']));
+        setReplaysCount(Number(data.data?.[0]?.['count_unique(replayId)'] ?? 0));
       } catch (err) {
         Sentry.captureException(err);
         return null;
@@ -225,9 +225,7 @@ function TransactionHeader({
               <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
               <Item key={Tab.Events}>{t('All Events')}</Item>
               <Item key={Tab.Tags}>{t('Tags')}</Item>
-              <Item key={Tab.Spans} hidden={!hasSuspectSpansView}>
-                {t('Spans')}
-              </Item>
+              <Item key={Tab.Spans}>{t('Spans')}</Item>
               <Item
                 key={Tab.Anomalies}
                 textValue={t('Anomalies')}
