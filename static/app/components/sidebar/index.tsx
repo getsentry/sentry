@@ -246,7 +246,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isAlpha
+        isBeta
       />
     </Feature>
   );
