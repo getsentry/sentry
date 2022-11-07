@@ -28,26 +28,22 @@ def resolve_project_threshold_config(
     and search/events/datasets.
     """
 
-    project_threshold_configs = (
-        ProjectTransactionThreshold.objects.filter(
-            organization_id=org_id,
-            project_id__in=project_ids,
-        )
-        .order_by("project_id")
-        .values_list("project_id", "metric")
+    project_threshold_configs = ProjectTransactionThreshold.filter(
+        organization_id=org_id,
+        project_ids=project_ids,
+        order_by=["project_id"],
+        value_list=["project_id", "metric"],
     )
 
-    transaction_threshold_configs = (
-        ProjectTransactionThresholdOverride.objects.filter(
-            organization_id=org_id,
-            project_id__in=project_ids,
-        )
-        .order_by("project_id")
-        .values_list("transaction", "project_id", "metric")
+    transaction_threshold_configs = ProjectTransactionThresholdOverride.filter(
+        organization_id=org_id,
+        project_ids=project_ids,
+        order_by=["project_id"],
+        value_list=["transaction", "project_id", "metric"],
     )
 
-    num_project_thresholds = project_threshold_configs.count()
-    num_transaction_thresholds = transaction_threshold_configs.count()
+    num_project_thresholds = len(project_threshold_configs)
+    num_transaction_thresholds = len(transaction_threshold_configs)
 
     if (
         num_project_thresholds + num_transaction_thresholds
