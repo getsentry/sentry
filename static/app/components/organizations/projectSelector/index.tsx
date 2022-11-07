@@ -333,7 +333,6 @@ export default withRouter(ProjectSelector);
 const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  width: 100%;
 `;
 
 const Label = styled('div')`
