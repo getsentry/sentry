@@ -904,7 +904,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": None}],
         ]
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
@@ -1296,7 +1296,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
-        "sentry.search.events.builder.raw_snql_query",
+        "sentry.search.events.builder.discover.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
@@ -1975,7 +1975,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
     @mock.patch(
-        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
+        "sentry.search.events.builder.discover.raw_snql_query",
+        return_value={"data": [], "meta": []},
     )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature(self.enabled_features):

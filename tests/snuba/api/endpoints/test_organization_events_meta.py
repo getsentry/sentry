@@ -142,7 +142,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 )
         assert response.status_code == 400
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
