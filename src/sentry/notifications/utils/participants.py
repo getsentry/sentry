@@ -12,6 +12,8 @@ from sentry.models import (
     GroupSubscription,
     NotificationSetting,
     Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectOwnership,
     Release,
@@ -243,7 +245,7 @@ def determine_eligible_recipients(
     return set()
 
 
-def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+def get_release_committers(project: Project, event: Event) -> Sequence[APIUser]:
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
@@ -264,7 +266,7 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     return _get_release_committers(last_release)
 
 
-def _get_release_committers(release: Release) -> Sequence[User]:
+def _get_release_committers(release: Release) -> Sequence[APIUser]:
     from sentry.api.serializers import Author, get_users_for_commits
     from sentry.utils.committers import _get_commits
 
@@ -275,12 +277,9 @@ def _get_release_committers(release: Release) -> Sequence[User]:
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
 
-    release_committers = list(
-        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
-    )
-
     if features.has("organizations:active-release-notifications-enable", release.organization):
-        return release_committers
+        user_ids: set[int] = {au["id"] for au in author_users.values() if au.get("id")}
+        return user_service.get_many(user_ids)
     return []
 
 
@@ -300,16 +299,24 @@ def get_user_from_identifier(project: Project, target_identifier: str | int | No
         return None
 
     try:
-        return (
-            User.objects.filter(
-                id=int(target_identifier),
-                sentry_orgmember_set__teams__projectteam__project=project,
-            )
-            .distinct()
-            .get()
-        )
-    except User.DoesNotExist:
+        ident = int(target_identifier)
+    except ValueError:
         return None
+
+    try:
+        organization_member_team = OrganizationMember.objects.get(
+            organization_id=project.organization_id, user_id=ident
+        )
+    except OrganizationMember.DoesNotExist:
+        return None
+
+    team_ids = [t.id for t in project.teams.all()]
+    omt = OrganizationMemberTeam.objects.filter(
+        organizationmember_id=organization_member_team.id, team_id__in=team_ids
+    ).first()
+    if omt is None:
+        return None
+    return user_service.get_user(ident)
 
 
 def get_team_from_identifier(project: Project, target_identifier: str | int | None) -> Team | None:
@@ -323,8 +330,8 @@ def get_team_from_identifier(project: Project, target_identifier: str | int | No
 
 
 def partition_recipients(
-    recipients: Iterable[Team | User],
-) -> tuple[Iterable[Team], Iterable[User]]:
+    recipients: Iterable[Team | APIUser],
+) -> tuple[Iterable[Team], Iterable[APIUser]]:
     teams, users = set(), set()
     for recipient in recipients:
         if recipient.class_name() == "User":
@@ -337,24 +344,24 @@ def partition_recipients(
 def get_users_from_team_fall_back(
     teams: Iterable[Team],
     recipients_by_provider: Mapping[ExternalProviders, Iterable[Team | User]],
-) -> Iterable[User]:
+) -> Iterable[APIUser]:
     teams_to_fall_back = set(teams)
     for recipients in recipients_by_provider.values():
         for recipient in recipients:
             teams_to_fall_back.remove(recipient)
 
-    users = set()
+    user_ids: set[int] = set()
     for team in teams_to_fall_back:
         # Fall back to notifying each subscribed user if there aren't team notification settings
         member_list = team.member_set.values_list("user_id", flat=True)
-        users |= set(User.objects.filter(id__in=member_list))
-    return users
+        user_ids |= set(member_list)
+    return user_service.get_many(user_ids)
 
 
 def combine_recipients_by_provider(
-    teams_by_provider: Mapping[ExternalProviders, set[Team | User]],
-    users_by_provider: Mapping[ExternalProviders, set[Team | User]],
-) -> Mapping[ExternalProviders, set[Team | User]]:
+    teams_by_provider: Mapping[ExternalProviders, set[Team | APIUser]],
+    users_by_provider: Mapping[ExternalProviders, set[Team | APIUser]],
+) -> Mapping[ExternalProviders, set[Team | APIUser]]:
     """TODO(mgaeta): Make this more generic and move it to utils."""
     recipients_by_provider = defaultdict(set)
     for provider, teams in teams_by_provider.items():
@@ -370,7 +377,7 @@ def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[Team | APIUser],
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-) -> Mapping[ExternalProviders, set[Team | User]]:
+) -> Mapping[ExternalProviders, set[Team | APIUser]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 
