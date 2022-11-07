@@ -58,7 +58,7 @@ function CreateSavedSearchModal({
 
   const selectFieldVisibilityOptions = [
     {value: SavedSearchVisibility.Owner, label: t('Only me')},
-    {value: SavedSearchVisibility.Organization, label: 'Users in my organization'},
+    {value: SavedSearchVisibility.Organization, label: t('Users in my organization')},
   ];
 
   const canChangeVisibility = organization.access.includes('org:write');
@@ -177,7 +177,9 @@ function CreateSavedSearchModal({
         {organization.features.includes('issue-list-saved-searches-v2') && (
           <SelectField
             disabled={!canChangeVisibility}
-            disabledReason="Only organization admins can create global saved searches."
+            disabledReason={t(
+              'Only organization admins can create global saved searches.'
+            )}
             name="visibility"
             label={t('Choose who can view this saved search')}
             options={selectFieldVisibilityOptions}
