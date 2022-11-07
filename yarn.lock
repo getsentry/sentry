@@ -8974,10 +8974,10 @@ invariant@^2.2.1, invariant@^2.2.4:
   dependencies:
     loose-envify "^1.0.0"
 
-ios-device-list@^1.1.35:
-  version "1.1.35"
-  resolved "https://registry.yarnpkg.com/ios-device-list/-/ios-device-list-1.1.35.tgz#cddc2ed9634f4f1af1061016caf31ef4f4dc5307"
-  integrity sha512-ESaQizoD8nGdw8vhkYqab0jbPcSPnpGmqhwd3aqtyan9AZFNnQdj31ic6FdDd+/gUqp5N6RFU/ODxVKGwDhoMw==
+ios-device-list@^1.1.36:
+  version "1.1.36"
+  resolved "https://registry.yarnpkg.com/ios-device-list/-/ios-device-list-1.1.36.tgz#e3129a80460c39a12822b67dc3d547b7f296f371"
+  integrity sha512-adpS72N5yW2qVXkLv0rKT0VtJh8ISXmOt40YhmLJCxwztfc60LXfbKELy6GvGhF/7tC8Ent3JUZturQkMO4rgw==
   dependencies:
     lodash.clonedeep "^4.5.0"
     lodash.flatten "^4.4.0"
