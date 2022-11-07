@@ -59,7 +59,9 @@ class BitbucketIssueTest(APITestCase):
 
         data = {"repo": repo, "externalIssue": issue_id, "comment": "hello"}
 
-        assert self.integration.get_installation(None).get_issue(issue_id, data=data) == {
+        assert self.integration.get_installation(self.organization.id).get_issue(
+            issue_id, data=data
+        ) == {
             "key": issue_id,
             "description": "This is the description",
             "title": "hello",
