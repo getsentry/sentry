@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -676,6 +677,11 @@ def metrics_parallel_consumer(**options):
 @configuration
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    if "max_batch_time" in options:
+        logger = logging.getLogger("billing-metrics-consumer")
+        logger.info("`max_batch_time` not supported, falling back to default once per second.")
+        options.pop("max_batch_time")
 
     consumer = get_metrics_billing_consumer(**options)
     consumer.run()

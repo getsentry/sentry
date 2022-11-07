@@ -4,7 +4,7 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import (
     Any,
     Callable,
@@ -25,7 +25,7 @@ from arroyo.backends.kafka.configuration import (
     build_kafka_configuration,
     build_kafka_consumer_configuration,
 )
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Message, Partition, Position
@@ -46,7 +46,6 @@ def get_metrics_billing_consumer(
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
     max_batch_size: int,
-    max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
     bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
@@ -61,8 +60,8 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
-        commit_policy=IMMEDIATE,
+        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size),
+        commit_policy=ONCE_PER_SECOND,
     )
 
 
@@ -77,18 +76,15 @@ def _get_bootstrap_servers(topic: str, force_cluster: Optional[str]) -> Sequence
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, max_batch_size: int, max_batch_time: int):
+    def __init__(self, max_batch_size: int):
         self.__max_batch_size = max_batch_size
-        self.__max_batch_time = max_batch_time
 
     def create_with_partitions(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(
-            commit, self.__max_batch_size, self.__max_batch_time
-        )
+        return BillingTxCountMetricConsumerStrategy(commit, self.__max_batch_size)
 
 
 class MetricsBucket(TypedDict):
@@ -125,14 +121,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
         max_batch_size: int,
-        max_batch_time: int,
     ) -> None:
         self._closed: bool = False
         self._commit = commit
         # XXX(iker): these max* variables currently don't behave as maximums,
         # but rather minimums. We should fix this at some point.
         self._max_batch_size: int = max_batch_size
-        self._max_batch_time: timedelta = timedelta(milliseconds=max_batch_time)
 
         self._billing_topic = Topic(settings.KAFKA_OUTCOMES_BILLING)
         self._billing_producer = self._get_billing_producer()
@@ -142,7 +136,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # O(n).
         self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
         self._ready_to_commit: MutableMapping[Partition, Position] = {}
-        self._last_commit_time: datetime = datetime.now()
         self._messages_ready_since_last_commit: int = 0
 
     def _get_billing_producer(self) -> KafkaProducer:
@@ -161,8 +154,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if not self._ready_to_commit:
             return False
         if self._messages_ready_since_last_commit >= self._max_batch_size:
-            return True
-        if self._last_commit_time + self._max_batch_time <= datetime.now():
             return True
         return False
 
@@ -212,7 +203,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         amount_dropped = self._messages_ready_since_last_commit
         self._ready_to_commit = {}
         self._messages_ready_since_last_commit = 0
-        self._last_commit_time = datetime.now()
         return amount_dropped
 
     def join(self, timeout: Optional[float] = None) -> None:
