@@ -85,11 +85,11 @@ def get_events(project: Project, condition_activity: Sequence[ConditionActivity]
     """
     group_ids = []
     event_ids = []
-    for act in condition_activity:
-        if act.type == ConditionActivityType.CREATE_ISSUE:
-            group_ids.append(act.group_id)
-        elif act.type in (ConditionActivityType.REGRESSION, ConditionActivityType.REAPPEARED):
-            event_id = act.data.get("event_id", None)
+    for activity in condition_activity:
+        if activity.type == ConditionActivityType.CREATE_ISSUE:
+            group_ids.append(activity.group_id)
+        elif activity.type in (ConditionActivityType.REGRESSION, ConditionActivityType.REAPPEARED):
+            event_id = activity.data.get("event_id", None)
             if event_id is not None:
                 event_ids.append(event_id)
 
@@ -108,9 +108,9 @@ def get_events(project: Project, condition_activity: Sequence[ConditionActivity]
         )
         # store event_ids for CREATE_ISSUE condition activities
         group_map = {event["group_id"]: event["event_id"] for event in events}
-        for act in condition_activity:
-            if act.type == ConditionActivityType.CREATE_ISSUE:
-                act.data = {"event_id": group_map[act.group_id]}
+        for activity in condition_activity:
+            if activity.type == ConditionActivityType.CREATE_ISSUE:
+                activity.data = {"event_id": group_map[activity.group_id]}
 
     if event_ids:
         events.extend(
