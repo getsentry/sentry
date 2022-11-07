@@ -30,7 +30,7 @@ export enum FieldKey {
   DEVICE_ONLINE = 'device.online',
   DEVICE_ORIENTATION = 'device.orientation',
   DEVICE_SCREEN_DENSITY = 'device.screen_density',
-  DEVICE_SCREEN_DPI = 'device.screen_height_dpi',
+  DEVICE_SCREEN_DPI = 'device.screen_dpi',
   DEVICE_SCREEN_HEIGHT_PIXELS = 'device.screen_height_pixels',
   DEVICE_SCREEN_WIDTH_PIXELS = 'device.screen_width_pixels',
   DEVICE_SIMULATOR = 'device.simulator',
