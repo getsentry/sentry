@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
@@ -244,7 +244,11 @@ class OrganizationSerializer(Serializer):  # type: ignore
             organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
         )
         for option in options_as_features:
-            feature, func = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            if not option_feature:
+                continue
+            feature: str = option_feature[0]  # feature flag string
+            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
             if not callable(func) or func(option):
                 feature_list.add(feature)
 
