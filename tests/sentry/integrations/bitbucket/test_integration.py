@@ -38,7 +38,7 @@ class BitbucketIntegrationTest(APITestCase):
             url,
             json={"values": [{"full_name": "sentryuser/stuf"}]},
         )
-        installation = self.integration.get_installation(self.organization)
+        installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories()
         assert result == [{"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"}]
 
@@ -73,7 +73,7 @@ class BitbucketIntegrationTest(APITestCase):
             },
         )
 
-        installation = self.integration.get_installation(self.organization)
+        installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories("stuf")
         assert result == [
             {"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"},
@@ -121,7 +121,7 @@ class BitbucketIntegrationTest(APITestCase):
             json={"values": []},
         )
 
-        installation = self.integration.get_installation(self.organization)
+        installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories("stu")
         assert result == [
             {"identifier": "sentryuser/stuff", "name": "sentryuser/stuff"},

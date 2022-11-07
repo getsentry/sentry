@@ -607,22 +607,33 @@ def process_code_mappings(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
 
-        cache_key = f"code-mappings:{project.organization_id}"
-        organization_queued = cache.get(cache_key)
-        # TODO(snigdha): Change the cache to per-project once we're able to optimize get_trees_for_org.
-        # This will only process code mappings one project per org per hour but we can do better.
-        if organization_queued is None:
-            cache.set(cache_key, True, 3600)
-            logger.info(
-                f"derive_code_mappings: Events from {project.id} in {project.organization_id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
-            )
-
-        if organization_queued or not features.has(
-            "organizations:derive-code-mappings", event.project.organization
-        ):
+        # We're currently only processing code mappings for python events
+        if event.data["platform"] != "python":
             return
 
-        derive_code_mappings.delay(project.id, event.data)
+        cache_key = f"code-mappings:{project.id}"
+        project_queued = cache.get(cache_key)
+        if project_queued is None:
+            cache.set(cache_key, True, 3600)
+
+        if project_queued:
+            return
+
+        org_slug = project.organization.slug
+        next_time = timezone.now() + timedelta(hours=1)
+        if features.has("organizations:derive-code-mappings", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data)
+        # Derive code mappings with dry_run=True to validate the generated mappings.
+        elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
         logger.exception("Failed to set auto-assignment")
