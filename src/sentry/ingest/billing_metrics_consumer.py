@@ -242,6 +242,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 self._mark_commit_ready()
                 self._bulk_commit()
 
+        self._billing_producer.close()
+
     def terminate(self) -> None:
         self.close()
         amount_dropped = len(self._ongoing_billing_outcomes)
@@ -252,6 +254,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         amount_dropped += self._clear_ready_queue()
         if amount_dropped > 0:
             logger.warning(f"terminated, items dropped: {amount_dropped}")
+
+        self._billing_producer.close()
 
     def close(self) -> None:
         self._closed = True
