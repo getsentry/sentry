@@ -14,6 +14,8 @@ import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
@@ -35,6 +37,10 @@ export const shouldShowSidebar = (organization: Organization) => {
   const featureHook = HookStore.get('onboarding:show-sidebar')[0] || defaultHook;
   return featureHook(organization);
 };
+
+export const getSidebarTasks = isDemoWalkthrough()
+  ? useSandboxSidebarTasks
+  : getMergedTasks;
 
 const isDone = (task: OnboardingTaskStatus) =>
   task.status === 'complete' || task.status === 'skipped';
@@ -63,7 +69,7 @@ function OnboardingStatus({
     return null;
   }
 
-  const tasks = getMergedTasks({
+  const tasks = getSidebarTasks({
     organization: org,
     projects,
     onboardingState: onboardingState || undefined,
@@ -88,7 +94,9 @@ function OnboardingStatus({
     return null;
   }
 
-  const label = t('Quick Start');
+  const walkthrough = isDemoWalkthrough();
+  const label = walkthrough ? t('Guided Tours') : t('Quick Start');
+  const task = walkthrough ? 'tours' : 'tasks';
 
   return (
     <Fragment>
@@ -112,7 +120,7 @@ function OnboardingStatus({
           <div>
             <Heading>{label}</Heading>
             <Remaining>
-              {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
+              {tct('[numberRemaining] Remaining [task]', {numberRemaining, task})}
               {pendingCompletionSeen && <PendingSeenIndicator />}
             </Remaining>
           </div>

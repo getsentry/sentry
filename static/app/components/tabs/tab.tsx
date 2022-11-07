@@ -1,11 +1,13 @@
-import {forwardRef} from 'react';
+import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
-import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import Link from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
@@ -22,6 +24,18 @@ interface TabProps {
 }
 
 /**
+ * Stops event propagation if the command/ctrl/shift key is pressed, in effect
+ * preventing any state change. This is useful because when a user
+ * command/ctrl/shift-clicks on a tab link, the intention is to view the tab
+ * in a new browser tab/window, not to update the current view.
+ */
+function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey) {
+    e.stopPropagation();
+  }
+}
+
+/**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
@@ -32,22 +46,44 @@ function BaseTab(
 ) {
   const ref = useObjectRef(forwardedRef);
 
-  const {key, rendered} = item;
+  const {
+    key,
+    rendered,
+    props: {to},
+  } = item;
   const {tabProps, isSelected, isDisabled} = useTab({key}, state, ref);
+
+  const InnerWrap = useCallback(
+    ({children}) =>
+      to ? (
+        <TabLink
+          to={to}
+          onMouseDown={handleLinkClick}
+          onPointerDown={handleLinkClick}
+          orientation={orientation}
+        >
+          {children}
+        </TabLink>
+      ) : (
+        <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+      ),
+    [to, orientation]
+  );
 
   return (
     <TabWrap
-      {...mergeProps(tabProps)}
+      {...tabProps}
       disabled={isDisabled}
       selected={isSelected}
       overflowing={overflowing}
-      orientation={orientation}
       ref={ref}
     >
-      <HoverLayer orientation={orientation} />
-      <FocusLayer orientation={orientation} />
-      {rendered}
-      <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+      <InnerWrap>
+        <HoverLayer orientation={orientation} />
+        <FocusLayer orientation={orientation} />
+        {rendered}
+        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+      </InnerWrap>
     </TabWrap>
   );
 }
@@ -56,30 +92,9 @@ export const Tab = forwardRef(BaseTab);
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   disabled: boolean;
-  orientation: Orientation;
   overflowing: boolean;
   selected: boolean;
 }>`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: calc(
-    ${p => p.theme.form.sm.height}px +
-      ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)}
-  );
-  border-radius: ${p => p.theme.borderRadius};
-  transform: translateY(1px);
-
-  ${p =>
-    p.orientation === 'horizontal'
-      ? `
-        /* Extra padding + negative margin trick, to expand click area */
-        padding: ${space(0.75)} ${space(1)} ${space(1.5)};
-        margin-left: -${space(1)};
-        margin-right: -${space(1)};
-      `
-      : `padding: ${space(0.75)} ${space(2)};`};
-
   color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
   white-space: nowrap;
   cursor: pointer;
@@ -109,6 +124,48 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     `}
 `;
 
+const innerWrapStyles = ({
+  theme,
+  orientation,
+}: {
+  orientation: Orientation;
+  theme: Theme;
+}) => `
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: calc(
+    ${theme.form.sm.height}px +
+      ${orientation === 'horizontal' ? space(0.75) : '0px'}
+  );
+  border-radius: ${theme.borderRadius};
+  transform: translateY(1px);
+
+  ${
+    orientation === 'horizontal'
+      ? `
+        /* Extra padding + negative margin trick, to expand click area */
+        padding: ${space(0.75)} ${space(1)} ${space(1.5)};
+        margin-left: -${space(1)};
+        margin-right: -${space(1)};
+      `
+      : `padding: ${space(0.75)} ${space(2)};`
+  };
+`;
+
+const TabLink = styled(Link)<{orientation: Orientation}>`
+  ${innerWrapStyles}
+
+  &,
+  &:hover {
+    color: inherit;
+  }
+`;
+
+const TabInnerWrap = styled('span')<{orientation: Orientation}>`
+  ${innerWrapStyles}
+`;
+
 const HoverLayer = styled('div')<{orientation: Orientation}>`
   position: absolute;
   left: 0;
@@ -124,14 +181,14 @@ const HoverLayer = styled('div')<{orientation: Orientation}>`
   opacity: 0;
   transition: opacity 0.1s ease-out;
 
-  li:hover:not(.focus-visible) > & {
+  li:hover:not(.focus-visible) & {
     opacity: 0.06;
   }
 
   ${p =>
     p.orientation === 'vertical' &&
     `
-      li[aria-selected='true']:not(.focus-visible) > & {
+      li[aria-selected='true']:not(.focus-visible) & {
         opacity: 0.06;
       }
     `}
@@ -149,7 +206,7 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   z-index: 0;
   transition: box-shadow 0.1s ease-out;
 
-  li.focus-visible > & {
+  li.focus-visible & {
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
   }

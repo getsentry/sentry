@@ -40,20 +40,19 @@ type Props = {
    * Title to display on top of the menu
    */
   menuTitle?: string;
+  /**
+   * Minimum menu width
+   */
+  minWidth?: number;
   onClose?: () => void;
   size?: MenuItemProps['size'];
-  /**
-   * Current width of the trigger element. This is used as the menu's minimum
-   * width.
-   */
-  triggerWidth?: number;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
 
 function DropdownMenu({
   closeOnSelect = true,
-  triggerWidth,
+  minWidth,
   size,
   isSubmenu,
   menuTitle,
@@ -118,15 +117,17 @@ function DropdownMenu({
     [menuProps, hasFocus]
   );
 
+  const showDividers = stateCollection.some(item => !!item.props.details);
+
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     return (
       <MenuItem
         node={node}
-        isLastNode={isLastNode}
         state={state}
         onClose={closeRootMenu}
         closeOnSelect={closeOnSelect}
+        showDivider={showDividers && !isLastNode}
       />
     );
   };
@@ -137,9 +138,9 @@ function DropdownMenu({
       <MenuItem
         renderAs="div"
         node={node}
-        isLastNode={isLastNode}
         state={state}
         isSubmenuTrigger
+        showDivider={showDividers && !isLastNode}
         {...submenuTriggerProps}
       />
     );
@@ -199,7 +200,7 @@ function DropdownMenu({
             {...mergeProps(modifiedMenuProps, keyboardProps)}
             style={{
               maxHeight: overlayPositionProps.style?.maxHeight,
-              minWidth: triggerWidth,
+              minWidth,
             }}
           >
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}

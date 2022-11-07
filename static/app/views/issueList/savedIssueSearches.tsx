@@ -1,24 +1,31 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEllipsis} from 'sentry/icons';
+import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 interface SavedIssueSearchesProps {
   isOpen: boolean;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
+  query: string;
   savedSearch: SavedSearch | null;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  sort: string;
 }
 
 interface SavedSearchItemProps
@@ -28,6 +35,13 @@ interface SavedSearchItemProps
   > {
   savedSearch: SavedSearch;
 }
+
+type CreateNewSavedSearchButtonProps = Pick<
+  SavedIssueSearchesProps,
+  'query' | 'sort' | 'organization'
+>;
+
+const MAX_SHOWN_SEARCHES = 5;
 
 const SavedSearchItem = ({
   organization,
@@ -67,17 +81,20 @@ const SavedSearchItem = ({
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
         hasMenu={!savedSearch.isGlobal}
+        borderless
+        align="left"
       >
-        <div>
+        <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
           <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
-        </div>
+        </TitleDescriptionWrapper>
       </StyledItemButton>
       {!savedSearch.isGlobal && (
         <OverflowMenu
           position="bottom-end"
           items={actions}
           size="sm"
+          minMenuWidth={200}
           trigger={props => (
             <Button
               {...props}
@@ -93,6 +110,39 @@ const SavedSearchItem = ({
   );
 };
 
+function CreateNewSavedSearchButton({
+  organization,
+  query,
+  sort,
+}: CreateNewSavedSearchButtonProps) {
+  const disabled = !organization.access.includes('org:write');
+
+  const title = disabled
+    ? t('You do not have permission to create a saved search')
+    : t('Create a new saved search for your organization');
+
+  const onClick = () => {
+    trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+      organization,
+    });
+    openModal(deps => (
+      <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
+    ));
+  };
+
+  return (
+    <Button
+      aria-label={t('Create a new saved search for your organization')}
+      disabled={disabled}
+      onClick={onClick}
+      icon={<IconAdd size="sm" />}
+      title={title}
+      borderless
+      size="sm"
+    />
+  );
+}
+
 const SavedIssueSearches = ({
   organization,
   isOpen,
@@ -100,7 +150,11 @@ const SavedIssueSearches = ({
   onSavedSearchSelect,
   savedSearchLoading,
   savedSearches,
+  query,
+  sort,
 }: SavedIssueSearchesProps) => {
+  const [showAll, setShowAll] = useState(false);
+
   if (!isOpen) {
     return null;
   }
@@ -117,18 +171,27 @@ const SavedIssueSearches = ({
     );
   }
 
-  const orgSavedSearches = savedSearches.filter(
-    search => !search.isGlobal && !search.isPinned
+  const orgSavedSearches = orderBy(
+    savedSearches.filter(search => !search.isGlobal && !search.isPinned),
+    'dateCreated',
+    'desc'
   );
   const recommendedSavedSearches = savedSearches.filter(search => search.isGlobal);
+
+  const shownOrgSavedSearches = showAll
+    ? orgSavedSearches
+    : orgSavedSearches.slice(0, MAX_SHOWN_SEARCHES);
 
   return (
     <StyledSidebar>
       {orgSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>{t('Saved Searches')}</Heading>
+          <HeadingContainer>
+            <Heading>{t('Saved Searches')}</Heading>
+            <CreateNewSavedSearchButton {...{organization, query, sort}} />
+          </HeadingContainer>
           <SearchesContainer>
-            {orgSavedSearches.map(item => (
+            {shownOrgSavedSearches.map(item => (
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
@@ -138,11 +201,18 @@ const SavedIssueSearches = ({
               />
             ))}
           </SearchesContainer>
+          {orgSavedSearches.length > shownOrgSavedSearches.length && (
+            <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
+              {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
+            </ShowAllButton>
+          )}
         </Fragment>
       )}
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>{t('Recommended')}</Heading>
+          <HeadingContainer>
+            <Heading>{t('Recommended')}</Heading>
+          </HeadingContainer>
           <SearchesContainer>
             {recommendedSavedSearches.map(item => (
               <SavedSearchItem
@@ -162,7 +232,7 @@ const SavedIssueSearches = ({
 
 const StyledSidebar = styled('aside')`
   width: 360px;
-  padding: ${space(4)} ${space(2)};
+  padding: ${space(3)} ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
@@ -174,13 +244,20 @@ const StyledSidebar = styled('aside')`
   }
 `;
 
-const Heading = styled('h2')`
+const HeadingContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 38px;
   &:first-of-type {
     margin-top: 0;
   }
-
-  font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: ${space(3)} 0 ${space(2)} ${space(2)};
+`;
+
+const Heading = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: 0;
 `;
 
 const SearchesContainer = styled('ul')`
@@ -195,16 +272,24 @@ const SearchListItem = styled('li')`
   margin: 0;
 `;
 
-const StyledItemButton = styled('button')<{hasMenu?: boolean}>`
-  width: 100%;
-  background: ${p => p.theme.white};
-  border: 0;
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: left;
+const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
   display: block;
-
-  padding: ${space(1)} ${p => (p.hasMenu ? '60px' : space(2))} ${space(1)} ${space(2)};
+  width: 100%;
+  text-align: left;
+  height: auto;
+  font-weight: normal;
+  line-height: ${p => p.theme.text.lineHeightBody};
   margin-top: 2px;
+
+  ${p =>
+    p.hasMenu &&
+    css`
+      padding-right: 60px;
+    `}
+`;
+
+const TitleDescriptionWrapper = styled('div')`
+  overflow: hidden;
 `;
 
 const SavedSearchItemTitle = styled('div')`
@@ -227,6 +312,17 @@ const OverflowMenu = styled(DropdownMenuControl)`
   position: absolute;
   top: 12px;
   right: ${space(1)};
+`;
+
+const ShowAllButton = styled(Button)`
+  color: ${p => p.theme.linkColor};
+  font-weight: normal;
+  margin-top: 2px;
+  padding: ${space(1)} ${space(2)};
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default SavedIssueSearches;

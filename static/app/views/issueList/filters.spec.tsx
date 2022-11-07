@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import {SavedSearchVisibility} from 'sentry/types';
 
 import IssueListFilters from './filters';
 
@@ -94,6 +95,7 @@ describe('IssueListFilters', function () {
             dateCreated: '',
             isGlobal: false,
             type: 0,
+            visibility: SavedSearchVisibility.OwnerPinned,
           }}
         />,
         {context: routerContext}

@@ -5,6 +5,7 @@ import ProgressRing from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];
@@ -14,14 +15,25 @@ type Props = {
 function ProgressHeader({allTasks, completedTasks}: Props) {
   const theme = useTheme();
 
+  let title: string, description: string;
+  if (isDemoWalkthrough()) {
+    title = t('Guided Tours');
+    description = t('Take a guided tour to see what Sentry can do for you');
+  } else {
+    title = t('Quick Start');
+    description = t('Walk through this guide to get the most out of Sentry right away.');
+  }
+
+  const filteredTasks = allTasks.filter(task => !task.renderCard);
+
   return (
     <Container>
       <StyledProgressRing
         size={80}
         barWidth={8}
-        text={allTasks.length - completedTasks.length}
+        text={filteredTasks.length - completedTasks.length}
         animateText
-        value={(completedTasks.length / allTasks.length) * 100}
+        value={(completedTasks.length / filteredTasks.length) * 100}
         progressEndcaps="round"
         backgroundColor={theme.gray100}
         textCss={() => css`
@@ -29,10 +41,8 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
           color: ${theme.textColor};
         `}
       />
-      <HeaderTitle>{t('Quick Start')}</HeaderTitle>
-      <Description>
-        {t('Walk through this guide to get the most out of Sentry right away.')}
-      </Description>
+      <HeaderTitle>{title}</HeaderTitle>
+      <Description>{description}</Description>
     </Container>
   );
 }
