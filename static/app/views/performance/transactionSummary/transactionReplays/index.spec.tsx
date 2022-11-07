@@ -133,7 +133,6 @@ describe('TransactionReplays', () => {
               'trace',
               'timestamp',
             ]),
-            per_page: 50,
             query: 'event.type:transaction transaction:transaction !replayId:""',
           }),
         })

@@ -2,6 +2,7 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
@@ -444,11 +445,17 @@ class GroupDetails extends Component<Props, State> {
       location
     );
 
+    // This is a hack to get the count of replays of an issue without getting affected by the pagination queries.
+    const fakeLocation: Location = {
+      ...location,
+      query: {},
+    };
+
     try {
       const [data] = await doDiscoverQuery<TableData>(
         api,
         `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location, '', false)
+        eventView.getEventsAPIPayload(fakeLocation, '', false)
       );
 
       const replayIds = data.data.map(record => String(record.replayId));

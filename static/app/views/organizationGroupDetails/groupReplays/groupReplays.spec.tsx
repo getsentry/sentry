@@ -119,7 +119,6 @@ describe('GroupReplays', () => {
               'user',
             ],
             sort: '-startedAt',
-            per_page: 50,
             query:
               'id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780]',
           }),

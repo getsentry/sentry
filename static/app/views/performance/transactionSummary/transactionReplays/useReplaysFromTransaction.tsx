@@ -165,7 +165,7 @@ async function fetchEventsWithReplay({
   organization: Organization;
 }) {
   try {
-    // This is a hack to get the count of replays for a transaction without getting affected by the pagination queries.
+    // This is a hack to get the count of replays of a transaction without getting affected by the pagination queries.
     const fakeLocation: Location = {
       ...location,
       query: {},

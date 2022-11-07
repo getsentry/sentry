@@ -1467,6 +1467,51 @@ describe('EventView.getEventsAPIPayload()', function () {
       end: '2020-10-02T00:00:00.000',
     });
   });
+
+  it('includes per_page', function () {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      environment: [],
+      project: [],
+    });
+
+    expect(eventView.getEventsAPIPayload({})).toEqual({
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      per_page: 50,
+      project: [],
+      environment: [],
+    });
+  });
+
+  it('does not include per_page if pageLimit param is passed as false', function () {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      environment: [],
+      project: [],
+    });
+
+    expect(eventView.getEventsAPIPayload({}, '', false)).toEqual({
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      project: [],
+      environment: [],
+    });
+  });
 });
 
 describe('EventView.getFacetsAPIPayload()', function () {
