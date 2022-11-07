@@ -498,10 +498,7 @@ function FlamegraphZoomView({
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
-          dispatch({type: 'set selected root', payload: hoveredNode});
-        } else {
-          // If double click is fired on an empty space, then reset the zoom
-          dispatch({type: 'set selected root', payload: null});
+          canvasPoolManager.dispatch('show in table view', [[hoveredNode]]);
         }
 
         dispatch({
@@ -771,6 +768,16 @@ function FlamegraphZoomView({
       });
   }, []);
 
+  const onShowInTableView = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    canvasPoolManager.dispatch('show in table view', [
+      [hoveredNodeOnContextMenuOpen.current],
+    ]);
+  }, [canvasPoolManager]);
+
   return (
     <CanvasContainer>
       <Canvas
@@ -794,6 +801,7 @@ function FlamegraphZoomView({
         profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
+        onShowInTableView={onShowInTableView}
         onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
       />

@@ -13,6 +13,7 @@ export interface FlamegraphEvents {
   ) => void;
   ['reset zoom']: () => void;
   ['set config view']: (configView: Rect) => void;
+  ['show in table view']: (frame: FlamegraphFrame[]) => void;
   ['transform config view']: (transform: mat3) => void;
   ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
@@ -27,6 +28,7 @@ export class CanvasScheduler {
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
+    ['show in table view']: new Set<FlamegraphEvents['show in table view']>(),
     ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
     ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
     ['set config view']: new Set<FlamegraphEvents['set config view']>(),

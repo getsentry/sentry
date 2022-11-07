@@ -89,6 +89,51 @@ export class VirtualizedTree<T extends TreeLike> {
     return list;
   }
 
+  findNode(matcher: (item: T) => boolean): VirtualizedTreeNode<T> | null {
+    const queue = [...this.roots];
+
+    while (queue.length) {
+      const candidate = queue.pop()!;
+
+      if (candidate && matcher(candidate.node)) {
+        return candidate;
+      }
+
+      for (let i = 0; i < candidate.children.length; i++) {
+        queue.push(candidate.children[i]);
+      }
+    }
+
+    return null;
+  }
+
+  expandToNode(matcher: (item: T) => boolean) {
+    // When scrollTo is called, we need to first find a few things
+    // - does the element exist in the tree
+    // - if it does, what is the index of the element
+    // - if it exists, is it visible?
+    //   - if it is visible, scroll to it
+    //   - if it is not visible, expand its parents and scroll to it
+    const index = this.flattened.findIndex(n => matcher(n.node));
+    if (index >= 0) {
+      // Element is already visible somewhere in the tree
+      // const element = latestItemsRef.current[index];
+      // element.ref?.click();
+    }
+
+    const node = this.findNode(matcher);
+
+    if (!node) {
+      return;
+    }
+
+    let path: VirtualizedTreeNode<T> | null = node.parent;
+    while (path && !path.expanded) {
+      this.expandNode(path, true);
+      path = path.parent;
+    }
+  }
+
   expandNode(
     node: VirtualizedTreeNode<T>,
     value: boolean,
