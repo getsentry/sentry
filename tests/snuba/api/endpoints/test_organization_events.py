@@ -285,7 +285,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         self.create_project()
 
@@ -5148,7 +5148,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 400, query_text
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_removes_unnecessary_default_project_and_transaction_thresholds(self, mock_snql_query):
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
@@ -5191,7 +5191,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             in mock_snql_query.call_args_list[0][0][0].query.select
         )
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_removes_unnecessary_default_project_and_transaction_thresholds_keeps_others(
         self, mock_snql_query
     ):
@@ -5426,7 +5426,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
         mock_snql_query.side_effect = [
             {
