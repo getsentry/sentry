@@ -153,7 +153,6 @@ class Access(abc.ABC):
         Compare to accessible_project_ids, which is equal to this property in the
         typical case but represents a superset of IDs in case of superuser access.
         """
-
         teams = self._team_memberships.keys()
         if not teams:
             return frozenset()
