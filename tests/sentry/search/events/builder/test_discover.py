@@ -175,7 +175,7 @@ class QueryBuilderTest(TestCase):
             query.where,
             [
                 *self.default_conditions,
-                Condition(Column("environment"), Op.IN, [self.environment.name, env2.name]),
+                Condition(Column("environment"), Op.IN, sorted([self.environment.name, env2.name])),
             ],
         )
         query.get_snql_query().validate()
