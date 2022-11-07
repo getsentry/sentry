@@ -421,6 +421,11 @@ urlpatterns += [
                 ),
                 url(r"^account/", generic_react_page_view),
                 url(
+                    r"^organization/",
+                    react_page_view,
+                    name="sentry-customer-domain-organization-settings",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
