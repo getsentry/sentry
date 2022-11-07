@@ -106,20 +106,6 @@ class QuotaConfig:
 
         return self.id is not None and self.window is not None
 
-    def to_json_legacy(self):
-        data = {
-            "prefix": str(self.id) if self.id is not None else None,
-            "subscope": str(self.scope_id) if self.scope_id is not None else None,
-            "limit": self.limit,
-            "window": self.window,
-            "reasonCode": self.reason_code,
-        }
-
-        if self.scope != QuotaScope.ORGANIZATION and self.scope_id is not None:
-            data["subscope"] = self.scope_id
-
-        return prune_empty_keys(data)
-
     def to_json(self):
         categories = None
         if self.categories:

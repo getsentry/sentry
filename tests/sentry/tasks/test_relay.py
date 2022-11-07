@@ -166,7 +166,6 @@ def test_generate(
             "isEnabled": True,
             "publicKey": default_projectkey.public_key,
             "numericId": default_projectkey.id,
-            "quotas": [],
         }
     ]
 
