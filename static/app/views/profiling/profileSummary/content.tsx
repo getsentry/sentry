@@ -137,7 +137,14 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 }
 
-const FIELDS = ['id', 'timestamp', 'release', 'profile.duration'] as const;
+const FIELDS = [
+  'id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'profile.duration',
+] as const;
 
 type FieldType = typeof FIELDS[number];
 
