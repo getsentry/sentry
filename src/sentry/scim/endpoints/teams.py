@@ -72,6 +72,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
+@extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
@@ -197,6 +198,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return super().post(request, organization)
 
 
+@extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
@@ -323,10 +325,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     )
     def patch(self, request: Request, organization, team):
         """
-        A SCIM Group PATCH request takes a series of operations to perform on a team.
-        It does them sequentially and if any of them fail no operations should go through.
-        The operations are add members, remove members, replace members, and rename team.
-        Update a team's attributes with a SCIM Group PATCH Request. Valid Operations are:
+        Update a team's attributes with a SCIM Group PATCH Request. Valid operations are:
+
         * Renaming a team:
         ```json
         {

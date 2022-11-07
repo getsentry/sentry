@@ -66,7 +66,6 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Update a team's attributes with a SCIM Group PATCH Request. Valid Operations are:\n* Renaming a team: \n```json\n{\n    \"Operations\": {\n        \"op\": \"replace\",\n        \"value\": {\n            \"id\": 23,\n            \"displayName\": \"newName\"\n        }\n    }\n}\n```\n* Adding a member to a team: \n```json\n{\n    \"Operations\": {\n        \"op\": \"add\",\n        \"path\": \"members\",\n        \"value\": [\n            {\n                \"value\": 23,\n                \"display\": \"testexample@example.com\"\n            }\n        ]\n    }\n}\n```\n* Removing a member from a team: \n```json\n{\n    \"Operations\": {\n        \"op\": \"remove\",\n        \"path\": \"members[value eq \\\"23\\\"]\"\n    }    \n}\n``` \n*  Replacing an entire member set of a team: \n```json\n{\n    \"Operations\": {\n        \"op\": \"replace\",\n        \"path\": \"members\",\n        \"value\": [\n            {\n                \"value\": 23,\n                \"display\": \"testexample2@sentry.io\"\n            },\n            {\n                \"value\": 24,\n                \"display\": \"testexample3@sentry.io\"\n            }\n        ]\n    }\n}\n```",
         "operationId": "Update a Team's Attributes",
         "parameters": [
             {
