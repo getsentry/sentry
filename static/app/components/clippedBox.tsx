@@ -164,7 +164,7 @@ class ClippedBox extends PureComponent<Props, State> {
 
 export default ClippedBox;
 
-const Wrapper = styled('div', {
+export const Wrapper = styled('div', {
   shouldForwardProp: prop =>
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`

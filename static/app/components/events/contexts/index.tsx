@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
@@ -14,11 +16,24 @@ type Props = {
 function Contexts({event, group}: Props) {
   const {user, contexts} = event;
 
-  const {feedback, ...otherContexts} = contexts;
+  console.log(contexts);
+  const {feedback, response, ...otherContexts} = contexts;
 
   return (
     <Fragment>
-      {!objectIsEmpty(feedback) && (
+      {response && !objectIsEmpty(response) && (
+        <ResponseChunk>
+          <Chunk
+            key="response"
+            type="response"
+            alias="response"
+            group={group}
+            event={event}
+            value={response}
+          />
+        </ResponseChunk>
+      )}
+      {/* {!objectIsEmpty(feedback) && (
         <Chunk
           key="feedback"
           type="feedback"
@@ -47,9 +62,13 @@ function Contexts({event, group}: Props) {
           event={event}
           value={value}
         />
-      ))}
+      ))} */}
     </Fragment>
   );
 }
 
 export default Contexts;
+
+const ResponseChunk = styled('div')`
+  border: 1px solid red;
+`;
