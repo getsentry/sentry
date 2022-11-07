@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Message, Partition, Position, Topic
 from freezegun import freeze_time
 
@@ -139,6 +138,6 @@ def test_outcomes_consumed(_gbp):
 
     # The consumer rejects new messages after closing
     strategy.close()
-    with pytest.raises(MessageRejected):
+    with pytest.raises(AssertionError):
         strategy.poll()
         strategy.submit(generate_kafka_message(buckets[0]))

@@ -28,7 +28,6 @@ from arroyo.backends.kafka.configuration import (
 from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
@@ -269,8 +268,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._closed = True
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        if self._closed:
-            raise MessageRejected("Consumer is closed, no new messages are accepted.")
+        assert not self._closed
 
         bucket_payload = self._get_bucket_payload(message)
         quantity = self._count_processed_transactions(bucket_payload)
