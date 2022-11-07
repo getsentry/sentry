@@ -515,7 +515,6 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-
     metrics = []
     custom_tags = []
 

@@ -117,7 +117,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @pytest.mark.django_db
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
-def test_get_experimental_config(mock_sentry_sdk, _, default_project):
+def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature(
         {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
@@ -127,6 +127,28 @@ def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
     assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.capture_exception")
+def test_get_experimental_config_transaction_metrics_exception(
+    mock_capture_exception, default_project
+):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
+    # wrong type
+    default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
+
+    with Feature({"organizations:transaction-metrics-extraction": True}):
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+
+    # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
+    assert (
+        "breakdowns.span_ops.ops"
+        not in cfg.to_dict()["config"]["transactionMetrics"]["extractMetrics"]
+    )
+    assert cfg.to_dict()["config"]["transactionMetrics"]["extractCustomTags"] == []
+    assert mock_capture_exception.call_count == 2
 
 
 @pytest.mark.django_db
