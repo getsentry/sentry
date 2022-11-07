@@ -93,7 +93,11 @@ export default function QuickTrace({
 
   if (organization.features.includes('session-replay-ui')) {
     nodes.push(
-      <Projects orgId={organization.slug} slugs={[current.project_slug]}>
+      <Projects
+        key="replay-projects"
+        orgId={organization.slug}
+        slugs={[current.project_slug]}
+      >
         {({projects}) => {
           const project = projects.find(p => p.slug === current.project_slug);
           if (projectSupportsReplay(project)) {
