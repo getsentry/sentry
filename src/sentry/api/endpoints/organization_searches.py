@@ -1,5 +1,4 @@
 from django.db.models import Q
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,25 +6,9 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
+from sentry.api.serializers.rest_framework.savedsearch import OrganizationSearchSerializer
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-
-
-class OrganizationSearchSerializer(serializers.Serializer):
-    type = serializers.IntegerField(required=True)
-    name = serializers.CharField(required=True)
-    query = serializers.CharField(required=True, min_length=1)
-    sort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
-    )
-    # TODO(epurkhiser): Once the frontend is deployed we should change this to
-    # default to OWNER since that is a more sane default than organization
-    # visibile.
-    visibility = serializers.ChoiceField(
-        choices=Visibility.as_choices(include_pinned=False),
-        default=Visibility.ORGANIZATION,
-        required=False,
-    )
 
 
 @region_silo_endpoint

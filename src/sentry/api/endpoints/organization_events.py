@@ -193,7 +193,16 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
-            return Response([])
+            return Response(
+                {
+                    "data": [],
+                    "meta": {
+                        "tips": {
+                            "query": "Need at least one valid project to query.",
+                        },
+                    },
+                }
+            )
         except InvalidParams as err:
             raise ParseError(err)
 
