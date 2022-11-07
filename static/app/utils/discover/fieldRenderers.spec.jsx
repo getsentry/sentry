@@ -211,7 +211,9 @@ describe('getFieldRenderer', function () {
   it('renders issue hyperlink', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',

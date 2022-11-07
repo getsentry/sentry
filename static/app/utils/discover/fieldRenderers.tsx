@@ -475,7 +475,9 @@ const SPECIAL_FIELDS: SpecialFields = {
         );
       }
 
-      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
+      };
 
       return (
         <Container>
