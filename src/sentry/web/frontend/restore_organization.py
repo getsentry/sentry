@@ -35,7 +35,7 @@ class RestoreOrganizationView(OrganizationView):
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.
         organization = organization_service.get_organization_by_slug(
-            user_id=request.user.id, slug=organization_slug, only_visible=False, allow_stale=False
+            user_id=request.user.id, slug=organization_slug, only_visible=False
         )
         if organization and organization.member:
             self.active_organization = organization

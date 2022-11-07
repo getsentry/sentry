@@ -355,7 +355,6 @@ class FromRequestTest(TestCase):
 
         assert not result.requires_sso
         assert result.sso_is_valid
-
         assert result.team_ids_with_membership == frozenset()
         assert result.has_team_access(self.team1)
         assert result.project_ids_with_team_membership == frozenset()

@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import contextlib
+import functools
 import logging
 from abc import ABC, abstractmethod
+from types import TracebackType
 from typing import Any, Callable, Dict, Generator, Generic, Mapping, Optional, Type, TypeVar, cast
 
 logger = logging.getLogger(__name__)
@@ -135,19 +139,50 @@ def service_stubbed(
         raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
-@contextlib.contextmanager
-def use_real_service(
-    service: InterfaceWithLifecycle, silo_mode: SiloMode
-) -> Generator[None, None, None]:
-    """
-    Removes any stubbed implementations, forcing the default configured implementation.
-    Important for integration tests that validate the integration of production service implementations.
-    """
-    from django.test import override_settings
+class use_real_service:
+    service: InterfaceWithLifecycle
+    silo_mode: SiloMode | None
+    context: contextlib.ExitStack
 
-    if isinstance(service, DelegatedBySiloMode):
-        with override_settings(SILO_MODE=silo_mode):
-            with service.with_replacement(None, silo_mode):
-                yield
-    else:
-        raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
+    def __init__(self, service: InterfaceWithLifecycle, silo_mode: SiloMode | None):
+        self.silo_mode = silo_mode
+        self.service = service
+        self.context = contextlib.ExitStack()
+
+    def __enter__(self) -> None:
+        from django.test import override_settings
+
+        if isinstance(self.service, DelegatedBySiloMode):
+            if self.silo_mode is not None:
+                self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
+                self.context.enter_context(
+                    cast(
+                        Any,
+                        self.service.with_replacement(None, self.silo_mode),
+                    )
+                )
+            else:
+                self.context.enter_context(
+                    cast(
+                        Any,
+                        self.service.with_replacement(None, SiloMode.get_current_mode()),
+                    )
+                )
+        else:
+            raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
+
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(f)
+        def wrapped(*args: Any, **kwds: Any) -> Any:
+            with self:
+                return f(*args, **kwds)
+
+        return wrapped
+
+    def __exit__(
+        self,
+        __exc_type: Type[BaseException] | None,
+        __exc_value: BaseException | None,
+        __traceback: TracebackType | None,
+    ) -> bool | None:
+        return self.context.__exit__(__exc_type, __exc_value, __traceback)

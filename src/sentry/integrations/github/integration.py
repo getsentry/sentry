@@ -329,7 +329,7 @@ class GitHubInstallationRedirect(PipelineView):
                 # post install to migrate repos do not work.
                 integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                     integration__provider=GitHubIntegrationProvider.key,
-                    organization_id=self.active_organization.id,
+                    organization_id=self.active_organization.organization.id,
                     status=ObjectStatus.PENDING_DELETION,
                 ).exists()
 

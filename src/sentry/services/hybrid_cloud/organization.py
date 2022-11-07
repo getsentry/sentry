@@ -1,8 +1,21 @@
+import dataclasses
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Iterable, List, MutableMapping, Optional, Set, cast
 
-from sentry.models import Organization, OrganizationMember, OrganizationStatus
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationStatus,
+    Project,
+    ProjectStatus,
+    ProjectTeam,
+    Team,
+    TeamStatus,
+)
+from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import (
     CreateStubFromBase,
     InterfaceWithLifecycle,
@@ -13,35 +26,115 @@ from sentry.silo import SiloMode
 
 
 @dataclass
+class ApiTeam:
+    id: int = -1
+    status: int = TeamStatus.VISIBLE
+    organization_id: int = -1
+    slug: str = ""
+
+
+@dataclass
+class ApiTeamMember:
+    id: int = -1
+    is_active: bool = False
+    role: Optional[TeamRole] = None
+    project_ids: List[int] = field(default_factory=list)
+    scopes: List[str] = field(default_factory=list)
+    team_id: int = -1
+
+
+@dataclass
+class ApiProject:
+    id: int = -1
+    slug: str = ""
+    name: str = ""
+    organization_id: int = -1
+    status: int = ProjectStatus.VISIBLE
+
+
+@dataclass
 class ApiOrganizationMember:
+    id: int = -1
+    organization_id: int = -1
     # This can be null when the user is deleted.
-    user_id: Optional[int]
-    pass
+    user_id: Optional[int] = None
+    member_teams: List[ApiTeamMember] = field(default_factory=list)
+    role: str = ""
+    project_ids: List[int] = field(default_factory=list)
+    scopes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class ApiOrganizationFlags:
+    allow_joinleave: bool = False
+    enhanced_privacy: bool = False
+    disable_shared_issues: bool = False
+    early_adopter: bool = False
+    require_2fa: bool = False
+    disable_new_visibility_features: bool = False
+    require_email_verification: bool = False
 
 
 @dataclass
 class ApiOrganization:
     slug: str = ""
     id: int = -1
-    # exists iff the organization was queried with a user_id context, and that user_id
+    # exists if and only if the organization was queried with a user_id context, and that user_id
     # was confirmed to be a member.
+    # member: Optional[ApiOrganizationMember] = None
+    name: str = ""
+
+    # Represents the full set of teams and projects associated with the org.
+    teams: List[ApiTeam] = field(default_factory=list)
+    projects: List[ApiProject] = field(default_factory=list)
+
+    flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
+
+
+@dataclass
+class ApiUserOrganizationContext:
+    """
+    This object wraps an organization result inside of its membership context in terms of an (optional) use id.
+    This is due to the large number of callsites that require an organization and a user's membership at the
+    same time and in a consistency state.  This object allows a nice envelop for both of these ideas from a single
+    transactional query.  Used by access, determine_active_organization, and others.
+    """
+
+    user_id: Optional[int]
+    organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
+    # Set iff the user_id in this object has a membership for the requested organization.
+    # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[ApiOrganizationMember] = None
+
+    def __post_init__(self) -> None:
+        if self.user_id is not None and self.member is not None:
+            assert self.user_id == self.member.user_id
 
 
 class OrganizationService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_organization_by_id(
+        self, *, id: int, user_id: Optional[int]
+    ) -> Optional[ApiUserOrganizationContext]:
+        """
+        Fetches the organization, team, and project data given by an organization id, regardless of its visibility
+        status.  When user_id is provided, membership data related to that user from the organization
+        is also given in the response.  See ApiUserOrganizationContext for more info.
+        """
+        pass
+
     @abstractmethod
     def get_organizations(
         self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
         """
-        This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
-        an appropriate set.
-        :param user_id:
-        When null, this should imply the entire set of organizations, not bound by user.  Be certain to authenticate
-        users before returning this.
-        :param scope:
-        :param only_visible:
-        :return:
+        When user_id is set, returns all organization and membership data associated with that user id given
+        a scope and visibility requirement.  When user_id is None, provides all organizations across the entire
+        system.
+        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
+        organization will be returned. NOTE: related resources, including membership, projects, and teams, will
+        ALWAYS filter by status=VISIBLE.  To pull projects or teams that are not visible, use a different service
+        endpoint.
         """
         pass
 
@@ -50,33 +143,154 @@ class OrganizationService(InterfaceWithLifecycle):
         self, organization_id: int, email: str
     ) -> Optional[ApiOrganizationMember]:
         """
-        Used to look up an organization membership by an email, used in very specific edge cases.
+        Used to look up an organization membership by an email
         """
         pass
 
     @abstractmethod
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
-    ) -> Optional[ApiOrganization]:
+    def check_membership_by_id(
+        self, organization_id: int, user_id: int
+    ) -> Optional[ApiOrganizationMember]:
+        """
+        Used to look up an organization membership by a user id
+        """
         pass
 
-    def _serialize_member(self, member: OrganizationMember) -> ApiOrganizationMember:
-        return ApiOrganizationMember(user_id=member.user.id if member.user is not None else None)
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
 
-    def _serialize_organization(
-        self, org: Organization, user_memberships: Iterable[OrganizationMember] = tuple()
-    ) -> ApiOrganization:
-        result = ApiOrganization(slug=org.slug, id=org.id)
+    def get_organization_by_slug(
+        self, *, user_id: Optional[int], slug: str, only_visible: bool
+    ) -> Optional[ApiUserOrganizationContext]:
+        """
+        Defers to check_organization_by_slug -> get_organization_by_id
+        """
+        org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
+        if org_id is None:
+            return None
 
-        for member in user_memberships:
-            if member.organization.id == org.id:
-                result.member = self._serialize_member(member)
-                break
+        return self.get_organization_by_id(id=org_id, user_id=user_id)
+
+    def _serialize_member(
+        self,
+        member: OrganizationMember,
+    ) -> ApiOrganizationMember:
+        api_member = ApiOrganizationMember(
+            id=member.id,
+            organization_id=member.organization_id,
+            user_id=member.user.id if member.user is not None else None,
+            role=member.role,
+            scopes=list(member.get_scopes()),
+        )
+
+        omts = OrganizationMemberTeam.objects.filter(
+            organizationmember=member, is_active=True, team__status=TeamStatus.VISIBLE
+        )
+
+        all_project_ids: Set[int] = set()
+        project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
+        for pt in ProjectTeam.objects.filter(
+            project__status=ProjectStatus.VISIBLE, team_id__in={omt.team_id for omt in omts}
+        ):
+            all_project_ids.add(pt.project_id)
+            project_ids_by_team_id[pt.team_id].append(pt.project_id)
+
+        for omt in omts:
+            api_member.member_teams.append(
+                self._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
+            )
+        api_member.project_ids = list(all_project_ids)
+
+        return api_member
+
+    def _serialize_flags(self, org: Organization) -> ApiOrganizationFlags:
+        result = ApiOrganizationFlags()
+        for f in dataclasses.fields(result):
+            setattr(result, f.name, getattr(org.flags, f.name))
+        return result
+
+    def _serialize_team(self, team: Team) -> ApiTeam:
+        return ApiTeam(
+            id=team.id,
+            status=team.status,
+            organization_id=team.organization_id,
+            slug=team.slug,
+        )
+
+    def _serialize_team_member(
+        self, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
+    ) -> ApiTeamMember:
+        result = ApiTeamMember(
+            id=team_member.id,
+            is_active=team_member.is_active,
+            role=team_member.get_team_role(),
+            team_id=team_member.team_id,
+            project_ids=list(project_ids),
+        )
 
         return result
 
+    def _serialize_project(self, project: Project) -> ApiProject:
+        return ApiProject(
+            id=project.id,
+            slug=project.slug,
+            name=project.name,
+            organization_id=project.organization_id,
+            status=project.status,
+        )
+
+    def _serialize_organization(self, org: Organization) -> ApiOrganization:
+        api_org: ApiOrganization = ApiOrganization(
+            slug=org.slug,
+            id=org.id,
+            flags=self._serialize_flags(org),
+            name=org.name,
+        )
+
+        projects: List[Project] = Project.objects.filter(organization=org)
+        teams: List[Team] = Team.objects.filter(organization=org)
+        api_org.projects.extend(self._serialize_project(project) for project in projects)
+        api_org.teams.extend(self._serialize_team(team) for team in teams)
+        return api_org
+
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def check_membership_by_id(
+        self, organization_id: int, user_id: int
+    ) -> Optional[ApiOrganizationMember]:
+        try:
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, user_id=user_id
+            )
+        except OrganizationMember.DoesNotExist:
+            return None
+
+        return self._serialize_member(member)
+
+    def get_organization_by_id(
+        self, *, id: int, user_id: Optional[int]
+    ) -> Optional[ApiUserOrganizationContext]:
+        membership: Optional[ApiOrganizationMember] = None
+        if user_id is not None:
+            try:
+                om = OrganizationMember.objects.get(organization_id=id, user_id=user_id)
+                membership = self._serialize_member(om)
+            except OrganizationMember.DoesNotExist:
+                pass
+
+        try:
+            org = Organization.objects.get(id=id)
+        except Organization.DoesNotExist:
+            return None
+
+        return ApiUserOrganizationContext(
+            user_id=user_id, organization=self._serialize_organization(org), member=membership
+        )
+
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[ApiOrganizationMember]:
@@ -87,29 +301,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return self._serialize_member(member)
 
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
-    ) -> Optional[ApiOrganization]:
-        user_memberships: List[OrganizationMember] = []
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
-            if allow_stale:
-                org = Organization.objects.get_from_cache(slug=slug)
-            else:
-                org = Organization.objects.get(slug=slug)
-
-            if user_id is not None:
-                try:
-                    user_memberships = [
-                        OrganizationMember.objects.get(organization_id=org.id, user_id=user_id)
-                    ]
-                except OrganizationMember.DoesNotExist:
-                    pass
-
+            org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.VISIBLE:
                 raise Organization.DoesNotExist
-            return self._serialize_organization(org, user_memberships)
+            return cast(int, org.id)
         except Organization.DoesNotExist:
-            logger.info("Active organization [%s] not found", slug)
+            logger.info("Organization by slug [%s] not found", slug)
 
         return None
 
@@ -122,8 +321,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is None:
             return []
         organizations = self._query_organizations(user_id, scope, only_visible)
-        membership = OrganizationMember.objects.filter(user_id=user_id)
-        return [self._serialize_organization(o, membership) for o in organizations]
+        return [self._serialize_organization(o) for o in organizations]
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool

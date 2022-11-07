@@ -61,7 +61,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         next_uri = self.get_next_uri(request)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
-            next_uri = get_org_redirect_url(request, self.active_organization)
+            next_uri = get_org_redirect_url(
+                request, self.active_organization.organization if self.active_organization else None
+            )
 
         return Response({"nextUri": next_uri})
 
