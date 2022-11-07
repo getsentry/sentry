@@ -2133,7 +2133,7 @@
     "@react-aria/utils" "^3.8.2"
     clsx "^1.1.1"
 
-"@react-stately/collections@^3.3.3", "@react-stately/collections@^3.4.3", "@react-stately/collections@^3.4.4":
+"@react-stately/collections@^3.3.3", "@react-stately/collections@^3.3.4", "@react-stately/collections@^3.4.3", "@react-stately/collections@^3.4.4":
   version "3.4.4"
   resolved "https://registry.yarnpkg.com/@react-stately/collections/-/collections-3.4.4.tgz#9df0b690bac0d3a95bc01352937ec74160c6bd29"
   integrity sha512-gryUYCe6uzqE0ea5frTwOxOPpx/6Z42PRk7KetOh3ddN3Ts0j8XQP08jP1IB/7BC1QidrkHWvDCqGHxRiEjiIg==
@@ -2194,6 +2194,15 @@
     "@react-stately/utils" "^3.2.2"
     "@react-types/overlays" "^3.5.1"
 
+"@react-stately/overlays@^3.4.2":
+  version "3.4.2"
+  resolved "https://registry.yarnpkg.com/@react-stately/overlays/-/overlays-3.4.2.tgz#c6df94a65551137075263eeef70beba8b90b52a0"
+  integrity sha512-UTCnn0aT+JL4ZhYPQYUWHwhmuR2T3vKTFUEZeZN9sTuDCctg08VfGoASJx8qofqkLwYJXeb8D5PMhhTDPiUQPw==
+  dependencies:
+    "@babel/runtime" "^7.6.2"
+    "@react-stately/utils" "^3.5.1"
+    "@react-types/overlays" "^3.6.4"
+
 "@react-stately/selection@^3.10.3", "@react-stately/selection@^3.11.0":
   version "3.11.0"
   resolved "https://registry.yarnpkg.com/@react-stately/selection/-/selection-3.11.0.tgz#50945d87dadd0d08505b37f1bb319d0c783d2037"
@@ -2234,7 +2243,7 @@
     "@react-types/checkbox" "^3.2.3"
     "@react-types/shared" "^3.8.0"
 
-"@react-stately/tree@^3.2.0":
+"@react-stately/tree@^3.2.0", "@react-stately/tree@^3.3.4":
   version "3.3.4"
   resolved "https://registry.yarnpkg.com/@react-stately/tree/-/tree-3.3.4.tgz#2b71436dd7ed3bd42983f4fd29a9417f947876f9"
   integrity sha512-CBgXvwa9qYBsJuxrAiVgGnm48eSxLe/6OjPMwH1pWf4s383Mx73MbbN4fS0oWDeXBVgdqz5/Xg/p8nvPIvl3WQ==
@@ -2288,6 +2297,13 @@
   integrity sha512-T3o6wQ5NNm1rSniIa01bIa6fALC8jbwpYxFMaQRrdEpIvwktt0Fi5Xo6/97+oe4HvzzU0JMhtwWDTdRySvgeZw==
   dependencies:
     "@react-types/shared" "^3.8.0"
+
+"@react-types/overlays@^3.6.4":
+  version "3.6.4"
+  resolved "https://registry.yarnpkg.com/@react-types/overlays/-/overlays-3.6.4.tgz#4ae4d7b3b38c45d122b0ca2dc88a57f08e89fd0e"
+  integrity sha512-REC4IyDUHS5WhwxMxcvTo+LdrvlSYpJKjyYkPFtJoDBpM3gmXfakTY3KW6K5eZkFv3TnmXjDF9Q2yboEk2u6WQ==
+  dependencies:
+    "@react-types/shared" "^3.15.0"
 
 "@react-types/shared@^3.10.0", "@react-types/shared@^3.14.1", "@react-types/shared@^3.15.0", "@react-types/shared@^3.8.0", "@react-types/shared@^3.9.0":
   version "3.15.0"
