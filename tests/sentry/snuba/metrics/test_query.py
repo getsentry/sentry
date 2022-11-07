@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
 import pytest
+from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
@@ -437,6 +438,7 @@ def test_validate_distribution_functions_in_orderby():
     MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])
@@ -615,17 +617,26 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
     assert mq.interval == mq.granularity.granularity
 
 
-@pytest.mark.skip(reason="flaky test: TET-505")
+@freeze_time("2022-11-03 10:00:00")
 @pytest.mark.parametrize(
-    "granularity, interval, expected_granularity",
+    "start_time_delta, granularity, interval, expected_granularity",
     [
         pytest.param(
+            timedelta(hours=2),
             86400,
             7200,
             3600,
             id="day granularity with 2 hour interval",
         ),
         pytest.param(
+            timedelta(hours=1),
+            86400,
+            3600,
+            60,
+            id="day granularity with 1 hour interval",
+        ),
+        pytest.param(
+            timedelta(hours=1),
             3600,
             1800,
             60,
@@ -633,7 +644,9 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
         ),
     ],
 )
-def test_ensure_granularity_is_less_than_interval(granularity, interval, expected_granularity):
+def test_start_end_interval_greater_than_interval_is_successful(
+    start_time_delta, granularity, interval, expected_granularity
+):
     metrics_query = (
         MetricsQueryBuilder()
         .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
@@ -641,6 +654,26 @@ def test_ensure_granularity_is_less_than_interval(granularity, interval, expecte
         .with_granularity(Granularity(granularity))
         .with_interval(interval)
     )
+    # We set the start time with a different value from default in order to have the start and end interval greater
+    # than the specified interval (e.g., if you have an interval of 2 hours and the difference between start and end is
+    # less than 2 hours, it doesn't make sense to query the data).
+    metrics_query.start = metrics_query.end - start_time_delta
+
     metrics_query_dict = metrics_query.to_metrics_query_dict()
     mq = MetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity
+
+
+@freeze_time("2022-11-03 10:00:00")
+def test_start_end_interval_less_than_interval_raises_an_exception():
+    metrics_query = (
+        MetricsQueryBuilder()
+        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
+        .with_include_series(True)
+        .with_granularity(Granularity(86400))
+        .with_interval(7200)
+    )
+
+    with pytest.raises(InvalidParams):
+        metrics_query_dict = metrics_query.to_metrics_query_dict()
+        MetricsQuery(**metrics_query_dict)

@@ -932,7 +932,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -995,7 +994,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1041,7 +1039,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1097,7 +1094,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1159,7 +1155,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1217,7 +1212,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1256,7 +1250,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1302,7 +1295,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1360,7 +1352,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),
@@ -1422,7 +1413,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-
             'dashboards-top-level-filter',
           ],
         }),

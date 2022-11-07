@@ -20,7 +20,6 @@ from sentry.utils.samples import load_data
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:global-views",
-        "organizations:performance-suspect-spans-view",
     ]
 
     def setUp(self):
@@ -409,10 +408,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 @region_silo_test
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-performance"
-
-    def test_no_feature(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
 
     def test_no_projects(self):
         user = self.create_user()
@@ -1108,10 +1103,6 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
-    def test_no_feature(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
-
     def test_no_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -1749,10 +1740,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 @region_silo_test
 class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-stats"
-
-    def test_no_feature(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
 
     def test_require_span_param(self):
         with self.feature(self.FEATURES):
