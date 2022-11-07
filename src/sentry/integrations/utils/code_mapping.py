@@ -111,9 +111,14 @@ class CodeMappingTreesHelper:
         _code_mappings: List[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
-            _code_mappings.extend(
-                self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
-            )
+            try:
+                _code_mappings.extend(
+                    self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
+                )
+            except Exception:
+                logger.exception(
+                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continutes."
+                )
 
         if len(_code_mappings) == 0:
             logger.warning(f"No files matched for {frame_filename.full_path}")
