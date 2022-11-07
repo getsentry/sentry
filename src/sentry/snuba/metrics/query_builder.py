@@ -8,6 +8,7 @@ __all__ = (
     "resolve_tags",
     "translate_meta_results",
 )
+
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -72,6 +73,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
+    require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -95,7 +97,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
 
 
 def resolve_tags(
@@ -184,17 +186,21 @@ def resolve_tags(
             conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
-        if input_.name == "project_id":
+        # If a column has the name belonging to the set, it means that we don't need to resolve its name.
+        if input_.name in frozenset(["project_id", "tags.key"]):
             return input_
+
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             # Handles translating field aliases to their "metrics" equivalent, for example
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
             name = input_.key
         else:
             name = input_.name
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
@@ -533,7 +539,9 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=condition.rhs,
+                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                            if require_rhs_condition_resolution(condition.lhs.op)
+                            else condition.rhs,
                         )
                     )
                 except IndexError:
@@ -864,7 +872,7 @@ class SnubaResultConverter:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(alias, empty_values)
 
-                    if bucketed_time is not None:
+                    if bucketed_time is not None and bucketed_time in self._timestamp_index:
                         series_index = self._timestamp_index[bucketed_time]
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value

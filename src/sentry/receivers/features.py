@@ -31,6 +31,7 @@ from sentry.signals import (
     issue_unignored,
     issue_unresolved,
     member_joined,
+    monitor_failed,
     ownership_rule_created,
     plugin_enabled,
     project_created,
@@ -253,6 +254,9 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
     )
 
 
+# XXX(epurkhiser): This was originally used in project saved searches, but
+# those no longer exist and this is no longer connected to anything. We
+# probably want to connect this up to organization level saved searches.
 @save_search_created.connect(weak=False)
 def record_save_search_created(project, user, **kwargs):
     FeatureAdoption.objects.record(
@@ -625,6 +629,16 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         organization_id=group.project.organization_id,
         group_id=group.id,
         delete_type=delete_type,
+    )
+
+
+@monitor_failed.connect(weak=False)
+def record_monitor_failure(monitor, **kwargs):
+    analytics.record(
+        "monitor.mark_failed",
+        organization_id=monitor.organization_id,
+        monitor_id=monitor.guid,
+        project_id=monitor.project_id,
     )
 
 

@@ -47,7 +47,6 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
-import {DynamicSamplingMetricsAccuracyAlert} from './dynamicSamplingMetricsAccuracyAlert';
 import {MetricsDataSwitcher} from './metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from './metricsDataSwitcherAlert';
 import {
@@ -149,8 +148,9 @@ export function PerformanceLanding(props: Props) {
     : SearchContainerWithFilter;
 
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
-
-  const fullSelectedProjects = eventView.getFullSelectedProjects(projects);
+  const shouldForceTransactionNameOnlySearch = organization.features.includes(
+    'performance-transaction-name-only-search-indexed'
+  );
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -169,6 +169,7 @@ export function PerformanceLanding(props: Props) {
               {!showOnboarding && (
                 <ButtonBar gap={3}>
                   <Button
+                    size="sm"
                     priority="primary"
                     data-test-id="landing-header-trends"
                     onClick={() => handleTrendsClick()}
@@ -181,7 +182,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{t(label)}</Item>
+                <Item key={field}>{label}</Item>
               ))}
             </TabList>
           </Layout.Header>
@@ -191,6 +192,7 @@ export function PerformanceLanding(props: Props) {
               <TabPanels>
                 <Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
+                    sendOutcomeAnalytics
                     organization={organization}
                     location={location}
                   >
@@ -213,18 +215,6 @@ export function PerformanceLanding(props: Props) {
                               router={props.router}
                               {...metricsDataSide}
                             />
-                            {!metricsDataSide.shouldWarnIncompatibleSDK &&
-                              !metricsDataSide.shouldNotifyUnnamedTransactions && (
-                                <DynamicSamplingMetricsAccuracyAlert
-                                  organization={organization}
-                                  selectedProject={
-                                    fullSelectedProjects.length === 1
-                                      ? fullSelectedProjects[0]
-                                      : undefined
-                                  }
-                                />
-                              )}
-
                             <PageErrorAlert />
                             {showOnboarding ? (
                               <Fragment>
@@ -245,18 +235,21 @@ export function PerformanceLanding(props: Props) {
                                           ? getFreeTextFromQuery(derivedQuery)
                                           : derivedQuery;
 
-                                      return metricSettingState ===
+                                      return (metricSettingState ===
                                         MEPState.metricsOnly &&
-                                        shouldShowTransactionNameOnlySearch ? (
+                                        shouldShowTransactionNameOnlySearch) ||
+                                        shouldForceTransactionNameOnlySearch ? (
                                         // TODO replace `handleSearch prop` with transaction name search once
                                         // transaction name search becomes the default search bar
                                         <TransactionNameSearchBar
                                           organization={organization}
-                                          location={location}
                                           eventView={eventView}
-                                          onSearch={(query: string) =>
-                                            handleSearch(query, metricSettingState)
-                                          }
+                                          onSearch={(query: string) => {
+                                            handleSearch(
+                                              query,
+                                              metricSettingState ?? undefined
+                                            );
+                                          }}
                                           query={searchQuery}
                                         />
                                       ) : (

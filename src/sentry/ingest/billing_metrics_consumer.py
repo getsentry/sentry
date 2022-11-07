@@ -15,6 +15,7 @@ from typing import (
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Message, Partition, Position
@@ -51,6 +52,7 @@ def get_metrics_billing_consumer(
         ),
         topic=Topic(topic),
         processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
+        commit_policy=IMMEDIATE,
     )
 
 
@@ -167,7 +169,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             reason=None,
             timestamp=datetime.fromtimestamp(payload["timestamp"]),
             event_id=None,
-            category=DataCategory.TRANSACTION_PROCESSED,
+            category=DataCategory.TRANSACTION,
             quantity=quantity,
         )
 

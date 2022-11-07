@@ -6,8 +6,9 @@ import random
 import time
 from collections import deque
 from concurrent.futures import Future
+from datetime import datetime, timezone
 from io import BytesIO
-from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 import sentry_sdk
@@ -16,17 +17,21 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
+from django.db.utils import IntegrityError
 
+from sentry.constants import DataCategory
 from sentry.models import File
-from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
+from sentry.models.project import Project
+from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
     RecordingSegmentMessage,
 )
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
-from sentry.utils.sdk import configure_scope
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger("sentry.replays")
 
@@ -71,7 +76,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             segment_id=message_dict["id"],
         )
 
-        part = RecordingSegmentPart(cache_prefix)
+        part = RecordingSegmentCache(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
 
     def _process_headers(
@@ -93,8 +98,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         with sentry_sdk.start_transaction(
             op="replays.consumer", name="replays.consumer.flush_batch"
         ):
-            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-
             try:
                 recording_segment_parts = list(parts)
             except ValueError:
@@ -114,6 +117,25 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # blindly merge the bytes objects into a single bytes object.
             recording_segment = b"".join(recording_segment_parts)
 
+            count_existing_segments = ReplayRecordingSegment.objects.filter(
+                replay_id=message_dict["replay_id"],
+                project_id=message_dict["project_id"],
+                segment_id=headers["segment_id"],
+            ).count()
+
+            if count_existing_segments > 0:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = "warning"
+                    scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
+                    scope.set_tag("replay_id", message_dict["replay_id"])
+                    scope.set_tag("project_id", message_dict["project_id"])
+
+                    logging.exception("Recording segment was already processed.")
+
+                parts.drop()
+
+                return
+
             # create a File for our recording segment.
             recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
             file = File.objects.create(
@@ -124,18 +146,56 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 BytesIO(recording_segment),
                 blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
             )
-            # associate this file with an indexable replay_id via ReplayRecordingSegment
-            ReplayRecordingSegment.objects.create(
-                replay_id=message_dict["replay_id"],
-                project_id=message_dict["project_id"],
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-            )
+
+            try:
+                # associate this file with an indexable replay_id via ReplayRecordingSegment
+                ReplayRecordingSegment.objects.create(
+                    replay_id=message_dict["replay_id"],
+                    project_id=message_dict["project_id"],
+                    segment_id=headers["segment_id"],
+                    file_id=file.id,
+                )
+            except IntegrityError:
+                # Same message was encountered more than once.
+                logger.warning(
+                    "Recording-segment has already been processed.",
+                    extra={
+                        "replay_id": message_dict["replay_id"],
+                        "project_id": message_dict["project_id"],
+                        "segment_id": headers["segment_id"],
+                    },
+                )
+
+                # Cleanup the blob.
+                file.delete()
+
             # delete the recording segment from cache after we've stored it
             parts.drop()
 
             # TODO: how to handle failures in the above calls. what should happen?
             # also: handling same message twice?
+
+            # TODO: in join wait for outcomes producer to flush possibly,
+            # or do this in a separate arroyo step
+            # also need to talk with other teams on only-once produce requirements
+            if headers["segment_id"] == 0 and message_dict.get("org_id"):
+                project = Project.objects.get_from_cache(id=message_dict["project_id"])
+                if not project.flags.has_replays:
+                    first_replay_received.send_robust(project=project, sender=Project)
+
+                track_outcome(
+                    org_id=message_dict["org_id"],
+                    project_id=message_dict["project_id"],
+                    key_id=message_dict.get("key_id"),
+                    outcome=Outcome.ACCEPTED,
+                    reason=None,
+                    timestamp=datetime.utcfromtimestamp(message_dict["received"]).replace(
+                        tzinfo=timezone.utc
+                    ),
+                    event_id=message_dict["replay_id"],
+                    category=DataCategory.REPLAY,
+                    quantity=1,
+                )
 
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
@@ -173,16 +233,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
             ):
                 message_dict = msgpack.unpackb(message.payload.value)
-                self._configure_sentry_scope(message_dict)
 
                 if message_dict["type"] == "replay_recording_chunk":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
                         self._process_chunk(
                             cast(RecordingSegmentChunkMessage, message_dict), message
                         )
                 if message_dict["type"] == "replay_recording":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording"):
                         self._process_recording(
                             cast(RecordingSegmentMessage, message_dict), message
@@ -252,12 +309,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__commit(self.__commit_data)
                 self.__last_committed = now
                 self.__commit_data = {}
-
-    def _configure_sentry_scope(self, message_dict: dict[str, Any]) -> None:
-        with configure_scope() as scope:
-            scope.set_tag("replay_id", message_dict["replay_id"])
-            scope.set_tag("project_id", message_dict["project_id"])
-            # TODO: add replay sdk version once added
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:

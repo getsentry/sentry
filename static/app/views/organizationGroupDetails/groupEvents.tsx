@@ -39,7 +39,7 @@ type State = {
   renderNewAllEventsTab: boolean;
 };
 
-const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
@@ -178,7 +178,7 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderResults() {
-    const {group, params} = this.props;
+    const {group, params, organization} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
@@ -188,6 +188,7 @@ class GroupEvents extends Component<Props, State> {
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
+        orgFeatures={organization.features}
       />
     );
   }
@@ -223,14 +224,21 @@ class GroupEvents extends Component<Props, State> {
   }
 
   render() {
+    // New issue actions moves the environment picker to the header
+    const hasIssueActionsV2 =
+      this.props.organization.features.includes('issue-actions-v2');
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
           <Wrapper>
-            <FilterSection>
-              <EnvironmentPageFilter />
-              {this.renderSearchBar()}
-            </FilterSection>
+            {hasIssueActionsV2 ? (
+              this.renderSearchBar()
+            ) : (
+              <FilterSection>
+                <EnvironmentPageFilter />
+                {this.renderSearchBar()}
+              </FilterSection>
+            )}
             {this.renderBody()}
           </Wrapper>
         </Layout.Main>

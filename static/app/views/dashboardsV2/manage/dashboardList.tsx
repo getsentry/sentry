@@ -21,11 +21,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
-import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DashboardListItem} from 'sentry/views/dashboardsV2/types';
 
-import {cloneDashboard, miniWidget} from '../utils';
+import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 import GridPreview from './gridPreview';
@@ -50,10 +50,8 @@ function DashboardList({
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
-        trackAnalyticsEvent({
-          eventKey: 'dashboards_manage.delete',
-          eventName: 'Dashboards Manager: Dashboard Deleted',
-          organization_id: parseInt(organization.id, 10),
+        trackAdvancedAnalytics('dashboards_manage.delete', {
+          organization,
           dashboard_id: parseInt(dashboard.id, 10),
         });
         onDashboardsChange();
@@ -70,11 +68,8 @@ function DashboardList({
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
       await createDashboard(api, organization.slug, newDashboard, true);
-
-      trackAnalyticsEvent({
-        eventKey: 'dashboards_manage.duplicate',
-        eventName: 'Dashboards Manager: Dashboard Duplicated',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalytics('dashboards_manage.duplicate', {
+        organization,
         dashboard_id: parseInt(dashboard.id, 10),
       });
       onDashboardsChange();
@@ -129,36 +124,12 @@ function DashboardList({
       />
     );
   }
-
-  function renderDndPreview(dashboard) {
-    return (
-      <WidgetGrid>
-        {dashboard.widgetDisplay.map((displayType, i) => {
-          return displayType === DisplayType.BIG_NUMBER ? (
-            <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
-              <WidgetImage src={miniWidget(displayType)} />
-            </BigNumberWidgetWrapper>
-          ) : (
-            <MiniWidgetWrapper key={`${i}-${displayType}`}>
-              <WidgetImage src={miniWidget(displayType)} />
-            </MiniWidgetWrapper>
-          );
-        })}
-      </WidgetGrid>
-    );
-  }
-
   function renderGridPreview(dashboard) {
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
   function renderMiniDashboards() {
-    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     return dashboards?.map((dashboard, index) => {
-      const widgetRenderer = isUsingGrid ? renderGridPreview : renderDndPreview;
-      const widgetCount = isUsingGrid
-        ? dashboard.widgetPreview.length
-        : dashboard.widgetDisplay.length;
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -167,12 +138,12 @@ function DashboardList({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', widgetCount)}
+          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
           createdBy={dashboard.createdBy}
-          renderWidgets={() => widgetRenderer(dashboard)}
+          renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
         />
       );
@@ -204,12 +175,7 @@ function DashboardList({
           if (offset <= 0 && isPrevious) {
             delete newQuery.cursor;
           }
-
-          trackAnalyticsEvent({
-            eventKey: 'dashboards_manage.paginate',
-            eventName: 'Dashboards Manager: Paginate',
-            organization_id: parseInt(organization.id, 10),
-          });
+          trackAdvancedAnalytics('dashboards_manage.paginate', {organization});
 
           browserHistory.push({
             pathname: path,
@@ -234,58 +200,6 @@ const DashboardGrid = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
-`;
-
-const WidgetGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  gap: ${space(0.25)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
-
-const BigNumberWidgetWrapper = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-
-  /* 2 cols */
-  grid-area: span 1 / span 2;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    /* 4 cols */
-    grid-area: span 1 / span 1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    /* 6 and 8 cols */
-    grid-area: span 1 / span 2;
-  }
-`;
-
-const MiniWidgetWrapper = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-  grid-area: span 2 / span 2;
-`;
-
-const WidgetImage = styled('img')`
-  width: 100%;
-  height: 100%;
 `;
 
 const PaginationRow = styled(Pagination)`

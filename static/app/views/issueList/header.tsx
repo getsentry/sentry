@@ -3,30 +3,35 @@ import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import QueryCount from 'sentry/components/queryCount';
 import Tooltip from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconPause, IconPlay} from 'sentry/icons';
+import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
+import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   displayReprocessingTab: boolean;
+  isSavedSearchesOpen: boolean;
   onRealtimeChange: (realtime: boolean) => void;
+  onToggleSavedSearches: (isOpen: boolean) => void;
   organization: Organization;
   query: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   router: InjectedRouter;
+  savedSearch: SavedSearch | null;
   selectedProjectIds: number[];
   sort: string;
   queryCount?: number;
@@ -42,7 +47,10 @@ function IssueListHeader({
   onRealtimeChange,
   onSavedSearchSelect,
   onSavedSearchDelete,
+  savedSearch,
+  onToggleSavedSearches,
   savedSearchList,
+  isSavedSearchesOpen,
   router,
   displayReprocessingTab,
   selectedProjectIds,
@@ -83,14 +91,26 @@ function IssueListHeader({
         <StyledLayoutTitle>{t('Issues')}</StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <Button
-          size="sm"
-          data-test-id="real-time"
-          title={realtimeTitle}
-          aria-label={realtimeTitle}
-          icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-          onClick={() => onRealtimeChange(!realtimeActive)}
-        />
+        <ButtonBar gap={1}>
+          <IssueListSetAsDefault {...{sort, query, savedSearch, organization}} />
+          {organization.features.includes('issue-list-saved-searches-v2') && (
+            <Button
+              size="sm"
+              icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
+              onClick={() => onToggleSavedSearches(!isSavedSearchesOpen)}
+            >
+              {t('Saved Searches')}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            data-test-id="real-time"
+            title={realtimeTitle}
+            aria-label={realtimeTitle}
+            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+            onClick={() => onRealtimeChange(!realtimeActive)}
+          />
+        </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       <Layout.HeaderNavTabs underlined>

@@ -16,6 +16,7 @@ def query(
     selected_columns,
     query,
     params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -30,6 +31,7 @@ def query(
     dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ):
     metrics_compatible = not equations or dry_run
 
@@ -39,6 +41,7 @@ def query(
                 selected_columns,
                 query,
                 params,
+                snuba_params,
                 equations,
                 orderby,
                 offset,
@@ -52,6 +55,8 @@ def query(
                 functions_acl,
                 dry_run,
                 transform_alias_to_input_format,
+                has_metrics,
+                use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -111,6 +116,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     dry_run: bool = False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -134,6 +140,7 @@ def timeseries_query(
                 comparison_delta,
                 functions_acl,
                 dry_run,
+                use_metrics_layer=use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -187,6 +194,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -213,6 +221,7 @@ def histogram_query(
                 histogram_rows,
                 extra_conditions,
                 normalize_results,
+                use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:

@@ -1,3 +1,4 @@
+import type {Duration} from 'moment';
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -29,9 +30,9 @@ export type ReplayRecord = {
   };
   dist: null | string;
   /**
-   * Difference of `updated-at` and `created-at` in seconds.
+   * Difference of `finishedAt` and `startedAt` in seconds.
    */
-  duration: number; // Seconds
+  duration: Duration;
   environment: null | string;
   errorIds: string[];
   /**

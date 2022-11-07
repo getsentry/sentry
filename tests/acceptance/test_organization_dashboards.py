@@ -33,8 +33,6 @@ FEATURE_NAMES = [
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
-GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
-
 WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 
@@ -68,12 +66,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_default_overview_dashboard_layout(self):
-        with self.feature(FEATURE_NAMES + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES):
             self.page.visit_default_overview()
             self.browser.snapshot("dashboards - default overview layout")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -89,7 +87,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - save new widget layout in custom dashboard")
 
     def test_create_new_dashboard_with_modified_widget_layout(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             # Create a new dashboard
             self.page.visit_create_dashboard()
 
@@ -125,7 +123,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -150,7 +148,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -202,13 +200,11 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(widget_title)
-            self.browser.element(
-                '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
-            ).click()
+            self.browser.element('[aria-label="Issues (States, Assignment, Time, etc.)"]').click()
             button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
 
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -230,7 +226,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -273,7 +269,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
 
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -322,7 +318,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             aggregates=["count_unique(issue)"],
             order=0,
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -362,7 +358,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             ]
         )
 
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             self.page.wait_until_loaded()
@@ -433,9 +429,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
     ):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
 
             self.page.click_dashboard_header_add_widget_button()
@@ -455,9 +449,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
         self,
     ):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -476,9 +468,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
     ):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_create_dashboard()
 
             # Widgets should take up the whole first row and the first spot in second row
@@ -529,9 +519,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
             for widget in existing_widgets
         )
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
 
             dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
@@ -582,9 +570,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
             for widget in existing_widgets
         )
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
@@ -633,9 +619,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
@@ -684,9 +668,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
@@ -786,7 +768,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             interval="1d",
         )
 
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - manage overview with grid layout")

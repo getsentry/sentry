@@ -69,6 +69,10 @@ export function useContextMenu({container}: UseContextMenuOptions) {
 
       return {
         ...menuItemProps,
+        onClick: (evt: React.MouseEvent) => {
+          evt.preventDefault();
+          onClick?.();
+        },
         onKeyDown: (evt: React.KeyboardEvent) => {
           if (evt.key === 'Escape') {
             wrapSetOpen(false);

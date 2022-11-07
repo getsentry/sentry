@@ -1,12 +1,19 @@
-from typing import List, Optional
+from typing import List, Optional, Sequence, Set
 
 from snuba_sdk import Column, Function
 
 from sentry import options
 from sentry.api.utils import InvalidParams
+from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
+from sentry.sentry_metrics.utils import (
+    resolve_tag_key,
+    resolve_tag_value,
+    resolve_tag_values,
+    reverse_resolve_weak,
+)
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
+from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
@@ -222,15 +229,6 @@ def uniq_aggregation_on_metric(metric_ids, alias=None):
     )
 
 
-def all_transactions(org_id, metric_ids, alias=None):
-    return _dist_count_aggregation_on_tx_status_factory(
-        org_id,
-        exclude_tx_statuses=[],
-        metric_ids=metric_ids,
-        alias=alias,
-    )
-
-
 def failure_count_transaction(org_id, metric_ids, alias=None):
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
@@ -245,15 +243,121 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
-def satisfaction_count_transaction(org_id, metric_ids, alias=None):
-    return _dist_count_aggregation_on_tx_satisfaction_factory(
-        org_id, TransactionSatisfactionTagValue.SATISFIED.value, metric_ids, alias
+def _project_threshold_multi_if_function(
+    project_ids: Sequence[int], org_id: int, metric_ids: Set[int]
+) -> Function:
+    metric_ids_dictionary = {
+        reverse_resolve_weak(UseCaseKey.PERFORMANCE, org_id, metric_id): metric_id
+        for metric_id in metric_ids
+    }
+
+    return Function(
+        "multiIf",
+        [
+            Function(
+                "equals",
+                [
+                    _resolve_project_threshold_config(
+                        project_ids,
+                        org_id,
+                    ),
+                    "lcp",
+                ],
+            ),
+            metric_ids_dictionary[TransactionMRI.MEASUREMENTS_LCP.value],
+            metric_ids_dictionary[TransactionMRI.DURATION.value],
+        ],
     )
 
 
-def tolerated_count_transaction(org_id, metric_ids, alias=None):
-    return _dist_count_aggregation_on_tx_satisfaction_factory(
-        org_id, TransactionSatisfactionTagValue.TOLERATED.value, metric_ids, alias
+def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Function:
+    return Function(
+        "equals",
+        [
+            Column(
+                name=resolve_tag_key(
+                    UseCaseKey.PERFORMANCE,
+                    org_id,
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                )
+            ),
+            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, satisfaction_tag_value),
+        ],
+    )
+
+
+def _metric_id_equivalence(metric_condition: Function) -> Function:
+    return Function(
+        "equals",
+        [
+            Column("metric_id"),
+            metric_condition,
+        ],
+    )
+
+
+def _count_if_with_conditions(
+    conditions: Sequence[Function],
+    alias: Optional[str] = None,
+):
+    def _generate_conditions(inner_conditions: Sequence[Function]) -> Function:
+        return (
+            Function(
+                "and",
+                conditions,
+            )
+            if len(inner_conditions) > 1
+            else inner_conditions[0]
+        )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            _generate_conditions(conditions),
+        ],
+        alias,
+    )
+
+
+def satisfaction_count_transaction(
+    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+):
+    return _count_if_with_conditions(
+        [
+            _metric_id_equivalence(
+                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
+            ),
+            _satisfaction_equivalence(org_id, TransactionSatisfactionTagValue.SATISFIED.value),
+        ],
+        alias,
+    )
+
+
+def tolerated_count_transaction(
+    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+):
+    return _count_if_with_conditions(
+        [
+            _metric_id_equivalence(
+                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
+            ),
+            _satisfaction_equivalence(org_id, TransactionSatisfactionTagValue.TOLERATED.value),
+        ],
+        alias,
+    )
+
+
+def all_transactions(
+    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+):
+    return _count_if_with_conditions(
+        [
+            _metric_id_equivalence(
+                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
+            ),
+        ],
+        alias,
     )
 
 
@@ -452,4 +556,35 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
             list(team_key_conditions),
         ],
         alias=alias,
+    )
+
+
+def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
+    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
+
+    return Function(
+        "transform",
+        [
+            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
+            # Here we support the case in which the given tag value for "tag_key" is not set. In that
+            # case ClickHouse will return 0 or "" from the expression based on the array type, and we want to interpret
+            # that as "<< unparameterized >>".
+            ["" if tags_values_are_strings else 0],
+            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
+        ],
+        alias,
+    )
+
+
+def _resolve_project_threshold_config(project_ids, org_id):
+    return resolve_project_threshold_config(
+        tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
+            use_case_id, org_id, value
+        ),
+        column_name_resolver=lambda use_case_id, org_id, value: resolve_tag_key(
+            use_case_id, org_id, value
+        ),
+        project_ids=project_ids,
+        org_id=org_id,
+        use_case_id=UseCaseKey.PERFORMANCE,
     )

@@ -259,9 +259,10 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   render() {
     const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
+
     return (
       <Container isOpen={dropdownVisible}>
-        <StyledInput
+        <Input
           {...props}
           ref={this.input}
           autoComplete="off"
@@ -285,8 +286,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 }
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
   position: relative;
 
@@ -300,19 +299,6 @@ const Container = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-const StyledInput = styled(Input)`
-  height: 40px;
-  padding: 7px 10px;
-  border: 0;
-  box-shadow: none;
-
-  &:hover,
-  &:focus {
-    border: 0;
-    box-shadow: none;
-  }
-`;
-
 type TermDropdownProps = {
   handleSelect: (option: DropdownOption) => void;
   isOpen: boolean;
@@ -322,36 +308,39 @@ type TermDropdownProps = {
 function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
   return (
     <DropdownContainer isOpen={isOpen}>
-      <DropdownItemsList>
-        {optionGroups.map(group => {
-          const {title, options} = group;
-          return (
-            <Fragment key={title}>
-              <ListItem>
-                <DropdownTitle>{title}</DropdownTitle>
-              </ListItem>
-              {options.map(option => {
-                return (
-                  <DropdownListItem
-                    key={option.value}
-                    className={option.active ? 'active' : undefined}
-                    onClick={() => handleSelect(option)}
-                    // prevent the blur event on the input from firing
-                    onMouseDown={event => event.preventDefault()}
-                    // scroll into view if it is the active element
-                    ref={element =>
-                      option.active && element?.scrollIntoView?.({block: 'nearest'})
-                    }
-                  >
-                    <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
-                  </DropdownListItem>
-                );
-              })}
-              {options.length === 0 && <Info>{t('No items found')}</Info>}
-            </Fragment>
-          );
-        })}
-      </DropdownItemsList>
+      {isOpen && (
+        <DropdownItemsList>
+          {optionGroups.map(group => {
+            const {title, options} = group;
+            return (
+              <Fragment key={title}>
+                <ListItem>
+                  <DropdownTitle>{title}</DropdownTitle>
+                </ListItem>
+                {options.map(option => {
+                  return (
+                    <DropdownListItem
+                      key={option.value}
+                      className={option.active ? 'active' : undefined}
+                      onClick={() => handleSelect(option)}
+                      // prevent the blur event on the input from firing
+                      onMouseDown={event => event.preventDefault()}
+                      // scroll into view if it is the active element
+                      ref={element =>
+                        option.active && element?.scrollIntoView?.({block: 'nearest'})
+                      }
+                      aria-label={option.value}
+                    >
+                      <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
+                    </DropdownListItem>
+                  );
+                })}
+                {options.length === 0 && <Info>{t('No items found')}</Info>}
+              </Fragment>
+            );
+          })}
+        </DropdownItemsList>
+      )}
     </DropdownContainer>
   );
 }
@@ -419,10 +408,11 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   left: -1px;
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  background: ${p => p.theme.backgroundElevated};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-top: ${space(1)};
   max-height: 300px;
   overflow-y: auto;
 `;

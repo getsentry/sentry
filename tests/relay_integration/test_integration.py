@@ -187,7 +187,6 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
         with Feature(
             {
-                "organizations:performance-ops-breakdown": True,
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):

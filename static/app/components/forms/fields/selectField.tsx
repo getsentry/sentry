@@ -5,10 +5,13 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
+import FormField from 'sentry/components/forms/formField';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -95,56 +98,67 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {allowClear, confirm, multiple, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, disabledReason, ...otherProps} = this.props;
     return (
-      <InputField
-        {...otherProps}
-        field={({onChange, onBlur, required: _required, ...props}) => (
-          <SelectControl
-            {...props}
-            clearable={allowClear}
-            multiple={multiple}
-            styles={{
-              control: provided => ({
-                ...provided,
-                height: 'auto',
-              }),
-              ...props.styles,
-            }}
-            onChange={val => {
-              try {
-                if (!confirm) {
-                  this.handleChange(onBlur, onChange, val);
-                  return;
-                }
+      <FormField {...otherProps}>
+        {({
+          id,
+          onChange,
+          onBlur,
+          required: _required,
+          children: _children,
+          disabled,
+          ...props
+        }) => (
+          <Tooltip title={disabledReason} disabled={!disabled}>
+            <SelectControl
+              {...props}
+              disabled={disabled}
+              inputId={id}
+              clearable={allowClear}
+              multiple={multiple}
+              styles={{
+                control: provided => ({
+                  ...provided,
+                  height: 'auto',
+                }),
+                ...props.styles,
+              }}
+              onChange={val => {
+                try {
+                  if (!confirm) {
+                    this.handleChange(onBlur, onChange, val);
+                    return;
+                  }
 
-                // Support 'confirming' selections. This only works with
-                // `val` objects that use the new-style options format
-                const previousValue = props.value?.toString();
-                // `val` may be null if clearing the select for an optional field
-                const newValue = val?.value?.toString();
+                  // Support 'confirming' selections. This only works with
+                  // `val` objects that use the new-style options format
+                  const previousValue = props.value?.toString();
+                  // `val` may be null if clearing the select for an optional field
+                  const newValue = val?.value?.toString();
 
-                // Value not marked for confirmation, or hasn't changed
-                if (!confirm[newValue] || previousValue === newValue) {
-                  this.handleChange(onBlur, onChange, val);
-                  return;
-                }
+                  // Value not marked for confirmation, or hasn't changed
+                  if (!confirm[newValue] || previousValue === newValue) {
+                    this.handleChange(onBlur, onChange, val);
+                    return;
+                  }
 
-                openConfirmModal({
-                  onConfirm: () => this.handleChange(onBlur, onChange, val),
-                  message: confirm[val?.value] ?? t('Continue with these changes?'),
-                });
-              } catch (e) {
-                // Swallow expected error to prevent bubbling up.
-                if (e.message === 'Invalid selection. Field cannot be empty.') {
-                  return;
+                  openConfirmModal({
+                    onConfirm: () => this.handleChange(onBlur, onChange, val),
+                    message: confirm[val?.value] ?? t('Continue with these changes?'),
+                  });
+                } catch (e) {
+                  // Swallow expected error to prevent bubbling up.
+                  if (e.message === 'Invalid selection. Field cannot be empty.') {
+                    return;
+                  }
+                  throw e;
                 }
-                throw e;
-              }
-            }}
-          />
+              }}
+            />
+          </Tooltip>
         )}
-      />
+      </FormField>
     );
   }
 }

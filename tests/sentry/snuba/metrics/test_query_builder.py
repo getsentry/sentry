@@ -93,6 +93,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     }[metric_name]
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "query_string,expected",
     [
@@ -566,6 +567,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
         )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_orderby(mock_now, mock_now2):
@@ -666,6 +668,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
@@ -978,7 +981,7 @@ def test_get_intervals():
 
 def test_translate_meta_results():
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "team_key_transaction", "type": "UInt8"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1005,7 +1008,7 @@ def test_translate_meta_results():
         },
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
             {"name": "team_key_transaction", "type": "boolean"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
@@ -1017,8 +1020,8 @@ def test_translate_meta_results():
 
 def test_translate_meta_results_with_duplicates():
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1036,7 +1039,7 @@ def test_translate_meta_results_with_duplicates():
         {"transaction": MetricGroupByField("transaction")},
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
         ],
@@ -1445,4 +1448,41 @@ class ResolveTagsTestCase(TestCase):
                     for transaction, platform in tags
                 ],
             ),
+        )
+
+    def test_resolve_tags_with_has(self):
+        tag_key = "transaction"
+
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=tag_key)
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="has",
+                    parameters=[
+                        Column(
+                            name="tags.key",
+                        ),
+                        "transaction",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="has",
+                parameters=[
+                    Column(
+                        name="tags.key",
+                    ),
+                    resolve_weak(self.use_case_id, self.org_id, tag_key),
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
         )

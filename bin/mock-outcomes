@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+from datetime import datetime, timedelta
+
+import click
+import requests
+from django.conf import settings
+
+from sentry.constants import DataCategory
+from sentry.utils import json
+from sentry.utils.outcomes import Outcome
+
+# import random
+
+
+def store_outcomes(outcome, num_times=1):
+    outcomes = []
+    for _ in range(num_times):
+        outcome_copy = outcome.copy()
+        outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        outcomes.append(outcome_copy)
+
+    req = requests.post(
+        settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
+    )
+    req.raise_for_status()
+
+
+def generate_outcomes():
+    for i in range(0, 180):
+        for outcome in [
+            Outcome.RATE_LIMITED,
+            Outcome.INVALID,
+            Outcome.ACCEPTED,
+            Outcome.FILTERED,
+        ]:
+            # print(datetime.now() - timedelta(hours=1840))
+            click.echo(i)
+            for category in [
+                DataCategory.ERROR,
+                DataCategory.DEFAULT,
+                DataCategory.TRANSACTION,
+                DataCategory.ATTACHMENT,
+            ]:
+                attachments_multiplier = 1000 if category == DataCategory.ATTACHMENT else 1
+                store_outcomes(
+                    {
+                        "org_id": 1,
+                        "timestamp": datetime.now() - timedelta(hours=i),
+                        "project_id": 1,
+                        "outcome": outcome,
+                        "reason": "none",
+                        "category": category,
+                        "quantity": 100 * attachments_multiplier * 500,
+                    },
+                    1,
+                )
+
+
+def drop_outcomes():
+    assert requests.post(settings.SENTRY_SNUBA + "/tests/entities/outcomes/drop").status_code == 200
+
+
+if __name__ == "__main__":
+    generate_outcomes()

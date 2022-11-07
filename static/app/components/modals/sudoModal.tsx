@@ -90,15 +90,11 @@ class SudoModal extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      if (isSuperuser) {
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
         this.handleSuccess();
-      } else {
-        try {
-          await api.requestPromise('/auth/', {method: 'PUT', data});
-          this.handleSuccess();
-        } catch (err) {
-          this.handleError(err);
-        }
+      } catch (err) {
+        this.handleError(err);
       }
     }
   };
@@ -218,7 +214,7 @@ class SudoModal extends Component<Props, State> {
           </StyledTextBlock>
           {error && (
             <StyledAlert type="error" showIcon>
-              {t(errorType)}
+              {errorType}
             </StyledAlert>
           )}
           {isSuperuser ? (
@@ -272,7 +268,7 @@ class SudoModal extends Component<Props, State> {
 
         {error && (
           <StyledAlert type="error" showIcon>
-            {t(errorType)}
+            {errorType}
           </StyledAlert>
         )}
 

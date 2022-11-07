@@ -19,27 +19,15 @@ const defaultData = {
     'QueryException',
     'QueryException',
   ],
-  issue: 'SENTRY-VYR',
 };
 
-const features = ['discover-quick-context'];
-
-function makeWrapper(
-  eventView,
-  handleCellAction,
-  columnIndex = 0,
-  data = defaultData,
-  organization = null,
-  showQuickContextMenu = true
-) {
+function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
   return mountWithTheme(
     <CellAction
       dataRow={data}
       eventView={eventView}
       column={eventView.getColumns()[columnIndex]}
-      organization={organization}
       handleCellAction={handleCellAction}
-      showQuickContextMenu={showQuickContextMenu}
     >
       <strong>some content</strong>
     </CellAction>
@@ -61,7 +49,6 @@ describe('Discover -> CellAction', function () {
         'percentile(measurements.fcp, 0.5)',
         'error.handled',
         'error.type',
-        'issue',
       ],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
@@ -80,44 +67,15 @@ describe('Discover -> CellAction', function () {
     const wrapper = makeWrapper(view);
 
     it('shows no menu by default', function () {
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(0);
+      expect(wrapper.find('MenuButton')).toHaveLength(0);
     });
 
     it('shows a menu on hover, and hides again', function () {
       wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(1);
+      expect(wrapper.find('MenuButton')).toHaveLength(1);
 
       wrapper.find('Container').simulate('mouseLeave');
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(0);
-    });
-  });
-
-  describe('hover context button', function () {
-    const organization = TestStubs.Organization({features});
-    let wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
-
-    it('shows no context button by default', function () {
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('shows context button on hover, and hides again for issues column', function () {
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(1);
-
-      wrapper.find('Container').simulate('mouseLeave');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('does not show context button on hover for non-issue column', function () {
-      wrapper = makeWrapper(view, jest.fn(), 1);
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('does not show context button on hover for with showQuickContextMenu prop set to false', function () {
-      wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization, false);
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
+      expect(wrapper.find('MenuButton')).toHaveLength(0);
     });
   });
 
@@ -127,30 +85,11 @@ describe('Discover -> CellAction', function () {
 
     it('toggles the menu on click', function () {
       // Button should be rendered.
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(1);
-      wrapper.find('button[data-test-id="action-menu-button"]').simulate('click');
+      expect(wrapper.find('MenuButton')).toHaveLength(1);
+      wrapper.find('MenuButton').simulate('click');
 
       // Menu should show now.
-      expect(wrapper.find('div[data-test-id="action-menu"]')).toHaveLength(1);
-    });
-  });
-
-  describe('opening and closing the context popover', function () {
-    const organization = TestStubs.Organization({features});
-    const wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
-    wrapper.find('Container').simulate('mouseEnter');
-
-    it('toggles the context popover on click', function () {
-      const contextButton = wrapper.find('button[data-test-id="context-button"]');
-      expect(contextButton).toHaveLength(1);
-
-      // Click to show popover.
-      contextButton.simulate('click');
-      expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(1);
-
-      // Click again to hide popover.
-      contextButton.simulate('click');
-      expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(0);
+      expect(wrapper.find('Menu')).toHaveLength(1);
     });
   });
 
@@ -162,7 +101,7 @@ describe('Discover -> CellAction', function () {
       wrapper = makeWrapper(view, handleCellAction);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('button[data-test-id="action-menu-button"]').simulate('click');
+      wrapper.find('MenuButton').simulate('click');
     });
 
     it('add button appends condition', function () {

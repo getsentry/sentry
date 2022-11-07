@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -13,7 +13,6 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -22,7 +21,7 @@ import Link from 'sentry/components/links/link';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
-import {Item, TabList, TabsContext} from 'sentry/components/tabs';
+import {Item, TabList} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,6 +30,7 @@ import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/t
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -145,9 +145,13 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
-  const {
-    rootProps: {onChange},
-  } = useContext(TabsContext);
+  const eventRouteToObject = useMemo(() => {
+    const searchTermWithoutQuery = omit(location.query, 'query');
+    return {
+      pathname: `${baseUrl}events/`,
+      query: searchTermWithoutQuery,
+    };
+  }, [location, baseUrl]);
 
   const errorIssueTabs = useMemo(() => {
     const projectFeatures = new Set(project ? project.features : []);
@@ -156,37 +160,23 @@ function GroupHeader({
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
-
-    const analyticsData = event
-      ? event.tags
-          .filter(({key}) => ['device', 'os', 'browser'].includes(key))
-          .reduce((acc, {key, value}) => {
-            acc[key] = value;
-            return acc;
-          }, {})
-      : {};
+    const hasSessionReplay =
+      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
 
     return (
-      <StyledTabList
-        hideBorder
-        onSelectionChange={key => {
-          trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
-            organization,
-            tab: key.toString(),
-            platform: project.platform,
-            ...analyticsData,
-          });
-          return onChange?.(key);
-        }}
-      >
-        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
+      <StyledTabList hideBorder>
+        <Item
+          key={Tab.DETAILS}
+          disabled={disabledTabs.includes(Tab.DETAILS)}
+          to={`${baseUrl}${location.search}`}
+        >
           {t('Details')}
         </Item>
         <Item
           key={Tab.ACTIVITY}
           textValue={t('Activity')}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          to={`${baseUrl}activity/${location.search}`}
         >
           {t('Activity')}
           <IconBadge>
@@ -198,6 +188,7 @@ function GroupHeader({
           key={Tab.USER_FEEDBACK}
           textValue={t('User Feedback')}
           disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
+          to={`${baseUrl}feedback/${location.search}`}
         >
           {t('User Feedback')} <Badge text={group.userReportCount} />
         </Item>
@@ -205,22 +196,36 @@ function GroupHeader({
           key={Tab.ATTACHMENTS}
           hidden={!hasEventAttachments}
           disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
+          to={`${baseUrl}attachments/${location.search}`}
         >
           {t('Attachments')}
         </Item>
-        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
+        <Item
+          key={Tab.TAGS}
+          disabled={disabledTabs.includes(Tab.TAGS)}
+          to={`${baseUrl}tags/${location.search}`}
+        >
           {t('Tags')}
         </Item>
-        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
+        <Item
+          key={Tab.EVENTS}
+          disabled={disabledTabs.includes(Tab.EVENTS)}
+          to={eventRouteToObject}
+        >
           {t('All Events')}
         </Item>
-        <Item key={Tab.MERGED} disabled={disabledTabs.includes(Tab.MERGED)}>
+        <Item
+          key={Tab.MERGED}
+          disabled={disabledTabs.includes(Tab.MERGED)}
+          to={`${baseUrl}merged/${location.search}`}
+        >
           {t('Merged Issues')}
         </Item>
         <Item
           key={Tab.GROUPING}
           hidden={!hasGroupingTreeUI}
           disabled={disabledTabs.includes(Tab.GROUPING)}
+          to={`${baseUrl}grouping/${location.search}`}
         >
           {t('Grouping')}
         </Item>
@@ -228,10 +233,16 @@ function GroupHeader({
           key={Tab.SIMILAR_ISSUES}
           hidden={!hasSimilarView}
           disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
+          to={`${baseUrl}similar/${location.search}`}
         >
           {t('Similar Issues')}
         </Item>
-        <Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
+        <Item
+          key={Tab.REPLAYS}
+          textValue={t('Replays')}
+          hidden={!hasSessionReplay}
+          to={`${baseUrl}replays/${location.search}`}
+        >
           {t('Replays')}{' '}
           {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
           <ReplaysFeatureBadge noTooltip />
@@ -239,26 +250,32 @@ function GroupHeader({
       </StyledTabList>
     );
   }, [
+    baseUrl,
+    location,
     disabledTabs,
     group.numComments,
     group.userReportCount,
     organization,
     project,
     replaysCount,
-    onChange,
-    event,
+    eventRouteToObject,
   ]);
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
-        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
+      <StyledTabList hideBorder>
+        <Item
+          key={Tab.DETAILS}
+          disabled={disabledTabs.includes(Tab.DETAILS)}
+          to={`${baseUrl}${location.search}`}
+        >
           {t('Details')}
         </Item>
         <Item
           key={Tab.ACTIVITY}
           textValue={t('Activity')}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          to={`${baseUrl}activity/${location.search}`}
         >
           {t('Activity')}
           <IconBadge>
@@ -266,15 +283,23 @@ function GroupHeader({
             <IconChat size="xs" />
           </IconBadge>
         </Item>
-        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
+        <Item
+          key={Tab.TAGS}
+          disabled={disabledTabs.includes(Tab.TAGS)}
+          to={`${baseUrl}tags/${location.search}`}
+        >
           {t('Tags')}
         </Item>
-        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
+        <Item
+          key={Tab.EVENTS}
+          disabled={disabledTabs.includes(Tab.EVENTS)}
+          to={eventRouteToObject}
+        >
           {t('Events')}
         </Item>
       </StyledTabList>
     );
-  }, [disabledTabs, group.numComments]);
+  }, [disabledTabs, group.numComments, baseUrl, location, eventRouteToObject]);
 
   const membersList = useMembersList({group, organization});
   const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
@@ -291,12 +316,6 @@ function GroupHeader({
   }
 
   const message = getMessage(group);
-
-  const searchTermWithoutQuery = omit(location.query, 'query');
-  const eventRouteToObject = {
-    pathname: `${baseUrl}events/`,
-    query: searchTermWithoutQuery,
-  };
 
   const disableActions = !!disabledTabs.length;
 
@@ -318,12 +337,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
@@ -416,11 +429,13 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          {hasIssueActionsV2 ? (
-            // Render empty div to keep flex layout
-            <div />
-          ) : (
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
             <GroupActions
               group={group}
               project={project}
@@ -428,17 +443,12 @@ function GroupHeader({
               event={event}
               query={location.query}
             />
-          )}
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-          {hasIssueActionsV2 && (
-            <div className="hidden-sm hidden-md hidden-lg">
-              <EnvironmentPageFilter alignDropdown="right" />
-            </div>
-          )}
-        </HeaderRow>
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}

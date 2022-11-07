@@ -422,8 +422,6 @@ register("eventstream:kafka-headers", default=True)
 # Post process forwarder options
 # Gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=True)
-# Number of threads to use for post processing
-register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
@@ -433,11 +431,6 @@ register("subscriptions-query.sample-rate", default=0.01)
 # This is to allow gradual rollout of metrics collection for symbolication requests and can be
 # removed once it is fully rolled out.
 register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
-
-# This is to enable the ingestion of suspect spans by project ids.
-register("performance.suspect-spans-ingestion-projects", default={})
-# This is to enable the ingestion of suspect spans by project groups.
-register("performance.suspect-spans-ingestion.rollout-rate", default=0)
 
 # Sampling rate for controlled rollout of a change where ignest-consumer spawns
 # special save_event task for transactions avoiding the preprocess.
@@ -536,6 +529,12 @@ register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
 
-# region to control silo multi region mode controls
-# It is safe to switch this off or on freely, it is purely for testing features ahead of hybrid cloud rollout.
-register("hc.region-to-control.monolith-publish", default=False)
+# Dynamic Sampling system wide options
+# Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
+register("dynamic-sampling:enabled-biases", default=True)
+# System-wide options that observes latest releases on transactions and caches these values to be used later in
+# project config computation. This is temporary option to monitor the performance of this feature.
+register("dynamic-sampling:boost-latest-release", default=False)
+
+# Controls whether we should attempt to derive code mappings for projects during post processing.
+register("post_process.derive-code-mappings", default=True)

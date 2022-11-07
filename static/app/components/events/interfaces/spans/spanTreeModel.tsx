@@ -82,7 +82,6 @@ class SpanTreeModel {
       showEmbeddedChildren: observable,
       embeddedChildren: observable,
       fetchEmbeddedChildrenState: observable,
-      toggleEmbeddedChildren: action,
       fetchEmbeddedTransactions: action,
       isNestedSpanGroupExpanded: observable,
       toggleNestedSpanGroup: action,
@@ -282,7 +281,7 @@ class SpanTreeModel {
       continuingTreeDepths,
       fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
       showEmbeddedChildren: this.showEmbeddedChildren,
-      toggleEmbeddedChildren: this.toggleEmbeddedChildren({
+      toggleEmbeddedChildren: this.makeToggleEmbeddedChildren({
         addTraceBounds,
         removeTraceBounds,
       }),
@@ -460,7 +459,7 @@ class SpanTreeModel {
                 continuingTreeDepths: descendantContinuingTreeDepths,
                 fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
                 showEmbeddedChildren: spanModel.showEmbeddedChildren,
-                toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+                toggleEmbeddedChildren: spanModel.makeToggleEmbeddedChildren({
                   addTraceBounds,
                   removeTraceBounds,
                 }),
@@ -524,7 +523,7 @@ class SpanTreeModel {
             continuingTreeDepths: descendantContinuingTreeDepths,
             fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
             showEmbeddedChildren: spanModel.showEmbeddedChildren,
-            toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+            toggleEmbeddedChildren: spanModel.makeToggleEmbeddedChildren({
               addTraceBounds,
               removeTraceBounds,
             }),
@@ -665,15 +664,14 @@ class SpanTreeModel {
     return [wrappedSpan, ...descendants];
   };
 
-  toggleEmbeddedChildren =
-    ({
-      addTraceBounds,
-      removeTraceBounds,
-    }: {
-      addTraceBounds: (bounds: TraceBound) => void;
-      removeTraceBounds: (eventSlug: string) => void;
-    }) =>
-    (props: {eventSlug: string; orgSlug: string}) => {
+  makeToggleEmbeddedChildren = ({
+    addTraceBounds,
+    removeTraceBounds,
+  }: {
+    addTraceBounds: (bounds: TraceBound) => void;
+    removeTraceBounds: (eventSlug: string) => void;
+  }) =>
+    action('toggleEmbeddedChildren', (props: {eventSlug: string; orgSlug: string}) => {
       this.showEmbeddedChildren = !this.showEmbeddedChildren;
       this.fetchEmbeddedChildrenState = 'idle';
 
@@ -695,7 +693,7 @@ class SpanTreeModel {
       }
 
       return Promise.resolve(undefined);
-    };
+    });
 
   fetchEmbeddedTransactions({
     orgSlug,

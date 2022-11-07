@@ -1,18 +1,19 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 
+import {CommonStoreDefinition} from './types';
+
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
-type ModalStoreState = {
+type State = {
   options: ModalOptions;
   renderer: Renderer | null;
 };
 
-interface ModalStoreDefinition extends StoreDefinition {
+interface ModalStoreDefinition extends CommonStoreDefinition<State> {
   closeModal(): void;
-  get(): ModalStoreState;
-  getState(): ModalStoreState;
+  getState(): State;
   init(): void;
   openModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
@@ -38,7 +39,7 @@ const storeConfig: ModalStoreDefinition = {
     this.state = {
       renderer: null,
       options: {},
-    } as ModalStoreState;
+    } as State;
   },
 
   closeModal() {

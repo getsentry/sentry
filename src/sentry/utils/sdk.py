@@ -107,11 +107,16 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     # This is the parent task of the next two tasks.
-    "sentry.tasks.reports.prepare_reports": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.reports.prepare_reports": 1.0,
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -399,6 +404,9 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    if settings.SENTRY_PROFILING_ENABLED:
+        sentry_sdk.set_tag("sentry.profiler", settings.SENTRY_PROFILER_MODE)
 
 
 class RavenShim:

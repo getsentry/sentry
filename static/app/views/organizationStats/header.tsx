@@ -19,7 +19,9 @@ function StatsHeader({organization, activeTab}: Props) {
         <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {activeTab !== 'stats' && <FeatureFeedback featureName="team-stats" />}
+        {activeTab !== 'stats' && (
+          <FeatureFeedback buttonProps={{size: 'sm'}} featureName="team-stats" />
+        )}
       </Layout.HeaderActions>
       <Layout.HeaderNavTabs underlined>
         <li className={`${activeTab === 'stats' ? 'active' : ''}`}>

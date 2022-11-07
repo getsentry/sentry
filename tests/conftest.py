@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 import pytest
@@ -119,4 +120,32 @@ def register_class_in_model_manifest(request: pytest.FixtureRequest):
         with _model_manifest.register(request.node.nodeid):
             yield
     else:
+        yield
+
+
+@pytest.fixture(autouse=True)
+def setup_default_hybrid_cloud_stubs():
+    from sentry.region_to_control.producer import (
+        MockRegionToControlMessageService,
+        region_to_control_message_service,
+    )
+    from sentry.services.hybrid_cloud import service_stubbed
+    from sentry.services.hybrid_cloud.organization import (
+        StubOrganizationService,
+        organization_service,
+    )
+    from sentry.services.hybrid_cloud.project_key import StubProjectKeyService, project_key_service
+    from sentry.silo import SiloMode
+
+    stubs = [
+        service_stubbed(project_key_service, StubProjectKeyService(), SiloMode.CONTROL),
+        service_stubbed(organization_service, StubOrganizationService(), SiloMode.CONTROL),
+        service_stubbed(
+            region_to_control_message_service, MockRegionToControlMessageService(), SiloMode.REGION
+        ),
+    ]
+
+    with contextlib.ExitStack() as stack:
+        for stub in stubs:
+            stack.enter_context(stub)
         yield

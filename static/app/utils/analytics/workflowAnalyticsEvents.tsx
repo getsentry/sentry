@@ -83,7 +83,9 @@ export type TeamInsightsEventParameters = {
   'issue_details.viewed': IssueDetailsWithAlert &
     BaseEventAnalyticsParams & {
       error_count: number;
+      error_has_replay: boolean;
       event_errors: string;
+      group_has_replay: boolean;
       has_owner: boolean;
       is_assigned: boolean;
       issue_age: number;
@@ -92,6 +94,7 @@ export type TeamInsightsEventParameters = {
       integration_assignment_source?: string;
       issue_level?: string;
       issue_status?: string;
+      project_has_replay?: boolean;
       project_platform?: string;
     };
   'new_alert_rule.viewed': RuleViewed & {

@@ -18,7 +18,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test
+# @control_silo_test(stable=True)
 class AuthLoginTest(TestCase):
     @fixture
     def path(self):
@@ -487,8 +487,6 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                # Non-sentry staff should be kicked out of using customer domain
-                ("http://testserver/auth/login/", 302),
                 ("/organizations/albertos-apples/issues/", 302),
             ]
 

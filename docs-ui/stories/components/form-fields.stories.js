@@ -51,12 +51,6 @@ export const _TextField = () => (
         disabled
       />
       <TextField
-        name="textfieldwithreturnsubmit"
-        label="Text Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
-      />
-      <TextField
         name="textfieldflexiblecontrol"
         label="Text Field With Flexible Control State Size"
         placeholder="Type text and then delete it"
@@ -112,12 +106,6 @@ export const _TextareaField = ({autosize, rows}) => (
         label="Disabled - Simple Textarea Field with Placeholder"
         placeholder="This is placeholder text in a disabled field"
         disabled
-      />
-      <TextareaField
-        name="textfieldwithreturnsubmit"
-        label="Textarea Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
       />
       <TextareaField
         name="textfieldflexiblecontrol"
@@ -217,10 +205,10 @@ export const _SelectField = () => (
     <SelectField
       name="select"
       label="Select Field"
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -234,10 +222,10 @@ export const SelectFieldMultiple = () => (
       name="select"
       label="Multi Select"
       multiple
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -278,10 +266,10 @@ export const SelectFieldInFieldLabel = () => (
       name="select"
       label="Select With Label In Field"
       inFieldLabel="Label: "
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>

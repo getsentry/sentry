@@ -2,14 +2,16 @@
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
+from sentry.models import Project
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
@@ -52,6 +54,13 @@ class MetricField:
     def __str__(self) -> str:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
+
+    def __eq__(self, other: object) -> bool:
+        # The equal method is called after the hash method to verify for equality of objects to insert
+        # into the set. Because by default "__eq__()" does use the "is" operator we want to override it and
+        # model MetricField's equivalence as having the same hash value, in order to reuse the comparison logic defined
+        # in the "__hash__()" method.
+        return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
         hashable_list = []
@@ -146,6 +155,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
     interval: Optional[int] = None
 
     @cached_property
+    def projects(self) -> QuerySet:
+        return Project.objects.filter(id__in=self.project_ids)
+
+    @cached_property
     def use_case_key(self) -> UseCaseKey:
         return self._use_case_id(self.select[0].metric_mri)
 
@@ -216,13 +229,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
             metric_field_obj = metric_object_factory(f.field.op, f.field.metric_mri)
 
             use_case_id = self._use_case_id(f.field.metric_mri)
-            entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
+            entity = metric_field_obj.get_entity(self.projects, use_case_id)
 
             if isinstance(entity, Mapping):
                 metric_entities.update(entity.keys())
             else:
                 metric_entities.add(entity)
-        # If metric entities set contanis more than 1 metric, we can't orderBy these fields
+        # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
             raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")
 
@@ -234,16 +247,54 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def calculate_intervals_len(
-        end: datetime, granularity: int, start: Optional[datetime] = None
+        end: datetime,
+        granularity: int,
+        start: Optional[datetime] = None,
+        interval: Optional[int] = None,
     ) -> int:
-        range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
-        return math.ceil(range_in_sec / granularity)
+        if interval is None:
+            range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
+            denominator = granularity
+        else:
+            assert start is not None and interval > 0
+
+            start_in_seconds = start.timestamp()
+            end_in_seconds = end.timestamp()
+            # This condition is required because the formatting of `start` and `end` uses the `int()` function to
+            # convert which automatically cuts off any decimal digits resulting in certain cases in which `end` -
+            # `start` = 0. In order to avoid this problem entirely we must make sure that the integer value of
+            # `start` / `interval` and `end` / `interval` differ by at least 1.
+            #
+            # We can model it mathematically as:
+            # x = start time in seconds
+            # z = end time in seconds
+            # y = interval in seconds
+            # then want the following to hold true:
+            # (z / y) - (x / y) >= 1 which equals to (z - x) >= y which translated to code means that
+            # `end_in_seconds` - `start_in_seconds` >= `interval` must hold true for `range_in_sec` > 0.
+            if (end_in_seconds - start_in_seconds) < interval:
+                raise InvalidParams(
+                    "The difference between start and end must be greater or equal than the interval"
+                )
+
+            # Format start and end
+            start = datetime.fromtimestamp(
+                int(start_in_seconds / interval) * interval, timezone.utc
+            )
+            end = datetime.fromtimestamp(int(end_in_seconds / interval) * interval, timezone.utc)
+
+            range_in_sec = (end - start).total_seconds()
+            denominator = interval
+        return math.ceil(range_in_sec / denominator)
 
     def validate_limit(self) -> None:
         if self.limit is None:
             return
         intervals_len = self.calculate_intervals_len(
-            end=self.end, start=self.start, granularity=self.granularity.granularity
+            end=self.end,
+            start=self.start,
+            granularity=self.granularity.granularity,
+            interval=self.interval,
         )
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
@@ -280,7 +331,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         totals_limit: int = MAX_POINTS
         if self.include_series:
             intervals_len = self.calculate_intervals_len(
-                start=self.start, end=self.end, granularity=self.granularity.granularity
+                start=self.start,
+                end=self.end,
+                granularity=self.granularity.granularity,
+                interval=self.interval,
             )
             # In a series query, we also need to factor in the len of the intervals
             # array. The number of totals should never get so large that the

@@ -8,12 +8,14 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
+import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**
@@ -103,7 +105,7 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
-export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
+export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
   hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
@@ -246,11 +248,12 @@ export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
 
   render() {
     return (
-      <InputField
+      <FormField
         {...this.props}
         inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
-        field={this.renderField}
-      />
+      >
+        {this.renderField}
+      </FormField>
     );
   }
 }

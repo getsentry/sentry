@@ -1,4 +1,9 @@
-import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {
+  generateSampleEvent,
+  generateSampleSpan,
+  initializeData as _initializeData,
+} from 'sentry-test/performance/initializePerformanceData';
+import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {
   act,
   render,
@@ -13,10 +18,8 @@ import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EntryType, EventTransaction} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
@@ -24,121 +27,33 @@ function initializeData(settings) {
   return data;
 }
 
-function generateSampleEvent(): EventTransaction {
-  const event = {
-    id: '2b658a829a21496b87fd1f14a61abf65',
-    eventID: '2b658a829a21496b87fd1f14a61abf65',
-    title: '/organizations/:orgId/discover/results/',
-    type: 'transaction',
-    startTimestamp: 1622079935.86141,
-    endTimestamp: 1622079940.032905,
-    contexts: {
-      trace: {
-        trace_id: '8cbbc19c0f54447ab702f00263262726',
-        span_id: 'a000000000000000',
-        op: 'pageload',
-        status: 'unknown',
-        type: 'trace',
-      },
-    },
-    entries: [
-      {
-        data: [],
-        type: EntryType.SPANS,
-      },
-    ],
-  } as EventTransaction;
-
-  return event;
-}
-
-function generateSampleSpan(
-  description: string | null,
-  op: string | null,
-  span_id: string,
-  parent_span_id: string,
-  event: EventTransaction
-) {
-  const span = {
-    start_timestamp: 1000,
-    timestamp: 2000,
-    description,
-    op,
-    span_id,
-    parent_span_id,
-    trace_id: '8cbbc19c0f54447ab702f00263262726',
-    status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
-    data: {},
-  };
-
-  event.entries[0].data.push(span);
-  return span;
-}
-
-const WrappedTraceView = ({organization, waterfallModel}) => (
-  <OrganizationContext.Provider value={organization}>
-    <TraceView organization={organization} waterfallModel={waterfallModel} />
-  </OrganizationContext.Provider>
-);
-
 describe('TraceView', () => {
+  let data;
+
+  beforeEach(() => {
+    data = initializeData({});
+  });
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   describe('Autogrouped spans tests', () => {
     it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
-
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
+      const builder = new TransactionEventBuilder();
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 0,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
       );
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <WrappedTraceView
-          organization={data.organization}
-          waterfallModel={waterfallModel}
-        />
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       expect(await screen.findByTestId('minimap-sibling-group-bar')).toBeInTheDocument();
@@ -147,57 +62,22 @@ describe('TraceView', () => {
     });
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
-      // eslint-disable-next-line no-console
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      const builder = new TransactionEventBuilder();
 
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
-
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 0,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
       );
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <WrappedTraceView
-          organization={data.organization}
-          waterfallModel={waterfallModel}
-        />
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       const groupedSiblingsSpan = await screen.findByText('Autogrouped — http —');
@@ -223,56 +103,39 @@ describe('TraceView', () => {
     });
 
     it("should not group sibling spans that don't have the same op or description", async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
+      const builder = new TransactionEventBuilder();
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 10,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'test',
+        })
+      );
 
-      const event = generateSampleEvent();
-      generateSampleSpan('test', 'http', 'b000000000000000', 'a000000000000000', event);
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
       );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ff00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan('test', 'http', 'fff0000000000000', 'a000000000000000', event);
 
-      const waterfallModel = new WaterfallModel(event);
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+          op: 'http',
+          description: 'test',
+        })
+      );
+
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <WrappedTraceView
-          organization={data.organization}
-          waterfallModel={waterfallModel}
-        />
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       expect(await screen.findByText('group me')).toBeInTheDocument();
@@ -280,52 +143,20 @@ describe('TraceView', () => {
     });
 
     it('should autogroup similar nested spans', async () => {
-      const data = initializeData({});
+      const builder = new TransactionEventBuilder();
+      const span = new MockSpan({
+        startTimestamp: 50,
+        endTimestamp: 100,
+        op: 'http',
+        description: 'group me',
+      }).addDuplicateNestedChildren(5);
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'b000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'c000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'd000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'e000000000000000',
-        event
-      );
+      builder.addSpan(span);
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <WrappedTraceView
-          organization={data.organization}
-          waterfallModel={waterfallModel}
-        />
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       const grouped = await screen.findByText('group me');
@@ -333,90 +164,41 @@ describe('TraceView', () => {
     });
 
     it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
-      const data = initializeData({features: ['performance-autogroup-sibling-spans']});
+      const builder = new TransactionEventBuilder();
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
       );
 
-      generateSampleSpan('not me', 'http', 'aa00000000000000', 'a000000000000000', event);
-
-      generateSampleSpan(
-        'group me',
-        'http',
-        'bb00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'cc00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'dd00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ee00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ff00000000000000',
-        'a000000000000000',
-        event
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+          op: 'http',
+          description: 'not me',
+        })
       );
 
-      const waterfallModel = new WaterfallModel(event);
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 300,
+          endTimestamp: 400,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
+
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <WrappedTraceView
-          organization={data.organization}
-          waterfallModel={waterfallModel}
-        />
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       expect(screen.queryAllByText('group me')).toHaveLength(2);
@@ -438,6 +220,7 @@ describe('TraceView', () => {
       expect(await screen.findAllByText('group me')).toHaveLength(2);
     });
 
+    // TODO: This test can be converted later to use the TransactionEventBuilder instead
     it('should allow expanding of embedded transactions', async () => {
       const {organization, project, location} = initializeData({
         features: ['unified-span-view'],
@@ -526,10 +309,7 @@ describe('TraceView', () => {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => (
             <QuickTraceContext.Provider value={results}>
-              <WrappedTraceView
-                organization={organization}
-                waterfallModel={waterfallModel}
-              />
+              <TraceView organization={organization} waterfallModel={waterfallModel} />
             </QuickTraceContext.Provider>
           )}
         </QuickTraceQuery>
@@ -548,68 +328,44 @@ describe('TraceView', () => {
     });
 
     it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
+      data = initializeData({});
+      const builder1 = new TransactionEventBuilder();
 
-      const event1 = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        null,
-        'b000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'c000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'd000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'e000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'f000000000000000',
-        'a000000000000000',
-        event1
+      // Autogroup without span ops
+      builder1.addSpan(
+        new MockSpan({
+          startTimestamp: 50,
+          endTimestamp: 100,
+          description: 'group me',
+        }),
+        5
       );
 
       const {rerender} = render(
-        <WrappedTraceView
+        <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(event1)}
+          waterfallModel={new WaterfallModel(builder1.getEvent())}
         />
       );
       expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
         /Autogrouped — group me/
       );
 
-      const event2 = generateSampleEvent();
-      generateSampleSpan(null, 'http', 'b000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'c000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'd000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'e000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
+      // Autogroup without span descriptions
+      const builder2 = new TransactionEventBuilder();
+      builder2.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+        }),
+        5
+      );
 
       rerender(
-        <WrappedTraceView
+        <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(event2)}
+          waterfallModel={new WaterfallModel(builder2.getEvent())}
         />
       );
 
@@ -617,17 +373,20 @@ describe('TraceView', () => {
         /Autogrouped — http/
       );
 
-      const event3 = generateSampleEvent();
-      generateSampleSpan(null, null, 'b000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'c000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'd000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'e000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
+      // Autogroup without span ops or descriptions
+      const builder3 = new TransactionEventBuilder();
+      builder3.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+        }),
+        5
+      );
 
       rerender(
-        <WrappedTraceView
+        <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(event3)}
+          waterfallModel={new WaterfallModel(builder3.getEvent())}
         />
       );
 
@@ -637,125 +396,63 @@ describe('TraceView', () => {
     });
 
     it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
+      data = initializeData({});
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
+      const builder = new TransactionEventBuilder();
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
       );
 
       // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
-      location.hash = spanTargetHash('c000000000000000');
+      location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
         <AnchorLinkManager.Provider>
-          <WrappedTraceView
-            organization={data.organization}
-            waterfallModel={waterfallModel}
-          />
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
         </AnchorLinkManager.Provider>
       );
 
-      expect(await screen.findByText(/c000000000000000/i)).toBeInTheDocument();
+      expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
       location.hash = '';
     });
 
     it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
-      const data = initializeData({});
+      data = initializeData({});
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'b000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'c000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'd000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'e000000000000000',
-        event
-      );
+      const builder = new TransactionEventBuilder();
+      const span = new MockSpan({
+        startTimestamp: 50,
+        endTimestamp: 100,
+        op: 'http',
+        description: 'group me',
+      }).addDuplicateNestedChildren(5);
+      builder.addSpan(span);
 
-      location.hash = spanTargetHash('d000000000000000');
+      location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
         <AnchorLinkManager.Provider>
-          <WrappedTraceView
-            organization={data.organization}
-            waterfallModel={waterfallModel}
-          />
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
         </AnchorLinkManager.Provider>
       );
 
-      expect(await screen.findByText(/d000000000000000/i)).toBeInTheDocument();
+      expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
       location.hash = '';
     });
   });
 
   it('should merge web vitals labels if they are too close together', () => {
-    const data = initializeData({});
+    data = initializeData({});
 
     const event = generateSampleEvent();
     generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
@@ -784,7 +481,7 @@ describe('TraceView', () => {
   });
 
   it('should not merge web vitals labels if they are spaced away from each other', () => {
-    const data = initializeData({});
+    data = initializeData({});
 
     const event = generateSampleEvent();
     generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
@@ -800,10 +497,7 @@ describe('TraceView', () => {
     const waterfallModel = new WaterfallModel(event);
 
     render(
-      <WrappedTraceView
-        organization={data.organization}
-        waterfallModel={waterfallModel}
-      />
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
     );
 
     const fcpLabelContainer = screen.getByText(/fcp/i).parentElement?.parentElement;

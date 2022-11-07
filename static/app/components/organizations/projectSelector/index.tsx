@@ -217,6 +217,7 @@ function ProjectSelector({
     searchKey: project.slug,
     label: ({inputValue}: {inputValue: typeof project.slug}) => (
       <SelectorItem
+        key={project.slug}
         project={project}
         organization={organization}
         multi={isMulti}
@@ -332,7 +333,6 @@ export default withRouter(ProjectSelector);
 const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  width: 100%;
 `;
 
 const Label = styled('div')`

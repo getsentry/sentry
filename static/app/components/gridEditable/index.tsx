@@ -100,7 +100,11 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
+  height?: string | number;
   isLoading?: boolean;
+
+  scrollable?: boolean;
+  stickyHeader?: boolean;
 
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -301,7 +305,7 @@ class GridEditable<
   }
 
   renderGridHead() {
-    const {error, isLoading, columnOrder, grid, data} = this.props;
+    const {error, isLoading, columnOrder, grid, data, stickyHeader} = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
@@ -314,7 +318,9 @@ class GridEditable<
         {prependColumns &&
           columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
-            <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
+            <GridHeadCellStatic data-test-id="grid-head-cell-static" key={`prepend-${i}`}>
+              {item}
+            </GridHeadCellStatic>
           ))}
         {
           /* Note that this.onResizeMouseDown assumes GridResizer is nested
@@ -324,6 +330,7 @@ class GridEditable<
               data-test-id="grid-head-cell"
               key={`${i}.${column.key}`}
               isFirst={i === 0}
+              sticky={stickyHeader}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && (
@@ -388,7 +395,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );
@@ -417,7 +424,7 @@ class GridEditable<
   }
 
   render() {
-    const {title, headerButtons} = this.props;
+    const {title, headerButtons, scrollable, height} = this.props;
     const showHeader = title || headerButtons;
     return (
       <Fragment>
@@ -431,7 +438,12 @@ class GridEditable<
             </Header>
           )}
           <Body>
-            <Grid data-test-id="grid-editable" ref={this.refGrid}>
+            <Grid
+              data-test-id="grid-editable"
+              scrollable={scrollable}
+              height={height}
+              ref={this.refGrid}
+            >
               <GridHead>{this.renderGridHead()}</GridHead>
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>

@@ -370,12 +370,28 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.subText,
         marginBottom: 0,
         padding: `${space(0.5)} ${space(1.5)}`,
+        ':empty': {
+          display: 'none',
+        },
       }),
       group: provided => ({
         ...provided,
         paddingTop: 0,
         ':last-of-type': {
           paddingBottom: 0,
+        },
+        ':not(:last-of-type)': {
+          position: 'relative',
+          marginBottom: space(1),
+        },
+        // Add divider between sections
+        ':not(:last-of-type)::after': {
+          content: '""',
+          position: 'absolute',
+          left: space(1.5),
+          right: space(1.5),
+          bottom: 0,
+          borderBottom: `solid 1px ${theme.innerBorder}`,
         },
       }),
     }),
@@ -405,6 +421,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   } = props;
 
   // Compatibility with old select2 API
+  //
+  // TODO(epurkhiser): We need better types on this coomponent to have higher
+  // confidence to remove this. There's likely few places we still use the
+  // select2 style choices.
   const choicesOrOptions =
     convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
     options;
@@ -530,7 +550,7 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 // The generics need to be filled here as forwardRef can't expose generics.
 const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
-  ControlProps<GeneralSelectValue>
+  ControlProps
 >(function RefForwardedSelectControl(props, ref) {
   return <SelectControl forwardedRef={ref as any} {...props} />;
 });

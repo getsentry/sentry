@@ -15,7 +15,7 @@ import Button from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -87,7 +87,7 @@ type Props = {
   ruleId?: string;
   sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
-    onSubmitSuccess?: Form['props']['onSubmitSuccess'];
+    onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
 type State = {
@@ -505,7 +505,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         !validTriggers && t('critical threshold'),
       ].filter(x => x);
 
-      addErrorMessage(t(`Alert not valid: missing %s`, missingFields.join(' ')));
+      addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return;
     }
 

@@ -11,6 +11,7 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 import SelectedGroupStore from './selectedGroupStore';
 import {CommonStoreDefinition} from './types';
@@ -60,7 +61,7 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   loadInitialData: (items: Item[]) => void;
 
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
-  onAssignToError: (changeId: string, itemId: string, error: Error) => void;
+  onAssignToError: (changeId: string, itemId: string, error: RequestError) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
@@ -315,9 +316,13 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   // TODO(dcramer): This is not really the best place for this
-  onAssignToError(_changeId, itemId, _error) {
+  onAssignToError(_changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    showAlert(t('Unable to change assignee. Please try again.'), 'error');
+    if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
+      showAlert(t('Cannot assign to non-team member'), 'error');
+    } else {
+      showAlert(t('Unable to change assignee. Please try again.'), 'error');
+    }
   },
 
   onAssignToSuccess(_changeId, itemId, response) {
@@ -351,10 +356,10 @@ const storeConfig: GroupStoreDefinition = {
     const ids = this.itemIdsOrAll(itemIds);
 
     if (ids.length > 1) {
-      showAlert(t(`Deleted ${ids.length} Issues`), 'success');
+      showAlert(t('Deleted %d Issues', ids.length), 'success');
     } else {
       const shortId = ids.map(item => GroupStore.get(item)?.shortId).join('');
-      showAlert(t(`Deleted ${shortId}`), 'success');
+      showAlert(t('Deleted %s', shortId), 'success');
     }
 
     const itemIdSet = new Set(ids);
@@ -419,7 +424,7 @@ const storeConfig: GroupStoreDefinition = {
     );
 
     if (ids.length > 0) {
-      showAlert(t(`Merged ${ids.length} Issues`), 'success');
+      showAlert(t('Merged %d Issues', ids.length), 'success');
     }
 
     this.updateItems(ids);

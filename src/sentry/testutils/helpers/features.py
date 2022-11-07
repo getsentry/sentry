@@ -1,13 +1,16 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
-import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
 from unittest.mock import patch
 
 import sentry.features
+from sentry import features
+from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,21 @@ def Feature(names):
 
     def features_override(name, *args, **kwargs):
         if name in names:
+            try:
+                feature = features.get(name, None)
+            except FeatureNotRegistered:
+                raise ValueError("Unregistered feature flag: %s", repr(name))
+
+            if isinstance(feature, OrganizationFeature):
+                org = args[0] if len(args) > 0 else kwargs.get("organization", None)
+                if not isinstance(org, Organization):
+                    raise ValueError("Must provide organization to check feature")
+
+            if isinstance(feature, ProjectFeature):
+                project = args[0] if len(args) > 0 else kwargs.get("project", None)
+                if not isinstance(project, Project):
+                    raise ValueError("Must provide project to check feature")
+
             return names[name]
         else:
             try:
@@ -84,8 +102,10 @@ def with_feature(feature):
 
 def apply_feature_flag_on_cls(feature_flag):
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            setattr(cls, name, with_feature(feature_flag)(fn))
+        # Wrap the [run](https://docs.python.org/3/library/unittest.html#unittest.TestCase.run) method
+        # with the with_feature decorator so all tests in the class can access the
+        # feature flag.
+        setattr(cls, "run", with_feature(feature_flag)(cls.run))
         return cls
 
     return decorate

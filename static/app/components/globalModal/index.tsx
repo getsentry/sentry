@@ -192,7 +192,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       >
         <AnimatePresence>
           {visible && (
-            <Modal role="dialog" css={options.modalCss}>
+            <Modal role="dialog" aria-modal css={options.modalCss}>
               <Content role="document">{renderedChild}</Content>
             </Modal>
           )}
@@ -264,12 +264,12 @@ const Content = styled('div')`
 `;
 
 type State = {
-  modalStore: ReturnType<typeof ModalStore.get>;
+  modalStore: ReturnType<typeof ModalStore.getState>;
 };
 
 class GlobalModalContainer extends Component<Partial<Props>, State> {
   state: State = {
-    modalStore: ModalStore.get(),
+    modalStore: ModalStore.getState(),
   };
 
   componentWillUnmount() {

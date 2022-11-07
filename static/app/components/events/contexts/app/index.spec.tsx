@@ -1,11 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {AppEventContext} from 'sentry/components/events/contexts/app';
 import {AppData} from 'sentry/components/events/contexts/app/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 export const appMockData: AppData = {
   device_app_hash: '2421fae1ac9237a8131e74883e52b0f7034a143f',
@@ -46,28 +43,11 @@ const event = {
 
 describe('app event context', function () {
   it('display redacted data', async function () {
-    const {organization, router} = initializeOrg({
-      ...initializeOrg(),
+    render(<AppEventContext event={event} data={appMockData} />, {
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
       },
     });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <AppEventContext event={event} data={appMockData} />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
-    );
 
     expect(screen.getByText('Build Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
@@ -75,7 +55,7 @@ describe('app event context', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+          "Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description

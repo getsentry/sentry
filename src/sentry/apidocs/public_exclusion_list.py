@@ -34,7 +34,6 @@ from sentry.api.endpoints.codeowners import (
     ExternalUserEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
 )
 from sentry.api.endpoints.data_scrubbing_selector_suggestions import (
     DataScrubbingSelectorSuggestionsEndpoint,
@@ -358,8 +357,6 @@ from sentry.api.endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from sentry.api.endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from sentry.api.endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from sentry.api.endpoints.project_searches import ProjectSearchesEndpoint
 from sentry.api.endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from sentry.api.endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from sentry.api.endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -451,7 +448,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
@@ -671,7 +667,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationCodeMappingsEndpoint,
     OrganizationCodeMappingDetailsEndpoint,
     OrganizationCodeMappingCodeOwnersEndpoint,
-    DiscoverQueryEndpoint,
     DiscoverSavedQueriesEndpoint,
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
@@ -843,8 +838,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     ProjectRulesConfigurationEndpoint,
     ProjectRuleDetailsEndpoint,
     ProjectRuleTaskDetailsEndpoint,
-    ProjectSearchesEndpoint,
-    ProjectSearchDetailsEndpoint,
     ProjectTagsEndpoint,
     ProjectTagKeyDetailsEndpoint,
     ProjectTeamsEndpoint,
@@ -858,7 +851,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     ProjectOwnershipEndpoint,
     ProjectCodeOwnersEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
     ProjectTransactionThresholdEndpoint,
     ProjectPluginsEndpoint,
     ProjectPluginDetailsEndpoint,
