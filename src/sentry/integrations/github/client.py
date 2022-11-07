@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 import sentry_sdk
 
@@ -71,7 +71,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> List[str]:
         tree = []
         try:
             contents: Dict[str, Any] = self.get(
@@ -125,10 +125,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 try:
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
-                    trees[full_name] = {
-                        "default_branch": branch,
-                        "files": self.get_tree(full_name, branch),
-                    }
+                    files = self.get_tree(full_name, branch)
+                    trees[full_name] = {"default_branch": branch, "files": files}
                     cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
                 except Exception:
                     # Catching the exception ensures that we can make progress with the rest

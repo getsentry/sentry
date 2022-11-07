@@ -112,7 +112,7 @@ class CodeMappingTreesHelper:
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
             _code_mappings.extend(
-                self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
+                self._generate_code_mapping_from_tree(self.trees[repo_full_name], frame_filename)
             )
 
         if len(_code_mappings) == 0:
@@ -137,12 +137,12 @@ class CodeMappingTreesHelper:
 
     def _generate_code_mapping_from_tree(
         self,
-        repo_full_name: str,
+        repo_tree: RepoTree,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
         matched_files = [
             src_path
-            for src_path in self.trees[repo_full_name].files
+            for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
         # It is too risky generating code mappings when there's more
@@ -150,7 +150,7 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=self.trees[repo_full_name].repo,
+                    repo=repo_tree.repo,
                     stacktrace_root=frame_filename.root,  # sentry
                     source_path=self._get_code_mapping_source_path(
                         matched_files[0], frame_filename
