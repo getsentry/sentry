@@ -73,6 +73,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
+    map_wildcards_to_clickhouse,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -97,7 +98,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "like")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "like", "match")
 
 
 def resolve_tags(
@@ -129,12 +130,12 @@ def resolve_tags(
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
                 ],
             )
-        elif input_.function == "like":
+        elif input_.function in {"like", "match"}:
             return Function(
                 function=input_.function,
                 parameters=[
                     resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    input_.parameters[1],
+                    map_wildcards_to_clickhouse(input_.function, input_.parameters[1]),
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:

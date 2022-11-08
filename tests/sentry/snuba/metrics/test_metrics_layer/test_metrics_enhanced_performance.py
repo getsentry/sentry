@@ -1520,8 +1520,13 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_wildcard_match_with_postfix(self):
-        for transaction, value in (("match", 0), ("/foo", 1), ("/bar", 2)):
+    def test_wildcard_based_queries(self):
+        for transaction, value in (
+            ("/foo/bar/transaction", 0),
+            ("/foo/bar", 1),
+            ("/foo", 2),
+            ("/foo/bar2/transaction", 3),
+        ):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
@@ -1529,46 +1534,78 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        metrics_query = self.build_metrics_query(
-            before_now="1h",
-            granularity="1h",
-            select=[
-                MetricField(
-                    op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
-                    alias="duration_count",
-                ),
-            ],
-            where=[
-                Condition(
-                    lhs=Function("like", parameters=[Column(name="tags[transaction]"), "/%"]),
-                    op=Op.EQ,
-                    rhs=1,
-                )
-            ],
-            limit=Limit(limit=50),
-            offset=Offset(offset=0),
-            include_series=False,
-        )
-        data = get_series(
-            [self.project],
-            metrics_query=metrics_query,
-            include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
-        )
+        for http_status_code, value in (
+            ("400", 0),
+            ("500", 1),
+            ("200", 2),
+            ("210", 3),
+            ("410", 4),
+            ("520", 5),
+        ):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"http_status_code": http_status_code},
+                value=value,
+            )
 
-        assert data["groups"] == [
-            {
-                "by": {},
-                "totals": {"duration_count": 2},
-            },
-        ]
-        assert data["meta"] == sorted(
-            [
-                {"name": "duration_count", "type": "UInt64"},
-            ],
-            key=lambda elem: elem["name"],
-        )
+        for operator in ("like", "match"):
+            for tag_key, tag_wildcard_value, expected_count in (
+                ("transaction", "/foo*", 4),
+                ("transaction", "*/bar", 1),
+                ("transaction", "/foo/*/transaction", 2),
+                ("http_status_code", "2*", 2),
+                ("http_status_code", "4*", 2),
+                ("http_status_code", "5*", 2),
+                ("http_status_code", "*1*", 2),
+                ("http_status_code", "*00", 3),
+            ):
+                metrics_query = self.build_metrics_query(
+                    before_now="1h",
+                    granularity="1h",
+                    select=[
+                        MetricField(
+                            op="count",
+                            metric_mri=TransactionMRI.DURATION.value,
+                            alias="duration_count",
+                        ),
+                    ],
+                    where=[
+                        Condition(
+                            lhs=Function(
+                                operator,
+                                parameters=[
+                                    Column(name=f"tags[{tag_key}]"),
+                                    tag_wildcard_value,
+                                ],
+                            ),
+                            op=Op.EQ,
+                            rhs=1,
+                        )
+                    ],
+                    limit=Limit(limit=50),
+                    offset=Offset(offset=0),
+                    include_series=False,
+                )
+                data = get_series(
+                    [self.project],
+                    metrics_query=metrics_query,
+                    include_meta=True,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+                assert data["groups"] == [
+                    {
+                        "by": {},
+                        "totals": {"duration_count": expected_count},
+                    },
+                ]
+                assert data["meta"] == sorted(
+                    [
+                        {"name": "duration_count", "type": "UInt64"},
+                    ],
+                    key=lambda elem: elem["name"],
+                )
 
     def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(
         self,
