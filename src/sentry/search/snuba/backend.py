@@ -549,7 +549,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                                 GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
                                 GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
                             ),
-                            message__icontains=query.value.raw_value,
+                            message__icontains=query,
                         )
                     )
                 }
