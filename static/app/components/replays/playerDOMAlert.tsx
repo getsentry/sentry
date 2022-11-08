@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {IconClose, IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -29,12 +30,12 @@ function PlayerDOMAlert() {
     <DOMAlertContainer data-test-id="player-dom-alert">
       <DOMAlert>
         <IconInfo size="xs" />
-        Right click and inspect your app's DOM
+        {t("Right click and inspect your app's DOM")}
         <DismissButton
           priority="link"
           size="sm"
           icon={<IconClose size="xs" />}
-          aria-label="Close Alert"
+          aria-label={t('Close Alert')}
           onClick={handleDismiss}
         />
       </DOMAlert>
