@@ -300,7 +300,7 @@ class GetEventsTest(TestCase):
                 timestamp=prev_hour,
             )
         ]
-        events = get_events(self.project, activity)
+        events = get_events(self.project, activity, [])
 
         assert len(events) == 1
         assert event.event_id in events
@@ -330,7 +330,7 @@ class GetEventsTest(TestCase):
                 data={"event_id": reappeared_event.event_id},
             ),
         ]
-        events = get_events(self.project, activity)
+        events = get_events(self.project, activity, [])
 
         assert len(events) == 2
         assert all([event.event_id in events for event in (regression_event, reappeared_event)])
