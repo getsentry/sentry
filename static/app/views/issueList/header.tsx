@@ -86,7 +86,9 @@ function IssueListHeader({
     : t('Enable real-time updates');
 
   return (
-    <Layout.Header noActionWrap>
+    <Layout.Header
+      noActionWrap={!organization.features.includes('issue-list-saved-searches-v2')}
+    >
       <Layout.HeaderContent>
         <StyledLayoutTitle>{t('Issues')}</StyledLayoutTitle>
       </Layout.HeaderContent>

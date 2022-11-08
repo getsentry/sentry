@@ -223,7 +223,7 @@ const SavedIssueSearches = ({
 };
 
 const StyledSidebar = styled('aside')`
-  width: 360px;
+  width: 100%;
   padding: ${space(3)} ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -233,6 +233,7 @@ const StyledSidebar = styled('aside')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-left: 1px solid ${p => p.theme.gray200};
+    max-width: 340px;
   }
 `;
 
