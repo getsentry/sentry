@@ -7,26 +7,45 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.savedsearch import OrganizationSearchSerializer
+from sentry.api.serializers.rest_framework.savedsearch import (
+    OrganizationSearchAdminSerializer,
+    OrganizationSearchMemberSerializer,
+)
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 
 
+class OrganizationSearchEditPermission(OrganizationSearchPermission):
+    """
+    Includes object permission check to disallow users without org:write from
+    mutating Visibility.ORGANIZATION searches.
+    """
+
+    def has_object_permission(self, request: Request, view, obj):
+        if isinstance(obj, Organization):
+            return super().has_object_permission(request, view, obj)
+
+        if isinstance(obj, SavedSearch):
+            return (
+                request.access.has_scope("org:write") or obj.visibility != Visibility.ORGANIZATION
+            )
+
+
 @region_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationSearchPermission,)
+    permission_classes = (OrganizationSearchEditPermission,)
 
     def convert_args(self, request: Request, organization_slug, search_id, *args, **kwargs):
         (args, kwargs) = super().convert_args(request, organization_slug, *args, **kwargs)
 
-        try:
-            # Only allow users to delete their own personal searches OR
-            # organization level searches
-            org_search = Q(visibility=Visibility.ORGANIZATION)
-            personal_search = Q(owner=request.user, visibility=Visibility.OWNER)
+        # Only allow users to delete their own personal searches OR
+        # organization level searches
+        org_search = Q(visibility=Visibility.ORGANIZATION)
+        personal_search = Q(owner=request.user, visibility=Visibility.OWNER)
 
-            kwargs["search"] = SavedSearch.objects.get(
+        try:
+            search = SavedSearch.objects.get(
                 org_search | personal_search,
                 organization=kwargs["organization"],
                 id=search_id,
@@ -34,13 +53,19 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
+        self.check_object_permissions(request, search)
+        kwargs["search"] = search
+
         return (args, kwargs)
 
     def put(self, request: Request, organization: Organization, search: SavedSearch) -> Response:
         """
         Updates a saved search
         """
-        serializer = OrganizationSearchSerializer(data=request.data)
+        if request.access.has_scope("org:write"):
+            serializer = OrganizationSearchAdminSerializer(data=request.data)
+        else:
+            serializer = OrganizationSearchMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

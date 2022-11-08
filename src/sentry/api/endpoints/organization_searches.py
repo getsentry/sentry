@@ -6,7 +6,10 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.savedsearch import OrganizationSearchSerializer
+from sentry.api.serializers.rest_framework.savedsearch import (
+    OrganizationSearchAdminSerializer,
+    OrganizationSearchMemberSerializer,
+)
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 
@@ -50,7 +53,10 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(list(query), request.user))
 
     def post(self, request: Request, organization) -> Response:
-        serializer = OrganizationSearchSerializer(data=request.data)
+        if request.access.has_scope("org:write"):
+            serializer = OrganizationSearchAdminSerializer(data=request.data)
+        else:
+            serializer = OrganizationSearchMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
