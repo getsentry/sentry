@@ -17,7 +17,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -326,7 +326,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def build_performance_issue_description(self, event):
+    def get_performance_issue_body(self, event):
         (
             transaction_name,
             parent_span,
@@ -334,11 +334,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             repeating_spans,
         ) = self.get_performance_issue_description_data(event)
 
-        body = f"| *Transaction Name* | {truncatechars(transaction_name, 50)} |\n"
-        body += f"| *Parent Span* | {truncatechars(parent_span, 50)} |\n"
-        body += (
-            f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, 50)} |"
-        )
+        body = f"| *Transaction Name* | {truncatechars(transaction_name, MAX_CHAR)} |\n"
+        body += f"| *Parent Span* | {truncatechars(parent_span, MAX_CHAR)} |\n"
+        body += f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, MAX_CHAR)} |"
         return body
 
     def get_group_description(self, group, event, **kwargs):
@@ -350,7 +348,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         ]
 
         if group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.build_performance_issue_description(event)
+            body = self.get_performance_issue_body(event)
             output.extend([body])
 
         else:

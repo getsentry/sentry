@@ -102,7 +102,7 @@ class GitHubIssueBasicTest(TestCase):
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
 
     def test_performance_issues_description(self):
-        """Test that a GitHub issue created from a performance issue has span evidence data in it's description"""
+        """Test that a GitHub issue created from a performance issue has span evidence data in its description"""
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
@@ -134,7 +134,7 @@ class GitHubIssueBasicTest(TestCase):
         )
 
     def test_error_issues_description(self):
-        """Test that a GitHub issue created from an error issue has message  data in it's description"""
+        """Test that a GitHub issue created from an error issue has message  data in its description"""
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

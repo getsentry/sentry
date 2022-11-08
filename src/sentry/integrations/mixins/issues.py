@@ -21,6 +21,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.issues")
+MAX_CHAR = 50
 
 
 class ResolveSyncAction(enum.Enum):

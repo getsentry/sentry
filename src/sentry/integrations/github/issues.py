@@ -5,7 +5,7 @@ from typing import Any, Mapping, Sequence
 from django.urls import reverse
 
 from sentry.eventstore.models import Event
-from sentry.integrations.mixins import IssueBasicMixin
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.types.issues import GroupCategory
@@ -22,7 +22,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def build_performance_issue_description(self, event: Event) -> str:
+    def get_performance_issue_body(self, event: Event) -> str:
         (
             transaction_name,
             parent_span,
@@ -32,16 +32,16 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
-        body += f"| **Transaction Name** | {truncatechars(transaction_name, 50)} |\n"
-        body += f"| **Parent Span** | {truncatechars(parent_span, 50)} |\n"
-        body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, 50)} |"
+        body += f"| **Transaction Name** | {truncatechars(transaction_name, MAX_CHAR)} |\n"
+        body += f"| **Parent Span** | {truncatechars(parent_span, MAX_CHAR)} |\n"
+        body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, MAX_CHAR)} |"
         return body
 
     def get_group_description(self, group: Group, event: Event, **kwargs: Any) -> str:
         output = self.get_group_link(group, **kwargs)
 
         if group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.build_performance_issue_description(event)
+            body = self.get_performance_issue_body(event)
             output.extend([body])
 
         else:
