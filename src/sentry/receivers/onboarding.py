@@ -14,6 +14,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -134,7 +135,7 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logging.getLogger("sentry").warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -280,7 +281,7 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         try:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logging.getLogger("sentry").warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -317,7 +318,9 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             try:
-                user = Organization.objects.get(id=project.organization_id).get_default_owner()
+                user: APIUser = Organization.objects.get(
+                    id=project.organization_id
+                ).get_default_owner()
             except IndexError:
                 logging.getLogger("sentry").warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
@@ -351,7 +354,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         try:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logging.getLogger("sentry").warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",

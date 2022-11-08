@@ -154,7 +154,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
                 {"service": "new_service", "integration_key": "new_key", "id": service_id},
             ]
         }
-        integration.get_installation(self.organization).update_organization_config(config_data)
+        integration.get_installation(self.organization.id).update_organization_config(config_data)
         assert len(PagerDutyService.objects.filter()) == 2
         service_row = PagerDutyService.objects.get(id=service_id)
         assert service_row.service_name == "new_service"
@@ -169,7 +169,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         config_data = {
             "service_table": [{"service": "new_service", "integration_key": "new_key", "id": None}]
         }
-        integration.get_installation(self.organization).update_organization_config(config_data)
+        integration.get_installation(self.organization.id).update_organization_config(config_data)
         assert len(PagerDutyService.objects.all()) == 1
         assert not PagerDutyService.objects.filter(id=service_id).exists()
 
@@ -183,7 +183,9 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             "service_table": [{"service": "new_service", "integration_key": "", "id": service_id}]
         }
         with pytest.raises(IntegrationError) as error:
-            integration.get_installation(self.organization).update_organization_config(config_data)
+            integration.get_installation(self.organization.id).update_organization_config(
+                config_data
+            )
         assert str(error.value) == "Name and key are required"
 
     @responses.activate
@@ -197,7 +199,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
         )
-        config = integration.get_installation(self.organization).get_config_data()
+        config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {
             "service_table": [
                 {
