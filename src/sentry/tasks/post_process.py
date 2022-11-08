@@ -552,6 +552,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             group=group,
             type=ActivityType.SET_UNRESOLVED.value,
             user=None,
+            data={"event_id": job["event"].event_id},
         )
 
         snooze.delete()
