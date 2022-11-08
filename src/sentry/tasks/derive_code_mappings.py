@@ -165,20 +165,19 @@ def report_project_codemappings(
     Log the code mappings that would be created for a project.
     """
     set_tag("project.slug", project.slug)
+    extra = {
+        "org": project.organization.slug,
+        "project": project.slug,
+        "code_mappings": code_mappings,
+        "stacktrace_paths": stacktrace_paths,
+    }
     if code_mappings:
-        msg = "derive_code_mappings: NO code mappings would have been created."
-    else:
         msg = "derive_code_mappings: code mappings would have been created."
+    else:
+        msg = "derive_code_mappings: NO code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
         msg = "derive_code_mappings: code mappings already exist."
+        extra["existing_code_mappings"] = existing_code_mappings
 
-    logger.info(
-        msg,
-        extra={
-            "org": project.organization.slug,
-            "project": project.slug,
-            "code_mappings": code_mappings,
-            "stacktrace_paths": stacktrace_paths,
-        },
-    )
+    logger.info(msg, extra)
