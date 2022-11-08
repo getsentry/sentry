@@ -44,6 +44,8 @@ from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_quer
 
 
 class MetricsQueryBuilder(QueryBuilder):
+    requires_organization_condition = True
+
     def __init__(
         self,
         *args: Any,
@@ -244,11 +246,6 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             granularity = 60
         return Granularity(granularity)
-
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
-        return conditions
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
