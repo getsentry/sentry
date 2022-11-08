@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           cd getsentry
-          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
+          python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
 
       - name: bump-sentry ${{ github.sha }}
         shell: bash
