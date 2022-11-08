@@ -42,7 +42,7 @@ function Contexts({event, group}: Props) {
       {Object.entries(otherContexts).map(([key, value]) => {
         if (key === 'response') {
           return (
-            <ResponseChunk key="response">
+            <ResponseChunkWrapper key="response">
               <Chunk
                 type="response"
                 alias="response"
@@ -50,7 +50,7 @@ function Contexts({event, group}: Props) {
                 event={event}
                 value={value}
               />
-            </ResponseChunk>
+            </ResponseChunkWrapper>
           );
         }
 
@@ -71,11 +71,14 @@ function Contexts({event, group}: Props) {
 
 export default Contexts;
 
-// HACK: Styling overrides to render Response headers as key-value pairs
-const ResponseChunk = styled('div')`
+// HACK: Override styling from less files to render response headers
+const ResponseChunkWrapper = styled('div')`
   #response-headers > pre {
     padding: 0;
     margin-left: 10px;
+  }
+
+  #response-headers table {
     background: ${p => p.theme.background};
   }
 `;
