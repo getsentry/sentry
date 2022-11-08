@@ -637,7 +637,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
             derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
-        logger.exception("Failed to set auto-assignment")
+        logger.exception("derive_code_mappings: Failed to process code mappings")
 
 
 def process_commits(job: PostProcessJob) -> None:
