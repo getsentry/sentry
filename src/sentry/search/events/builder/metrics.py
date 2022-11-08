@@ -405,8 +405,9 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
+        sorted_values = sorted(f"{value}" for value in values_set)
         values = []
-        for value in values_set:
+        for value in sorted_values:
             if value:
                 values.append(self._resolve_environment_filter_value(value))
             else:

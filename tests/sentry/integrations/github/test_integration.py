@@ -9,6 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
+from sentry.integrations.utils.repo import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -388,7 +389,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
@@ -403,7 +404,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
@@ -420,7 +421,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
@@ -449,7 +450,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
@@ -476,7 +477,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -507,7 +508,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
@@ -516,7 +517,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_message_from_error(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
@@ -581,12 +582,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_trees_for_org(self):
         """Fetch the tree representation of a repo"""
         expected_trees = {
-            "Test-Organization/bar": {"default_branch": "main", "files": []},
-            "Test-Organization/baz": {"default_branch": "master", "files": []},
-            "Test-Organization/foo": {
-                "default_branch": "master",
-                "files": ["src/sentry/api/endpoints/auth_login.py"],
-            },
+            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
+            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
+            "Test-Organization/foo": RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
+            ),
         }
         with self.tasks():
             self.assert_setup_flow()
@@ -613,10 +614,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
                 {"full_name": "Test-Organization/baz", "default_branch": "master"},
             ]
-            assert cache.get("githubtrees:repo:Test-Organization/foo") == {
-                "default_branch": "master",
-                "files": ["src/sentry/api/endpoints/auth_login.py"],
-            }
+            assert cache.get("githubtrees:repo:Test-Organization/foo") == RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
+            )
 
             assert trees == expected_trees
 

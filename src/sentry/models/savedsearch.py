@@ -1,3 +1,5 @@
+from typing import Any, List, Tuple
+
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
@@ -36,18 +38,15 @@ class Visibility:
     OWNER_PINNED = "owner_pinned"
 
     @classmethod
-    def as_choices(cls, include_pinned):
+    def as_choices(cls) -> List[Tuple[str, Any]]:
         # Note that the pinned value may not always be a visibility we want to
         # expose. The pinned search API explicitly will set this visibility,
         # but the saved search API should not allow it to be set
-        choices = [
+        return [
             (cls.ORGANIZATION, _("Organization")),
             (cls.OWNER, _("Only for me")),
+            (cls.OWNER_PINNED, _("My Pinned Search")),
         ]
-        if include_pinned:
-            choices.append((cls.OWNER_PINNED, _("My Pinned Search")))
-
-        return choices
 
 
 @region_silo_only_model
@@ -70,20 +69,14 @@ class SavedSearch(Model):
     # is_global does NOT have an associated organization_id
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
 
-    # XXX(epurkhiser): This is different from "creator". Owner is a misnomer
-    # for this column, as this actually indicates that the search is "pinned"
-    # by the user. A user may only have one pinned search epr (org, type)
-    #
-    # XXX(epurkhiser): Once the visibility column is correctly in use this
-    # column will be used essentially as "created_by"
+    # Creator of the saved search. When visibility is
+    # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
+    # search is visibile to.
     owner = FlexibleForeignKey("sentry.User", null=True)
 
     # Defines who can see the saved search
-    #
-    # NOTE: `owner_pinned` has special behavior in that the saved search will
-    # not appear in the user saved search list
     visibility = models.CharField(
-        max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices(include_pinned=True)
+        max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices()
     )
 
     class Meta:

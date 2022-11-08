@@ -46,7 +46,11 @@ def derive_code_mappings(
     set_user({"username": organization.slug})
 
     # Check the feature flag again to ensure the feature is still enabled.
-    if not features.has("organizations:derive-code-mappings", organization):
+    should_continue = features.has(
+        "organizations:derive-code-mappings", organization
+    ) or features.has("organizations:derive-code-mappings-dry-run", organization)
+    if not (dry_run or should_continue):
+        logger.info(f"Event from {organization.slug} org should not be processed.")
         return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
@@ -61,10 +65,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
-        set_tag("project.slug", project.slug)
-        sentry_sdk.capture_message(
-            f"Dry run {project.slug=}: would create these code mapping based on {stacktrace_paths=}: {code_mappings}"
-        )
+        log_project_codemappings(code_mappings, stacktrace_paths, project)
         return
 
     set_project_codemappings(code_mappings, organization_integration, project)
@@ -154,3 +155,24 @@ def set_project_codemappings(
             default_branch=code_mapping.repo.branch,
             automatically_generated=True,
         )
+
+
+def log_project_codemappings(
+    code_mappings: List[CodeMapping],
+    stacktrace_paths: List[str],
+    project: Project,
+) -> None:
+    """
+    Log the code mappings that would be created for a project.
+    """
+    set_tag("project.slug", project.slug)
+    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
+    if existing_code_mappings.exists():
+        sentry_sdk.capture_message(
+            f"derive_code_mappings: Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
+        )
+        return
+
+    sentry_sdk.capture_message(
+        f"derive_code_mappings: Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
+    )
