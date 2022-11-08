@@ -119,7 +119,7 @@ function SavedSearchTabDropdown({
     }
 
     return searchOptions;
-  }, []);
+  }, [onSavedSearchDelete, organization, savedSearchList]);
 
   const trigger = props => (
     <StyledDropdownTrigger

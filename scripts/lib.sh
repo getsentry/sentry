@@ -18,10 +18,6 @@ fi
 
 venv_name=".venv"
 
-pip-install() {
-    pip install $(grep ^-- requirements-base.txt) "$@"
-}
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -80,7 +76,7 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip-install $(grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt)
+    pip install --constraint requirements-dev-frozen.txt pip setuptools wheel
 }
 
 install-py-dev() {
@@ -97,7 +93,7 @@ install-py-dev() {
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e '.[dev]'
+    SENTRY_LIGHT_BUILD=1 pip install --constraint requirements-dev-frozen.txt -e '.[dev]'
 }
 
 setup-git-config() {
@@ -124,7 +120,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip-install -r requirements-dev-only-frozen.txt
+        pip install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""
