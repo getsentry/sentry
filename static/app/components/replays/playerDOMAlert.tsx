@@ -30,7 +30,7 @@ function PlayerDOMAlert() {
     <DOMAlertContainer data-test-id="player-dom-alert">
       <DOMAlert>
         <IconInfo size="xs" />
-        {t("Right click and inspect your app's DOM")}
+        {t("Right click & inspect your app's DOM")}
         <DismissButton
           priority="link"
           size="sm"
@@ -52,6 +52,7 @@ const DOMAlertContainer = styled('div')`
   width: 100%;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
+  pointer-events: none;
 `;
 
 const DOMAlert = styled('div')`
@@ -68,6 +69,7 @@ const DOMAlert = styled('div')`
 
 const DismissButton = styled(Button)`
   color: ${p => p.theme.white};
+  pointer-events: all;
   &:hover {
     color: ${p => p.theme.white};
     opacity: 0.5;
