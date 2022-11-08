@@ -5,6 +5,7 @@ from functools import partial, reduce
 import sentry_sdk
 from django.db.models import Count
 from django.utils import dateformat, timezone
+from sentry_sdk import set_tag
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -128,6 +129,7 @@ def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     organization = Organization.objects.get(id=organization_id)
+    set_tag("org.slug", organization.slug)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes

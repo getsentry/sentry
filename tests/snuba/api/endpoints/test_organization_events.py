@@ -80,7 +80,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request({})
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 0
+        assert response.data["data"] == []
+        assert response.data["meta"] == {
+            "tips": {"query": "Need at least one valid project to query."}
+        }
 
     def test_api_key_request(self):
         self.store_event(

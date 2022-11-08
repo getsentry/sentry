@@ -91,7 +91,10 @@ class EventMetas extends Component<Props, State> {
 
     const timestamp = (
       <TimeSince
-        tooltipBody={<EventCreatedTooltip event={event} />}
+        tooltipBody={getDynamicText({
+          value: <EventCreatedTooltip event={event} />,
+          fixed: 'Event Created Tooltip',
+        })}
         date={event.dateCreated || (event.endTimestamp || 0) * 1000}
       />
     );
