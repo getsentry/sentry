@@ -137,9 +137,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until {next_time}.")
         else:
-            for repo_info in cached_repositories:
-                trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
-            logger.info(f"Using cached trees for {gh_org}.")
+            try:
+                for repo_info in cached_repositories:
+                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
+                    # This assertion will help clear the cache off dictionaries
+                    assert type(repo_tree) == RepoTree
+                    trees[repo_info["full_name"]] = repo_tree
+
+                logger.info(f"Using cached trees for {gh_org}.")
+            except AssertionError:
+                # Reset the control cache in order to repopulate
+                cache.delete(cache_key)
+                logger.exception(f"We reset the cache for {cache_key}.")
 
         return trees
 
