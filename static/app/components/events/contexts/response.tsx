@@ -42,9 +42,9 @@ function getKnownData(data: Props['data']) {
     });
 }
 
-const DefaultContextType = ({data}: Props) => <ContextBlock data={getKnownData(data)} />;
+const ResponseContextType = ({data}: Props) => <ContextBlock data={getKnownData(data)} />;
 
-export default DefaultContextType;
+export default ResponseContextType;
 
 const StyledWrapper = styled('div')`
   .val-string {
