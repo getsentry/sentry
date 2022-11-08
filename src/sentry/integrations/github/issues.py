@@ -6,15 +6,10 @@ from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
-from sentry.notifications.utils import (
-    get_parent_and_repeating_spans,
-    get_span_and_problem,
-    get_span_evidence_value,
-    get_span_evidence_value_problem,
-)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import truncatechars
 
 
 class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
@@ -26,27 +21,19 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def truncate_data(self, data):
-        return (data[:50] + "..") if len(data) > 50 else data
-
     def build_performance_issue_description(self, event):
-        spans, matched_problem = get_span_and_problem(event)
-        if not matched_problem:
-            return ""
+        (
+            transaction_name,
+            parent_span,
+            num_repeating_spans,
+            repeating_spans,
+        ) = self.get_performance_issue_description_data(event)
 
-        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        transaction_name = get_span_evidence_value_problem(matched_problem)
-        parent_span = get_span_evidence_value(parent_span)
-        repeating_spans = get_span_evidence_value(repeating_spans)
-        num_repeating_spans = (
-            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
-        )
-        # TODO(ceo): Consolidate the above code w/ the Jira code. put truncate in a util
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
-        body += f"| **Transaction Name** | {self.truncate_data(transaction_name)} |\n"
-        body += f"| **Parent Span** | {self.truncate_data(parent_span)} |\n"
-        body += f"| **Repeating Spans ({num_repeating_spans})** | {self.truncate_data(repeating_spans)} |"
+        body += f"| **Transaction Name** | {truncatechars(transaction_name, 50)} |\n"
+        body += f"| **Parent Span** | {truncatechars(parent_span, 50)} |\n"
+        body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, 50)} |"
         return body
 
     def get_group_description(self, group, event, **kwargs):
