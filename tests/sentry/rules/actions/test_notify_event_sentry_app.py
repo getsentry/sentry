@@ -184,3 +184,26 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         )
         with pytest.raises(ValidationError):
             rule.self_validate()
+
+    def test_render_label(self):
+        event = self.get_event()
+
+        self.app = self.create_sentry_app(
+            organization=event.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=self.schema,
+        )
+
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=event.organization
+        )
+
+        rule = self.get_rule(
+            data={
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": self.schema_data,
+            }
+        )
+
+        assert rule.render_label() == "Create Task with App"
