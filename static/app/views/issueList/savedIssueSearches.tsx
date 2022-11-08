@@ -10,7 +10,8 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
+import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -63,18 +64,28 @@ const SavedSearchItem = ({
   const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
+  const canEdit =
+    savedSearch.visibility === SavedSearchVisibility.Owner || hasOrgWriteAccess;
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: 'Edit',
-      disabled: true,
-      details: 'Not yet supported',
+      disabled: !canEdit,
+      details: !canEdit
+        ? t('You do not have permission to edit this search.')
+        : undefined,
+      onAction: () => {
+        openModal(deps => (
+          <EditSavedSearchModal {...deps} {...{organization, savedSearch}} />
+        ));
+      },
     },
     {
-      disabled: !hasOrgWriteAccess,
-      details: !hasOrgWriteAccess
+      disabled: !canEdit,
+      details: !canEdit
         ? t('You do not have permission to delete this search.')
-        : '',
+        : undefined,
       key: 'delete',
       label: t('Delete'),
       onAction: () => {
