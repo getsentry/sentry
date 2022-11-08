@@ -107,9 +107,9 @@ export default function QuickTrace({
                 to={`/organizations/${organization.slug}/replays/${current.project_slug}:${replayId}`}
                 type={replayId ? 'black' : 'white'}
                 icon={<IconPlay size="xs" />}
-                tooltipText={replayId ? '' : 'Replay cannot be found'}
+                tooltipText={replayId ? '' : t('Replay cannot be found')}
               >
-                {replayId ? 'Replay' : '???'}
+                {replayId ? t('Replay') : '???'}
               </EventNodeReplay>
             );
           }

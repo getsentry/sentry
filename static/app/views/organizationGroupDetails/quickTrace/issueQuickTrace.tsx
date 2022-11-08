@@ -175,9 +175,9 @@ class IssueQuickTrace extends Component<Props, State> {
               to={`/organizations/${organization.slug}/replays/${project?.slug}:${replayId}`}
               type={replayId ? 'black' : 'white'}
               icon={<IconPlay size="xs" />}
-              tooltipText={replayId ? '' : 'Replay cannot be found'}
+              tooltipText={replayId ? '' : t('Replay cannot be found')}
             >
-              {replayId ? 'Replay' : '???'}
+              {replayId ? t('Replay') : '???'}
             </EventNodeReplay>
           )}
           <QuickTrace
