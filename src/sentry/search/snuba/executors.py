@@ -233,6 +233,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
             selected_columns.append(["cityHash64", [f"'{query_hash}'", "group_id"], "sample"])
+            orderby = ["sample"]
+        else:
+            # Get the top matching groups by score, i.e. the actual search results
+            # in the order that we want them.
+            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
 
         pinned_query_partial: SearchQueryPartial = cast(
             SearchQueryPartial,
@@ -241,6 +246,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 selected_columns=selected_columns,
                 groupby=["group_id"],
                 having=having,
+                orderby=orderby,
             ),
         )
 
@@ -296,14 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             if not (sf.key.name in self.postgres_only_fields or sf.key.name == "date")
         ]
 
-        if get_sample:
-            orderby = ["sample"]
-            referrer = "search_sample"
-        else:
-            # Get the top matching groups by score, i.e. the actual search results
-            # in the order that we want them.
-            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
-            referrer = "search"
+        referrer = "search_sample" if get_sample else "search"
 
         # common pinned parameters that won't change based off datasource
         query_partial: IntermediateSearchQueryPartial = cast(
@@ -314,7 +313,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 end=end,
                 limit=limit,
                 offset=offset,
-                orderby=orderby,
                 referrer=referrer,
                 filter_keys=filters,
                 totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
@@ -362,6 +360,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
+
+        if get_sample:
+            sort_field = "sample"
 
         return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
 
