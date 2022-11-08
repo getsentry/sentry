@@ -417,7 +417,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
         for invalid_mri in invalid_mris:
             with pytest.raises(
-                InvalidParams, match=f"Unable to find a mri reverse mapping for '{invalid_mri}'."
+                InvalidParams,
+                match=f"Unable to find a mri reverse mapping for '{invalid_mri}'.",
             ):
                 # We keep the query in order to add more context to the test, even though the actual test
                 # is testing for the '__post_init__' inside 'MetricField'.
@@ -937,7 +938,10 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     "rate(transaction.duration)": [0.05, 0, 0.05, 0.1, 0, 0.1],
                     "count(transaction.duration)": [3, 0, 3, 6, 0, 6],
                 },
-                "totals": {"rate(transaction.duration)": 0.3, "count(transaction.duration)": 18},
+                "totals": {
+                    "rate(transaction.duration)": 0.3,
+                    "count(transaction.duration)": 18,
+                },
             }
         ]
 
@@ -979,7 +983,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             {
                 "by": {},
                 "series": {
-                    "rate(transaction.duration)": [3 / 1440, 0, 3 / 1440, 6 / 1440, 0, 6 / 1440],
+                    "rate(transaction.duration)": [
+                        3 / 1440,
+                        0,
+                        3 / 1440,
+                        6 / 1440,
+                        0,
+                        6 / 1440,
+                    ],
                 },
                 "totals": {"rate(transaction.duration)": 18 / 1440},
             }
@@ -1102,7 +1113,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             {
                 "by": {},
                 "series": {
-                    "rate(transaction.duration)": [3 / 60, 0, 3 / 60, 6 / 60, 0, 6 / 60],
+                    "rate(transaction.duration)": [
+                        3 / 60,
+                        0,
+                        3 / 60,
+                        6 / 60,
+                        0,
+                        6 / 60,
+                    ],
                     "count(transaction.duration)": [3, 0, 3, 6, 0, 6],
                 },
                 "totals": {
@@ -1377,7 +1395,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             granularity="1h",
             select=[
                 MetricField(
-                    op="count", metric_mri=TransactionMRI.DURATION.value, alias="duration_count"
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    alias="duration_count",
                 ),
             ],
             limit=Limit(limit=50),
@@ -1444,7 +1464,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             granularity="1h",
             select=[
                 MetricField(
-                    op="count", metric_mri=TransactionMRI.DURATION.value, alias="duration_count"
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    alias="duration_count",
                 ),
             ],
             where=[
@@ -1498,7 +1520,59 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(self):
+    def test_wildcard_match_with_postfix(self):
+        for transaction, value in (("match", 0), ("/foo", 1), ("/bar", 2)):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    alias="duration_count",
+                ),
+            ],
+            where=[
+                Condition(
+                    lhs=Function("like", parameters=[Column(name="tags[transaction]"), "/%"]),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "totals": {"duration_count": 2},
+            },
+        ]
+        assert data["meta"] == sorted(
+            [
+                {"name": "duration_count", "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(
+        self,
+    ):
         for transaction, value in ((None, 0), ("<< unparameterized >>", 1)):
             self.store_performance_metric(
                 type="distribution",
@@ -1512,7 +1586,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             granularity="1h",
             select=[
                 MetricField(
-                    op="count", metric_mri=TransactionMRI.DURATION.value, alias="duration_count"
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    alias="duration_count",
                 ),
             ],
             limit=Limit(limit=50),
@@ -1762,7 +1838,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
+                    UseCaseKey.PERFORMANCE,
+                    self.organization.id,
+                    something_custom_metric,
                 ),
                 "mri_string": something_custom_metric,
             }
@@ -1812,7 +1890,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
+                    UseCaseKey.PERFORMANCE,
+                    self.organization.id,
+                    something_custom_metric,
                 ),
                 "mri_string": something_custom_metric,
             }
@@ -1832,6 +1912,8 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         # mock mri failing to parse the metric
         mock.return_value = None
         result = get_custom_measurements(
-            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            start=self.day_ago,
         )
         assert result == []
