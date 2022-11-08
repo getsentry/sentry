@@ -46,7 +46,11 @@ def derive_code_mappings(
     set_user({"username": organization.slug})
 
     # Check the feature flag again to ensure the feature is still enabled.
-    if not features.has("organizations:derive-code-mappings", organization):
+    should_continue = features.has(
+        "organizations:derive-code-mappings", organization
+    ) or features.has("organizations:derive-code-mappings-dry-run", organization)
+    if not (dry_run or should_continue):
+        logger.info(f"Event from {organization.slug} org should not be processed.")
         return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
