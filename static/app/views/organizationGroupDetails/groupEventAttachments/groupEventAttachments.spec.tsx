@@ -21,7 +21,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = TestStubs.Project({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
@@ -34,7 +34,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   afterEach(() => {});
 
   function renderGroupEventAttachments() {
-    return render(<GroupEventAttachments projectSlug={project.slug} />, {
+    return render(<GroupEventAttachments project={project} />, {
       context: routerContext,
       organization,
     });
@@ -50,6 +50,12 @@ describe('GroupEventAttachments > Screenshots', function () {
         query: {per_page: 6, screenshot: 1, types: undefined},
       })
     );
+  });
+
+  it('does not render screenshots tab if not mobile platform', function () {
+    project.platform = 'javascript';
+    renderGroupEventAttachments();
+    expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
   });
 
   it('calls opens modal when clicking on panel body', function () {
