@@ -111,7 +111,7 @@ class CodeMappingTreesHelper:
                 )
             except Exception:
                 logger.exception(
-                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continutes."
+                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continues."
                 )
 
         if len(_code_mappings) == 0:
