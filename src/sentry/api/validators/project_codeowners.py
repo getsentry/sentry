@@ -73,7 +73,7 @@ def validate_codeowners_associations(
             if project in projects:
                 users_dict[external_actor.external_name] = user.email
             else:
-                users_without_access.append(f"{user.display_name}")
+                users_without_access.append(f"{user.get_display_name()}")
         elif type == "team":
             team = external_actor.actor.resolve()
             # make sure the sentry team has access to the project

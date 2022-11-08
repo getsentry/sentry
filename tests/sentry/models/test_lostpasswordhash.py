@@ -17,7 +17,7 @@ class LostPasswordTest(TestCase):
         request.META["REMOTE_ADDR"] = "1.1.1.1"
 
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
-            password_hash.send_email(request)
+            LostPasswordHash.send_email(self.user, request)
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]

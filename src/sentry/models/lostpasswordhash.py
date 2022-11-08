@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @control_silo_only_model
-class LostPasswordHash(Model):  # type: ignore
+class LostPasswordHash(Model):
     __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
@@ -39,15 +39,16 @@ class LostPasswordHash(Model):  # type: ignore
     def is_valid(self) -> bool:
         return self.date_added > timezone.now() - timedelta(hours=48)
 
-    def send_email(self, request, mode="recover") -> None:
+    @classmethod
+    def send_email(cls, user, request, mode="recover") -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
         context = {
-            "user": self.user,
+            "user": user,
             "domain": get_server_hostname(),
-            "url": self.get_absolute_url(mode),
+            "url": cls.get_absolute_url(user.id, mode),
             "datetime": timezone.now(),
             "ip_address": request.META["REMOTE_ADDR"],
         }
@@ -61,7 +62,7 @@ class LostPasswordHash(Model):  # type: ignore
             type="user.password_recovery",
             context=context,
         )
-        msg.send_async([self.user.email])
+        msg.send_async([user.email])
 
     # Duplicated from APILostPasswordHash
     def get_absolute_url(self, mode: str = "recover") -> str:

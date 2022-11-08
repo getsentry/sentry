@@ -4,14 +4,14 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Any
 from typing import Counter as CounterType
-from typing import Dict, Iterable, Mapping, Sequence
+from typing import Iterable, Mapping, Sequence
 
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule, Team, User
+from sentry.models import Group, Project, ProjectOwnership, Rule, Team
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils.participants import get_send_to
-from sentry.services.hybrid_cloud.user import APIUser, UserService
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 
@@ -70,17 +70,11 @@ def get_events_by_participant(
 ) -> Mapping[Team | APIUser, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)
-    api_user_cache: Dict[int, APIUser] = {}
     for event, participants_by_provider in participants_by_provider_by_event.items():
         participants: set[Team | APIUser]
         for participants in participants_by_provider.values():
             for participant in participants:
-                if isinstance(participant, User):
-                    if api_user_cache.get(participant.id, None) is None:
-                        api_user_cache[participant.id] = UserService.serialize_user(participant)
-                    output[api_user_cache[participant.id]].add(event)
-                else:
-                    output[participant].add(event)
+                output[participant].add(event)
     return output
 
 

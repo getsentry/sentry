@@ -12,13 +12,12 @@ from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APILostPasswordHash:  # type: ignore[misc]
+class APILostPasswordHash:
     id: int = -1
     user_id: int = -1
     hash: str = ""
     date_added = datetime.datetime
 
-    # Duplicated from LostPasswordHash
     def get_absolute_url(self, mode: str = "recover") -> str:
         return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
 
