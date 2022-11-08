@@ -53,7 +53,6 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     histogram_snql_factory,
-    match_wildcard_snql,
     miserable_users,
     rate_snql_factory,
     satisfaction_count_transaction,
@@ -1579,13 +1578,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_groupby=True,
             can_filter=True,
             snql_func=transform_null_to_unparameterized_snql,
-        ),
-        DerivedOp(
-            op="match_wildcard",
-            can_orderby=False,
-            can_groupby=False,
-            can_filter=True,
-            snql_func=match_wildcard_snql,
         ),
     ]
 }

@@ -66,6 +66,7 @@ from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
@@ -73,7 +74,6 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
-    map_wildcards_to_clickhouse,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -98,7 +98,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "like", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
@@ -130,12 +130,19 @@ def resolve_tags(
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
                 ],
             )
-        elif input_.function in {"like", "match"}:
+        elif input_.function in {"match"}:
+            column = input_.parameters[0]
+
+            if not (column.subscriptable == "tags" and column.name in FILTERABLE_TAGS):
+                raise InvalidParams(
+                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
+                )
+
             return Function(
                 function=input_.function,
                 parameters=[
-                    resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    map_wildcards_to_clickhouse(input_.function, input_.parameters[1]),
+                    resolve_tags(use_case_id, org_id, column),
+                    input_.parameters[1],  # We directly pass the regex.
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
@@ -176,9 +183,12 @@ def resolve_tags(
             rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
 
             try:
-                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
-                    input_.op
-                ]
+                op = {
+                    Op.EQ: Op.IN,
+                    Op.IN: Op.IN,
+                    Op.NEQ: Op.NOT_IN,
+                    Op.NOT_IN: Op.NOT_IN,
+                }[input_.op]
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
@@ -357,7 +367,9 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
-def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+def get_metric_object_from_metric_field(
+    metric_field: MetricField,
+) -> MetricExpressionBase:
     """Get the metric object from a metric field"""
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
@@ -456,7 +468,6 @@ def translate_meta_results(
 
 
 class SnubaQueryBuilder:
-
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
         "metrics_counters",
@@ -468,7 +479,10 @@ class SnubaQueryBuilder:
     }
 
     def __init__(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+        self,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -601,7 +615,16 @@ class SnubaQueryBuilder:
         return orderby_fields
 
     def __build_totals_and_series_queries(
-        self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+        self,
+        entity,
+        select,
+        where,
+        groupby,
+        orderby,
+        limit,
+        offset,
+        rollup,
+        intervals_len,
     ):
         rv = {}
         totals_query = Query(
@@ -651,7 +674,11 @@ class SnubaQueryBuilder:
         )
 
     def __update_query_dicts_with_component_entities(
-        self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
+        self,
+        component_entities,
+        metric_mri_to_obj_dict,
+        fields_in_entities,
+        parent_alias,
     ):
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None

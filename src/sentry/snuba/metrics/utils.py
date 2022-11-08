@@ -85,7 +85,6 @@ MetricOperationType = Literal[
     "count_transaction_name",
     "team_key_transaction",
     "transform_null_to_unparameterized",
-    "match_wildcard",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -338,10 +337,3 @@ def get_intervals(start: datetime, end: datetime, granularity: int, interval: Op
     while start < end:
         yield start
         start += delta
-
-
-def map_wildcards_to_clickhouse(operation_type: str, string: str) -> str:
-    if operation_type == "like":
-        return string.replace("*", "%")
-    elif operation_type == "match":
-        return "(?i)^" + string.replace("*", ".*") + "$"

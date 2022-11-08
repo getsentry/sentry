@@ -6,7 +6,6 @@ from sentry.api.utils import InvalidParams
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
-    resolve_column_name,
     resolve_tag_key,
     resolve_tag_value,
     resolve_tag_values,
@@ -19,7 +18,6 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.snuba.metrics.utils import map_wildcards_to_clickhouse
 
 
 def _aggregation_on_session_status_func_factory(aggregate):
@@ -609,17 +607,4 @@ def _resolve_project_threshold_config(project_ids, org_id):
         project_ids=project_ids,
         org_id=org_id,
         use_case_id=UseCaseKey.PERFORMANCE,
-    )
-
-
-def match_wildcard_snql(org_id, column_name, wildcard, alias=None):
-    return Function(
-        function="like",
-        parameters=[
-            _transform_null_to_unparameterized(
-                org_id, resolve_column_name(UseCaseKey.PERFORMANCE, org_id, column_name)
-            ),
-            map_wildcards_to_clickhouse("like", wildcard),
-        ],
-        alias=alias,
     )
