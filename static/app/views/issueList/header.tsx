@@ -47,6 +47,8 @@ type IssueListHeaderTabProps = {
   tooltipTitle?: ReactNode;
 };
 
+const EXTRA_TAB_KEY = 'extra-tab-key';
+
 function IssueListHeaderTabContent({
   count = 0,
   hasMore = false,
@@ -152,8 +154,10 @@ function IssueListHeader({
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {organization.features.includes('issue-list-saved-searches-v2') ? (
         <TabList
-          onSelectionChange={key => trackTabClick(key.toString())}
-          selectedKey={query}
+          onSelectionChange={key =>
+            trackTabClick(key === EXTRA_TAB_KEY ? query : key.toString())
+          }
+          selectedKey={savedSearchTabActive ? EXTRA_TAB_KEY : query}
           hideBorder
         >
           {[
@@ -185,7 +189,7 @@ function IssueListHeader({
             ),
             <Item
               hidden={!savedSearchTabActive}
-              key={query}
+              key={EXTRA_TAB_KEY}
               to={{query: queryParms, pathname: location.pathname}}
               textValue={savedSearch?.name ?? t('Custom Search')}
             >
