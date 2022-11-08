@@ -18,29 +18,15 @@ from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(request: Request, member_id: int, token: str):
-    """Add member ID and token to the request session
-
-    Args:
-        request: rest_framework.request.Request
-        member_id: int
-        token: str
-    """
+    """Add member ID and token to the request session"""
     request.session["invite_token"] = token
     request.session["invite_member_id"] = member_id
 
 
 def remove_invite_details_from_session(request):
     """Deletes invite details from the request session"""
-    try:
-        del request.session["invite_member_id"]
-        del request.session["invite_token"]
-    except KeyError:
-        # we sometimes attempt to delete the invite values twice depending
-        # on the current state of the user:
-        #   1) when they have 2FA
-        #   2) when they are already authenticated
-        #   3) when they already have an account
-        pass
+    request.session.pop("invite_member_id", None)
+    request.session.pop("invite_token", None)
 
 
 def get_invite_details(request) -> Tuple[str, int]:
