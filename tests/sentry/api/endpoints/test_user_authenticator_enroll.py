@@ -1,5 +1,4 @@
 from unittest import mock
-from urllib.parse import parse_qsl
 
 from django.conf import settings
 from django.core import mail
@@ -277,10 +276,9 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def _assert_pending_invite_cookie_set(self, response, om):
-        invite_link = om.get_invite_link()
-        invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
-        assert invite_data.get("url") in invite_link
+    def _assert_pending_invite_details_in_session(self, response, om):
+        assert self.client.session["invite_token"] == om.token
+        assert self.client.session["invite_member_id"] == om.id
 
     def create_existing_om(self):
         OrganizationMember.objects.create(
@@ -296,7 +294,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
-        self._assert_pending_invite_cookie_set(resp, om)
+        self._assert_pending_invite_details_in_session(resp, om)
 
         return om
 
@@ -313,7 +311,8 @@ class AcceptOrganizationInviteTest(APITestCase):
             data=om.get_audit_log_data(),
         )
 
-        self.assertFalse(response.client.cookies["pending-invite"].value)
+        assert not self.client.session.get("invite_token")
+        assert not self.client.session.get("invite_member_id")
 
     def setup_u2f(self):
         new_options = settings.SENTRY_OPTIONS.copy()

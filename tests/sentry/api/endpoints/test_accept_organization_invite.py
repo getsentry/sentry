@@ -27,14 +27,12 @@ class AcceptInviteTest(TestCase):
         assert self.organization.flags.require_2fa.is_set
 
     def _assert_pending_invite_details_in_session(self, response, om):
-        session_invite_token = response.client.session["invite_token"]
-        session_invite_member_id = response.client.session["invite_member_id"]
-        assert om.token == session_invite_token
-        assert om.id == session_invite_member_id
+        assert self.client.session["invite_token"] == om.token
+        assert self.client.session["invite_member_id"] == om.id
 
     def _assert_pending_invite_details_not_in_session(self, response):
-        session_invite_token = response.client.session.get("invite_token", None)
-        session_invite_member_id = response.client.session.get("invite_member_id", None)
+        session_invite_token = self.client.session.get("invite_token", None)
+        session_invite_member_id = self.client.session.get("invite_member_id", None)
         assert session_invite_token is None
         assert session_invite_member_id is None
 
