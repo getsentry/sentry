@@ -45,7 +45,7 @@
     "@sentry/tracing": "7.18.0",
     "@sentry/utils": "7.18.0",
     "@tanstack/react-query": "^4.2.1",
-    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^13.5.0",
