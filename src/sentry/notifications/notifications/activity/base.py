@@ -14,7 +14,6 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
-from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -64,7 +63,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     @abc.abstractmethod
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         pass
 
     def send(self) -> None:
@@ -92,10 +91,9 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         """This is overridden by the activity subclasses."""
-        user = user_service.get_user(self.activity.user_id)
-        return get_participants_for_group(self.group, user)
+        return get_participants_for_group(self.group, self.activity.user)
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None

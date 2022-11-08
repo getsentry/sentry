@@ -73,7 +73,7 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        if recipient.class_name() == "User":
+        if isinstance(recipient, User):
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
                 timezone = pytz.timezone(user_tz)

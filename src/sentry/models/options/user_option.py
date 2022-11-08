@@ -11,7 +11,6 @@ from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
@@ -20,7 +19,7 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager["User"]):
     def _make_key(
         self,
-        user: User | APIUser,
+        user: User,
         project: Project | None = None,
         organization: Organization | None = None,
     ) -> str:
@@ -35,9 +34,7 @@ class UserOptionManager(OptionManager["User"]):
         key: str = super()._make_key(metakey)
         return key
 
-    def get_value(
-        self, user: User | APIUser, key: str, default: Value | None = None, **kwargs: Any
-    ) -> Value:
+    def get_value(self, user: User, key: str, default: Value | None = None, **kwargs: Any) -> Value:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -89,7 +86,7 @@ class UserOptionManager(OptionManager["User"]):
 
     def get_all_values(
         self,
-        user: User | APIUser,
+        user: User,
         project: Project | None = None,
         organization: Organization | None = None,
         force_reload: bool = False,
@@ -102,7 +99,7 @@ class UserOptionManager(OptionManager["User"]):
         if metakey not in self._option_cache or force_reload:
             result = {
                 i.key: i.value
-                for i in self.filter(user_id=user.id, project=project, organization=organization)
+                for i in self.filter(user=user, project=project, organization=organization)
             }
             self._option_cache[metakey] = result
 

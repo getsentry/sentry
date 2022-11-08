@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupMetaManagerTest(TestCase):
     def test_set_value(self):
         GroupMeta.objects.set_value(self.group, "foo", "bar")

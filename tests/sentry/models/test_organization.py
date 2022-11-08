@@ -178,7 +178,7 @@ class OrganizationTest(TestCase):
     def test_get_default_owner(self):
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
-        assert org.get_default_owner().id == user.id
+        assert org.get_default_owner() == user
 
     def test_default_owner_id(self):
         user = self.create_user("foo@example.com")

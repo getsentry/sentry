@@ -22,7 +22,6 @@ from sentry.types.activity import CHOICES, ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class ActivityManager(BaseManager):
@@ -60,19 +59,17 @@ class ActivityManager(BaseManager):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User | APIUser] = None,
+        user: Optional[User] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
     ) -> Activity:
-        activity_args = {
-            "project_id": group.project_id,
-            "group": group,
-            "type": type.value,
-            "data": data,
-        }
-        if user is not None:
-            activity_args["user_id"] = user.id
-        activity = self.create(**activity_args)
+        activity = self.create(
+            project_id=group.project_id,
+            group=group,
+            type=type.value,
+            user=user,
+            data=data,
+        )
         if send_notification:
             activity.send_notification()
 

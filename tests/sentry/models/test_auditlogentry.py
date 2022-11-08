@@ -3,10 +3,8 @@ from django.utils import timezone
 from sentry import audit_log
 from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class AuditLogEntryTest(TestCase):
     def test_audit_log_entry(self):
         AuditLogEntry.objects.create(
