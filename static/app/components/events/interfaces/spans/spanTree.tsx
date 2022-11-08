@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import {
-  AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
@@ -31,8 +30,14 @@ import {
   ParsedTraceType,
   SpanType,
 } from './types';
-import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
+import {
+  getSpanID,
+  getSpanOperation,
+  setSpansOnTransaction,
+  spanTargetHash,
+} from './utils';
 import WaterfallModel from './waterfallModel';
+import React from 'react';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
@@ -51,10 +56,36 @@ const cache = new CellMeasurerCache({
   minHeight: ROW_HEIGHT,
 });
 
+const listRef = React.createRef<ReactVirtualizedList>();
+
 const measureFunctionMap: Record<number, () => void> = {};
 class SpanTree extends Component<PropType> {
+  state = {
+    isScrollingToAnchor: false,
+    anchoredSpanIndex: -1,
+  };
+
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
+
+    if (location.hash) {
+      const {spans} = this.props;
+
+      const index = spans.findIndex(({span}) => {
+        if ('type' in span) {
+          return false;
+        }
+        return spanTargetHash(span.span_id) === location.hash;
+      });
+
+      if (index < 0) {
+        return;
+      }
+
+      this.setState({isScrollingToAnchor: true, anchoredSpanIndex: index}, () =>
+        this.scrollUntilSpanFound(index)
+      );
+    }
   }
 
   shouldComponentUpdate(nextProps: PropType) {
@@ -86,6 +117,21 @@ class SpanTree extends Component<PropType> {
       // if the spans has changed
       this.props.updateScrollState();
     }
+  }
+
+  scrollUntilSpanFound(index: number) {
+    window.scrollTo(0, window.scrollY + ROW_HEIGHT * index);
+    // interval = setInterval(() => {
+    //   window.scrollTo({top: window.scrollY + ROW_HEIGHT * 10});
+    //   if (!this.state.isScrollingToAnchor) {
+    //     clearInterval(interval);
+    //   }
+    // }, 1);
+
+    // // Backup timeout to prevent infinite scrolling if the anchored span is never found
+    // setTimeout(() => {
+    //   clearInterval(interval);
+    // }, 2000);
   }
 
   generateInfoMessage(input: {
@@ -399,6 +445,7 @@ class SpanTree extends Component<PropType> {
             markSpanOutOfView={markSpanOutOfView}
             markSpanInView={markSpanInView}
             storeSpanBar={storeSpanBar}
+            shouldShowDetailOnMount={false}
           />
         );
 
@@ -438,7 +485,15 @@ class SpanTree extends Component<PropType> {
   renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
     const {index, isVisible, key, parent, style, columnIndex} = params;
 
-    spanTree[index].props;
+    let shouldShowDetailOnMount = false;
+
+    // TODO: This kinda works. Need a consistent way to make it so the spanDetails actually shows.
+    // It seems that we can't rely on this shouldShowDetailOnMount to work inside renderRow
+
+    if (this.state.isScrollingToAnchor && index === this.state.anchoredSpanIndex) {
+      shouldShowDetailOnMount = true;
+      this.setState({isScrollingToAnchor: false});
+    }
 
     return (
       <CellMeasurer
@@ -454,7 +509,11 @@ class SpanTree extends Component<PropType> {
           return (
             <div style={style}>
               {spanTree[index].type === SpanBar ? (
-                <SpanBar {...spanTree[index].props} measure={measure} />
+                <SpanBar
+                  {...spanTree[index].props}
+                  measure={measure}
+                  shouldShowDetailOnMount={shouldShowDetailOnMount}
+                />
               ) : (
                 spanTree[index]
               )}
@@ -502,8 +561,11 @@ class SpanTree extends Component<PropType> {
                 rowHeight={cache.rowHeight}
                 rowCount={spanTree.length}
                 rowRenderer={props => this.renderRow(props, spanTree)}
-                overscanRowCount={50}
+                // TODO: Ok this overscanRowCount is too big. You can probably fix this by having it so that when spanBars are mounted, we set
+                // their left property immediately. Or maybe something will work out with using isVisible for the view manager.
+                overscanRowCount={10}
                 overscanIndicesGetter={this.overscanIndicesGetter}
+                ref={listRef}
               />
             );
           }}

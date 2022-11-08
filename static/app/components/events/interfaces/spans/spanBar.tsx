@@ -87,6 +87,7 @@ import {
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
+import {List as ReactVirtualizedList} from 'react-virtualized';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -137,6 +138,7 @@ type SpanBarProps = {
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
+  shouldShowDetailOnMount: boolean;
 };
 
 type SpanBarState = {
@@ -160,6 +162,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
         passive: false,
       });
     }
+
+    if (this.props.shouldShowDetailOnMount) {
+      this.scrollIntoView();
+    }
   }
 
   componentWillUnmount() {
@@ -168,7 +174,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
-      this.props.measure?.();
+      //this.props.measure?.();
     }
 
     const {span} = this.props;
@@ -215,16 +221,20 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   };
 
   scrollIntoView = () => {
+    const {measure} = this.props;
+
     const element = this.spanRowDOMRef.current;
     if (!element) {
       return;
     }
-    const boundingRect = element.getBoundingClientRect();
-    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
+
     this.setState({showDetail: true}, () => {
+      measure?.();
+
+      const boundingRect = element.getBoundingClientRect();
+      // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+      const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
       window.scrollTo(0, offset);
-      this.props.measure?.();
     });
   };
 
@@ -241,7 +251,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <AnchorLinkManager.Consumer>
-        {({registerScrollFn, scrollToHash}) => {
+        {({registerScrollFn, scrollToHash, isAnchoredSpanFound}) => {
           if (!isGapSpan(span)) {
             registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
           }
