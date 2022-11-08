@@ -308,6 +308,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
+      GroupStore.reset();
       queryClient.clear();
     };
   }, [queryClient]);
