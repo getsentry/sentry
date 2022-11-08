@@ -70,13 +70,11 @@ class TestDerivedCodeMappings(TestCase):
         }
 
     def test_package_also_matches(self):
+        repo_tree = RepoTree(self.foo_repo, files=["apostello/views/base.py"])
         # We create a new tree helper in order to improve the understability of this test
-        cmh = CodeMappingTreesHelper(
-            {self.foo_repo.name: RepoTree(self.foo_repo, files=["apostello/views/base.py"])}
-        )
+        cmh = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
         cm = cmh._generate_code_mapping_from_tree(
-            repo_full_name=self.foo_repo.name,
-            frame_filename=FrameFilename("raven/base.py"),
+            repo_tree=repo_tree, frame_filename=FrameFilename("raven/base.py")
         )
         # We should not derive a code mapping since the package name does not match
         assert cm == []

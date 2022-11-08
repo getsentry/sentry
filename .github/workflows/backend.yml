@@ -199,7 +199,7 @@ jobs:
           python-version: 3.8.13
       - name: check requirements
         run: |
-          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
+          python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
           python -S -m tools.freeze_requirements sentry
           if ! git diff --exit-code; then
             echo $'\n\nrun `make freeze-requirements` locally to update requirements'

@@ -1,6 +1,8 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
+from .repo import Repo, RepoTree
+
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
 
@@ -8,20 +10,10 @@ logger.setLevel(logging.INFO)
 NO_TOP_DIR = "NO_TOP_DIR"
 
 
-class Repo(NamedTuple):
-    name: str
-    branch: str
-
-
 class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
-
-
-class RepoTree(NamedTuple):
-    repo: Repo
-    files: List[str]
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -111,9 +103,16 @@ class CodeMappingTreesHelper:
         _code_mappings: List[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
-            _code_mappings.extend(
-                self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
-            )
+            try:
+                _code_mappings.extend(
+                    self._generate_code_mapping_from_tree(
+                        self.trees[repo_full_name], frame_filename
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continues."
+                )
 
         if len(_code_mappings) == 0:
             logger.warning(f"No files matched for {frame_filename.full_path}")
@@ -137,12 +136,12 @@ class CodeMappingTreesHelper:
 
     def _generate_code_mapping_from_tree(
         self,
-        repo_full_name: str,
+        repo_tree: RepoTree,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
         matched_files = [
             src_path
-            for src_path in self.trees[repo_full_name].files
+            for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
         # It is too risky generating code mappings when there's more
@@ -150,7 +149,7 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=self.trees[repo_full_name].repo,
+                    repo=repo_tree.repo,
                     stacktrace_root=frame_filename.root,  # sentry
                     source_path=self._get_code_mapping_source_path(
                         matched_files[0], frame_filename

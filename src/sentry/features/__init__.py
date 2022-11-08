@@ -144,6 +144,7 @@ default_manager.add("organizations:release-comparison-performance", Organization
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)
 default_manager.add("organizations:release-health-return-metrics", OrganizationFeature, True)
+default_manager.add("organizations:release-health-drop-sessions", OrganizationFeature, True)
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
 default_manager.add("organizations:rule-page", OrganizationFeature)

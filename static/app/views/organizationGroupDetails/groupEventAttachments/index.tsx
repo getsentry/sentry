@@ -21,7 +21,7 @@ const GroupEventAttachmentsContainer = ({organization, group}: Props) => (
       <FeatureDisabled {...props} featureName={t('Event Attachments')} />
     )}
   >
-    <GroupEventAttachments projectSlug={group.project.slug} />
+    <GroupEventAttachments project={group.project} />
   </Feature>
 );
 
