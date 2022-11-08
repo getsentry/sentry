@@ -125,16 +125,20 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             organization=organization,
             actor=request.user,
         )
-        return (
+
+        all_features = (
             batch_features.get(f"organization:{organization.id}", {})
             if batch_features is not None
-            else {
-                feature_name: features.has(
+            else {}
+        )
+
+        for feature_name in feature_names:
+            if feature_name not in all_features:
+                all_features[feature_name] = features.has(
                     feature_name, organization=organization, actor=request.user
                 )
-                for feature_name in feature_names
-            }
-        )
+
+        return all_features
 
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
