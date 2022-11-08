@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
