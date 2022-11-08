@@ -130,7 +130,6 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       // The event may have expired, default to true
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
-      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_event_recieved',
         organization,
@@ -138,7 +137,6 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       });
     } else if (eventType === 'transaction') {
       firstIssue = Boolean(firstEvent);
-      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_transaction_recieved',
         organization,
@@ -146,7 +144,6 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       });
     } else if (eventType === 'replay') {
       firstIssue = Boolean(firstEvent);
-      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_replay_recieved',
         organization,
