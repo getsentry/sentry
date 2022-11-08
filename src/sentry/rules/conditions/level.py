@@ -69,7 +69,7 @@ class LevelCondition(EventCondition):
         self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
     ) -> bool:
         try:
-            level = event_map[condition_activity.data["event_id"]]["level"]
+            level = event_map[condition_activity.data["event_id"]]["tags"]["level"]
             return self._passes(level)
         except (TypeError, KeyError):
             return False

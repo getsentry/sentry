@@ -138,7 +138,8 @@ def get_events(
             values = event["tags.value"]
             del event["tags.key"]
             del event["tags.value"]
+            event["tags"] = {}
             for k, v in zip(keys, values):
-                event[k] = v
+                event["tags"][k] = v
 
     return {event["event_id"]: event for event in events}
