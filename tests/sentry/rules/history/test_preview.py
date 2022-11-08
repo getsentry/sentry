@@ -165,6 +165,36 @@ class ProjectRulePreviewTest(TestCase):
         assert all(group in result for group in errors)
         assert all(group not in result for group in n_plus_one)
 
+    def test_level(self):
+        event = self.store_event(
+            project_id=self.project.id,
+            data={
+                "timestamp": iso_format(timezone.now() - timedelta(hours=1)),
+                "tags": {"level": "error"},
+            },
+        )
+        Activity.objects.create(
+            project=self.project,
+            group=event.group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=timezone.now() - timedelta(hours=1),
+            data={"event_id": event.event_id},
+        )
+
+        conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
+        filters = [{"id": "sentry.rules.filters.level.LevelFilter", "level": "40", "match": "eq"}]
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
+        filters[0]["match"] = "gte"
+        filters[0]["level"] = "50"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group not in results
+
+        filters[0]["match"] = "lte"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
     def test_unsupported_conditions(self):
         self._set_up_first_seen()
         # conditions with no immediate plan to support

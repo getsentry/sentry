@@ -103,6 +103,9 @@ class RuleBase(abc.ABC):
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
+    def get_event_columns(self) -> Sequence[str]:
+        return []
+
 
 class EventState:
     def __init__(

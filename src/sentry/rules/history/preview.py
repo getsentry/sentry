@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, List, Sequence
 
 from django.utils import timezone
 
@@ -53,22 +53,30 @@ def preview(
     activity.sort(key=k)
 
     filter_objects = []
+    event_columns = set()
     for filter in filters:
         filter_cls = rules.get(filter["id"])
         if filter_cls is None:
             return None
-        filter_objects.append(filter_cls(project, data=filter))
+        filter_object = filter_cls(project, data=filter)
+        filter_objects.append(filter_object)
+        event_columns.update(filter_object.get_event_columns())
 
     filter_func = get_match_function(filter_match)
     if filter_func is None:
         return None
+
+    event_map = {}
+    # if there is an event filter, retrieve event data
+    if event_columns:
+        event_map = get_events(project, activity, list(event_columns))
 
     frequency = timedelta(minutes=frequency_minutes)
     group_last_fire: Dict[str, datetime] = {}
     group_ids = set()
     for event in activity:
         try:
-            passes = [f.passes_activity(event) for f in filter_objects]
+            passes = [f.passes_activity(event, event_map) for f in filter_objects]
         except NotImplementedError:
             return None
         last_fire = group_last_fire.get(event.group_id, event.timestamp - frequency)
@@ -79,7 +87,9 @@ def preview(
     return Group.objects.filter(id__in=group_ids)
 
 
-def get_events(project: Project, condition_activity: Sequence[ConditionActivity]) -> Dict[str, Any]:
+def get_events(
+    project: Project, condition_activity: Sequence[ConditionActivity], columns: List[str]
+) -> Dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
@@ -94,7 +104,7 @@ def get_events(project: Project, condition_activity: Sequence[ConditionActivity]
                 event_ids.append(event_id)
 
     # TODO: Add more columns as more event filters are supported
-    columns = ["event_id"]
+    columns.append("event_id")
     events = []
     if group_ids:
         events.extend(
@@ -120,5 +130,15 @@ def get_events(project: Project, condition_activity: Sequence[ConditionActivity]
                 selected_columns=columns,
             ).get("data", [])
         )
+
+    # the keys and values of tags come in 2 separate lists, pair them up together
+    if "tags.key" in columns and "tags.value" in columns:
+        for event in events:
+            keys = event["tags.key"]
+            values = event["tags.value"]
+            del event["tags.key"]
+            del event["tags.value"]
+            for k, v in zip(keys, values):
+                event[k] = v
 
     return {event["event_id"]: event for event in events}
