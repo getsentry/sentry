@@ -68,6 +68,7 @@ const DOMAlert = styled('div')`
 const DismissButton = styled(Button)`
   color: ${p => p.theme.white};
   &:hover {
-    color: ${p => p.theme.gray100};
+    color: ${p => p.theme.white};
+    opacity: 0.5;
   }
 `;
