@@ -188,3 +188,25 @@ class PutOrganizationSearchTest(APITestCase):
         )
         assert response.status_code == 400, response.content
         assert "already exists" in response.data["detail"]
+
+    def test_can_edit_without_changing_query(self):
+        search = SavedSearch.objects.create(
+            organization=self.organization,
+            owner=self.create_user(),
+            name="foo",
+            query="test123",
+            visibility=Visibility.ORGANIZATION,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            search.id,
+            type=SearchType.ISSUE.value,
+            name="bar",
+            query="test123",
+            visibility=Visibility.ORGANIZATION,
+        )
+        assert response.status_code == 200, response.content
+
+        updated_obj = SavedSearch.objects.get(id=search.id)
+        assert updated_obj.name == "bar"
+        assert updated_obj.query == "test123"

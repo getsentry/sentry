@@ -51,6 +51,7 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
             SavedSearch.objects
             # Query duplication for pinned searches is fine, exlcuded these
             .exclude(visibility=Visibility.OWNER_PINNED)
+            .exclude(id=search.id)
             .filter(Q(is_global=True) | Q(organization=organization), query=result["query"])
             .exists()
         ):
