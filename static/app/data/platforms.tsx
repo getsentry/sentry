@@ -30,7 +30,9 @@ const platformIntegrations: PlatformIntegration[] = [
       // the project creation flow
       .filter(integration => !(tracing as readonly string[]).includes(integration.id))
       // filter out any performance onboarding documentation
-      .filter(integration => !integration.id.includes('performance-onboarding'));
+      .filter(integration => !integration.id.includes('performance-onboarding'))
+      // filter out any replay onboarding documentation
+      .filter(integration => !integration.id.includes('replay-onboarding'));
 
     return integrations;
   })
