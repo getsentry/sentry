@@ -133,10 +133,8 @@ def get_events(
     # the keys and values of tags come in 2 separate lists, pair them up together
     if "tags.key" in columns and "tags.value" in columns:
         for event in events:
-            keys = event["tags.key"]
-            values = event["tags.value"]
-            del event["tags.key"]
-            del event["tags.value"]
+            keys = event.pop("tags.key")
+            values = event.pop("tags.value")
             event["tags"] = {k: v for k, v in zip(keys, values)}
 
     return {event["event_id"]: event for event in events}
