@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
@@ -10,8 +9,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import Tooltip from 'sentry/components/tooltip';
-import {IconInfo, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {StackTraceMechanism} from 'sentry/types/stacktrace';
