@@ -1141,15 +1141,8 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      savedSearchLoading,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1273,15 +1266,8 @@ class IssueListOverview extends Component<Props, State> {
             />
           </StyledMain>
           <SavedIssueSearches
-            {...{
-              savedSearches,
-              savedSearch,
-              savedSearchLoading,
-              organization,
-              query,
-            }}
+            {...{organization, query}}
             isOpen={isSavedSearchesOpen}
-            onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
             sort={this.getSort()}
           />

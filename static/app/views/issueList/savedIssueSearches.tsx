@@ -8,31 +8,27 @@ import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
+import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
 interface SavedIssueSearchesProps {
   isOpen: boolean;
-  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
   query: string;
-  savedSearch: SavedSearch | null;
-  savedSearchLoading: boolean;
-  savedSearches: SavedSearch[];
   sort: string;
 }
 
 interface SavedSearchItemProps
-  extends Pick<
-    SavedIssueSearchesProps,
-    'organization' | 'onSavedSearchDelete' | 'onSavedSearchSelect'
-  > {
+  extends Pick<SavedIssueSearchesProps, 'organization' | 'onSavedSearchSelect'> {
   savedSearch: SavedSearch;
 }
 
@@ -61,10 +57,10 @@ const SavedSearchItemDescription = ({
 
 const SavedSearchItem = ({
   organization,
-  onSavedSearchDelete,
   onSavedSearchSelect,
   savedSearch,
 }: SavedSearchItemProps) => {
+  const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
   const actions: MenuItemProps[] = [
@@ -84,7 +80,8 @@ const SavedSearchItem = ({
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to delete this saved search?'),
-          onConfirm: () => onSavedSearchDelete(savedSearch),
+          onConfirm: () =>
+            deleteSavedSearch({orgSlug: organization.slug, id: savedSearch.id}),
         });
       },
       priority: 'danger',
@@ -151,30 +148,40 @@ function CreateNewSavedSearchButton({
   );
 }
 
-const SavedIssueSearches = ({
+const SavedIssueSearchesContent = ({
   organization,
   isOpen,
-  onSavedSearchDelete,
   onSavedSearchSelect,
-  savedSearchLoading,
-  savedSearches,
   query,
   sort,
 }: SavedIssueSearchesProps) => {
   const [showAll, setShowAll] = useState(false);
+  const {
+    data: savedSearches,
+    isLoading,
+    isError,
+    refetch,
+  } = useFetchSavedSearchesForOrg(
+    {orgSlug: organization.slug},
+    {enabled: organization.features.includes('issue-list-saved-searches-v2')}
+  );
 
   if (!isOpen) {
     return null;
   }
 
-  if (!organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
-
-  if (savedSearchLoading) {
+  if (isLoading) {
     return (
       <StyledSidebar>
         <LoadingIndicator />
+      </StyledSidebar>
+    );
+  }
+
+  if (isError) {
+    return (
+      <StyledSidebar>
+        <LoadingError onRetry={refetch} />
       </StyledSidebar>
     );
   }
@@ -184,6 +191,7 @@ const SavedIssueSearches = ({
     'dateCreated',
     'desc'
   );
+
   const recommendedSavedSearches = savedSearches.filter(search => search.isGlobal);
 
   const shownOrgSavedSearches = showAll
@@ -192,30 +200,34 @@ const SavedIssueSearches = ({
 
   return (
     <StyledSidebar>
-      {orgSavedSearches.length > 0 && (
-        <Fragment>
-          <HeadingContainer>
-            <Heading>{t('Saved Searches')}</Heading>
-            <CreateNewSavedSearchButton {...{organization, query, sort}} />
-          </HeadingContainer>
-          <SearchesContainer>
-            {shownOrgSavedSearches.map(item => (
-              <SavedSearchItem
-                key={item.id}
-                organization={organization}
-                onSavedSearchDelete={onSavedSearchDelete}
-                onSavedSearchSelect={onSavedSearchSelect}
-                savedSearch={item}
-              />
-            ))}
-          </SearchesContainer>
-          {orgSavedSearches.length > shownOrgSavedSearches.length && (
-            <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
-              {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
-            </ShowAllButton>
+      <Fragment>
+        <HeadingContainer>
+          <Heading>{t('Saved Searches')}</Heading>
+          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+        </HeadingContainer>
+        <SearchesContainer>
+          {shownOrgSavedSearches.map(item => (
+            <SavedSearchItem
+              key={item.id}
+              organization={organization}
+              onSavedSearchSelect={onSavedSearchSelect}
+              savedSearch={item}
+            />
+          ))}
+          {shownOrgSavedSearches.length === 0 && (
+            <p>{t("You don't have any saved searches.")}</p>
           )}
-        </Fragment>
-      )}
+        </SearchesContainer>
+        {orgSavedSearches.length > shownOrgSavedSearches.length && (
+          <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
+            {tn(
+              'Show %s saved search',
+              'Show all %s saved searches',
+              orgSavedSearches.length
+            )}
+          </ShowAllButton>
+        )}
+      </Fragment>
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
           <HeadingContainer>
@@ -226,7 +238,6 @@ const SavedIssueSearches = ({
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
-                onSavedSearchDelete={onSavedSearchDelete}
                 onSavedSearchSelect={onSavedSearchSelect}
                 savedSearch={item}
               />
@@ -236,6 +247,14 @@ const SavedIssueSearches = ({
       )}
     </StyledSidebar>
   );
+};
+
+const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
+  if (!props.organization.features.includes('issue-list-saved-searches-v2')) {
+    return null;
+  }
+
+  return <SavedIssueSearchesContent {...props} />;
 };
 
 const StyledSidebar = styled('aside')`

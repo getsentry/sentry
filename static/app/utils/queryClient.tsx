@@ -12,8 +12,8 @@ type QueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 
-type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = Omit<
-  reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+type UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnData> = Omit<
+  reactQuery.UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
   'queryKey' | 'queryFn'
 >;
 
@@ -37,8 +37,8 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
   queryFnOrQueryOptions?:
     | reactQuery.QueryFunction<TQueryFnData, QueryKey>
-    | UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
-  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData, QueryKey>
+    | UseQueryOptions<TQueryFnData, TError, TData>,
+  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
 ) {
   const api = useApi();
 
@@ -60,4 +60,4 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 export * from '@tanstack/react-query';
 
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery};
+export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery, UseQueryOptions};

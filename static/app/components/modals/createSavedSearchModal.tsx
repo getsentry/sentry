@@ -8,9 +8,10 @@ import {Form, SelectField, TextField} from 'sentry/components/forms';
 import FormField from 'sentry/components/forms/formField';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearchVisibility} from 'sentry/types';
+import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
+import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -36,8 +37,14 @@ function CreateSavedSearchModal({
   query,
   sort,
 }: Props) {
+  const savedSearchesV2Enabled = organization.features.includes(
+    'issue-list-saved-searches-v2'
+  );
+
   const api = useApi();
   const [error, setError] = useState(null);
+
+  const {mutateAsync: createSavedSearchV2} = useCreateSavedSearch();
 
   const sortOptions = organization?.features?.includes('issue-list-trend-sort')
     ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
@@ -93,14 +100,25 @@ function CreateSavedSearchModal({
     });
 
     try {
-      await createSavedSearch(
-        api,
-        organization.slug,
-        data.name,
-        data.query,
-        validateSortOption(data.sort),
-        data.visibility
-      );
+      if (savedSearchesV2Enabled) {
+        await createSavedSearchV2({
+          orgSlug: organization.slug,
+          name: data.name,
+          query: data.query,
+          sort: validateSortOption(data.sort),
+          type: SavedSearchType.ISSUE,
+          visibility: data.visibility,
+        });
+      } else {
+        await createSavedSearch(
+          api,
+          organization.slug,
+          data.name,
+          data.query,
+          validateSortOption(data.sort),
+          data.visibility
+        );
+      }
 
       closeModal();
       clearIndicators();
