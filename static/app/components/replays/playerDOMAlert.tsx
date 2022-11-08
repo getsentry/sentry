@@ -58,6 +58,7 @@ const DOMAlert = styled('div')`
   align-items: center;
   justify-items: center;
   padding: ${space(1)} ${space(2)};
+  margin: 0 ${space(1)};
   color: ${p => p.theme.white};
   background-color: ${p => p.theme.blue400};
   border-radius: ${p => p.theme.borderRadius};
