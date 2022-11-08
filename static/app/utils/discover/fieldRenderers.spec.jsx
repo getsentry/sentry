@@ -33,6 +33,7 @@ describe('getFieldRenderer', function () {
       url: '/example',
       project: project.slug,
       release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+      issue: 'SENTRY-T6P',
       user,
       'span_ops_breakdown.relative': '',
       'spans.browser': 10,
@@ -42,6 +43,7 @@ describe('getFieldRenderer', function () {
       'spans.total.time': 75,
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
+      'issue.id': '123214',
       lifetimeCount: 10000,
       filteredCount: 3000,
       count: 6000,
@@ -218,6 +220,20 @@ describe('getFieldRenderer', function () {
       `/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/`
     );
     expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
+  });
+
+  it('renders issue hyperlink', function () {
+    const renderer = getFieldRenderer('issue', {issue: 'string'});
+
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
+
+    expect(screen.queryByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/123214/`
+    );
+    expect(screen.getByText('SENTRY-T6P')).toBeInTheDocument();
   });
 
   it('can render project as an avatar', function () {

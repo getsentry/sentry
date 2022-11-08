@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.tree import trim_tree
+from sentry.integrations.utils.repo import Repo, RepoTree, trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -71,7 +71,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> List[str]:
         tree = []
         try:
             contents: Dict[str, Any] = self.get(
@@ -105,11 +105,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     def get_trees_for_org(
         self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
-    ) -> JSONData:
+    ) -> Dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org.
         """
-        trees: JSONData = {}
+        trees: Dict[str, RepoTree] = {}
         cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
         repo_key = "githubtrees:repo"
         cached_repositories = cache.get(cache_key, [])
@@ -125,10 +125,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 try:
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
-                    trees[full_name] = {
-                        "default_branch": branch,
-                        "files": self.get_tree(full_name, branch),
-                    }
+                    files = self.get_tree(full_name, branch)
+                    repo = Repo(full_name, branch)
+                    trees[full_name] = RepoTree(repo, files)
                     cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
                 except Exception:
                     # Catching the exception ensures that we can make progress with the rest
