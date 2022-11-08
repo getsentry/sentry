@@ -146,7 +146,7 @@ def set_project_codemappings(
             },
         )
 
-        code_mapping, created = RepositoryProjectPathConfig.objects.get_or_create(
+        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
             stack_root=code_mapping.stacktrace_root,
             defaults={
@@ -159,7 +159,13 @@ def set_project_codemappings(
         )
         if not created:
             logger.info(
-                f"derive_code_mappings: code mapping for {project=} {code_mapping.stack_root=} already exists"
+                "derive_code_mappings: code mapping already exists",
+                extra={
+                    "project": project,
+                    "stacktrace_root": code_mapping.stacktrace_root,
+                    "new_code_mapping": code_mapping,
+                    "existing_code_mapping": cm,
+                },
             )
 
 

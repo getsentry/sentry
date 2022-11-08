@@ -167,6 +167,7 @@ class TestIdentfiyStacktracePaths(TestCase):
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="sentry/models",
+            source_root="src/sentry/models",
             repository=repository,
             organization_integration=organization_integration,
         )
