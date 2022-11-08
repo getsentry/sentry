@@ -75,7 +75,9 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
   'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
-  'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
+    has_pull_request: boolean;
+  };
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
