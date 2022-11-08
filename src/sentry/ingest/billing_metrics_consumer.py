@@ -124,8 +124,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     ) -> None:
         self._closed: bool = False
         self._commit = commit
-        # XXX(iker): these max* variables currently don't behave as maximums,
-        # but rather minimums. We should fix this at some point.
         self._max_batch_size: int = max_batch_size
 
         self._billing_topic = Topic(settings.KAFKA_OUTCOMES_BILLING)
