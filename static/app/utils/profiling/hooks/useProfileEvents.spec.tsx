@@ -48,6 +48,7 @@ describe('useProfileEvents', function () {
       initialProps: {
         fields,
         sort: {key: 'count()', order: 'desc' as const},
+        referrer: '',
       },
     });
 
@@ -76,6 +77,7 @@ describe('useProfileEvents', function () {
       initialProps: {
         fields: ['count()'],
         sort: {key: 'count()', order: 'desc' as const},
+        referrer: '',
       },
     });
 

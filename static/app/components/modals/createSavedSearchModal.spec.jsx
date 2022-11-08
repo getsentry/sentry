@@ -3,6 +3,7 @@ import selectEvent from 'react-select-event';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {SavedSearchVisibility} from 'sentry/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
@@ -42,7 +43,7 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is not changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new search name');
+    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
 
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -55,6 +56,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:unresolved assigned:lyn@sentry.io',
             sort: IssueSortOptions.DATE,
             type: 0,
+            visibility: SavedSearchVisibility.Organization,
           },
         })
       );
@@ -64,7 +66,7 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new search name');
+    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
     userEvent.clear(screen.getByTestId('smart-search-input'));
     userEvent.type(screen.getByTestId('smart-search-input'), 'is:resolved{enter}');
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
@@ -79,7 +81,69 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:resolved',
             sort: IssueSortOptions.PRIORITY,
             type: 0,
+            visibility: SavedSearchVisibility.Organization,
           },
+        })
+      );
+    });
+  });
+
+  describe('visibility', () => {
+    it('only allows owner-level visibility without org:write permission', async function () {
+      jest.useFakeTimers();
+      const org = TestStubs.Organization({
+        features: ['issue-list-saved-searches-v2'],
+        access: [],
+      });
+
+      render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
+
+      userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+
+      // Hovering over the visibility dropdown shows disabled reason
+      userEvent.hover(screen.getByText(/only me/i));
+      await screen.findByText(
+        /only organization admins can create global saved searches/i
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(createMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/searches/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'new search name',
+              visibility: SavedSearchVisibility.Owner,
+            }),
+          })
+        );
+      });
+    });
+  });
+
+  it('can change to org-level visibility with org:write permission', async function () {
+    const org = TestStubs.Organization({
+      features: ['issue-list-saved-searches-v2'],
+      access: ['org:write'],
+    });
+
+    render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
+
+    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+
+    await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
+
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/searches/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'new search name',
+            visibility: SavedSearchVisibility.Organization,
+          }),
         })
       );
     });
