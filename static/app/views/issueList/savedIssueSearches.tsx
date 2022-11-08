@@ -206,7 +206,7 @@ const SavedIssueSearchesContent = ({
           <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
             {tn(
               'Show %s saved search',
-              'Show %s saved searches',
+              'Show all %s saved searches',
               orgSavedSearches.length
             )}
           </ShowAllButton>
