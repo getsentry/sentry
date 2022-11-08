@@ -16,6 +16,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import * as AnchorLinkManager from './anchorLinkManager';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
@@ -37,6 +38,7 @@ import {
   spanTargetHash,
 } from './utils';
 import WaterfallModel from './waterfallModel';
+import {SpanContext} from './spanContext';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
@@ -506,17 +508,23 @@ class SpanTree extends Component<PropType> {
           measureFunctionMap[index] = measure;
 
           return (
-            <div style={style}>
-              {spanTree[index].type === SpanBar ? (
-                <SpanBar
-                  {...spanTree[index].props}
-                  measure={measure}
-                  shouldShowDetailOnMount={false}
-                />
-              ) : (
-                spanTree[index]
+            <AnchorLinkManager.Consumer>
+              {({didAnchoredSpanMount, markAnchoredSpanIsMounted}) => (
+                <div style={style}>
+                  {spanTree[index].type === SpanBar ? (
+                    <SpanBar
+                      {...spanTree[index].props}
+                      measure={measure}
+                      shouldShowDetailOnMount={false}
+                      didAnchoredSpanMount={didAnchoredSpanMount}
+                      markAnchoredSpanIsMounted={markAnchoredSpanIsMounted}
+                    />
+                  ) : (
+                    spanTree[index]
+                  )}
+                </div>
               )}
-            </div>
+            </AnchorLinkManager.Consumer>
           );
         }}
       </CellMeasurer>

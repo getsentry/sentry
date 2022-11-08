@@ -1,17 +1,17 @@
 import {Component, createContext} from 'react';
 
 export type AnchorLinkManagerChildrenProps = {
-  isAnchoredSpanFound: boolean;
+  didAnchoredSpanMount: boolean;
+  markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
   scrollToHash: (hash: string) => void;
-  markAnchoredSpanFound: () => void;
 };
 
 const AnchorLinkManagerContext = createContext<AnchorLinkManagerChildrenProps>({
   registerScrollFn: () => () => undefined,
   scrollToHash: () => undefined,
-  isAnchoredSpanFound: false,
-  markAnchoredSpanFound: () => undefined,
+  didAnchoredSpanMount: false,
+  markAnchoredSpanIsMounted: () => undefined,
 });
 
 type Props = {
@@ -24,7 +24,7 @@ export class Provider extends Component<Props> {
   }
 
   scrollFns: Map<string, {fn: () => void; isSpanInGroup: boolean}> = new Map();
-  isAnchoredSpanFound = false;
+  didAnchoredSpanMount = false;
 
   scrollToHash = (hash: string) => {
     // if (this.scrollFns.has(hash)) {
@@ -43,16 +43,16 @@ export class Provider extends Component<Props> {
     this.scrollFns.set(hash, {fn, isSpanInGroup});
   };
 
-  markAnchoredSpanFound = () => {
-    this.isAnchoredSpanFound = true;
+  markAnchoredSpanIsMounted = () => {
+    this.didAnchoredSpanMount = true;
   };
 
   render() {
     const childrenProps: AnchorLinkManagerChildrenProps = {
       registerScrollFn: this.registerScrollFn,
       scrollToHash: this.scrollToHash,
-      isAnchoredSpanFound: this.isAnchoredSpanFound,
-      markAnchoredSpanFound: this.markAnchoredSpanFound,
+      didAnchoredSpanMount: this.didAnchoredSpanMount,
+      markAnchoredSpanIsMounted: this.markAnchoredSpanIsMounted,
     };
 
     return (

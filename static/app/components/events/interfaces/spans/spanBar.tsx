@@ -139,6 +139,8 @@ type SpanBarProps = {
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
   treeDepth: number;
+  didAnchoredSpanMount: boolean;
+  markAnchoredSpanIsMounted: () => void;
 };
 
 type SpanBarState = {
@@ -165,9 +167,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     if (
       !isGapSpan(this.props.span) &&
-      spanTargetHash(this.props.span.span_id) === location.hash
+      spanTargetHash(this.props.span.span_id) === location.hash &&
+      !this.props.didAnchoredSpanMount
     ) {
       this.scrollIntoView();
+      this.props.markAnchoredSpanIsMounted();
     }
   }
 
@@ -224,12 +228,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   };
 
   scrollIntoView = () => {
-    console.log('scrolling');
     const {measure} = this.props;
 
     const element = this.spanRowDOMRef.current;
     if (!element) {
-      console.log('no elem');
       return;
     }
 
@@ -255,32 +257,21 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }) {
     const {span, organization, isRoot, trace, event} = this.props;
 
-    return (
-      <AnchorLinkManager.Consumer>
-        {({
-          registerScrollFn,
-          scrollToHash,
-          isAnchoredSpanFound,
-          markAnchoredSpanFound,
-        }) => {
-          if (!this.state.showDetail || !isVisible) {
-            return null;
-          }
+    if (!this.state.showDetail || !isVisible) {
+      return null;
+    }
 
-          return (
-            <SpanDetail
-              span={span}
-              organization={organization}
-              event={event}
-              isRoot={!!isRoot}
-              trace={trace}
-              childTransactions={transactions}
-              relatedErrors={errors}
-              scrollToHash={scrollToHash}
-            />
-          );
-        }}
-      </AnchorLinkManager.Consumer>
+    return (
+      <SpanDetail
+        span={span}
+        organization={organization}
+        event={event}
+        isRoot={!!isRoot}
+        trace={trace}
+        childTransactions={transactions}
+        relatedErrors={errors}
+        scrollToHash={this.scrollIntoView}
+      />
     );
   }
 
