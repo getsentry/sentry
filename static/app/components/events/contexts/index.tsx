@@ -71,7 +71,7 @@ function Contexts({event, group}: Props) {
 
 export default Contexts;
 
-// HACK: Override styling from less files to render response headers
+// Override styling from less files to render response headers
 const ResponseChunkWrapper = styled('div')`
   #response-headers > pre {
     padding: 0;
