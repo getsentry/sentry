@@ -1,13 +1,9 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
-import useApi from 'sentry/utils/useApi';
-import withIssueTags from 'sentry/utils/withIssueTags';
+import {Organization} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -18,46 +14,20 @@ import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 interface Props {
   onClose: SearchBarProps['onClose'];
   organization: Organization;
-  pageFilters: PageFilters;
-  tags: TagCollection;
   widgetQuery: WidgetQuery;
 }
 
-function IssuesSearchBarContainer({
-  tags,
-  onClose,
-  widgetQuery,
-  organization,
-  pageFilters,
-}: Props) {
-  const api = useApi();
-  function tagValueLoader(key: string, search: string) {
-    const orgId = organization.slug;
-    const projectIds = pageFilters.projects.map(id => id.toString());
-    const endpointParams = {
-      start: getUtcDateString(pageFilters.datetime.start),
-      end: getUtcDateString(pageFilters.datetime.end),
-      statsPeriod: pageFilters.datetime.period,
-    };
-
-    return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
-  }
-
+function IssuesSearchBar({onClose, widgetQuery, organization}: Props) {
   return (
     <ClassNames>
       {({css}) => (
         <StyledIssueListSearchBar
           searchSource="widget_builder"
+          organization={organization}
           query={widgetQuery.conditions || ''}
-          sort=""
           onClose={onClose}
-          excludeEnvironment
-          supportedTags={tags}
           placeholder={t('Search for issues, status, assigned, and more')}
-          tagValueLoader={tagValueLoader}
-          onSidebarToggle={() => undefined}
           maxSearchItems={MAX_SEARCH_ITEMS}
-          savedSearchType={SavedSearchType.ISSUE}
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT}px;
             overflow-y: auto;
@@ -67,8 +37,6 @@ function IssuesSearchBarContainer({
     </ClassNames>
   );
 }
-
-const IssuesSearchBar = withIssueTags(IssuesSearchBarContainer);
 
 export {IssuesSearchBar};
 

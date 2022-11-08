@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
@@ -182,7 +181,6 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   unlisteners = [
-    ProjectActions.createSuccess.listen(() => this.onProjectCreation(), undefined),
     OrganizationStore.listen(data => this.loadOrganization(data), undefined),
   ];
 
@@ -192,18 +190,6 @@ class OrganizationContextContainer extends Component<Props, State> {
       this.fetchData
     );
   };
-
-  onProjectCreation() {
-    // If a new project was created, we need to re-fetch the
-    // org details endpoint, which will propagate re-rendering
-    // for the entire component tree
-    fetchOrganizationDetails(
-      this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
-      true,
-      false
-    );
-  }
 
   isLoading() {
     // In the absence of an organization slug, the loading state should be
@@ -216,9 +202,12 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   fetchData(isInitialFetch = false) {
-    if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
+    const orgSlug = OrganizationContextContainer.getOrganizationSlug(this.props);
+
+    if (!orgSlug) {
       return;
     }
+
     // fetch from the store, then fetch from the API if necessary
     if (OrganizationContextContainer.isOrgStorePopulatedCorrectly(this.props)) {
       return;
@@ -227,7 +216,7 @@ class OrganizationContextContainer extends Component<Props, State> {
     metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
+      orgSlug,
       !OrganizationContextContainer.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
       isInitialFetch
     );
@@ -305,7 +294,7 @@ class OrganizationContextContainer extends Component<Props, State> {
         return this.renderBody();
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
-          <Alert type="error">
+          <Alert type="error" data-test-id="org-loading-error">
             {t('The organization you were looking for was not found.')}
           </Alert>
         );

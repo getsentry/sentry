@@ -2,7 +2,6 @@ import logging
 import re
 from gzip import GzipFile
 from io import BytesIO
-from urllib.parse import urljoin
 
 from django.conf import settings
 from django.urls import reverse
@@ -16,6 +15,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRele
 from sentry.models import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.files import get_max_file_size
+from sentry.utils.http import absolute_uri
 
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
@@ -30,6 +30,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "sources",  # Source artifact bundle upload
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
+    "portablepdbs",  # Portable PDB debug file
 )
 
 
@@ -73,11 +74,10 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 url = relative_url.lstrip(API_PREFIX)
             # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
             else:
-                endpoint = options.get("system.url-prefix")
-                url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
+                url = absolute_uri(relative_url)
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
-            url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
+            url = absolute_uri(relative_url, endpoint)
 
         return Response(
             {

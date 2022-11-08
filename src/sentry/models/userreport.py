@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 
-@region_silo_model
+@region_silo_only_model
 class UserReport(Model):
     __include_in_export__ = False
 

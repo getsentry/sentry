@@ -18,10 +18,10 @@ jobs:
       modified: ${{ steps.changes.outputs.migrations_modified }}
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Match migration files
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
@@ -54,7 +54,7 @@ jobs:
 
     steps:
       # Checkout master to run all merged migrations.
-      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e  # v1
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           ref: master
 
@@ -69,7 +69,7 @@ jobs:
           sentry upgrade --noinput
 
       # Checkout the current ref
-      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e  # v1
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           clean: false
 
@@ -77,7 +77,7 @@ jobs:
         id: file
         run: |
           echo $(git diff --diff-filter=A --name-only origin/master HEAD)
-          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+          echo "added=$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')" >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@f1dc34590460c0fe06ec11c00fec6c16a2159977  # main

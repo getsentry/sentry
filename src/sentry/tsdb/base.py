@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
@@ -166,7 +165,7 @@ class BaseTSDB(Service):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
 
-        self.rollups = OrderedDict(rollups)
+        self.rollups = dict(rollups)
 
         # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
         # previous rollup configuration values after they are modified in

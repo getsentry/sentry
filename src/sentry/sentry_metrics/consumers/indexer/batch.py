@@ -73,9 +73,15 @@ class InboundMessage(TypedDict):
 
 
 class IndexerBatch:
-    def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
+    def __init__(
+        self,
+        use_case_id: UseCaseKey,
+        outer_message: Message[MessageBatch],
+        should_index_tag_values: bool,
+    ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
+        self.__should_index_tag_values = should_index_tag_values
 
         self._extract_messages()
 
@@ -180,8 +186,11 @@ class IndexerBatch:
             parsed_strings = {
                 metric_name,
                 *tags.keys(),
-                *tags.values(),
             }
+
+            if self.__should_index_tag_values:
+                parsed_strings.update(tags.values())
+
             org_strings[org_id].update(parsed_strings)
 
         string_count = 0
@@ -228,7 +237,6 @@ class IndexerBatch:
                 for k, v in tags.items():
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
-                    new_v = mapping[org_id][v]
                     if new_k is None:
                         metadata = bulk_record_meta[org_id].get(k)
                         if (
@@ -241,19 +249,24 @@ class IndexerBatch:
                             exceeded_org_quotas += 1
                         continue
 
-                    if new_v is None:
-                        metadata = bulk_record_meta[org_id].get(v)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
+                    value_to_write = v
+                    if self.__should_index_tag_values:
+                        new_v = mapping[org_id][v]
+                        if new_v is None:
+                            metadata = bulk_record_meta[org_id].get(v)
+                            if (
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ):
+                                exceeded_global_quotas += 1
+                            else:
+                                exceeded_org_quotas += 1
+                            continue
                         else:
-                            exceeded_org_quotas += 1
-                        continue
+                            value_to_write = new_v
 
-                    new_tags[str(new_k)] = new_v
+                    new_tags[str(new_k)] = value_to_write
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
@@ -289,6 +302,12 @@ class IndexerBatch:
             mapping_header_content = bytes(
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
+
+            # When sending tag values as strings, set the version on the payload
+            # to 2. This is used by the consumer to determine how to decode the
+            # tag values.
+            if not self.__should_index_tag_values:
+                new_payload_value["version"] = 2
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:

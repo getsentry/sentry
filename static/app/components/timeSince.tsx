@@ -43,6 +43,8 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   suffix?: string;
 
+  tooltipBody?: React.ReactNode;
+  tooltipShowSeconds?: boolean;
   tooltipTitle?: React.ReactNode;
   tooltipUnderlineColor?: ColorOrAlias;
 }
@@ -51,7 +53,9 @@ function TimeSince({
   date,
   suffix = t('ago'),
   disabledAbsoluteTooltip,
+  tooltipShowSeconds,
   tooltipTitle,
+  tooltipBody,
   tooltipUnderlineColor,
   shorten,
   extraShort,
@@ -82,7 +86,11 @@ function TimeSince({
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
-  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+  // Use short months when showing seconds, because "September" causes the tooltip to overflow.
+  const tooltipFormat = tooltipShowSeconds
+    ? 'MMM D, YYYY h:mm:ss A z'
+    : 'MMMM D, YYYY h:mm A z';
+  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
   const tooltip = getDynamicText({
     fixed: options?.clock24Hours
@@ -99,7 +107,7 @@ function TimeSince({
       title={
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
-          {tooltip}
+          {tooltipBody ?? tooltip}
         </Fragment>
       }
     >

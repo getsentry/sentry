@@ -1,5 +1,15 @@
 import logging
-from typing import Any, Callable, FrozenSet, Mapping, Optional, Sequence, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 from sentry.utils import json, metrics
 
@@ -17,7 +27,9 @@ def basic_protocol_handler(
     # so this function builds a handler function that can deal with both.
 
     def get_task_kwargs_for_insert(
-        operation: str, event_data: Mapping[str, Any], task_state: Mapping[str, Any]
+        operation: str,
+        event_data: Mapping[str, Any],
+        task_state: Mapping[str, Any],
     ) -> Optional[Mapping[str, Any]]:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
@@ -31,6 +43,10 @@ def basic_protocol_handler(
 
         for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]
+
+        if task_state:
+            kwargs["group_states"] = task_state.get("group_states")
+            kwargs["queue"] = task_state.get("queue")
 
         return kwargs
 
@@ -78,7 +94,7 @@ class InvalidVersion(Exception):
     pass
 
 
-def get_task_kwargs_for_message(value: str) -> Optional[Mapping[str, Any]]:
+def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
     """
     Decodes a message body, returning a dictionary of keyword arguments that
     can be applied to a post-processing task, or ``None`` if no task should be
@@ -129,6 +145,17 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
+def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
+    if value is None:
+        return None
+
+    parsed = json.loads(value)
+    if not isinstance(parsed, list):
+        raise ValueError(f"'{value}' could not be parsed into an instance of list.")
+
+    return cast(Sequence[Any], json.loads(value))
+
+
 def get_task_kwargs_for_message_from_headers(
     headers: Sequence[Tuple[str, Optional[bytes]]]
 ) -> Optional[Mapping[str, Any]]:
@@ -166,12 +193,32 @@ def get_task_kwargs_for_message_from_headers(
                 cast(bytes, header_data["is_new_group_environment"])
             )
 
-            task_state = {
+            task_state: MutableMapping[str, Any] = {
                 "skip_consume": skip_consume,
                 "is_new": is_new,
                 "is_regression": is_regression,
                 "is_new_group_environment": is_new_group_environment,
             }
+
+            group_states_str = decode_optional_str(header_data.get("group_states"))
+            group_states = None
+            try:
+                group_states = decode_optional_list_str(group_states_str)
+            except ValueError:
+                logger.error(f"Received event with malformed group_states: '{group_states_str}'")
+            except Exception:
+                logger.error(
+                    f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
+                )
+            task_state["group_states"] = group_states
+
+            # default in case queue is not sent
+            task_state["queue"] = (
+                decode_str(header_data["queue"])
+                if "queue" in header_data
+                else "post_process_errors"
+            )
+
         else:
             event_data = {}
             task_state = {}

@@ -8,7 +8,7 @@ import Grid from 'sentry/components/charts/components/grid';
 import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -42,9 +42,12 @@ function MemoryChart({
 
   if (memorySpans.length <= 0) {
     return (
-      <EmptyStateWarning withIcon={false} small>
-        {t('No memory metrics found')}
-      </EmptyStateWarning>
+      <EmptyMessage
+        title={t('No memory metrics found')}
+        description={t(
+          'Memory metrics are only captured within Chromium based browser sessions.'
+        )}
+      />
     );
   }
 

@@ -233,6 +233,13 @@ class Columns(Enum):
         discover_name="tags[url]",
         alias="http.url",
     )
+    HTTP_STATUS_CODE = Column(
+        group_name="events.contexts[response.status_code]",
+        event_name="contexts[response.status_code]",
+        transaction_name="contexts[response.status_code]",
+        discover_name="contexts[response.status_code]",
+        alias="http.status_code",
+    )
     OS_BUILD = Column(
         group_name="events.contexts[os.build]",
         event_name="contexts[os.build]",
@@ -309,6 +316,34 @@ class Columns(Enum):
         transaction_name="contexts[device.orientation]",
         discover_name="contexts[device.orientation]",
         alias="device.orientation",
+    )
+    DEVICE_SCREEN_DENSITY = Column(
+        group_name="events.contexts[device.screen_density]",
+        event_name="contexts[device.screen_density]",
+        transaction_name="contexts[device.screen_density]",
+        discover_name="contexts[device.screen_density]",
+        alias="device.screen_density",
+    )
+    DEVICE_SCREEN_DPI = Column(
+        group_name="events.contexts[device.screen_dpi]",
+        event_name="contexts[device.screen_dpi]",
+        transaction_name="contexts[device.screen_dpi]",
+        discover_name="contexts[device.screen_dpi]",
+        alias="device.screen_dpi",
+    )
+    DEVICE_SCREEN_HEIGHT_PIXELS = Column(
+        group_name="events.contexts[device.screen_height_pixels]",
+        event_name="contexts[device.screen_height_pixels]",
+        transaction_name="contexts[device.screen_height_pixels]",
+        discover_name="contexts[device.screen_height_pixels]",
+        alias="device.screen_height_pixels",
+    )
+    DEVICE_SCREEN_WIDTH_PIXELS = Column(
+        group_name="events.contexts[device.screen_width_pixels]",
+        event_name="contexts[device.screen_width_pixels]",
+        transaction_name="contexts[device.screen_width_pixels]",
+        discover_name="contexts[device.screen_width_pixels]",
+        alias="device.screen_width_pixels",
     )
     DEVICE_SIMULATOR = Column(
         group_name="events.contexts[device.simulator]",
@@ -572,4 +607,12 @@ class Columns(Enum):
         transaction_name="contexts[trace.client_sample_rate]",
         discover_name="contexts[trace.client_sample_rate]",
         alias="trace.client_sample_rate",
+    )
+
+    APP_START_TYPE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="app_start_type",
+        discover_name="app_start_type",
+        alias="app_start_type",
     )

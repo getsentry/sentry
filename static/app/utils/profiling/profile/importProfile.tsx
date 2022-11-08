@@ -9,6 +9,7 @@ import {
   isNodeProfile,
   isSampledProfile,
   isSchema,
+  isSentrySampledProfile,
   isTypescriptChromeTraceArrayFormat,
 } from '../guards/profile';
 
@@ -17,7 +18,12 @@ import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
-import {createFrameIndex, wrapWithSpan} from './utils';
+import {SentrySampledProfile} from './sentrySampledProfile';
+import {
+  createFrameIndex,
+  createSentrySampleProfileFrameIndex,
+  wrapWithSpan,
+} from './utils';
 
 export interface ImportOptions {
   transaction: Transaction | undefined;
@@ -29,6 +35,7 @@ export interface ProfileGroup {
   name: string;
   profiles: Profile[];
   traceID: string;
+  transactionID: string | null;
 }
 
 export function importProfile(
@@ -36,6 +43,7 @@ export function importProfile(
     | Profiling.Schema
     | JSSelfProfiling.Trace
     | ChromeTrace.ProfileType
+    | Profiling.SentrySampledProfile
     | [Profiling.NodeProfile, {}], // this is hack so that we distinguish between typescript and node profiles
   traceID: string
 ): ProfileGroup {
@@ -70,6 +78,14 @@ export function importProfile(
       return importChromeTrace(input, traceID, {transaction});
     }
 
+    if (isSentrySampledProfile(input)) {
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'sentry-sampled');
+      }
+      return importSentrySampledProfile(input, {transaction});
+    }
+
     if (isSchema(input)) {
       // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
       if (transaction) {
@@ -102,6 +118,7 @@ function importJSSelfProfile(
   return {
     traceID,
     name: traceID,
+    transactionID: null,
     activeProfileIndex: 0,
     profiles: [profile],
     metadata: {
@@ -127,6 +144,89 @@ function importChromeTrace(
   throw new Error('Failed to parse trace input format');
 }
 
+function importSentrySampledProfile(
+  input: Profiling.SentrySampledProfile,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
+  const samplesByThread: Record<
+    string,
+    Profiling.SentrySampledProfile['profile']['samples']
+  > = {};
+
+  for (let i = 0; i < input.profile.samples.length; i++) {
+    const sample = input.profile.samples[i];
+    if (!samplesByThread[sample.thread_id]) {
+      samplesByThread[sample.thread_id] = [];
+    }
+    samplesByThread[sample.thread_id].push(sample);
+  }
+
+  for (const key in samplesByThread) {
+    samplesByThread[key].sort(
+      (a, b) =>
+        parseInt(a.elapsed_since_start_ns, 10) - parseInt(b.elapsed_since_start_ns, 10)
+    );
+  }
+
+  const profiles: Profile[] = [];
+
+  for (const key in samplesByThread) {
+    const profile: Profiling.SentrySampledProfile = {
+      ...input,
+      profile: {
+        ...input.profile,
+        samples: samplesByThread[key],
+      },
+    };
+    profiles.push(
+      wrapWithSpan(
+        options.transaction,
+        () => SentrySampledProfile.FromProfile(profile, frameIndex),
+        {
+          op: 'profile.import',
+          description: 'evented',
+        }
+      )
+    );
+  }
+
+  const firstTransaction = input.transactions?.[0];
+  return {
+    transactionID: firstTransaction?.id ?? null,
+    traceID: firstTransaction?.trace_id ?? '',
+    name: firstTransaction?.name ?? '',
+    activeProfileIndex: 0,
+    metadata: {
+      // androidAPILevel: number;
+      // deviceClassification: string;
+      // organizationID: number;
+      // projectID: number;
+      // received: string;
+
+      deviceLocale: input.device.locale,
+      deviceManufacturer: input.device.manufacturer,
+      deviceModel: input.device.model,
+      deviceOSName: input.os.name,
+      deviceOSVersion: input.os.version,
+      durationNS: parseInt(
+        input.profile.samples[input.profile.samples.length - 1].elapsed_since_start_ns,
+        10
+      ),
+      environment: input.environment,
+      platform: input.platform,
+      version: input.version,
+      profileID: input.event_id,
+
+      // these don't really work for multiple transactions
+      transactionID: firstTransaction?.id,
+      transactionName: firstTransaction?.name,
+      traceID: firstTransaction?.trace_id,
+    },
+    profiles,
+  };
+}
+
 function importSchema(
   input: Profiling.Schema,
   traceID: string,
@@ -136,6 +236,7 @@ function importSchema(
 
   return {
     traceID,
+    transactionID: input.metadata.transactionID ?? null,
     name: input.metadata?.transactionName ?? traceID,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     metadata: input.metadata ?? {},
@@ -154,6 +255,7 @@ function importNodeProfile(
 
   return {
     traceID,
+    transactionID: null,
     name: input.name,
     activeProfileIndex: 0,
     metadata: {},

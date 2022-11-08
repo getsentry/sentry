@@ -466,7 +466,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         {this.renderCards()}
-        <ChartWrapper>{this.renderChart()}</ChartWrapper>
+        <ChartWrapper data-test-id="usage-stats-chart">{this.renderChart()}</ChartWrapper>
       </Fragment>
     );
   }

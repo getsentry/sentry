@@ -8,8 +8,9 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -21,6 +22,7 @@ import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -187,6 +189,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const to = eventView.getResultsViewUrlTarget(organization.slug);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
+    if (organization.features.includes('discover-query-builder-as-landing-page')) {
+      return null;
+    }
+
     return <Banner organization={organization} resultsUrl={resultsUrl} />;
   }
 
@@ -216,7 +222,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -257,10 +263,30 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  renderBreadcrumbs() {
+    return (
+      <Breadcrumbs
+        crumbs={[
+          {
+            key: 'discover-homepage',
+            label: t('Discover'),
+            to: getDiscoverLandingUrl(this.props.organization),
+          },
+          {
+            key: 'discover-saved-queries',
+            label: t('Saved Queries'),
+          },
+        ]}
+      />
+    );
+  }
+
   render() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const to = organization.features.includes('discover-query-builder-as-landing-page')
+      ? `/organizations/${organization.slug}/discover/homepage/`
+      : eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <Feature
@@ -273,14 +299,21 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <Title>
-                    <GuideAnchor target="discover_landing_header">
-                      {t('Discover')}
-                    </GuideAnchor>
-                  </Title>
+                  {organization.features.includes(
+                    'discover-query-builder-as-landing-page'
+                  ) ? (
+                    this.renderBreadcrumbs()
+                  ) : (
+                    <Title>
+                      <GuideAnchor target="discover_landing_header">
+                        {t('Discover')}
+                      </GuideAnchor>
+                    </Title>
+                  )}
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
+                    size="sm"
                     priority="primary"
                     onClick={() => {
                       trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {

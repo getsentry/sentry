@@ -7,12 +7,7 @@ import CreateDashboard from 'sentry/views/dashboardsV2/create';
 
 describe('Dashboards > Create', function () {
   const organization = TestStubs.Organization({
-    features: [
-      'dashboards-basic',
-      'dashboards-edit',
-      'discover-query',
-      'dashboard-grid-layout',
-    ],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   describe('new dashboards', function () {
@@ -65,7 +60,6 @@ describe('Dashboards > Create', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      ProjectsStore.teardown();
     });
 
     // eslint-disable-next-line

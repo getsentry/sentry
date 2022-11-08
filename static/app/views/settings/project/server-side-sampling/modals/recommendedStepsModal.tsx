@@ -135,7 +135,7 @@ export function RecommendedStepsModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Next steps')}</h4>
+        <h4>{t('Important next steps')}</h4>
       </Header>
       <Body>
         <List symbol="colored-numeric">
@@ -144,7 +144,7 @@ export function RecommendedStepsModal({
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
                 {t(
-                  'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
+                  'To activate Dynamic Sampling rules, it’s a requirement to update the following project SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>
@@ -171,10 +171,10 @@ export function RecommendedStepsModal({
             </ListItem>
           )}
           <ListItem>
-            <h5>{t('Increase your client-side transaction sample rate')}</h5>
+            <h5>{t('Adjust your Client-Side (SDK) sample rate')}</h5>
             <TextBlock>
               {t(
-                'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
+                'Here’s the new Client-Side (SDK) sample rate you specified in the previous step. To make this change, find the ‘tracesSampleRate’ option in your SDK Config, modify it’s value to what’s shown below and re-deploy.'
               )}
             </TextBlock>
             <div>
@@ -193,7 +193,7 @@ export function RecommendedStepsModal({
                   <span className="token punctuation">{'  ...'}</span>
                   <br />
                   <span className="token literal-property property">
-                    {'  traceSampleRate'}
+                    {'  tracesSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
                   <span className="token string">{suggestedClientSampleRate || ''}</span>

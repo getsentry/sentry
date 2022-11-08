@@ -93,7 +93,9 @@ describe('useDomFilters', () => {
         query: {f_d_type: TYPE_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(() => useDomFilters({actions}));
+    const {result, rerender} = reactHooks.renderHook(useDomFilters, {
+      initialProps: {actions},
+    });
 
     result.current.setType(TYPE_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -121,7 +123,7 @@ describe('useDomFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({actions}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.items.length).toEqual(3);
   });
 
@@ -133,7 +135,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({actions}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -145,7 +147,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({actions}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -158,7 +160,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({actions}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.items.length).toEqual(1);
   });
 });

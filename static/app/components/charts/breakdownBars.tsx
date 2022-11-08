@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 
 type Point = {
   label: string;
   value: number;
+  active?: boolean;
   onClick?: () => void;
+  tooltip?: string;
 };
 
 type Props = {
@@ -16,25 +19,36 @@ type Props = {
    * in the order they want bars displayed.
    */
   data: Point[];
+  maxItems?: number;
 };
 
-function BreakdownBars({data}: Props) {
+function BreakdownBars({data, maxItems}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
-      {data.map((point, i) => (
-        <Fragment key={`${i}:${point.label}`}>
-          <Percentage>{formatPercentage(point.value / total, 0)}</Percentage>
-          <BarContainer
-            data-test-id={`status-${point.label}`}
-            cursor={point.onClick ? 'pointer' : 'default'}
-            onClick={point.onClick}
-          >
-            <Bar style={{width: `${((point.value / total) * 100).toFixed(2)}%`}} />
+      {(maxItems ? data.slice(0, maxItems) : data).map((point, i) => {
+        const bar = (
+          <Fragment>
+            <Bar
+              style={{width: `${((point.value / total) * 100).toFixed(2)}%`}}
+              active={point.active}
+            />
             <Label>{point.label}</Label>
-          </BarContainer>
-        </Fragment>
-      ))}
+          </Fragment>
+        );
+        return (
+          <Fragment key={`${i}:${point.label}`}>
+            <Percentage>{formatPercentage(point.value / total, 0)}</Percentage>
+            <BarContainer
+              data-test-id={`status-${point.label}`}
+              cursor={point.onClick ? 'pointer' : 'default'}
+              onClick={point.onClick}
+            >
+              {point.tooltip ? <Tooltip title={point.tooltip}>{bar}</Tooltip> : bar}
+            </BarContainer>
+          </Fragment>
+        );
+      })}
     </BreakdownGrid>
   );
 }
@@ -58,6 +72,8 @@ const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
   padding-right: ${space(1)};
   position: relative;
   cursor: ${p => p.cursor};
+  display: flex;
+  align-items: center;
 `;
 
 const Label = styled('span')`
@@ -67,9 +83,9 @@ const Label = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Bar = styled('div')`
+const Bar = styled('div')<{active?: boolean}>`
   border-radius: 2px;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => (p.active ? p.theme.purple200 : p.theme.border)};
   position: absolute;
   top: 0;
   left: 0;

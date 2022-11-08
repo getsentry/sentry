@@ -49,6 +49,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
+            size="sm"
             priority="primary"
             referrer="alert_stream"
             showPermissionGuide
@@ -61,6 +62,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
             {t('Create Alert')}
           </CreateAlertButton>
           <Button
+            size="sm"
             onClick={handleNavigateToSettings}
             href="#"
             icon={<IconSettings size="sm" />}

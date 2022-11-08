@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import {SelectAsyncField} from 'sentry/components/deprecatedforms';
+import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -57,7 +57,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
 
   return (
     <form onSubmit={onSubmit}>
-      <Header>{t('Resolved In')}</Header>
+      <Header>
+        <h4>{t('Resolved In')}</h4>
+      </Header>
       <Body>
         <SelectAsyncField
           label={t('Version')}

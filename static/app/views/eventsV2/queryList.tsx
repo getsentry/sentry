@@ -110,9 +110,8 @@ class QueryList extends Component<Props> {
     return (
       <DropdownMenuControl
         items={items}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
@@ -127,7 +126,7 @@ class QueryList extends Component<Props> {
             data-test-id="menu-trigger"
           />
         )}
-        placement="bottom right"
+        position="bottom-end"
         offset={4}
       />
     );
@@ -181,9 +180,14 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Use as Discover Home'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+                    organization,
+                    source: 'context-menu',
+                    type: 'prebuilt-query',
+                  });
                 },
               },
             ]
@@ -267,9 +271,14 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Use as Discover Home'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+                    organization,
+                    source: 'context-menu',
+                    type: 'saved-query',
+                  });
                 },
               },
             ]

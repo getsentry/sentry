@@ -315,7 +315,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             },
         )
         assert response.status_code == 200, response.content
-        return not response.data["isMetricsData"]
+        assert not response.data["isMetricsData"]
         meta = response.data["meta"]
         assert meta["isMetricsData"] == response.data["isMetricsData"]
 
@@ -624,3 +624,17 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         }
         assert meta == response.data["p99(measurements.custom)"]["meta"]
         assert meta == response.data["p99(measurements.another.custom)"]["meta"]
+
+
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(
+        reason="Failing with indexer, but unsure if we're keeping the indexer so xfailing for now"
+    )
+    def test_search_query_if_environment_does_not_exist_on_indexer(self):
+        super().test_search_query_if_environment_does_not_exist_on_indexer()

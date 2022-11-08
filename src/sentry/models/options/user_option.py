@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, Value
 
@@ -120,7 +120,7 @@ class UserOptionManager(OptionManager["User"]):
 
 # TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
-@region_silo_model
+@control_silo_only_model
 class UserOption(Model):  # type: ignore
     """
     User options apply only to a user, and optionally a project OR an organization.

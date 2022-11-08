@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
@@ -12,6 +12,7 @@ import MenuListItem, {
   MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
 export type MenuItemProps = MenuListItemProps & {
@@ -25,6 +26,10 @@ export type MenuItemProps = MenuListItemProps & {
    * `isSubmenu` is true, then they will be rendered together in a sub-menu.
    */
   children?: MenuItemProps[];
+  /**
+   * Plass a class name to the menu item.
+   */
+  className?: string;
   /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
@@ -41,10 +46,6 @@ export type MenuItemProps = MenuListItemProps & {
    */
   onAction?: (key: MenuItemProps['key']) => void;
   /**
-   * Whether to show a line divider below this menu item
-   */
-  showDividers?: boolean;
-  /**
    * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
    * if `children` is defined and `isSubmenu` is true)
    */
@@ -60,10 +61,6 @@ type Props = {
    * Whether to close the menu when an item has been clicked/selected
    */
   closeOnSelect: boolean;
-  /**
-   * Whether this is the last node in the collection
-   */
-  isLastNode: boolean;
   /**
    * Node representation (from @react-aria) of the item
    */
@@ -87,10 +84,9 @@ type Props = {
    */
   renderAs?: React.ElementType;
   /**
-   * If isSubmenuTrigger is true, then replace the internal ref object with
-   * this ref
+   * Whether to show a divider below this item
    */
-  submenuTriggerRef?: React.RefObject<HTMLLIElement>;
+  showDivider?: boolean;
 };
 
 /**
@@ -98,24 +94,24 @@ type Props = {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = ({
-  node,
-  isLastNode,
-  state,
-  onClose,
-  closeOnSelect,
-  isSubmenuTrigger = false,
-  submenuTriggerRef,
-  renderAs = 'li' as React.ElementType,
-  ...submenuTriggerProps
-}: Props) => {
-  const ourRef = useRef(null);
+const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props> = (
+  {
+    node,
+    state,
+    onClose,
+    closeOnSelect,
+    showDivider,
+    isSubmenuTrigger = false,
+    renderAs = 'li' as React.ElementType,
+    ...submenuTriggerProps
+  },
+  forwardedRef
+) => {
+  const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
+  const {key, onAction, to, label, ...itemProps} = node.value;
   const {size} = node.props;
-
-  const ref = submenuTriggerRef ?? ourRef;
 
   const actionHandler = () => {
     if (to) {
@@ -194,12 +190,12 @@ const MenuItem = ({
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
-  const showDivider = showDividers && !isLastNode;
   const innerWrapProps = {as: to ? Link : 'div', to};
 
   return (
     <MenuListItem
-      ref={ref}
+      aria-haspopup={isSubmenuTrigger}
+      ref={mergeRefs([ref, forwardedRef])}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}
@@ -213,7 +209,6 @@ const MenuItem = ({
       {...props}
       {...itemProps}
       {...(isSubmenuTrigger && {
-        role: 'menuitemradio',
         trailingItems: (
           <Fragment>
             {itemProps.trailingItems}
@@ -225,4 +220,6 @@ const MenuItem = ({
   );
 };
 
-export default MenuItem;
+const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
+
+export default DropdownMenuItem;

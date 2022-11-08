@@ -7,7 +7,7 @@ from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -70,6 +70,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
+        assert "customer-domains" not in response.data["features"]
 
     def test_simple_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}.testserver"
@@ -88,6 +89,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
+        assert "customer-domains" in response.data["features"]
+
+        with self.feature({"organizations:customer-domains": False}):
+            HTTP_HOST = f"{self.organization.slug}.testserver"
+            response = self.get_success_response(
+                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            )
+            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -124,14 +133,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         expected_queries = 36
 
-        # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries += 1
+        # make sure options are not cached the first time to get predictable number of database queries
+        options.delete("system.rate-limit")
+        options.delete("store.symbolicate-event-lpq-always")
+        options.delete("store.symbolicate-event-lpq-never")
 
-        # sentry_option query related to userip.
         expected_queries += 1
-
-        # Symbolication Low Priority Queue stats reads two killswitches
-        expected_queries += 8
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)

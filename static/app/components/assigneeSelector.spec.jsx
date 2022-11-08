@@ -6,6 +6,7 @@ import AssigneeSelectorComponent from 'sentry/components/assigneeSelector';
 import {putSessionUserFirst} from 'sentry/components/assigneeSelectorDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -17,7 +18,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('AssigneeSelector', () => {
   let assignMock;
   let assignGroup2Mock;
-  let USER_1, USER_2, USER_3;
+  let USER_1, USER_2, USER_3, USER_4;
   let TEAM_1;
   let PROJECT_1;
   let GROUP_1;
@@ -38,6 +39,12 @@ describe('AssigneeSelector', () => {
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
+    });
+    USER_4 = TestStubs.Member({
+      id: '4',
+      name: 'Jane Doe',
+      email: 'janedoe@example.com',
+      team_slug: 'cool-team2',
     });
 
     TEAM_1 = TestStubs.Team({
@@ -112,7 +119,6 @@ describe('AssigneeSelector', () => {
 
   afterEach(() => {
     Client.clearMockResponses();
-    ProjectsStore.teardown();
   });
 
   describe('render with props', () => {
@@ -316,6 +322,40 @@ describe('AssigneeSelector', () => {
     expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
     // USER_2 initials
     expect(screen.getByTestId('assignee-selector')).toHaveTextContent('JB');
+  });
+
+  it('shows the correct toast for assigning to a non-team member', async () => {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+
+    render(<AssigneeSelectorComponent id={GROUP_2.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]));
+
+    assignMock = Client.addMockResponse({
+      method: 'PUT',
+      url: `/issues/${GROUP_2.id}/`,
+      statusCode: 400,
+      body: {detail: 'Cannot assign to non-team member'},
+    });
+
+    expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
+
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByText(`#${TEAM_1.slug}`)).toBeInTheDocument();
+    expect(await screen.findByText('Suggested')).toBeInTheDocument();
+
+    const options = screen.getAllByTestId('assignee-option');
+    expect(options[4]).toHaveTextContent('JD');
+    act(() => userEvent.click(options[4]));
+
+    await waitFor(() => {
+      expect(addMessageSpy).toHaveBeenCalledWith(
+        'Cannot assign to non-team member',
+        'error',
+        {duration: 4000}
+      );
+    });
   });
 
   it('successfully shows suggested assignees', async () => {

@@ -4,20 +4,22 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
+import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import {SetStateAction} from '../types';
@@ -32,6 +34,8 @@ type Props = {
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
   onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   organization: Organization;
+  projectId: string;
+  projects: Project[];
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalEventCount: string;
@@ -59,13 +63,16 @@ function EventsContent(props: Props) {
     webVital,
     setError,
     totalEventCount,
+    projectId,
+    projects,
   } = props;
-
+  const routes = useRoutes();
   const eventView = originalEventView.clone();
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
+  const project = projects.find(p => p.id === projectId);
 
   if (webVital) {
-    transactionsListTitles.splice(3, 0, t(webVital));
+    transactionsListTitles.splice(3, 0, webVital);
   }
 
   const spanOperationBreakdownConditions = filterToSearchConditions(
@@ -75,7 +82,14 @@ function EventsContent(props: Props) {
 
   if (spanOperationBreakdownConditions) {
     eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-    transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
+    transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
+  }
+
+  const showReplayCol =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+
+  if (showReplayCol) {
+    transactionsListTitles.push(t('replay'));
   }
 
   return (
@@ -85,10 +99,12 @@ function EventsContent(props: Props) {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={routes}
         location={location}
         setError={setError}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
+        showReplayCol={showReplayCol}
       />
     </Layout.Main>
   );

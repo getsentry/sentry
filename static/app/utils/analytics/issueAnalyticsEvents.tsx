@@ -29,6 +29,13 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_group_details.tab.clicked': {
+    tab: string;
+    browser?: string;
+    device?: string;
+    os?: string;
+    platform?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -38,12 +45,6 @@ export type IssueEventParameters = {
     error: string;
     search_source: string;
     search_type: string;
-  };
-  'issues_stream.count_perf_issues': {
-    num_perf_issues: number;
-    num_total_issues: number;
-    page: number;
-    query: string;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -62,7 +63,10 @@ export type IssueEventParameters = {
   };
   'issues_tab.viewed': {
     num_issues: number;
-    tab: string;
+    num_perf_issues: number;
+    page: number;
+    query: string;
+    tab?: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -120,12 +124,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+  'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
     'Performance Issue Details: Autogrouped Siblings Toggled',
   'issue_details.performance.hidden_spans_expanded':
     'Performance Issue Details: Hidden Spans Expanded',
-  'issues_stream.count_perf_issues':
-    'Issues Stream: Number of Performance Issues on Current Page',
 };

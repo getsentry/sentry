@@ -11,7 +11,7 @@ on:
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   sync:
@@ -21,8 +21,8 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: ./.github/actions/setup-volta
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Install github-label-sync
         run: yarn global add github-label-sync@2.2.0

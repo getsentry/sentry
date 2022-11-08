@@ -3,11 +3,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Exception Content', function () {
   it('display redacted values from exception entry', async function () {
@@ -25,7 +23,7 @@ describe('Exception Content', function () {
       projects: [project],
     });
 
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     const event = {
       ...TestStubs.Event(),
@@ -106,28 +104,18 @@ describe('Exception Content', function () {
     };
 
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Content
-            type={STACK_TYPE.ORIGINAL}
-            groupingCurrentLevel={0}
-            hasHierarchicalGrouping
-            newestFirst
-            platform="python"
-            stackView={STACK_VIEW.APP}
-            event={event}
-            values={event.entries[0].data.values}
-            meta={event._meta.entries[0].data.values}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <Content
+        type={STACK_TYPE.ORIGINAL}
+        groupingCurrentLevel={0}
+        hasHierarchicalGrouping
+        newestFirst
+        platform="python"
+        stackView={STACK_VIEW.APP}
+        event={event}
+        values={event.entries[0].data.values}
+        meta={event._meta.entries[0].data.values}
+      />,
+      {organization, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -137,7 +125,7 @@ describe('Exception Content', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description
@@ -153,7 +141,7 @@ describe('Exception Content', function () {
 
     expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/projects/project-slug/'
+      '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
   });
 });

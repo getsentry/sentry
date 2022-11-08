@@ -20,6 +20,7 @@ from symbolic import SourceMapCache as SmCache
 from symbolic import SourceMapView
 
 from sentry import features, http, options
+from sentry.event_manager import set_tag
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -860,19 +861,36 @@ def is_valid_frame(frame):
     return frame is not None and frame.get("lineno") is not None
 
 
-def get_function_for_token(frame, token):
+def get_function_for_token(frame, token, previous_frame=None):
     """
-    Get function name for a given frame, based on the looked up token.
-    Return tokens name if we have a usable value from symbolic or we have no initial function name at all,
-    otherwise, fallback to frames current function name.
+    Get function name for a given frame based on the token resolved by symbolic.
+    It tries following paths in order:
+    - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
+    - return mapped name of the caller (previous frame) token if it had,
+    - return token function name, including filtered values if it mapped to anything in the first place,
+    - return current frames function name as a fallback
     """
 
     frame_function_name = frame.get("function")
     token_function_name = token.function_name
 
-    if token_function_name not in USELESS_FN_NAMES or not frame_function_name:
+    # Try to use the function name we got from sourcemap-cache, filtering useless names.
+    if token_function_name not in USELESS_FN_NAMES:
         return token_function_name
 
+    # If not found, ask the callsite (previous token) for function name if possible.
+    if previous_frame is not None:
+        # `preprocess_frame` is supposed to make sure that `data` is present,
+        # but better safe than sorry.
+        last_token = (previous_frame.get("data") or {}).get("token")
+        if last_token:
+            return last_token.name
+
+    # If there was no minified name at all, return even useless, filtered one from the original token.
+    if not frame_function_name:
+        return token_function_name
+
+    # Otherwise fallback to the old, minified name.
     return frame_function_name
 
 
@@ -900,6 +918,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not organization:
             organization = Organization.objects.get_from_cache(id=self.project.organization_id)
 
+        self.organization = organization
         self.max_fetches = MAX_RESOURCE_FETCHES
         self.allow_scraping = organization.get_option(
             "sentry:scrape_javascript", True
@@ -1194,7 +1213,37 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
+
+            self.tag_suspected_console_errors(new_frames)
             return new_frames, raw_frames, all_errors
+
+    def tag_suspected_console_errors(self, new_frames):
+        def tag_error(new_frames):
+            suspected_console_errors = None
+            try:
+                suspected_console_errors = self.suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.error(
+                    "Failed to evaluate event for suspected JavaScript browser console error",
+                    exc_info=exc,
+                )
+
+            try:
+                set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
+            except Exception as exc:
+                logger.error(
+                    "Failed to tag event with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
+                    suspected_console_errors,
+                    exc_info=exc,
+                )
+
+        try:
+            if features.has(
+                "organizations:javascript-console-error-tag", self.organization, actor=None
+            ):
+                tag_error(new_frames)
+        except Exception as exc:
+            logger.exception("Failed to tag suspected console errors", exc_info=exc)
 
     def expand_frame(self, frame, source=None):
         """
@@ -1351,6 +1400,40 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
 
+    def suspected_console_errors(self, frames):
+        def is_suspicious_frame(frame) -> bool:
+            function = frame.get("function", None)
+            filename = frame.get("filename", None)
+            return function == "?" and filename == "<anonymous>"
+
+        def has_suspicious_frames(frames) -> bool:
+            if len(frames) == 2 and is_suspicious_frame(frames[0]):
+                return True
+            return all(is_suspicious_frame(frame) for frame in frames)
+
+        for info in self.stacktrace_infos:
+            is_exception = info.is_exception and info.container
+            mechanism = info.container.get("mechanism") if is_exception else None
+            error_type = info.container.get("type") if is_exception else None
+
+            if (
+                not frames
+                or not mechanism
+                or mechanism.get("type") != "onerror"
+                or mechanism.get("handled")
+            ):
+                return False
+
+            has_short_stacktrace = len(frames) <= 2
+            is_suspicious_error = error_type.lower() in [
+                "syntaxerror",
+                "referenceerror",
+                "typeerror",
+            ]
+
+            return has_short_stacktrace and is_suspicious_error and has_suspicious_frames(frames)
+        return False
+
 
 class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
     """
@@ -1432,6 +1515,9 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
                     }
                 )
 
+            # persist the token so that we can find it later
+            processable_frame.data["token"] = token
+
             # Store original data in annotation
             new_frame["data"] = dict(frame.get("data") or {}, sourcemap=sourcemap_label)
 
@@ -1464,7 +1550,9 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
                 # The tokens are 1-indexed.
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
-                new_frame["function"] = get_function_for_token(new_frame, token)
+                new_frame["function"] = get_function_for_token(
+                    new_frame, token, processable_frame.previous_frame
+                )
 
                 filename = token.src
                 # special case webpack support
@@ -1555,6 +1643,14 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
 
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
+
+            try:
+                if features.has(
+                    "organizations:javascript-console-error-tag", self.organization, actor=None
+                ):
+                    self.tag_suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.exception("Failed to tag suspected console errors", exc_info=exc)
             return new_frames, raw_frames, all_errors
 
     def expand_frame(self, frame, source_context=None, source=None):

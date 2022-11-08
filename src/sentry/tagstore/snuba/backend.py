@@ -1,6 +1,6 @@
 import functools
 import re
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from collections.abc import Iterable
 from typing import Optional, Sequence
 
@@ -985,6 +985,7 @@ class SnubaTagStorage(TagStorage):
         order_by="-last_seen",
         include_transactions=False,
         include_sessions=False,
+        include_replays=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -999,6 +1000,8 @@ class SnubaTagStorage(TagStorage):
         dataset = Dataset.Events
         if include_transactions:
             dataset = Dataset.Discover
+        if include_replays:
+            dataset = Dataset.Replays
 
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
@@ -1152,27 +1155,21 @@ class SnubaTagStorage(TagStorage):
         if include_transactions:
             # With transaction_status we need to map the ids back to their names
             if transaction_status:
-                results = OrderedDict(
-                    [
-                        (SPAN_STATUS_CODE_TO_NAME[result_key], data)
-                        for result_key, data in results.items()
-                    ]
-                )
+                results = {
+                    SPAN_STATUS_CODE_TO_NAME[result_key]: data
+                    for result_key, data in results.items()
+                }
             # With project names we map the ids back to the project slugs
             elif key == PROJECT_ALIAS:
-                results = OrderedDict(
-                    [
-                        (project_slugs[value], data)
-                        for value, data in results.items()
-                        if value in project_slugs
-                    ]
-                )
+                results = {
+                    project_slugs[value]: data
+                    for value, data in results.items()
+                    if value in project_slugs
+                }
             elif is_fuzzy_numeric_key(key):
                 # numeric keys like measurements and breakdowns are nullable
                 # so filter out the None values from the results
-                results = OrderedDict(
-                    [(value, data) for value, data in results.items() if value is not None]
-                )
+                results = {value: data for value, data in results.items() if value is not None}
 
         tag_values = [
             TagValue(key=key, value=str(value), **fix_tag_value_data(data))

@@ -204,7 +204,7 @@ describe('EventOrGroupHeader', function () {
 
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&sort=freq'
+        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header&sort=freq'
       );
     });
 
@@ -226,7 +226,7 @@ describe('EventOrGroupHeader', function () {
 
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1'
+        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
       );
     });
   });

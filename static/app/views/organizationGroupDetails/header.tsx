@@ -8,11 +8,11 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -30,6 +30,7 @@ import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/t
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -144,6 +145,14 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
+  const eventRouteToObject = useMemo(() => {
+    const searchTermWithoutQuery = omit(location.query, 'query');
+    return {
+      pathname: `${baseUrl}events/`,
+      query: searchTermWithoutQuery,
+    };
+  }, [location, baseUrl]);
+
   const errorIssueTabs = useMemo(() => {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -151,17 +160,23 @@ function GroupHeader({
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
+    const hasSessionReplay =
+      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
 
     return (
-      <StyledTabList>
-        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
+      <StyledTabList hideBorder>
+        <Item
+          key={Tab.DETAILS}
+          disabled={disabledTabs.includes(Tab.DETAILS)}
+          to={`${baseUrl}${location.search}`}
+        >
           {t('Details')}
         </Item>
         <Item
           key={Tab.ACTIVITY}
           textValue={t('Activity')}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          to={`${baseUrl}activity/${location.search}`}
         >
           {t('Activity')}
           <IconBadge>
@@ -173,6 +188,7 @@ function GroupHeader({
           key={Tab.USER_FEEDBACK}
           textValue={t('User Feedback')}
           disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
+          to={`${baseUrl}feedback/${location.search}`}
         >
           {t('User Feedback')} <Badge text={group.userReportCount} />
         </Item>
@@ -180,22 +196,36 @@ function GroupHeader({
           key={Tab.ATTACHMENTS}
           hidden={!hasEventAttachments}
           disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
+          to={`${baseUrl}attachments/${location.search}`}
         >
           {t('Attachments')}
         </Item>
-        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
+        <Item
+          key={Tab.TAGS}
+          disabled={disabledTabs.includes(Tab.TAGS)}
+          to={`${baseUrl}tags/${location.search}`}
+        >
           {t('Tags')}
         </Item>
-        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
+        <Item
+          key={Tab.EVENTS}
+          disabled={disabledTabs.includes(Tab.EVENTS)}
+          to={eventRouteToObject}
+        >
           {t('All Events')}
         </Item>
-        <Item key={Tab.MERGED} disabled={disabledTabs.includes(Tab.MERGED)}>
+        <Item
+          key={Tab.MERGED}
+          disabled={disabledTabs.includes(Tab.MERGED)}
+          to={`${baseUrl}merged/${location.search}`}
+        >
           {t('Merged Issues')}
         </Item>
         <Item
           key={Tab.GROUPING}
           hidden={!hasGroupingTreeUI}
           disabled={disabledTabs.includes(Tab.GROUPING)}
+          to={`${baseUrl}grouping/${location.search}`}
         >
           {t('Grouping')}
         </Item>
@@ -203,10 +233,16 @@ function GroupHeader({
           key={Tab.SIMILAR_ISSUES}
           hidden={!hasSimilarView}
           disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
+          to={`${baseUrl}similar/${location.search}`}
         >
           {t('Similar Issues')}
         </Item>
-        <Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
+        <Item
+          key={Tab.REPLAYS}
+          textValue={t('Replays')}
+          hidden={!hasSessionReplay}
+          to={`${baseUrl}replays/${location.search}`}
+        >
           {t('Replays')}{' '}
           {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
           <ReplaysFeatureBadge noTooltip />
@@ -214,24 +250,32 @@ function GroupHeader({
       </StyledTabList>
     );
   }, [
+    baseUrl,
+    location,
     disabledTabs,
     group.numComments,
     group.userReportCount,
     organization,
     project,
     replaysCount,
+    eventRouteToObject,
   ]);
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
-        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
+      <StyledTabList hideBorder>
+        <Item
+          key={Tab.DETAILS}
+          disabled={disabledTabs.includes(Tab.DETAILS)}
+          to={`${baseUrl}${location.search}`}
+        >
           {t('Details')}
         </Item>
         <Item
           key={Tab.ACTIVITY}
           textValue={t('Activity')}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          to={`${baseUrl}activity/${location.search}`}
         >
           {t('Activity')}
           <IconBadge>
@@ -239,15 +283,23 @@ function GroupHeader({
             <IconChat size="xs" />
           </IconBadge>
         </Item>
-        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
+        <Item
+          key={Tab.TAGS}
+          disabled={disabledTabs.includes(Tab.TAGS)}
+          to={`${baseUrl}tags/${location.search}`}
+        >
           {t('Tags')}
         </Item>
-        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
+        <Item
+          key={Tab.EVENTS}
+          disabled={disabledTabs.includes(Tab.EVENTS)}
+          to={eventRouteToObject}
+        >
           {t('Events')}
         </Item>
       </StyledTabList>
     );
-  }, [disabledTabs, group.numComments]);
+  }, [disabledTabs, group.numComments, baseUrl, location, eventRouteToObject]);
 
   const membersList = useMembersList({group, organization});
   const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
@@ -264,12 +316,6 @@ function GroupHeader({
   }
 
   const message = getMessage(group);
-
-  const searchTermWithoutQuery = omit(location.query, 'query');
-  const eventRouteToObject = {
-    pathname: `${baseUrl}events/`,
-    query: searchTermWithoutQuery,
-  };
 
   const disableActions = !!disabledTabs.length;
 
@@ -291,28 +337,35 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
 
+  const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
+
   return (
     <Layout.Header>
       <div className={className}>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: 'Issues',
-              to: `/organizations/${organization.slug}/issues/${location.search}`,
-            },
-            {label: shortIdBreadCrumb},
-          ]}
-        />
+        <BreadcrumbActionWrapper>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
+              {label: shortIdBreadCrumb},
+            ]}
+          />
+          {hasIssueActionsV2 && (
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+          )}
+        </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -376,19 +429,26 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-            query={location.query}
-          />
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-        </HeaderRow>
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}
@@ -398,6 +458,14 @@ function GroupHeader({
 }
 
 export default GroupHeader;
+
+const BreadcrumbActionWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
+  align-items: center;
+`;
 
 const ShortIdBreadrcumb = styled('div')`
   display: flex;
@@ -467,6 +535,5 @@ const IconBadge = styled(Badge)`
 `;
 
 const StyledTabList = styled(TabList)`
-  border-bottom: none;
   margin-top: ${space(2)};
 `;

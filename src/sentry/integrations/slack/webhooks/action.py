@@ -4,6 +4,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -165,6 +166,25 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond_ephemeral(text)
 
+    def validation_error(
+        self,
+        slack_request: SlackActionRequest,
+        group: Group,
+        error: serializers.ValidationError,
+        action_type: str,
+    ) -> Response:
+        logger.info(
+            "slack.action.validation-error",
+            extra={
+                **slack_request.get_logging_data(group),
+                "response": str(error.detail),
+                "action_type": action_type,
+            },
+        )
+
+        text: str = list(*error.detail.values())[0]
+        return self.respond_ephemeral(text)
+
     def on_assign(
         self, request: Request, identity: Identity, group: Group, action: MessageAction
     ) -> None:
@@ -289,6 +309,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
+        original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
         if (
             slack_request.type == "dialog_submission"
@@ -306,7 +327,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 return self.api_error(slack_request, group, identity, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action]
+                group, identity=identity, actions=[action], tags=original_tags_from_request
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -341,6 +362,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity, error, action.name)
+            except serializers.ValidationError as error:
+                return self.validation_error(slack_request, group, error, action.name)
 
         if defer_attachment_update:
             return self.respond()
@@ -349,7 +372,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         group = Group.objects.get(id=group.id)
 
         attachment = SlackIssuesMessageBuilder(
-            group, identity=identity, actions=action_list
+            group, identity=identity, actions=action_list, tags=original_tags_from_request
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 

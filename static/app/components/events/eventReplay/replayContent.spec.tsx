@@ -1,8 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayContent from './replayContent';
 
@@ -20,7 +22,7 @@ const mockEvent = {
 };
 
 const mockButtonHref =
-  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?t=62&t_main=console';
+  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console';
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -56,11 +58,37 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 });
 
 const render: typeof baseRender = children => {
+  const {router, routerContext} = initializeOrg({
+    organization: {},
+    project: TestStubs.Project(),
+    projects: [TestStubs.Project()],
+    router: {
+      routes: [
+        {path: '/'},
+        {path: '/organizations/:orgId/issues/:groupId/'},
+        {path: 'replays/'},
+      ],
+      location: {
+        pathname: '/organizations/org-slug/replays/',
+        query: {},
+      },
+    },
+  });
+
   return baseRender(
-    <OrganizationContext.Provider value={TestStubs.Organization()}>
-      {children}
-    </OrganizationContext.Provider>,
-    {context: TestStubs.routerContext()}
+    <RouteContext.Provider
+      value={{
+        router,
+        location: router.location,
+        params: router.params,
+        routes: router.routes,
+      }}
+    >
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        {children}
+      </OrganizationContext.Provider>
+    </RouteContext.Provider>,
+    {context: routerContext}
   );
 };
 
@@ -115,11 +143,10 @@ describe('ReplayContent', () => {
       />
     );
 
-    const detailButton = screen.getByTestId('view-replay-button');
-    expect(detailButton).toBeVisible();
-
-    // Expect the details button to have the correct href
-    expect(detailButton).toHaveAttribute('href', mockButtonHref);
+    const detailButtons = screen.getAllByLabelText('View Full Replay');
+    // Expect the details buttons to have the correct href
+    expect(detailButtons[0]).toHaveAttribute('href', mockButtonHref);
+    expect(detailButtons[1]).toHaveAttribute('href', mockButtonHref);
   });
 
   it('Should render all its elements correctly', () => {

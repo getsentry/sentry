@@ -12,7 +12,7 @@ import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {aggregateMultiPlotType} from 'sentry/utils/discover/fields';
+import {aggregateMultiPlotType, isEquation} from 'sentry/utils/discover/fields';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
@@ -63,7 +63,8 @@ export function MetricsBaselineContainer({
   const disableProcessedBaselineToggle =
     metricsCardinality.outcome?.forceTransactionsOnly ||
     displayMode !== 'default' ||
-    !usesTransactionsDataset(eventView, yAxis);
+    !usesTransactionsDataset(eventView, yAxis) ||
+    yAxis.some(isEquation);
 
   const apiPayload = eventView.getEventsAPIPayload(location);
   apiPayload.query = '';
@@ -181,7 +182,7 @@ export function MetricsBaselineContainer({
           let seriesWithOrdering: SeriesWithOrdering[] = [];
 
           seriesWithOrdering = Object.keys(response).map((seriesName: string) => {
-            const prefixedName = `processed events: ${seriesName}`;
+            const prefixedName = `total transactions: ${seriesName}`;
             const seriesData: EventsStats = response[seriesName];
             return [
               seriesData.order || 0,
@@ -216,7 +217,7 @@ export function MetricsBaselineContainer({
           );
         } else {
           const field = yAxis[0];
-          const prefixedName = `processed events: ${field}`;
+          const prefixedName = `total transactions: ${field}`;
           const transformed = transformSeries(response, prefixedName, field);
           additionalSeries.push(
             LineSeries({

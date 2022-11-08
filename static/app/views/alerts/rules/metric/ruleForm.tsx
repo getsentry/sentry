@@ -15,7 +15,7 @@ import Button from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -25,7 +25,7 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {logExperiment, metric} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -52,8 +52,6 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
-import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
-import PresetSidebar from './presetSidebar';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
   AlertRuleComparisonType,
@@ -89,7 +87,7 @@ type Props = {
   ruleId?: string;
   sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
-    onSubmitSuccess?: Form['props']['onSubmitSuccess'];
+    onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
 type State = {
@@ -112,7 +110,6 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
-  selectedPresetId?: string;
   uuid?: string;
 } & AsyncComponent['state'];
 
@@ -138,17 +135,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
-
-    if (this.props.location?.query.preset) {
-      const preset = PRESET_AGGREGATES.find(
-        p => p.id === this.props.location.query.preset
-      );
-      if (preset) {
-        preset
-          .makeContext(this.api, project, this.props.organization)
-          .then(ctx => this.setPreset(preset, ctx));
-      }
-    }
   }
 
   componentWillUnmount() {
@@ -207,29 +193,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return [
       ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
     ];
-  }
-
-  setPreset(preset: Preset, context: PresetContext) {
-    this.form.setInitialData({
-      ...this.form.initialData,
-      name: context.name,
-      dataset: context.dataset,
-      eventTypes: context.eventTypes as any,
-      aggregate: context.aggregate,
-      comparisonDelta: context.comparisonDelta,
-      timeWindow: context.timeWindow,
-      query: context.query,
-      projectId: this.form.getValue('projectId'),
-    });
-    this.form.setValue('comparisonDelta', context.comparisonDelta);
-
-    this.setState({
-      comparisonType: context.comparisonType,
-      triggers: context.triggers,
-      thresholdType: context.thresholdType,
-      triggerErrors: new Map(),
-      selectedPresetId: preset.id,
-    });
   }
 
   goBack() {
@@ -542,7 +505,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         !validTriggers && t('critical threshold'),
       ].filter(x => x);
 
-      addErrorMessage(t(`Alert not valid: missing %s`, missingFields.join(' ')));
+      addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return;
     }
 
@@ -797,7 +760,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       loading,
       eventTypes,
       dataset,
-      selectedPresetId,
       showMEPAlertBanner,
     } = this.state;
 
@@ -877,20 +839,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
-    let showPresetSidebar: boolean =
-      dataset === Dataset.TRANSACTIONS &&
-      project.firstTransactionEvent &&
-      !this.props.ruleId;
-    if (showPresetSidebar) {
-      logExperiment({
-        key: 'MetricAlertPresetExperiment',
-        organization,
-      });
-    }
-
-    showPresetSidebar =
-      showPresetSidebar && !!organization.experiments.MetricAlertPresetExperiment;
-
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
@@ -898,19 +846,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
-              {showPresetSidebar && (
-                <Side>
-                  <PresetSidebar
-                    organization={organization}
-                    project={project}
-                    onSelect={(preset, context) => {
-                      this.setPreset(preset, context);
-                    }}
-                    selectedPresetId={selectedPresetId}
-                  />
-                </Side>
-              )}
-              <Main fullWidth={!showPresetSidebar}>
+              <Main fullWidth>
                 {eventView && (
                   <IncompatibleAlertQuery
                     orgSlug={organization.slug}
@@ -1001,22 +937,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
 const Main = styled(Layout.Main)`
   padding: ${space(2)} ${space(4)};
-`;
-
-const Side = styled(Layout.Side)`
-  padding: ${space(4)} ${space(2)};
-  grid-row-start: 1;
-
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
-    margin-bottom: ${space(3)};
-    padding-bottom: 0;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    border-left: 1px solid ${p => p.theme.gray200};
-    max-width: 400px;
-  }
 `;
 
 const StyledListItem = styled(ListItem)`

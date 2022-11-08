@@ -50,6 +50,7 @@ class MockConditionTrue(EventCondition):
 class RuleProcessorTest(TestCase):
     def setUp(self):
         self.event = self.store_event(data={}, project_id=self.project.id)
+        self.event = next(self.event.build_group_events())
 
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -606,30 +607,3 @@ class RuleProcessorActiveReleaseTest(TestCase):
             assert mail.outbox[0]
             assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
             assert mail.outbox[0].to == [self.user.email]
-
-    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
-    @mock.patch("sentry.analytics.record")
-    def test_active_release_disabled(self, mock_record, mock_get_release_committers):
-        mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature(
-            {"organizations:active-release-notifications-enable": False}
-        ):
-            mail.outbox = []
-            rp = RuleProcessor(
-                self.event,
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                has_reappeared=False,
-            )
-            results = list(rp.apply())
-            assert len(results) == 0
-            assert len(mail.outbox) == 0
-            mock_record.assert_called_with(
-                "active_release_notification.dry_run",
-                organization_id=self.event.group.organization.id,
-                project_id=self.event.group.project_id,
-                group_id=self.event.group_id,
-                release_version=self.event.group.get_last_release(),
-                recipient_id=self.user.id,
-            )

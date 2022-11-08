@@ -28,18 +28,25 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
   sort: string;
   type: SavedSearchType;
+  visibility: SavedSearchVisibility;
 };
+
+export enum SavedSearchVisibility {
+  Organization = 'organization',
+  Owner = 'owner',
+  OwnerPinned = 'owner_pinned',
+}
 
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
   SESSION = 2,
+  REPLAY = 3,
 }
 
 export enum IssueCategory {
@@ -102,7 +109,7 @@ export type IssueAttachment = {
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
-export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
+export type EventAttachment = IssueAttachment;
 
 /**
  * Issue Tags
@@ -149,6 +156,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {
@@ -191,13 +199,16 @@ export type SuggestedOwner = {
 };
 
 export type IssueOwnership = {
-  autoAssignment: boolean;
+  autoAssignment:
+    | 'Auto Assign to Suspect Commits'
+    | 'Auto Assign to Issue Owner'
+    | 'Turn off Auto-Assignment';
   codeownersAutoSync: boolean;
-  dateCreated: string;
+  dateCreated: string | null;
   fallthrough: boolean;
   isActive: boolean;
-  lastUpdated: string;
-  raw: string;
+  lastUpdated: string | null;
+  raw: string | null;
 };
 
 export enum GroupActivityType {

@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Mapping
 
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.template import loader
 from django.utils import timezone
 
@@ -15,7 +18,11 @@ from sentry.utils.settings import is_self_hosted
 logger = logging.getLogger("sentry")
 
 
-def get_default_context(request, existing_context=None, team=None):
+def get_default_context(
+    request: HttpRequest,
+    existing_context: Mapping[str, Any] | None = None,
+    team: Team | None = None,
+) -> dict[str, Any]:
     from sentry import options
     from sentry.plugins.base import plugins
 
@@ -70,7 +77,9 @@ def get_default_context(request, existing_context=None, team=None):
     return context
 
 
-def render_to_string(template, context=None, request=None):
+def render_to_string(
+    template: str, context: Mapping[str, Any] | None = None, request: HttpRequest | None = None
+) -> str:
 
     # HACK: set team session value for dashboard redirect
     if context and "team" in context and isinstance(context["team"], Team):
@@ -92,10 +101,16 @@ def render_to_string(template, context=None, request=None):
     rendered = loader.render_to_string(template, context=context, request=request)
     timezone.deactivate()
 
-    return rendered
+    return rendered  # type: ignore[no-any-return]
 
 
-def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):
+def render_to_response(
+    template: str,
+    context: Mapping[str, Any] | None = None,
+    request: HttpRequest | None = None,
+    status: int = 200,
+    content_type: str = "text/html",
+) -> HttpResponse:
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
     response["Content-Type"] = content_type

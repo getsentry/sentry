@@ -36,3 +36,28 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
         response = self.client.post(self.url, post_data)
         request = RequestFactory().post(self.url, post_data)
         self.validate_schema(request, response)
+
+    def test_post_member_exists_but_not_accepted(self):
+        self.create_member(
+            user=self.create_user(),
+            organization=self.organization,
+            email="test.user@okta.local",
+            role="member",
+            invite_status=1,
+        )
+        post_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "test.user@okta.local",
+            "name": {"givenName": "Test", "familyName": "User"},
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "displayName": "Test User",
+            "locale": "en-US",
+            "externalId": "00ujl29u0le5T6Aj10h7",
+            "groups": [],
+            "password": "1mz050nq",
+            "active": True,
+        }
+
+        response = self.client.post(self.url, post_data)
+        request = RequestFactory().post(self.url, post_data)
+        self.validate_schema(request, response)

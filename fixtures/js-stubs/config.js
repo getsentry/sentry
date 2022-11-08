@@ -7,6 +7,8 @@ export function Config(params = {}) {
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
+    superUserCookieName: 'su-test-cookie',
+    superUserCookieDomain: '.sentry.io',
     features: new Set(),
     singleOrganization: false,
     urlPrefix: 'https://sentry-jest-tests.example.com/',
@@ -43,6 +45,11 @@ export function Config(params = {}) {
     apmSampling: 1,
     dsn_requests: '',
     demoMode: false,
+    customerDomain: {
+      subdomain: 'foobar',
+      organizationUrl: 'https://foobar.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    },
     links: {
       sentryUrl: 'https://sentry.io',
       organizationUrl: 'https://foobar.sentry.io',

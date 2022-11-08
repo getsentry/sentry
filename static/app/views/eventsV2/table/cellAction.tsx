@@ -86,8 +86,18 @@ export function updateQuery(
         const negation = `!${key}`;
         value = Array.isArray(value) ? value : [String(value)];
         const currentNegations = results.getFilterValues(negation);
-        value = [...new Set([...currentNegations, ...value])];
-        results.setFilterValues(negation, value);
+        results.removeFilter(negation);
+        // We shouldn't escape any of the existing conditions since the
+        // existing conditions have already been set an verified by the user
+        results.addFilterValues(
+          negation,
+          currentNegations.filter(
+            filterValue => !(value as string[]).includes(filterValue)
+          ),
+          false
+        );
+        // Escapes the new condition if necessary
+        results.addFilterValues(negation, value);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {

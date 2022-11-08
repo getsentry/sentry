@@ -1,33 +1,30 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SsoForm from 'sentry/views/auth/ssoForm';
 
-function doSso(wrapper, apiRequest) {
-  wrapper.find('#id-organization').simulate('change', {target: {value: 'org123'}});
-
-  wrapper.find('form').simulate('submit');
-
-  expect(apiRequest).toHaveBeenCalledWith(
-    '/auth/sso-locate/',
-    expect.objectContaining({data: {organization: 'org123'}})
-  );
-}
-
 describe('SsoForm', function () {
   const api = new MockApiClient();
+
+  function doSso(apiRequest) {
+    userEvent.type(screen.getByRole('textbox', {name: 'Organization ID'}), 'org123');
+    userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/auth/sso-locate/',
+      expect.objectContaining({data: {organization: 'org123'}})
+    );
+  }
 
   it('renders', function () {
     const authConfig = {
       serverHostname: 'testserver',
     };
 
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
+    render(<SsoForm api={api} authConfig={authConfig} />);
 
-    expect(wrapper.find('.help-block').text()).toBe(
-      'Your ID is the slug after the hostname. e.g. testserver/acme is acme.'
-    );
+    expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
 
   it('handles errors', async function () {
@@ -42,13 +39,10 @@ describe('SsoForm', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
-    doSso(wrapper, mockRequest);
+    render(<SsoForm api={api} authConfig={authConfig} />);
+    doSso(mockRequest);
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('.alert').exists()).toBe(true);
+    expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
 
   it('handles success', async function () {
@@ -62,12 +56,11 @@ describe('SsoForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
+    render(<SsoForm api={api} authConfig={authConfig} />);
+    doSso(mockRequest);
 
-    doSso(wrapper, mockRequest);
-
-    await tick();
-
-    expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'})
+    );
   });
 });

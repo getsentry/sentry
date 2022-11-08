@@ -27,7 +27,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
@@ -147,7 +147,7 @@ class GroupStatus:
 
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES = {
+STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
@@ -372,7 +372,7 @@ class GroupManager(BaseManager):
         }
 
 
-@region_silo_model
+@region_silo_only_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.

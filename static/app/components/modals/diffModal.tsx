@@ -23,7 +23,6 @@ const modalCss = css`
   width: auto;
 
   [role='document'] {
-    overflow: scroll;
     height: 100%;
     display: flex;
     flex: 1;

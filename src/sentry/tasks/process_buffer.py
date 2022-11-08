@@ -32,7 +32,7 @@ def process_pending(partition=None):
         logger.warning("process_pending.fail", extra={"error": error, "partition": partition})
 
 
-@instrumented_task(name="sentry.tasks.process_buffer.process_incr")
+@instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
 def process_incr(**kwargs):
     """
     Processes a buffer event.

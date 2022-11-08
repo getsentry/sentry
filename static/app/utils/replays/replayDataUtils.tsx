@@ -1,4 +1,5 @@
 import first from 'lodash/first';
+import {duration} from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
@@ -8,7 +9,11 @@ import type {
   Crumb,
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  isBreadcrumbTypeDefault,
+} from 'sentry/types/breadcrumbs';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -26,11 +31,49 @@ export const isNetworkSpan = (span: ReplaySpan) => {
   return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
 };
 
+export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: string[]) => {
+  return breadcrumbs
+    .filter(isBreadcrumbTypeDefault)
+    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
+};
+
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
+  // Add missing tags to the response
+  const unorderedTags: ReplayRecord['tags'] = {
+    ...apiResponse.tags,
+    ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
+    ...(apiResponse.browser?.version
+      ? {'browser.version': [apiResponse.browser.version]}
+      : {}),
+    ...(apiResponse.device?.brand ? {'device.brand': [apiResponse.device.brand]} : {}),
+    ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
+    ...(apiResponse.device?.model ? {'device.model': [apiResponse.device.model]} : {}),
+    ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
+    ...(apiResponse.releases ? {releases: [apiResponse.releases]} : {}),
+    ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
+    ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
+    ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
+    ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
+    ...(apiResponse.user?.ip_address
+      ? {'user.ip_address': [apiResponse.user.ip_address]}
+      : {}),
+  };
+
+  // Sort the tags by key
+  const tags = Object.keys(unorderedTags)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = unorderedTags[key];
+      return acc;
+    }, {});
+
   return {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
+    ...(apiResponse.duration ? {duration: duration(apiResponse.duration * 1000)} : {}),
+    tags,
   };
 }
 
@@ -78,8 +121,8 @@ export function breadcrumbFactory(
   const errorCrumbs: RawCrumb[] = errors.map(error => ({
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
-    category: 'exception',
-    message: error['error.value'].join(''),
+    category: 'issue',
+    message: error.title,
     data: {
       label: error['error.type'].join(''),
       eventId: error.id,
@@ -157,7 +200,13 @@ export function breadcrumbFactory(
 }
 
 export function spansFactory(spans: ReplaySpan[]) {
-  return spans.sort((a, b) => a.startTimestamp - b.startTimestamp);
+  return spans
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
+    .map(span => ({
+      ...span,
+      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
+      timestamp: span.startTimestamp * 1000,
+    }));
 }
 
 /**

@@ -255,7 +255,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots > 1) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>
@@ -337,6 +337,7 @@ class TraceDetailsContent extends Component<Props, State> {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <DiscoverButton
+                size="sm"
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(

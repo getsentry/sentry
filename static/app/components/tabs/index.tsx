@@ -6,17 +6,18 @@ import {AriaTabListProps} from '@react-aria/tabs';
 import {Item} from '@react-stately/collections';
 import {TabListProps, TabListState} from '@react-stately/tabs';
 import {ItemProps, Orientation} from '@react-types/shared';
+import {LocationDescriptor} from 'history';
 
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
 const _Item = Item as (
-  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean}
+  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean; to?: LocationDescriptor}
 ) => JSX.Element;
 export {_Item as Item, TabList, TabPanels};
 
-export interface TabsProps
+export interface TabsProps<T>
   extends Omit<TabListProps<any>, 'children'>,
     Omit<AriaTabListProps<any>, 'children'> {
   children?: React.ReactNode;
@@ -25,21 +26,21 @@ export interface TabsProps
    * [Uncontrolled] Default selected tab. Must match the `key` prop on the
    * selected tab item.
    */
-  defaultValue?: TabListProps<any>['defaultSelectedKey'];
+  defaultValue?: T;
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.
    */
-  onChange?: TabListProps<any>['onSelectionChange'];
+  onChange?: (key: T) => void;
   /**
    * [Controlled] Selected tab . Must match the `key` prop on the selected tab
    * item.
    */
-  value?: TabListProps<any>['selectedKey'];
+  value?: T;
 }
 
 interface TabContext {
-  rootProps: TabsProps & {orientation: Orientation};
+  rootProps: TabsProps<any> & {orientation: Orientation};
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;
 }
@@ -54,7 +55,12 @@ export const TabsContext = createContext<TabContext>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs({orientation = 'horizontal', className, ...props}: TabsProps) {
+export function Tabs<T extends React.Key>({
+  orientation = 'horizontal',
+  className,
+  children,
+  ...props
+}: TabsProps<T>) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -62,7 +68,7 @@ export function Tabs({orientation = 'horizontal', className, ...props}: TabsProp
       value={{rootProps: {...props, orientation}, tabListState, setTabListState}}
     >
       <TabsWrap orientation={orientation} className={className}>
-        {props.children}
+        {children}
       </TabsWrap>
     </TabsContext.Provider>
   );
@@ -73,6 +79,7 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 }>`
   display: flex;
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
+  flex-grow: 1;
 
   ${p =>
     p.orientation === 'vertical' &&

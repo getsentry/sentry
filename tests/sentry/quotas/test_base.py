@@ -84,34 +84,9 @@ class QuotaTest(TestCase):
         ), self.options({"system.rate-limit": 10}):
             assert self.backend.get_organization_quota(org) == (10, 60)
 
-
-@pytest.mark.parametrize(
-    "obj,json",
-    [
-        (
-            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
-            {"prefix": "o", "limit": 4711, "window": 42, "reasonCode": "not_so_fast"},
-        ),
-        (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=None,
-                window=1,
-                reason_code="go_away",
-            ),
-            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
-        ),
-        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
-        (
-            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="not_yet"),
-            {"limit": 0, "reasonCode": "not_yet"},
-        ),
-    ],
-)
-def test_quotas_to_json_legacy(obj, json):
-    assert obj.to_json_legacy() == json
+    def test_get_blended_sample_rate(self):
+        org = self.create_organization()
+        assert self.backend.get_blended_sample_rate(org) is None
 
 
 @pytest.mark.parametrize(

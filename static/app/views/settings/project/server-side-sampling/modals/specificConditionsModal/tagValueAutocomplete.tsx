@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Count from 'sentry/components/count';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import {
   Organization,
   Project,
@@ -50,17 +50,15 @@ function TagValueAutocomplete({
     }
 
     return resolve(
-      await fetchTagValues(
+      await fetchTagValues({
         api,
         orgSlug,
         tagKey,
-        inputValue,
-        [projectId],
-        null,
-        true,
-        undefined,
-        '-count'
-      )
+        search: inputValue,
+        projectIds: [projectId],
+        includeTransactions: true,
+        sort: '-count',
+      })
     );
   }, 250);
 

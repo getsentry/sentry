@@ -5,11 +5,12 @@ import logging
 from typing import Callable, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
+from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from django.conf import settings
 
@@ -185,4 +186,5 @@ def get_parallel_metrics_consumer(
         KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
         Topic(indexer_profile.input_topic),
         processing_factory,
+        IMMEDIATE,
     )

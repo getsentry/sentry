@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueOwnership, Organization, Project} from 'sentry/types';
@@ -45,6 +45,7 @@ type Props = {
    */
   placeholder: string;
   project: Project;
+  incompatibleRule?: number | null;
   ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
@@ -152,6 +153,7 @@ class RuleNodeList extends Component<Props> {
       disabled,
       error,
       selectType,
+      incompatibleRule,
     } = this.props;
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
@@ -244,6 +246,7 @@ class RuleNodeList extends Component<Props> {
               project={project}
               disabled={disabled}
               ownership={ownership}
+              incompatibleRule={incompatibleRule === idx}
             />
           ))}
         </RuleNodes>

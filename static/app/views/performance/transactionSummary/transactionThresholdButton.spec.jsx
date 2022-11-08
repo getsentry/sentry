@@ -1,13 +1,17 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdButton from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
 
-function mountComponent(eventView, organization, onChangeThreshold) {
-  return mountWithTheme(
+function renderComponent(eventView, organization, onChangeThreshold) {
+  return render(
     <TransactionThresholdButton
       eventView={eventView}
       organization={organization}
@@ -36,7 +40,7 @@ describe('TransactionThresholdButton', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
   });
 
   it('renders element correctly', async function () {
@@ -57,15 +61,12 @@ describe('TransactionThresholdButton', function () {
         metric: 'duration',
       },
     });
-    const wrapper = mountComponent(eventView, organization, onChangeThreshold);
-    await tick();
-    wrapper.update();
+    renderComponent(eventView, organization, onChangeThreshold);
 
-    const button = wrapper.find('Button');
-    expect(button.prop('disabled')).toBeFalsy();
+    const button = screen.getByRole('button');
+    await waitFor(() => expect(button).toBeEnabled());
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getProjectThresholdMock).not.toHaveBeenCalled();
-    wrapper.unmount();
   });
 
   it('gets project threshold if transaction threshold does not exist', async function () {
@@ -83,15 +84,13 @@ describe('TransactionThresholdButton', function () {
         metric: 'duration',
       },
     });
-    const wrapper = mountComponent(eventView, organization, onChangeThreshold);
-    await tick();
-    wrapper.update();
+    renderComponent(eventView, organization, onChangeThreshold);
 
-    const button = wrapper.find('Button');
-    expect(button.prop('disabled')).toBeFalsy();
+    const button = screen.getByRole('button');
+    await waitFor(() => expect(button).toBeEnabled());
+
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
-    wrapper.unmount();
   });
 
   it('mounts modal with the right values', async function () {
@@ -104,25 +103,15 @@ describe('TransactionThresholdButton', function () {
       },
     });
 
-    const wrapper = mountComponent(eventView, organization, onChangeThreshold);
-    await tick();
-    wrapper.update();
+    renderComponent(eventView, organization, onChangeThreshold);
 
-    expect(
-      wrapper.find('TransactionThresholdButton').state('transactionThreshold')
-    ).toEqual('800');
-    expect(
-      wrapper.find('TransactionThresholdButton').state('transactionThresholdMetric')
-    ).toEqual('lcp');
+    const button = screen.getByRole('button');
+    await waitFor(() => expect(button).toBeEnabled());
+    userEvent.click(button);
 
-    const spy = jest.spyOn(ModalStore, 'openModal');
-    const button = wrapper.find('Button');
-    button.simulate('click');
+    renderGlobalModal();
 
-    await tick();
-    wrapper.update();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-    wrapper.unmount();
+    expect(screen.getByRole('spinbutton')).toHaveValue(800);
+    expect(screen.getByText('Largest Contentful Paint')).toBeInTheDocument();
   });
 });

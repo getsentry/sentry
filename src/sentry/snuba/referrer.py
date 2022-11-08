@@ -40,7 +40,10 @@ class Referrer(Enum):
     API_EVENTS_VITALS = "api.events.vitals"
     API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
-    API_GROUP_EVENTS = "api.group-events"
+    API_GROUP_EVENTS_ERROR = "api.group-events.error"
+    API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
+    API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
+    API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_HASHES = "api.group-hashes"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
@@ -76,6 +79,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
+    API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA = (
         "api.performance.generic-widget-chart.apdex-area"
@@ -187,6 +191,11 @@ class Referrer(Enum):
     )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
+
+    API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
+    API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
+    API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
+
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -202,14 +211,20 @@ class Referrer(Enum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PARENT_TRANSACTIONS = (
-        "dynamic-sampling.distribution.fetch-parent-transactions"
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS = (
+        "dynamic-sampling.distribution.fetch-transactions"
     )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PARENT_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-parent-transactions-count"
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT = (
+        "dynamic-sampling.distribution.fetch-transactions-count"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
+        "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS = (
+        "dynamic-sampling.distribution.fetch-project-stats"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_SDK_VERSIONS_INFO = (
         "dynamic-sampling.distribution.fetch-project-sdk-versions-info"

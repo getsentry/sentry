@@ -1,4 +1,6 @@
-import {getResourceTypes, getStatusTypes, NetworkSpan} from './utils';
+import type {NetworkSpan} from 'sentry/views/replays/types';
+
+import {getResourceTypes, getStatusTypes} from './utils';
 
 describe('getResourceTypes', () => {
   const SPAN_NAVIGATE = {op: 'navigation.navigate'} as NetworkSpan;

@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,6 +28,7 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
+  isHomepage?: boolean;
   source?: EventDetailPageSource;
 };
 
@@ -41,6 +41,7 @@ export default function EventCustomPerformanceMetrics({
   location,
   organization,
   source,
+  isHomepage,
 }: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -54,7 +55,6 @@ export default function EventCustomPerformanceMetrics({
   return (
     <Container>
       <SectionHeading>{t('Custom Performance Metrics')}</SectionHeading>
-      <FeatureBadge type="beta" />
       <Measurements>
         {measurementNames.map(name => {
           return (
@@ -65,6 +65,7 @@ export default function EventCustomPerformanceMetrics({
               location={location}
               organization={organization}
               source={source}
+              isHomepage={isHomepage}
             />
           );
         })}
@@ -91,6 +92,7 @@ export function getFieldTypeFromUnit(unit) {
     if (unit === 'none') {
       return 'integer';
     }
+    return 'string';
   }
   return 'number';
 }
@@ -101,6 +103,7 @@ function EventCustomPerformanceMetric({
   location,
   organization,
   source,
+  isHomepage,
 }: EventCustomPerformanceMetricProps) {
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
@@ -108,13 +111,14 @@ function EventCustomPerformanceMetric({
   }
 
   const fieldType = getFieldTypeFromUnit(unit);
+  const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
   const rendered = fieldType
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
-        {[name]: value},
+        {[name]: renderValue},
         {location, organization, unit}
       )
-    : value;
+    : renderValue;
 
   function generateLinkWithQuery(query: string) {
     const eventView = EventView.fromLocation(location);
@@ -129,7 +133,7 @@ function EventCustomPerformanceMetric({
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug);
+        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
     }
   }
 
@@ -181,7 +185,7 @@ function EventCustomPerformanceMetric({
           showChevron: false,
           icon: <IconEllipsis direction="down" size="sm" />,
         }}
-        placement="bottom right"
+        position="bottom-end"
       />
     </StyledPanel>
   );

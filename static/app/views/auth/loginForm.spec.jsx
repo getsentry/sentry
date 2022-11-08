@@ -6,8 +6,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import LoginForm from 'sentry/views/auth/loginForm';
 
 function doLogin() {
-  userEvent.type(screen.getByPlaceholderText('username or email'), 'test@test.com');
-  userEvent.type(screen.getByPlaceholderText('password'), '12345pass');
+  userEvent.type(screen.getByRole('textbox', {name: 'Account'}), 'test@test.com');
+  userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
   userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 }
 

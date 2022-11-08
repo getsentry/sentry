@@ -6,12 +6,9 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
-import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import CompactSelect from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -24,7 +21,7 @@ import {
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, Project} from 'sentry/types';
@@ -37,7 +34,7 @@ import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
-const PAGE_QUERY_PARAMS = [
+export const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
   'pageStart',
   'pageEnd',
@@ -61,6 +58,7 @@ export class OrganizationStats extends Component<Props> {
       case DataCategory.ERRORS:
       case DataCategory.TRANSACTIONS:
       case DataCategory.ATTACHMENTS:
+      case DataCategory.PROFILES:
         return dataCategory as DataCategory;
       default:
         return DataCategory.ERRORS;
@@ -185,17 +183,6 @@ export class OrganizationStats extends Component<Props> {
     });
   };
 
-  navigateToSamplingSettings = (e: React.MouseEvent) => {
-    e.preventDefault?.();
-
-    const {organization, router} = this.props;
-
-    navigateTo(
-      `/settings/${organization.slug}/projects/:projectId/server-side-sampling/?referrer=org-stats.alert`,
-      router
-    );
-  };
-
   /**
    * TODO: Enable user to set dateStart/dateEnd
    *
@@ -304,22 +291,6 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </PageGrid>
-
-              <Feature
-                features={['server-side-sampling', 'server-side-sampling-ui']}
-                organization={organization}
-              >
-                {this.dataCategory === DataCategory.TRANSACTIONS && (
-                  <Alert type="info" showIcon>
-                    {tct(
-                      'Manage your transaction usage in Dynamic Sampling. Go to [link: Dynamic Sampling Settings].',
-                      {
-                        link: <a href="#" onClick={this.navigateToSamplingSettings} />,
-                      }
-                    )}
-                  </Alert>
-                )}
-              </Feature>
 
               <ErrorBoundary mini>
                 <UsageStatsProjects

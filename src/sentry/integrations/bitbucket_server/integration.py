@@ -260,8 +260,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
                 for repo in resp.get("values", [])
             ]
 
-        full_query = (query).encode("utf-8")
-        resp = self.get_client().search_repositories(full_query)
+        resp = self.get_client().search_repositories(query)
 
         return [
             {

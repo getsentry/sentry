@@ -4,27 +4,24 @@ from typing import Callable
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.urls import resolve, reverse
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
-from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth
+from sentry.utils.http import absolute_uri
 
 
 def _org_exists(slug):
     if not slug:
         return False
-    try:
-        Organization.objects.get_from_cache(slug=slug)
-        return True
-    except Organization.DoesNotExist:
-        return False
+    return (
+        organization_service.check_organization_by_slug(slug=slug, only_visible=False) is not None
+    )
 
 
 def _query_string(request):
@@ -92,21 +89,8 @@ class CustomerDomainMiddleware:
             # DISALLOWED_CUSTOMER_DOMAINS is a list of org slugs that are explicitly not allowed to use customer domains.
             # We kick any request to the logout view.
             logout(request)
-            url_prefix = options.get("system.url-prefix")
-            logout_view = reverse("sentry-logout")
-            redirect_url = f"{url_prefix}{logout_view}"
+            redirect_url = absolute_uri(reverse("sentry-logout"))
             return HttpResponseRedirect(redirect_url)
-
-        user = getattr(request, "user", None)
-        if user and user.is_authenticated and not user.is_staff:
-            # Kick user to sentry.io if they are not a Sentry staff
-            url_prefix = options.get("system.url-prefix")
-            qs = _query_string(request)
-            redirect_url = f"{url_prefix}{request.path}{qs}"
-            if request.method == "GET":
-                return HttpResponseRedirect(redirect_url)
-            else:
-                return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
         activeorg = _resolve_activeorg(request)
         if not activeorg:

@@ -13,7 +13,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -242,9 +242,7 @@ function AddToDashboardModal({
               >
                 <WidgetCard
                   organization={organization}
-                  currentWidgetDragging={false}
                   isEditing={false}
-                  isSorting={false}
                   widgetLimitReached={false}
                   selection={
                     organization.features.includes('dashboards-top-level-filter') &&

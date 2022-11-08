@@ -21,7 +21,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
 
 exception = {
@@ -979,21 +979,21 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
             self.project.id,
             "user1",
             [first_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=first_group_timestamp_start + timedelta(minutes=1),
         )
         self.store_transaction(
             self.project.id,
             "user1",
             [first_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=first_group_timestamp_start + timedelta(minutes=2),
         )
         self.store_transaction(
             self.project.id,
             "user2",
             [first_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=first_group_timestamp_start + timedelta(minutes=3),
         )
         event_with_first_group = self.store_transaction(
@@ -1010,21 +1010,21 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
             self.project.id,
             "user1",
             [second_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=second_group_timestamp_start + timedelta(minutes=1),
         )
         self.store_transaction(
             self.project.id,
             "user1",
             [second_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=second_group_timestamp_start + timedelta(minutes=2),
         )
         self.store_transaction(
             self.project.id,
             "user2",
             [second_group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=second_group_timestamp_start + timedelta(minutes=3),
         )
         event_with_second_group = self.store_transaction(
@@ -1036,7 +1036,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         second_group = event_with_second_group.groups[0]
 
         # should have no effect on user_counts
-        self.store_transaction(self.project.id, "user_nogroup", [], self.environment)
+        self.store_transaction(self.project.id, "user_nogroup", [], self.environment.name)
 
         assert self.ts.get_perf_groups_user_counts(
             [self.project.id],
@@ -1055,12 +1055,16 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
             self.project.id,
             "user1",
             [group_fingerprint],
-            self.environment,
+            self.environment.name,
             timestamp=first_event_ts,
         )
         last_event_ts = start_timestamp + timedelta(hours=1)
         event = self.store_transaction(
-            self.project.id, "user1", [group_fingerprint], self.environment, timestamp=last_event_ts
+            self.project.id,
+            "user1",
+            [group_fingerprint],
+            self.environment.name,
+            timestamp=last_event_ts,
         )
         group = event.groups[0]
 

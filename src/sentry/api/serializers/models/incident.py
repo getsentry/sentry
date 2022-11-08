@@ -60,7 +60,9 @@ class IncidentSerializer(Serializer):
                 results[incident]["has_seen"] = has_seen
 
         if "activities" in self.expand:
-            activities = list(IncidentActivity.objects.filter(incident__in=item_list))
+            # There could be many activities. An incident could seesaw between error/warning for a long period.
+            # e.g - every 1 minute for 10 months
+            activities = list(IncidentActivity.objects.filter(incident__in=item_list)[:1000])
             incident_activities = defaultdict(list)
             for activity, serialized_activity in zip(activities, serialize(activities, user=user)):
                 incident_activities[activity.incident_id].append(serialized_activity)

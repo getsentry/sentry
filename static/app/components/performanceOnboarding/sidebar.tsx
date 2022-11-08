@@ -8,6 +8,7 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
@@ -25,10 +26,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
 import OnBoardingStep from './step';
-import usePerformanceOnboardingDocs, {
-  generateOnboardingDocKeys,
-} from './usePerformanceOnboardingDocs';
-import {filterProjects} from './utils';
+import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -160,10 +158,8 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
               disableLink
             />
           }
-          triggerProps={{
-            'aria-label': currentProject.slug,
-          }}
-          placement="bottom left"
+          triggerProps={{'aria-label': currentProject.slug}}
+          position="bottom-end"
         />
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
@@ -183,8 +179,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     }
   }, [previousProject.id, currentProject.id]);
 
-  const {docContents, isLoading, hasOnboardingContents} =
-    usePerformanceOnboardingDocs(currentProject);
+  const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
+    project: currentProject,
+    generateDocKeys,
+    isPlatformSupported,
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -238,7 +237,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const docKeys = generateOnboardingDocKeys(currentPlatform.id);
+  const docKeys = generateDocKeys(currentPlatform.id);
 
   return (
     <Fragment>
@@ -325,7 +324,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t(`Waiting for this project's first transaction event`)}
+    {t("Waiting for this project's first transaction event")}
   </div>
 ))`
   display: flex;
@@ -338,7 +337,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t(`We've received this project's first transaction event!`)}
+    {t("We've received this project's first transaction event!")}
   </div>
 ))`
   display: flex;

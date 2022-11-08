@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -11,10 +10,7 @@ import {OrganizationContext} from '../organizationContext';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
-  });
-  const organizationWithFlag = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+    features: ['dashboards-basic', 'dashboards-edit'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -118,7 +114,7 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('fetches tags', () => {
-    mountWithTheme(
+    render(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -131,7 +127,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         isEditing={false}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
     expect(tagsMock).toHaveBeenCalled();
   });
@@ -139,7 +135,7 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -154,18 +150,16 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
-    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    const wrapper = mountWithTheme(
+    const {rerender} = render(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -179,21 +173,36 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
-    wrapper.setProps({newWidget});
-    await tick();
-    wrapper.update();
-    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+
+    // Re-render with newWidget prop
+    rerender(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.router.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+        newWidget={newWidget}
+      />
+    );
+    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
-  it('dashboard does not try to add new widget if no newWidget', async () => {
+  it('dashboard does not try to add new widget if no newWidget', () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -207,10 +216,8 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
@@ -247,7 +254,7 @@ describe('Dashboards > Dashboard', () => {
         widgets: [newWidget, issueWidget],
       };
       await act(async () => {
-        mount(mockDashboardWithIssueWidget, organizationWithFlag);
+        mount(mockDashboardWithIssueWidget, organization);
         await tick();
       });
       expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
@@ -259,7 +266,7 @@ describe('Dashboards > Dashboard', () => {
         ...mockDashboard,
         widgets: [{...issueWidget}],
       };
-      mount(mockDashboardWithIssueWidget, organizationWithFlag);
+      mount(mockDashboardWithIssueWidget, organization);
       expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
@@ -330,7 +337,7 @@ describe('Dashboards > Dashboard', () => {
       const testData = initializeOrg({
         ...initializeOrg(),
         organization: {
-          features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+          features: ['dashboards-basic', 'dashboards-edit'],
         },
       });
       const dashboardWithOneWidget = {

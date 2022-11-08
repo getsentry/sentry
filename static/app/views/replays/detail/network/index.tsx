@@ -1,10 +1,17 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+  GridCellProps,
+  MultiGrid,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -20,10 +27,9 @@ import {
   getResourceTypes,
   getStatusTypes,
   ISortConfig,
-  NetworkSpan,
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   networkSpans: NetworkSpan[];
@@ -32,8 +38,12 @@ type Props = {
 
 type SortDirection = 'asc' | 'desc';
 
-const createSpanId = (span: NetworkSpan) =>
-  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
+const cache = new CellMeasurerCache({
+  defaultWidth: 100,
+  fixedHeight: true,
+});
+
+const headerRowHeight = 24;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
@@ -43,6 +53,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+  const [scrollBarWidth, setScrollBarWidth] = useState(0);
+  const multiGridRef = useRef<MultiGrid>(null);
+  const networkTableRef = useRef<HTMLDivElement>(null);
 
   const {
     items,
@@ -57,11 +70,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
 
   const currentNetworkSpan = getPrevReplayEvent({
-    items: networkData.map(span => ({
-      ...span,
-      id: createSpanId(span),
-      timestamp: span.startTimestamp * 1000,
-    })),
+    items: networkData,
     targetTimestampMs: startTimestampMs + currentTime,
     allowEqual: true,
     allowExact: true,
@@ -95,6 +104,24 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     [handleMouseEnter, handleMouseLeave]
   );
 
+  useEffect(() => {
+    let observer: ResizeObserver | null;
+
+    if (networkTableRef.current) {
+      // Observe the network table for width changes
+      observer = new ResizeObserver(() => {
+        // Recompute the column widths
+        multiGridRef.current?.recomputeGridSize({columnIndex: 1});
+      });
+
+      observer.observe(networkTableRef.current);
+    }
+
+    return () => {
+      observer?.disconnect();
+    };
+  }, [networkTableRef, searchTerm]);
+
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
   function handleSort(
@@ -119,7 +146,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         size="xs"
         direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
       />
-    ) : null;
+    ) : (
+      <IconArrow size="xs" style={{visibility: 'hidden'}} />
+    );
   };
 
   const columns = [
@@ -163,8 +192,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableRow = (network: NetworkSpan) => {
-    const spanId = createSpanId(network);
+  const getNetworkColumnValue = (network: NetworkSpan, column: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
     const statusCode = network.data.statusCode;
@@ -172,7 +200,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
     const columnProps = {
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      isCurrent: currentNetworkSpan?.id === spanId,
+      isCurrent: currentNetworkSpan?.id === network.id,
       hasOccurred:
         currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
       timestampSortDir:
@@ -181,49 +209,77 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           : undefined,
     };
 
-    return (
-      <Fragment key={spanId}>
-        <Item {...columnHandlers} {...columnProps} isStatusCode>
-          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
-        </Item>
-        <Item {...columnHandlers} {...columnProps}>
-          {network.description ? (
-            <Tooltip
-              title={network.description}
-              isHoverable
-              overlayStyle={{
-                maxWidth: '500px !important',
-              }}
-              showOnlyOnOverflow
-            >
-              <Text>{network.description}</Text>
-            </Tooltip>
-          ) : (
-            <EmptyText>({t('Missing')})</EmptyText>
-          )}
-        </Item>
-        <Item {...columnHandlers} {...columnProps}>
-          <Text>{network.op.replace('resource.', '')}</Text>
-        </Item>
-        <Item {...columnHandlers} {...columnProps} numeric>
-          {defined(network.data.size) ? (
-            <FileSize bytes={network.data.size} />
-          ) : (
-            <EmptyText>({t('Missing')})</EmptyText>
-          )}
-        </Item>
-
-        <Item {...columnHandlers} {...columnProps} numeric>
-          {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
-        </Item>
-        <Item {...columnHandlers} {...columnProps} numeric>
-          <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
-            <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-              {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
-            </UnstyledButton>
+    const columnValues = [
+      <Item key="statusCode" {...columnHandlers} {...columnProps}>
+        {statusCode ? statusCode : <EmptyText>---</EmptyText>}
+      </Item>,
+      <Item key="description" {...columnHandlers} {...columnProps}>
+        {network.description ? (
+          <Tooltip
+            title={network.description}
+            isHoverable
+            overlayStyle={{
+              maxWidth: '500px !important',
+            }}
+            showOnlyOnOverflow
+          >
+            <Text>{network.description}</Text>
           </Tooltip>
-        </Item>
-      </Fragment>
+        ) : (
+          <EmptyText>({t('No value')})</EmptyText>
+        )}
+      </Item>,
+      <Item key="type" {...columnHandlers} {...columnProps}>
+        <Tooltip
+          title={network.op.replace('resource.', '')}
+          isHoverable
+          overlayStyle={{
+            maxWidth: '500px !important',
+          }}
+          showOnlyOnOverflow
+        >
+          <Text>{network.op.replace('resource.', '')}</Text>
+        </Tooltip>
+      </Item>,
+      <Item key="size" {...columnHandlers} {...columnProps} numeric>
+        {defined(network.data.size) ? (
+          <FileSize bytes={network.data.size} />
+        ) : (
+          <EmptyText>({t('No value')})</EmptyText>
+        )}
+      </Item>,
+      <Item key="duration" {...columnHandlers} {...columnProps} numeric>
+        {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
+      </Item>,
+      <Item key="timestamp" {...columnHandlers} {...columnProps} numeric>
+        <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
+          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
+            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
+          </UnstyledButton>
+        </Tooltip>
+      </Item>,
+    ];
+
+    return columnValues[column];
+  };
+
+  const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
+    const network = networkData[rowIndex - 1];
+
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={columnIndex}
+        key={key}
+        parent={parent}
+        rowIndex={rowIndex}
+      >
+        <div key={key} style={style}>
+          {rowIndex === 0
+            ? columns[columnIndex]
+            : getNetworkColumnValue(network, columnIndex)}
+        </div>
+      </CellMeasurer>
     );
   };
 
@@ -255,16 +311,51 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           query={searchTerm}
         />
       </NetworkFilters>
-      <StyledPanelTable
-        columns={columns.length}
-        isEmpty={networkData.length === 0}
-        emptyMessage={t('No related network requests found.')}
-        headers={columns}
-        disablePadding
-        stickyHeaders
-      >
-        {networkData.map(renderTableRow) || null}
-      </StyledPanelTable>
+
+      <NetworkTable ref={networkTableRef}>
+        <AutoSizer>
+          {({width, height}) => (
+            <MultiGrid
+              ref={multiGridRef}
+              columnCount={columns.length}
+              columnWidth={({index}) => {
+                if (index === 1) {
+                  return Math.max(
+                    columns.reduce(
+                      (remaining, _, i) =>
+                        i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
+                      width - scrollBarWidth
+                    ),
+                    200
+                  );
+                }
+
+                return cache.columnWidth({index});
+              }}
+              deferredMeasurementCache={cache}
+              height={height}
+              overscanRowCount={5}
+              cellRenderer={renderTableRow}
+              rowCount={networkData.length + 1}
+              rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+              width={width}
+              fixedRowCount={1}
+              onScrollbarPresenceChange={({vertical, size}) => {
+                if (vertical) {
+                  setScrollBarWidth(size);
+                } else {
+                  setScrollBarWidth(0);
+                }
+              }}
+              noContentRenderer={() => (
+                <EmptyStateWarning withIcon small>
+                  {t('No related network requests found.')}
+                </EmptyStateWarning>
+              )}
+            />
+          )}
+        </AutoSizer>
+      </NetworkTable>
     </NetworkContainer>
   );
 }
@@ -309,13 +400,12 @@ const Item = styled('div')<{
   isCurrent: boolean;
   isStatusError: boolean;
   timestampSortDir: SortDirection | undefined;
-  center?: boolean;
-  isStatusCode?: boolean;
   numeric?: boolean;
 }>`
   display: flex;
   align-items: center;
-  ${p => p.center && 'justify-content: center;'}
+
+  font-size: ${p => p.theme.fontSizeSmall};
   max-height: 28px;
   color: ${fontColor};
   padding: ${space(0.75)} ${space(1.5)};
@@ -335,7 +425,9 @@ const Item = styled('div')<{
       : 0;
   }};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+  border-right: 1px solid ${p => p.theme.innerBorder};
+
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums; justify-content: flex-end;'};
 
   ${EmptyText} {
     color: ${fontColor};
@@ -352,59 +444,41 @@ const UnstyledButton = styled('button')`
 `;
 
 const UnstyledHeaderButton = styled(UnstyledButton)`
+  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
   display: flex;
   justify-content: space-between;
   align-items: center;
 `;
 
-const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
-  grid-template-rows: 24px repeat(auto-fit, 28px);
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: 0;
+const NetworkTable = styled('div')`
+  list-style: none;
+  position: relative;
   height: 100%;
-  overflow: auto;
-
-  > * {
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-    /* Last column */
-    &:nth-child(${p => p.columns}n) {
-      border-right: 0;
-      text-align: right;
-      justify-content: end;
-    }
-
-    /* 3rd and 2nd last column */
-    &:nth-child(${p => p.columns}n - 1),
-    &:nth-child(${p => p.columns}n - 2) {
-      text-align: right;
-      justify-content: end;
-    }
-  }
-
-  ${PanelTableHeader} {
-    min-height: 24px;
-    border-radius: 0;
-    color: ${p => p.theme.subText};
-    line-height: 16px;
-    text-transform: none;
-
-    /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
-    &:nth-child(${p => p.columns}n),
-    &:nth-child(${p => p.columns}n - 1),
-    &:nth-child(${p => p.columns}n - 2) {
-      justify-content: center;
-      align-items: flex-start;
-      text-align: start;
-    }
-  }
+  overflow: hidden;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding-left: 0;
+  margin-bottom: 0;
 `;
 
 const SortItem = styled('span')`
-  padding: ${space(0.5)} ${space(1.5)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  background: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   width: 100%;
+
+  max-height: ${headerRowHeight}px;
+  line-height: 16px;
+  text-transform: uppercase;
+
+  border-radius: 0;
+  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   svg {
     margin-left: ${space(0.25)};

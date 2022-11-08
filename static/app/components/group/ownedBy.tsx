@@ -96,10 +96,12 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               data-test-id="owner-avatar"
               actor={currentOwner}
               hasTooltip={false}
-              size={20}
+              size={24}
             />
           ) : (
-            <IconUser size="md" />
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
           )}
           <ActorName>
             {currentOwner?.type === 'team'
@@ -119,10 +121,17 @@ const ActorWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   max-width: 85%;
+  line-height: 1;
 `;
 
 const ActorName = styled('div')`
+  line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  padding: ${space(0.25)};
 `;
 
 const StyledLink = styled(Link)`

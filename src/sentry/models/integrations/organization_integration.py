@@ -5,12 +5,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    control_silo_model,
+    region_silo_only_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@control_silo_model
+@region_silo_only_model
 class OrganizationIntegration(DefaultFieldsModel):
     __include_in_export__ = False
 

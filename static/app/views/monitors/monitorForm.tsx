@@ -3,13 +3,13 @@ import {Observer} from 'mobx-react';
 
 import Access from 'sentry/components/acl/access';
 import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import NumberField from 'sentry/components/forms/numberField';
-import SelectField from 'sentry/components/forms/selectField';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -37,11 +37,12 @@ const INTERVALS: SelectValue<string>[] = [
 
 type Props = {
   apiEndpoint: string;
-  apiMethod: Form['props']['apiMethod'];
-  onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  apiMethod: FormProps['apiMethod'];
+  onSubmitSuccess: FormProps['onSubmitSuccess'];
   projects: Project[];
   selection: PageFilters;
   monitor?: Monitor;
+  submitLabel?: string;
 };
 
 type TransformedData = {
@@ -103,7 +104,7 @@ class MonitorForm extends Component<Props> {
   }
 
   render() {
-    const {monitor} = this.props;
+    const {monitor, submitLabel} = this.props;
     const selectedProjectId = this.props.selection.projects[0];
     const selectedProject = selectedProjectId
       ? this.props.projects.find(p => p.id === selectedProjectId + '')
@@ -130,6 +131,7 @@ class MonitorForm extends Component<Props> {
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
+            submitLabel={submitLabel}
           >
             <Panel>
               <PanelHeader>{t('Details')}</PanelHeader>
@@ -149,6 +151,7 @@ class MonitorForm extends Component<Props> {
                   options={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => ({value: p.slug, label: p.slug}))}
+                  help={t('Associate your monitor with the appropriate project.')}
                   required
                 />
                 <TextField
@@ -238,6 +241,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Frequency')}
                               disabled={!hasAccess}
                               placeholder="e.g. 1"
+                              help={t(
+                                'The amount of times you expect the cron job to run within the specified interval.'
+                              )}
                               required
                             />
                             <SelectField
@@ -245,6 +251,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Interval')}
                               disabled={!hasAccess}
                               options={INTERVALS}
+                              help={t(
+                                'The interval on which the frequency will be applied. X times an (hour, day, week...)'
+                              )}
                               required
                             />
                             <NumberField

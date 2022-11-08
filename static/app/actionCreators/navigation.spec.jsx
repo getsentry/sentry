@@ -22,7 +22,6 @@ describe('navigation ActionCreator', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
-    ProjectsStore.teardown();
     jest.resetAllMocks();
   });
 

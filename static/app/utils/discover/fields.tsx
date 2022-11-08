@@ -633,8 +633,7 @@ export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
-  const results = field.match(MEASUREMENT_PATTERN);
-  return !!results;
+  return MEASUREMENT_PATTERN.test(field);
 }
 
 export function measurementType(field: string): MeasurementType {
@@ -688,7 +687,7 @@ export function parseArguments(functionText: string, columnText: string): string
     (functionText !== 'to_other' &&
       functionText !== 'count_if' &&
       functionText !== 'spans_histogram') ||
-    columnText.length === 0
+    columnText?.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
   }
@@ -868,7 +867,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   if (value.kind === 'equation') {
-    return `${EQUATION_PREFIX}${value.field}`;
+    return `${EQUATION_PREFIX}${value.field.trim()}`;
   }
 
   const aggregation = value.function[0];

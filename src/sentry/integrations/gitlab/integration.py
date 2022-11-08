@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from django import forms
@@ -18,6 +20,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -86,7 +89,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
+class GitlabIntegration(
+    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
+):
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -138,6 +143,39 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
             return data["message"]
         if "error" in data:
             return data["error"]
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        """
+        Returns the latest commit that altered the line from the event frame if it exists.
+        """
+        lineno = event_frame.get("lineno", 0)
+        if not lineno:
+            return None
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+
+        try:
+            commit = max(
+                blame_range,
+                key=lambda blame: datetime.strptime(
+                    blame.get("commit", {}).get("committed_date"), "%Y-%m-%dT%H:%M:%S.%fZ"
+                ),
+            )
+        except (ValueError, IndexError):
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            return {
+                "commitId": commitInfo.get("id"),
+                "committedDate": commitInfo.get("committed_date"),
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("committer_name"),
+                "commitAuthorEmail": commitInfo.get("committer_email"),
+            }
 
 
 class InstallationForm(forms.Form):
