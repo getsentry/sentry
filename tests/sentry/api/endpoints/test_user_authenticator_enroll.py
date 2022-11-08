@@ -276,7 +276,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def _assert_pending_invite_details_in_session(self, response, om):
+    def _assert_pending_invite_details_in_session(self, om):
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
 
@@ -294,7 +294,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
-        self._assert_pending_invite_details_in_session(resp, om)
+        self._assert_pending_invite_details_in_session(om)
 
         return om
 
@@ -314,21 +314,21 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert not self.client.session.get("invite_token")
         assert not self.client.session.get("invite_member_id")
 
-    def setup_u2f(self):
+    def setup_u2f(self, om):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
+            # these session helper functions appear to modify the
+            # self.client.session?
             self.session["webauthn_register_state"] = "state"
+            self.session["invite_token"] = self.client.session["invite_token"]
+            self.session["invite_member_id"] = self.client.session["invite_member_id"]
             self.save_session()
             return self.get_success_response(
                 "me",
                 "u2f",
                 method="post",
-                **{
-                    "deviceName": "device name",
-                    "challenge": "challenge",
-                    "response": "response",
-                },
+                **{"deviceName": "device name", "challenge": "challenge", "response": "response"},
             )
 
     def test_cannot_accept_invite_pending_invite__2fa_required(self):
@@ -341,7 +341,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
         om = self.get_om_and_init_invite()
-        resp = self.setup_u2f()
+        resp = self.setup_u2f(om)
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -408,7 +408,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def test_user_already_org_member(self, try_enroll, log):
         om = self.get_om_and_init_invite()
         self.create_existing_om()
-        self.setup_u2f()
+        self.setup_u2f(om)
 
         assert not OrganizationMember.objects.filter(id=om.id).exists()
 
@@ -426,7 +426,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         # pending member cookie.
         om.update(id=om.id + 1)
 
-        self.setup_u2f()
+        self.setup_u2f(om)
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
@@ -444,7 +444,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         # pending member cookie.
         om.update(token="123")
 
-        self.setup_u2f()
+        self.setup_u2f(om)
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
