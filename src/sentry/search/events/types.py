@@ -75,7 +75,7 @@ class SnubaParams:
 
     @property
     def project_ids(self) -> Sequence[int]:
-        return [proj.id for proj in self.projects]
+        return sorted([proj.id for proj in self.projects])
 
     @property
     def project_slug_map(self) -> Mapping[str, int]:
