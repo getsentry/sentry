@@ -1,0 +1,52 @@
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
+import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
+import {makeFetchSavedSearchesForOrgQueryKey} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
+
+type PinSavedSearchVariables = {
+  orgSlug: string;
+  query: string;
+  sort: string | null;
+  type: SavedSearchType;
+};
+
+type PinSavedSearchResponse = SavedSearch;
+
+export const usePinSearch = (
+  options: Omit<
+    UseMutationOptions<PinSavedSearchResponse, RequestError, PinSavedSearchVariables>,
+    'mutationFn'
+  > = {}
+) => {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation<PinSavedSearchResponse, RequestError, PinSavedSearchVariables>({
+    ...options,
+    mutationFn: ({orgSlug, query, type, sort}) =>
+      api.requestPromise(`/organizations/${orgSlug}/pinned-searches/`, {
+        method: 'PUT',
+        data: {query, type, sort},
+      }),
+    onSuccess: (savedSearch, variables, context) => {
+      queryClient.setQueryData(
+        makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug}),
+        oldData => {
+          if (!Array.isArray(oldData)) {
+            return oldData;
+          }
+
+          return [savedSearch, ...oldData];
+        }
+      );
+      options.onSuccess?.(savedSearch, variables, context);
+    },
+    onError: (error, variables, context) => {
+      addErrorMessage(t('Failed to pin search.'));
+      options.onError?.(error, variables, context);
+    },
+  });
+};
