@@ -1066,6 +1066,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics-report": False,
     # True if the metrics data should be returned as API response (if possible with current data)
     "organizations:release-health-return-metrics": False,
+    # True if Relay should drop raw session payloads after extracting metrics from them.
+    "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1095,8 +1097,6 @@ SENTRY_FEATURES = {
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards

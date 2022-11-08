@@ -269,7 +269,9 @@ def _get_project_config(project, full_config=True, project_keys=None):
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
             "version": 1,
-            "drop": False,
+            "drop": features.has(
+                "organizations:release-health-drop-sessions", project.organization
+            ),
         }
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
