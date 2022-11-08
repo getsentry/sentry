@@ -521,8 +521,8 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics: List[Any] = []
-    custom_tags: List[Any] = []
+    metrics: Collection[str] = []
+    custom_tags: Collection[str] = []
 
     metrics.extend(sorted(TRANSACTION_METRICS))
     # TODO: for now let's extract all known measurements. we might want to
