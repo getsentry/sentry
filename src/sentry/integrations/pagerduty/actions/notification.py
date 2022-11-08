@@ -54,6 +54,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                         "error": str(e),
                         "service_name": service.service_name,
                         "service_id": service.id,
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
                     },
                 )
                 raise e
@@ -66,11 +68,12 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     "status_code": resp.status_code,
                     "project_id": event.project_id,
                     "event_id": event.event_id,
+                    "service_name": service.service_name,
                     "service_id": service.id,
                 },
             )
 
-        key = f"pagerduty:{integration.id}"
+        key = f"pagerduty:{integration.id}:{service.id}"
         yield self.future(send_notification, key=key)
 
     def get_services(self) -> Sequence[PagerDutyService]:
