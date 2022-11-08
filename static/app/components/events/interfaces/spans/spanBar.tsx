@@ -107,16 +107,16 @@ export const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
+  didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
+  markAnchoredSpanIsMounted: () => void;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
-  numOfSpans: number;
-  onWheel: (deltaX: number) => void;
   organization: Organization;
   shouldShowDetailOnMount: boolean;
   showEmbeddedChildren: boolean;
@@ -139,8 +139,8 @@ type SpanBarProps = {
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
   treeDepth: number;
-  didAnchoredSpanMount: boolean;
-  markAnchoredSpanIsMounted: () => void;
+  onWheel: (deltaX: number) => void;
+  numOfSpans: number;
 };
 
 type SpanBarState = {

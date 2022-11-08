@@ -16,11 +16,12 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import * as AnchorLinkManager from './anchorLinkManager';
 
+import * as AnchorLinkManager from './anchorLinkManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
+import {SpanContext} from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -38,7 +39,6 @@ import {
   spanTargetHash,
 } from './utils';
 import WaterfallModel from './waterfallModel';
-import {SpanContext} from './spanContext';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
