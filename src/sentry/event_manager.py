@@ -1751,7 +1751,9 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
     if is_regression:
         Activity.objects.create_group_activity(
-            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
+            group,
+            ActivityType.SET_REGRESSION,
+            data={"version": release.version if release else "", "event_id": event.event_id},
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
