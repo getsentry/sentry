@@ -472,6 +472,8 @@ urlpatterns += [
     url(r"^join-request/", react_page_view, name="join-request"),
     # User Feedback
     url(r"^user-feedback/", react_page_view, name="user-feedback"),
+    # Data Export
+    url(r"^data-export/", react_page_view, name="data-export"),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(
