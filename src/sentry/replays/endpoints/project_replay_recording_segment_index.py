@@ -97,7 +97,10 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         for i, file in enumerate(recording_segments):
             if self.is_compressed(file):
                 buffer = file.read()
-                yield zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+                decompressed = zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+                if decompressed == "undefined":
+                    yield ""
+                yield decompressed
             else:
                 yield file.read().decode("utf-8")
 
