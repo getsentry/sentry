@@ -13,8 +13,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.models import Team, User
 
 READ_CACHE_DURATION = 3600
 
@@ -160,7 +159,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[
         Tuple[
             "Rule",
-            Sequence[Union["Team", "APIUser"]],
+            Sequence[Union["Team", "User"]],
             Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
         ]
     ]:

@@ -3,7 +3,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FilterToTeamTest(TestCase):
     def test(self):
         GroupAssignee.objects.assign(self.group, self.user)

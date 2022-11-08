@@ -4,10 +4,8 @@ from django.utils import timezone
 
 from sentry.models import Environment, GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class GetOrCreateTest(TestCase):
     def test_simple(self):
         project = self.create_project()

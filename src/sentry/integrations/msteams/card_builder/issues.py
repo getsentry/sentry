@@ -207,7 +207,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         teams_choices = self.get_teams_choices()
 
         assign_action = self.create_issue_action_block(
-            toggled=self.group.get_assignee() is not None,
+            toggled=self.group.get_assignee(),
             action=ACTION_TYPE.ASSIGN,
             action_title=IssueConstants.ASSIGN,
             reverse_action=ACTION_TYPE.UNASSIGN,

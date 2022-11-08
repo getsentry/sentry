@@ -3,10 +3,8 @@ from uuid import uuid4
 
 from sentry.models import Commit, Repository
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class FindReferencedGroupsTest(TestCase):
     def test_multiple_matches_basic(self):
         group = self.create_group()

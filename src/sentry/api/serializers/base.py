@@ -68,6 +68,7 @@ def serialize(
                 pass
         else:
             return objects
+
     with sentry_sdk.start_span(op="serialize", description=type(serializer).__name__) as span:
         span.set_data("Object Count", len(objects))
 

@@ -41,8 +41,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, Team
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.models import Integration, Organization, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -460,7 +459,7 @@ class Group(Model):
     __repr__ = sane_repr("project_id")
 
     def __str__(self):
-        return f"({self.times_seen}) {self.title}"
+        return f"({self.times_seen}) {self.error()}"
 
     def save(self, *args, **kwargs):
         if not self.last_seen:
@@ -653,7 +652,7 @@ class Group(Model):
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
-    def get_assignee(self) -> Team | APIUser | None:
+    def get_assignee(self) -> Team | User | None:
         from sentry.models import GroupAssignee
 
         try:

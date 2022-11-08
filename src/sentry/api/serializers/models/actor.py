@@ -1,13 +1,14 @@
 from sentry.api.serializers import Serializer
+from sentry.models import Team, User
 
 
 class ActorSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        if obj.class_name() == "User":
+        if isinstance(obj, User):
             actor_type = "user"
             name = obj.get_display_name()
             context = {"email": obj.email}
-        elif obj.class_name() == "Team":
+        elif isinstance(obj, Team):
             actor_type = "team"
             name = obj.slug
             context = {}

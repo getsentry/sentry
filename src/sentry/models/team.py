@@ -164,9 +164,6 @@ class Team(Model):
 
     __repr__ = sane_repr("name", "slug")
 
-    def class_name(self):
-        return "Team"
-
     def __str__(self):
         return f"{self.name} ({self.slug})"
 

@@ -11,7 +11,6 @@ from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -86,7 +85,7 @@ class BaseNotification(abc.ABC):
         pass
 
     def get_recipient_context(
-        self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         # Basically a noop.
         return {**extra_context}
@@ -113,18 +112,18 @@ class BaseNotification(abc.ABC):
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def get_log_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
             "group_id": group.id if group else None,
         }
-        if recipient.class_name() == "User":
+        if isinstance(recipient, User):
             params["user_id"] = recipient.id
         return params
 
-    def get_custom_analytics_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
+    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
         By default, use the log params.
@@ -167,16 +166,16 @@ class BaseNotification(abc.ABC):
                 )
 
     def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
-            referrer += "-" + recipient.class_name().lower()
+            referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.
@@ -185,7 +184,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | APIUser, provider: ExternalProviders) -> str:
+    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -203,7 +202,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
+    def determine_recipients(self) -> Iterable[Team | User]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
@@ -212,7 +211,7 @@ class BaseNotification(abc.ABC):
 
         return notification_providers()
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         # need a notification_setting_type to call this function
         if not self.notification_setting_type:
             raise NotImplementedError
