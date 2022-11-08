@@ -59,7 +59,7 @@ class ApiInviteHelper:
         invite_token, invite_member_id = get_invite_details(request)
 
         try:
-            if invite_token is not None:
+            if invite_token is not None and invite_member_id is not None:
                 om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
             else:
                 om = OrganizationMember.objects.get(
@@ -78,7 +78,7 @@ class ApiInviteHelper:
     def from_session(cls, request, instance=None, logger=None):
         invite_token, invite_member_id = get_invite_details(request)
 
-        if not invite_token:
+        if not invite_token and not invite_member_id:
             return None
 
         try:
