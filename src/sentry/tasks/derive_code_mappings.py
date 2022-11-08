@@ -146,15 +146,27 @@ def set_project_codemappings(
             },
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
-            repository=repository,
-            organization_integration=organization_integration,
             stack_root=code_mapping.stacktrace_root,
-            source_root=code_mapping.source_path,
-            default_branch=code_mapping.repo.branch,
-            automatically_generated=True,
+            defaults={
+                "repository": repository,
+                "organization_integration": organization_integration,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
         )
+        if not created:
+            logger.info(
+                "derive_code_mappings: code mapping already exists",
+                extra={
+                    "project": project,
+                    "stacktrace_root": code_mapping.stacktrace_root,
+                    "new_code_mapping": code_mapping,
+                    "existing_code_mapping": cm,
+                },
+            )
 
 
 def report_project_codemappings(
