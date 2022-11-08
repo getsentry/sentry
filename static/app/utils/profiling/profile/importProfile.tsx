@@ -232,7 +232,10 @@ function importSchema(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex('mobile', input.shared.frames);
+  const frameIndex = createFrameIndex(
+    input.metadata.platform === 'node' ? 'node' : 'mobile',
+    input.shared.frames
+  );
 
   return {
     traceID,
