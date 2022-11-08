@@ -1,13 +1,18 @@
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
+import PanelProvider from 'sentry/utils/panelProvider';
 
-type Props = {
+interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;
   'data-test-id'?: string;
-};
+}
 
-const Panel = styled('div')<Props>`
+const Panel = styled(({children, ...props}: PanelProps) => (
+  <div {...props}>
+    <PanelProvider>{children}</PanelProvider>
+  </div>
+))`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px

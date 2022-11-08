@@ -494,8 +494,6 @@ const generateLevelTheme = (colors: BaseColors) => ({
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '4px',
-
   default: {
     color: alias.textColor,
     colorActive: alias.textColor,
@@ -671,11 +669,13 @@ const commonTheme = {
 
   grid: 8,
 
-  borderRadius: '4px',
-  borderRadiusBottom: '0 0 4px 4px',
-  borderRadiusTop: '4px 4px 0 0',
-  borderRadiusLeft: '4px 0 0 4px',
-  borderRadiusRight: '0 4px 4px 0',
+  borderRadius: '6px',
+  borderRadiusBottom: '0 0 6px 6px',
+  borderRadiusTop: '6px 6px 0 0',
+  borderRadiusLeft: '6px 0 0 6px',
+  borderRadiusRight: '0 6px 6px 0',
+
+  panelBorderRadius: '6px',
 
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
