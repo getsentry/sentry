@@ -1949,3 +1949,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Transform function no longer required")
+    def test_unparam_filter(self):
+        super().test_unparam_filter()
+
+    @pytest.mark.xfail(reason="Transform function no longer required")
+    def test_merge_null_unparam(self):
+        super().test_merge_null_unparam()
+
+    @pytest.mark.xfail(reason="Transform function no longer required")
+    def test_has_transaction(self):
+        super().test_has_transaction()
