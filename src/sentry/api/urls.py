@@ -4,6 +4,7 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_mappings import OrganizationMappingsEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
@@ -1674,6 +1675,12 @@ urlpatterns = [
                 ),
             ]
         ),
+    ),
+    # Organization Mappings
+    url(
+        r"^organization-mappings/$",
+        OrganizationMappingsEndpoint.as_view(),
+        name="sentry-api-0-organization-mappings",
     ),
     # Toplevel app installs
     url(

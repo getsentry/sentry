@@ -64,8 +64,9 @@ if TYPE_CHECKING:
 
 
 class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+    slug_regex = r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
     name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+    slug = serializers.RegexField(slug_regex, max_length=50)
 
     def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
