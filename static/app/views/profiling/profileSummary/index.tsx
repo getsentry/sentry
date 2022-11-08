@@ -19,6 +19,7 @@ import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -65,6 +66,14 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     if (defined(transaction)) {
       search.setFilterValues('transaction', [transaction]);
     }
+
+    // there are no aggregations happening on this page,
+    // so remove any aggregate filters
+    Object.keys(search.filters).forEach(field => {
+      if (isAggregateField(field)) {
+        search.removeFilter(field);
+      }
+    });
 
     return search.formatString();
   }, [rawQuery, transaction]);

@@ -128,14 +128,18 @@ def resolved_in_commit(instance, created, **kwargs):
                             user=user, group=group, reason=GroupSubscriptionReason.status_change
                         )
 
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
-                    ident=instance.id,
-                    user=acting_user,
-                    data={"commit": instance.id},
-                )
+                activity_kwargs = {
+                    "project_id": group.project_id,
+                    "group": group,
+                    "type": ActivityType.SET_RESOLVED_IN_COMMIT.value,
+                    "ident": instance.id,
+                    "data": {"commit": instance.id},
+                }
+                if acting_user is not None:
+                    activity_kwargs["user_id"] = acting_user.id
+
+                Activity.objects.create(**activity_kwargs)
+
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
