@@ -9,6 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {SavedSearchVisibility} from 'sentry/types';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 describe('SavedIssueSearches', function () {
@@ -17,15 +18,27 @@ describe('SavedIssueSearches', function () {
   });
 
   const recommendedSearch = TestStubs.Search({
+    id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
     query: 'is:unresolved assigned:me',
+    visibility: SavedSearchVisibility.Organization,
   });
 
-  const orgSearch = TestStubs.Search({
+  const userSearch = TestStubs.Search({
+    id: 'user-search',
     isGlobal: false,
     name: 'Last 4 Hours',
     query: 'age:-4h',
+    visibility: SavedSearchVisibility.Owner,
+  });
+
+  const orgSearch = TestStubs.Search({
+    id: 'org-search',
+    isGlobal: false,
+    name: 'Last 4 Hours',
+    query: 'age:-4h',
+    visibility: SavedSearchVisibility.Organization,
   });
 
   const defaultProps: ComponentProps<typeof SavedIssueSearches> = {
@@ -45,7 +58,12 @@ describe('SavedIssueSearches', function () {
   });
 
   it('displays saved searches with correct text and in correct sections', function () {
-    const {container} = render(<SavedIssueSearches {...defaultProps} />);
+    const {container} = render(
+      <SavedIssueSearches
+        {...defaultProps}
+        savedSearches={[userSearch, orgSearch, recommendedSearch]}
+      />
+    );
 
     expect(container).toSnapshot();
   });

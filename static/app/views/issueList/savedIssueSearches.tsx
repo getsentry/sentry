@@ -13,7 +13,7 @@ import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchMo
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 interface SavedIssueSearchesProps {
@@ -42,6 +42,22 @@ type CreateNewSavedSearchButtonProps = Pick<
 >;
 
 const MAX_SHOWN_SEARCHES = 5;
+
+const SavedSearchItemDescription = ({
+  savedSearch,
+}: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+  if (savedSearch.isGlobal) {
+    return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
+  }
+
+  return (
+    <SavedSearchItemVisbility>
+      {savedSearch.visibility === SavedSearchVisibility.Organization
+        ? t('Org Search')
+        : t('My  Search')}
+    </SavedSearchItemVisbility>
+  );
+};
 
 const SavedSearchItem = ({
   organization,
@@ -86,7 +102,7 @@ const SavedSearchItem = ({
       >
         <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
-          <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
+          <SavedSearchItemDescription savedSearch={savedSearch} />
         </TitleDescriptionWrapper>
       </StyledItemButton>
       {!savedSearch.isGlobal && (
@@ -287,18 +303,19 @@ const TitleDescriptionWrapper = styled('div')`
 
 const SavedSearchItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  ${p => p.theme.overflowEllipsis}
 `;
 
-const SavedSearchItemDescription = styled('div')`
+const SavedSearchItemVisbility = styled('div')`
+  color: ${p => p.theme.subText};
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const OverflowMenu = styled(DropdownMenuControl)`
