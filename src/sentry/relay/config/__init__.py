@@ -5,12 +5,15 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Dict,
+    List,
     Literal,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
     TypedDict,
+    Union,
 )
 
 import sentry_sdk
@@ -26,11 +29,12 @@ from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
+    _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project
+from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
 from sentry.relay.utils import to_camel_case_name
 from sentry.search.utils import get_latest_release
@@ -70,7 +74,9 @@ def get_exposed_features(project: Project) -> Sequence[str]:
     return active_features
 
 
-def get_public_key_configs(project, full_config, project_keys=None):
+def get_public_key_configs(
+    project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
+) -> Sequence[Mapping[str, Any]]:
     public_keys = []
 
     for project_key in project_keys or ():
@@ -90,7 +96,7 @@ def get_public_key_configs(project, full_config, project_keys=None):
     return public_keys
 
 
-def get_filter_settings(project):
+def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
     for flt in get_all_filter_specs():
@@ -121,11 +127,13 @@ def get_filter_settings(project):
     return filter_settings
 
 
-def get_quotas(project, keys=None):
+def get_quotas(project: Project, keys: Optional[List[ProjectKey]] = None) -> List[str]:
     return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
 
 
-def get_project_config(project, full_config=True, project_keys=None):
+def get_project_config(
+    project: Project, full_config: bool = True, project_keys: Optional[List[ProjectKey]] = None
+) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
@@ -145,7 +153,7 @@ def get_project_config(project, full_config=True, project_keys=None):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
+def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
     feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
 
     # In this case we should override old conditionnal rules if they exists
@@ -199,7 +207,9 @@ def add_experimental_config(
             config[key] = subconfig
 
 
-def _get_project_config(project, full_config=True, project_keys=None):
+def _get_project_config(
+    project: Project, full_config: bool = True, project_keys: Optional[List[ProjectKey]] = None
+) -> "ProjectConfig":
     if project.status != ObjectStatus.VISIBLE:
         return ProjectConfig(project, disabled=True)
 
@@ -297,21 +307,21 @@ class _ConfigBase:
     [1, 2, 3]
     """
 
-    def __init__(self, **kwargs):
-        data = {}
+    def __init__(self, **kwargs: Any) -> None:
+        data: Dict[Any, Any] = {}
         object.__setattr__(self, "data", data)
         for (key, val) in kwargs.items():
             if val is not None:
                 data[key] = val
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any) -> None:
         raise Exception("Trying to change read only ProjectConfig object")
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         data = self.__get_data()
         return data.get(to_camel_case_name(name))
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Converts the config object into a dictionary
         :return: A dictionary containing the object properties, with config properties also converted in dictionaries
@@ -325,7 +335,7 @@ class _ConfigBase:
             for (key, value) in data.items()
         }
 
-    def to_json_string(self):
+    def to_json_string(self) -> Any:
         """
         >>> x = _ConfigBase( a = _ConfigBase(b = _ConfigBase( w=[1,2,3])))
         >>> x.to_json_string()
@@ -335,7 +345,7 @@ class _ConfigBase:
         data = self.to_dict()
         return utils.json.dumps(data)
 
-    def get_at_path(self, *args):
+    def get_at_path(self, *args: str) -> Any:
         """
         Gets an element at the specified path returning None if the element or the path doesn't exists
         :param args: the path to follow ( a list of strings)
@@ -366,16 +376,16 @@ class _ConfigBase:
 
         return None  # property not set or path goes beyond the Config defined valid path
 
-    def __get_data(self):
+    def __get_data(self) -> Any:
         return object.__getattribute__(self, "data")
 
-    def __str__(self):
+    def __str__(self) -> Any[str]:
         try:
             return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
-    def __repr__(self):
+    def __repr__(self) -> Any[str]:
         return f"({self.__class__.__name__}){self}"
 
 
@@ -384,13 +394,13 @@ class ProjectConfig(_ConfigBase):
     Represents the restricted configuration available to an untrusted
     """
 
-    def __init__(self, project, **kwargs):
+    def __init__(self, project: Project, **kwargs: Any) -> None:
         object.__setattr__(self, "project", project)
 
         super().__init__(**kwargs)
 
 
-def _load_filter_settings(flt, project):
+def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, Any]:
     """
     Returns the filter settings for the specified project
     :param flt: the filter function
@@ -406,7 +416,7 @@ def _load_filter_settings(flt, project):
     return _filter_option_to_config_setting(flt, setting)
 
 
-def _filter_option_to_config_setting(flt, setting):
+def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[str, Any]:
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
     :param flt: the filter
@@ -421,7 +431,7 @@ def _filter_option_to_config_setting(flt, setting):
 
     is_enabled = setting != "0"
 
-    ret_val = {"isEnabled": is_enabled}
+    ret_val: Dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
@@ -512,8 +522,8 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics = []
-    custom_tags = []
+    metrics: List[Any] = []
+    custom_tags: List[Any] = []
 
     metrics.extend(sorted(TRANSACTION_METRICS))
     # TODO: for now let's extract all known measurements. we might want to
@@ -527,7 +537,7 @@ def get_transaction_metrics_settings(
         # probably be in sync with that, or at least not extract more metrics
         # than there are breakdowns configured.
         try:
-            for breakdown_name, breakdown_config in breakdowns_config.items():
+            for _, breakdown_config in breakdowns_config.items():
                 assert breakdown_config["type"] == "spanOperations"
 
                 for op_name in breakdown_config["matches"]:
