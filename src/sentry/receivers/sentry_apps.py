@@ -11,8 +11,10 @@ from sentry.models import (
     Organization,
     SentryAppInstallation,
     SentryFunction,
+    Team,
     User,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -29,7 +31,7 @@ from sentry.tasks.sentry_functions import send_sentry_function_webhook
 def send_issue_assigned_webhook(project, group, user, **kwargs):
     assignee = GroupAssignee.objects.get(group_id=group.id).assigned_actor()
 
-    actor = assignee.resolve()
+    actor: APIUser | Team = assignee.resolve()
 
     data = {
         "assignee": {"type": assignee.type.__name__.lower(), "name": actor.name, "id": actor.id}

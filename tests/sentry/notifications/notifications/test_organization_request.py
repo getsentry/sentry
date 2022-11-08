@@ -4,6 +4,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
@@ -27,9 +28,12 @@ class GetParticipantsTest(TestCase):
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)
 
+        api_user = user_service.serialize_user(self.user)
+        api_user_2 = user_service.serialize_user(self.user2)
+
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {api_user, api_user_2},
+            ExternalProviders.SLACK: {api_user, api_user_2},
         }
 
     def test_turn_off_settings(self):
@@ -49,7 +53,10 @@ class GetParticipantsTest(TestCase):
 
         notification = DummyRequestNotification(self.organization, self.user)
 
+        api_user = user_service.serialize_user(self.user)
+        api_user_2 = user_service.serialize_user(self.user2)
+
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {api_user, api_user_2},
+            ExternalProviders.SLACK: {api_user, api_user_2},
         }

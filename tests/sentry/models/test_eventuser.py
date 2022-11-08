@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventUserTestCase(TestCase):
     def test_build_hash(self):
         cases = [
