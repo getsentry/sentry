@@ -43,27 +43,23 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     return null;
   }
 
-  const items: MenuItemProps[] = projects
-    .reduce((acc: MenuItemProps[], project) => {
-      const itemProps: MenuItemProps = {
-        key: project.id,
-        label: (
-          <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
-        ),
-        onAction: function switchProject() {
-          setCurrentProject(project);
-        },
-      };
+  const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
+    const itemProps: MenuItemProps = {
+      key: project.id,
+      label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
+      onAction: function switchProject() {
+        setCurrentProject(project);
+      },
+    };
 
-      if (currentProject.id === project.id) {
-        acc.unshift(itemProps);
-      } else {
-        acc.push(itemProps);
-      }
+    if (currentProject.id === project.id) {
+      acc.unshift(itemProps);
+    } else {
+      acc.push(itemProps);
+    }
 
-      return acc;
-    }, [])
-    .sort((a, b) => a.key.localeCompare(b.key));
+    return acc;
+  }, []);
 
   return (
     <TaskSidebarPanel

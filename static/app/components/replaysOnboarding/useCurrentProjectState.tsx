@@ -18,15 +18,17 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
   // Projects where we have the onboarding instructions ready:
   const projectsWithOnboarding = useMemo(
     () =>
-      projects.filter(p => p.platform && replayOnboardingPlatforms.includes(p.platform)),
+      projects.filter(
+        p => p.platform && replayOnboardingPlatforms.includes(p.platform) && !p.hasReplays
+      ),
     [projects]
   );
 
   // Projects that support replays, but we haven't created the onboarding instructions (yet):
-  const projectsWithoutFirstReplay = useMemo(
+  const projectWithReplaySupport = useMemo(
     () =>
       projects.filter(
-        p => p.platform && replayPlatforms.includes(p.platform) && p.hasReplays === false
+        p => p.platform && replayPlatforms.includes(p.platform) && !p.hasReplays
       ),
     [projects]
   );
@@ -42,7 +44,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
       return;
     }
 
-    if (!projectsWithoutFirstReplay) {
+    if (!projectWithReplaySupport) {
       return;
     }
 
@@ -57,7 +59,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
       }
 
       // If we selected something that supports replays pick that
-      const projectSupportsReplay = projectsWithoutFirstReplay.find(p =>
+      const projectSupportsReplay = projectWithReplaySupport.find(p =>
         selectedProjectIds.includes(p.id)
       );
       if (projectSupportsReplay) {
@@ -67,9 +69,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
       setCurrentProject(firstSelectedProject);
     } else {
       // We have no selection, so pick a project which we've found
-      setCurrentProject(
-        first(projectsWithOnboarding) || first(projectsWithoutFirstReplay)
-      );
+      setCurrentProject(first(projectsWithOnboarding) || first(projectWithReplaySupport));
     }
   }, [
     currentProject,
@@ -79,11 +79,11 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
     isActive,
     selection.projects,
     projectsWithOnboarding,
-    projectsWithoutFirstReplay,
+    projectWithReplaySupport,
   ]);
 
   return {
-    projects: projectsWithoutFirstReplay,
+    projects: projectWithReplaySupport,
     currentProject,
     setCurrentProject,
   };
