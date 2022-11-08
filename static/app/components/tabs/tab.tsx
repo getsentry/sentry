@@ -61,6 +61,7 @@ function BaseTab(
           onMouseDown={handleLinkClick}
           onPointerDown={handleLinkClick}
           orientation={orientation}
+          tabIndex={-1}
         >
           {children}
         </TabLink>
