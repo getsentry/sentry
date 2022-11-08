@@ -1,13 +1,13 @@
 import {Component, createContext} from 'react';
 
-export type AnchorLinkManagerChildrenProps = {
+export type SpanContextProps = {
   didAnchoredSpanMount: boolean;
   markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
   scrollToHash: (hash: string) => void;
 };
 
-const AnchorLinkManagerContext = createContext<AnchorLinkManagerChildrenProps>({
+const SpanContext = createContext<SpanContextProps>({
   registerScrollFn: () => () => undefined,
   scrollToHash: () => undefined,
   didAnchoredSpanMount: false,
@@ -26,7 +26,7 @@ export class Provider extends Component<Props> {
   scrollFns: Map<string, {fn: () => void; isSpanInGroup: boolean}> = new Map();
   didAnchoredSpanMount = false;
 
-  scrollToHash = (hash: string) => {
+  scrollToHash = (_: string) => {
     // if (this.scrollFns.has(hash)) {
     //   const {fn, isSpanInGroup} = this.scrollFns.get(hash)!;
     //   fn();
@@ -48,7 +48,7 @@ export class Provider extends Component<Props> {
   };
 
   render() {
-    const childrenProps: AnchorLinkManagerChildrenProps = {
+    const childrenProps: SpanContextProps = {
       registerScrollFn: this.registerScrollFn,
       scrollToHash: this.scrollToHash,
       didAnchoredSpanMount: this.didAnchoredSpanMount,
@@ -56,11 +56,11 @@ export class Provider extends Component<Props> {
     };
 
     return (
-      <AnchorLinkManagerContext.Provider value={childrenProps}>
+      <SpanContext.Provider value={childrenProps}>
         {this.props.children}
-      </AnchorLinkManagerContext.Provider>
+      </SpanContext.Provider>
     );
   }
 }
 
-export const Consumer = AnchorLinkManagerContext.Consumer;
+export const Consumer = SpanContext.Consumer;

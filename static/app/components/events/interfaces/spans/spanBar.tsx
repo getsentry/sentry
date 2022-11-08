@@ -125,19 +125,19 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
+  toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
+  treeDepth: number;
   groupOccurrence?: number;
   groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
+  markAnchoredSpanIsMounted?: () => void;
   measure?: () => void;
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
-  treeDepth: number;
-  toggleSpanGroup: (() => void) | undefined;
-  markAnchoredSpanIsMounted?: () => void;
 };
 
 type SpanBarState = {
@@ -182,7 +182,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     const {span} = this.props;
-    if ('type' in span) {
+    if (isGapSpan(span)) {
       return;
     }
 

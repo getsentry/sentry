@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/spanContext';
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';

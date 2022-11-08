@@ -25,9 +25,9 @@ import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
+import * as AnchorLinkManager from './spanContext';
 import {MeasurementMarker} from './styles';
 import {EnhancedSpan, ProcessedSpanType} from './types';
 import {

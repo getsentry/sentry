@@ -2,9 +2,9 @@ import React, {createRef, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/spanContext';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,

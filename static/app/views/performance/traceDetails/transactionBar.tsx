@@ -3,9 +3,9 @@ import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/spanContext';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {

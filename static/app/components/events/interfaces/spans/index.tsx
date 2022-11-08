@@ -19,8 +19,8 @@ import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceC
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
+import * as AnchorLinkManager from './spanContext';
 import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
 import {ParsedTraceType} from './types';
