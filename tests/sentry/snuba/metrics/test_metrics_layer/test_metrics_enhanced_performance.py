@@ -122,7 +122,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        groups = data["groups"]
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
 
         expected = [
@@ -180,7 +180,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        groups = data["groups"]
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
 
         expected = [
@@ -1606,6 +1606,96 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     ],
                     key=lambda elem: elem["name"],
                 )
+
+    def test_wildcard_based_queries_with_derived_op(self):
+        for transaction, value in (
+            ("/foo/bar/transaction", 0),
+            ("/foo/bar", 1),
+            ("/foo", 2),
+            ("/foo/bar2/transaction", 3),
+            (None, 4),
+        ):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={} if transaction is None else {"transaction": transaction},
+                value=value,
+            )
+
+        for http_status_code, value in (
+            ("400", 0),
+            ("500", 1),
+            ("200", 2),
+            ("210", 3),
+            ("410", 4),
+            ("520", 5),
+        ):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"http_status_code": http_status_code},
+                value=value,
+            )
+
+        for tag_key, tag_wildcard_value, expected_count in (
+            ("transaction", "/foo*", 4),
+            ("transaction", "*/bar", 1),
+            ("transaction", "/foo/*/transaction", 2),
+            ("transaction", "<< unparameterized >>", 7),
+            ("http_status_code", "2*", 2),
+            ("http_status_code", "4*", 2),
+            ("http_status_code", "5*", 2),
+            ("http_status_code", "*1*", 2),
+            ("http_status_code", "*00", 3),
+        ):
+            metrics_query = self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
+                select=[
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                        alias="duration_count",
+                    ),
+                ],
+                where=[
+                    MetricConditionField(
+                        lhs=MetricField(
+                            op="match_wildcard",
+                            metric_mri=TransactionMRI.DURATION.value,
+                            alias="match",
+                            params={
+                                "column_name": f"tags[{tag_key}]",
+                                "wildcard": tag_wildcard_value,
+                            },
+                        ),
+                        op=Op.EQ,
+                        rhs=1,
+                    )
+                ],
+                limit=Limit(limit=50),
+                offset=Offset(offset=0),
+                include_series=False,
+            )
+            data = get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+            assert data["groups"] == [
+                {
+                    "by": {},
+                    "totals": {"duration_count": expected_count},
+                },
+            ]
+            assert data["meta"] == sorted(
+                [
+                    {"name": "duration_count", "type": "UInt64"},
+                ],
+                key=lambda elem: elem["name"],
+            )
 
     def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(
         self,

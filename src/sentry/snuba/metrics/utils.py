@@ -85,6 +85,7 @@ MetricOperationType = Literal[
     "count_transaction_name",
     "team_key_transaction",
     "transform_null_to_unparameterized",
+    "match_wildcard",
 ]
 MetricUnit = Literal[
     "nanosecond",

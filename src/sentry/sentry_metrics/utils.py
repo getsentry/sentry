@@ -92,6 +92,16 @@ def resolve_tag_values(
     return rv
 
 
+def resolve_column_name(use_case_id: UseCaseKey, org_id: int, string: str) -> Union[str, int]:
+    if "[" in string:
+        subscriptable, key = string.split("[", 1)
+        key = key.strip("]")
+        if subscriptable == "tags":
+            return resolve_tag_key(use_case_id, org_id, key)
+
+    return string
+
+
 def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
