@@ -13,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupInboxTestCase(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_add_to_inbox(self, inbox_in):

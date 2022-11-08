@@ -33,6 +33,7 @@ from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupCategory
 from sentry.utils import json
@@ -54,7 +55,9 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
-                user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
+                user_id=assigned_actor.id,
+                idp__type="slack",
+                idp__external_id=identity.idp.external_id,
             )
             assignee_text = f"<@{assignee_ident.external_id}>"
         except Identity.DoesNotExist:
@@ -106,7 +109,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    members = User.objects.get_from_group(group).distinct()
+    members = user_service.get_from_group(group)
     teams = group.project.teams.all()
 
     option_groups = []

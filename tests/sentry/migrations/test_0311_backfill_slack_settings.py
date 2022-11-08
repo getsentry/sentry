@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.test.utils import override_settings
 from django.utils import timezone
 
-from sentry.models import ExternalActor, Integration, NotificationSetting, Team, User
+from sentry.models import ExternalActor, Integration, NotificationSetting, Team
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -20,7 +20,7 @@ SETTINGS_TO_BACKFILL = [
 
 
 def get_scope_type_from_entity(entity):
-    if isinstance(entity, User):
+    if entity.class_name() == "User":
         return NotificationScopeType.USER
     if isinstance(entity, Team):
         return NotificationScopeType.TEAM

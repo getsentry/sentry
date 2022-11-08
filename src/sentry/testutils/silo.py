@@ -11,8 +11,16 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.silo import SiloMode
+from sentry.testutils.region import override_regions
+from sentry.types.region import Region, RegionCategory
 
 TestMethod = Callable[..., None]
+
+region_map = [
+    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
+]
 
 
 class SiloModeTest:
@@ -40,7 +48,12 @@ class SiloModeTest:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
                 with override_settings(SILO_MODE=mode):
-                    test_method(*args, **kwargs)
+                    with override_regions(region_map):
+                        if mode == SiloMode.REGION:
+                            with override_settings(SENTRY_REGION="north_america"):
+                                test_method(*args, **kwargs)
+                        else:
+                            test_method(*args, **kwargs)
 
             functools.update_wrapper(replacement_test_method, test_method)
             modified_name = f"{test_method.__name__}__in_{str(mode).lower()}_silo"
@@ -67,8 +80,14 @@ class SiloModeTest:
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-            with override_settings(SILO_MODE=kwargs.pop("silo_mode")):
-                return test_method(*args, **kwargs)
+            silo_mode = kwargs.pop("silo_mode")
+            with override_settings(SILO_MODE=silo_mode):
+                with override_regions(region_map):
+                    if silo_mode == SiloMode.REGION:
+                        with override_settings(SENTRY_REGION="north_america"):
+                            test_method(*args, **kwargs)
+                    else:
+                        test_method(*args, **kwargs)
 
         orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)

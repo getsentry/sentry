@@ -8,9 +8,10 @@ from typing import Iterable, Mapping, Sequence
 
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule, Team, User
+from sentry.models import Group, Project, ProjectOwnership, Rule, Team
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils.participants import get_send_to
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 
@@ -63,11 +64,14 @@ def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
 
 
 def get_events_by_participant(
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Team | User]]]
-) -> Mapping[Team | User, set[Event]]:
+    participants_by_provider_by_event: Mapping[
+        Event, Mapping[ExternalProviders, set[Team | APIUser]]
+    ]
+) -> Mapping[Team | APIUser, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)
     for event, participants_by_provider in participants_by_provider_by_event.items():
+        participants: set[Team | APIUser]
         for participants in participants_by_provider.values():
             for participant in participants:
                 output[participant].add(event)
@@ -76,7 +80,9 @@ def get_events_by_participant(
 
 def get_personalized_digests(
     digest: Digest,
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Team | User]]],
+    participants_by_provider_by_event: Mapping[
+        Event, Mapping[ExternalProviders, set[Team | APIUser]]
+    ],
 ) -> Mapping[int, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
     return {
@@ -115,7 +121,7 @@ def get_participants_by_event(
     project: Project,
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
-) -> Mapping[Event, Mapping[ExternalProviders, set[Team | User]]]:
+) -> Mapping[Event, Mapping[ExternalProviders, set[Team | APIUser]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
     DB calls while we iterate over every event. It would be great if we could
