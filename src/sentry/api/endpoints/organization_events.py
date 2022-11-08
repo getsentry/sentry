@@ -114,10 +114,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:mep-rollout-flag",
-            "organizations:performance-use-metrics",
             "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
             "organizations:performance-dry-run-mep",
+            "organizations:performance-use-metrics",
+            "organizations:profiling",
+            "organizations:server-side-sampling",
             "organizations:use-metrics-layer",
         ]
         batch_features = features.batch_has(
@@ -242,21 +244,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         use_metrics = (
             (
                 batch_features.get("organizations:mep-rollout-flag", False)
-                and features.has(
-                    "organizations:server-side-sampling",
-                    organization=organization,
-                    actor=request.user,
-                )
+                and batch_features.get("organizations:server-side-sampling", False)
             )
             or batch_features.get("organizations:performance-use-metrics", False)
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        use_profiles = features.has(
-            "organizations:profiling",
-            organization=organization,
-            actor=request.user,
-        )
+        use_profiles = batch_features.get("organizations:profiling", False)
 
         performance_dry_run_mep = batch_features.get("organizations:performance-dry-run-mep", False)
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
