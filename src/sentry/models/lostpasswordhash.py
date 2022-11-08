@@ -40,7 +40,7 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=48)
 
     @classmethod
-    def send_email(cls, user, request, mode="recover") -> None:
+    def send_email(cls, user, hash, request, mode="recover") -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -48,7 +48,7 @@ class LostPasswordHash(Model):
         context = {
             "user": user,
             "domain": get_server_hostname(),
-            "url": cls.get_absolute_url(user.id, mode),
+            "url": cls.get_lostpassword_url(user.id, hash, mode),
             "datetime": timezone.now(),
             "ip_address": request.META["REMOTE_ADDR"],
         }
