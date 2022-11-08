@@ -53,8 +53,8 @@ const SavedSearchItemDescription = ({
   return (
     <SavedSearchItemVisbility>
       {savedSearch.visibility === SavedSearchVisibility.Organization
-        ? 'Org Search'
-        : 'My  Search'}
+        ? t('Org Search')
+        : t('My  Search')}
     </SavedSearchItemVisbility>
   );
 };
