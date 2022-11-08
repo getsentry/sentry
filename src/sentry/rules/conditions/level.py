@@ -45,11 +45,11 @@ class LevelCondition(EventCondition):
             return False
 
         if desired_match == MatchType.EQUAL:
-            return bool(level == desired_level)
+            return level == desired_level
         elif desired_match == MatchType.GREATER_OR_EQUAL:
-            return bool(level >= desired_level)
+            return level >= desired_level
         elif desired_match == MatchType.LESS_OR_EQUAL:
-            return bool(level <= desired_level)
+            return level <= desired_level
         return False
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
