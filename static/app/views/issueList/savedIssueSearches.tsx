@@ -72,7 +72,9 @@ const SavedSearchItem = ({
       key: 'edit',
       label: 'Edit',
       disabled: !canEdit,
-      details: !canEdit ? t('You do not have permission to edit this search.') : '',
+      details: !canEdit
+        ? t('You do not have permission to edit this search.')
+        : undefined,
       onAction: () => {
         openModal(deps => (
           <EditSavedSearchModal {...deps} {...{organization, savedSearch}} />
@@ -81,7 +83,9 @@ const SavedSearchItem = ({
     },
     {
       disabled: !canEdit,
-      details: !canEdit ? t('You do not have permission to delete this search.') : '',
+      details: !canEdit
+        ? t('You do not have permission to delete this search.')
+        : undefined,
       key: 'delete',
       label: t('Delete'),
       onAction: () => {

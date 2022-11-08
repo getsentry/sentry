@@ -30,10 +30,6 @@ describe('CreateSavedSearchModal', function () {
   };
 
   beforeEach(function () {
-    // XXX: Something here triggers a "Can't perform a React state update on an unmounted component"
-    // This warning will be gone in React 18, remove this when we upgrade.
-    jest.spyOn(console, 'error').mockImplementation(jest.fn);
-
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
@@ -102,7 +98,6 @@ describe('CreateSavedSearchModal', function () {
 
   describe('visibility', () => {
     it('only allows owner-level visibility without org:write permission', async function () {
-      jest.useFakeTimers();
       const org = TestStubs.Organization({
         features: ['issue-list-saved-searches-v2'],
         access: [],
