@@ -17,7 +17,6 @@ from typing import (
     Sequence,
     Tuple,
     TypedDict,
-    Union,
 )
 
 import pytz
@@ -53,7 +52,6 @@ from sentry.models import (
     Integration,
     NotificationSetting,
     SentryAppInstallationToken,
-    Team,
     User,
 )
 from sentry.notifications.helpers import (
@@ -181,20 +179,6 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assigness(
-        self, actor_dict: Mapping[int, ActorTuple]
-    ) -> Mapping[int, Union[Team, Any]]:
-        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
-        for actor in actor_dict.values():
-            actors_by_type[actor.type].append(actor)
-
-        resolved_actors = {}
-        for t, actors in actors_by_type.items():
-            serializable = ActorTuple.resolve_many(actors)
-            resolved_actors[t] = {actor.id: actor for actor in serializable}
-
-        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
-
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
@@ -221,11 +205,11 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        assignees: Mapping[int, ActorTuple] = {
+        assignees = {
             a.group_id: a.assigned_actor()
             for a in GroupAssignee.objects.filter(group__in=item_list)
         }
-        resolved_assignees = self._serialize_assigness(assignees)
+        resolved_assignees = ActorTuple.resolve_dict(assignees)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 

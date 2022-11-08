@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping
 
 import sentry_sdk
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import Project, ProjectOption, Team
+from sentry.models import Project, ProjectOption, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
@@ -17,9 +17,6 @@ from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
@@ -75,14 +72,14 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: Team | APIUser) -> None:
+def log_message(notification: BaseNotification, recipient: Team | User) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | APIUser,
+    recipient: Team | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -98,7 +95,7 @@ def get_context(
     # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
     #  work with Teams. We should add the `actor_id` to the signed link.
     unsubscribe_key = notification.get_unsubscribe_key()
-    if recipient.class_name() == "User" and unsubscribe_key:
+    if isinstance(recipient, User) and unsubscribe_key:
         key, resource_id, referrer = unsubscribe_key
         context.update(
             {"unsubscribe_link": get_unsubscribe_link(recipient.id, resource_id, key, referrer)}
@@ -110,7 +107,7 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[Team | APIUser],
+    recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
@@ -140,7 +137,7 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: APIUser,
+    recipient: User,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:

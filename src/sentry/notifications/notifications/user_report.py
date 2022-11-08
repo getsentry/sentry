@@ -10,7 +10,6 @@ from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -31,7 +30,7 @@ class UserReportNotification(ProjectNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
         return {
             provider: data

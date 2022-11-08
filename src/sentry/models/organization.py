@@ -29,15 +29,13 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
-
+    from sentry.models import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -252,15 +250,16 @@ class Organization(Model, SnowflakeIdMixin):
             "default_role": self.default_role,
         }
 
-    def get_owners(self) -> Sequence[APIUser]:
-        from sentry.services.hybrid_cloud.user import user_service
+    def get_owners(self) -> Sequence[User]:
+        from sentry.models import User
 
-        owner_memberships = OrganizationMember.objects.filter(
-            role=roles.get_top_dog().id, organization=self
-        ).values_list("user_id", flat=True)
-        return user_service.get_many(owner_memberships)
+        return User.objects.filter(
+            sentry_orgmember_set__role=roles.get_top_dog().id,
+            sentry_orgmember_set__organization=self,
+            is_active=True,
+        )
 
-    def get_default_owner(self) -> APIUser:
+    def get_default_owner(self):
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner
@@ -272,10 +271,7 @@ class Organization(Model, SnowflakeIdMixin):
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            owners = self.get_owners()
-            if len(owners) == 0:
-                return None
-            self._default_owner_id = owners[0].id
+            self._default_owner_id = self.get_owners().values_list("id", flat=True).first()
         return self._default_owner_id
 
     def has_single_owner(self):

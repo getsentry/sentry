@@ -1,13 +1,6 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, OrganizationMember, Team, User
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class ActorField(serializers.Field):
@@ -25,7 +18,7 @@ class ActorField(serializers.Field):
                 "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
             )
         try:
-            obj: APIUser | Team = actor.resolve()
+            obj = actor.resolve()
         except (Team.DoesNotExist, User.DoesNotExist):
             raise serializers.ValidationError(f"{actor.type.__name__} does not exist")
 
@@ -34,7 +27,7 @@ class ActorField(serializers.Field):
                 raise serializers.ValidationError("Team is not a member of this organization")
         elif actor.type == User:
             if not OrganizationMember.objects.filter(
-                organization=self.context["organization"], user_id=obj.id
+                organization=self.context["organization"], user=obj
             ).exists():
                 raise serializers.ValidationError("User is not a member of this organization")
         return actor

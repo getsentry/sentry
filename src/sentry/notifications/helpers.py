@@ -33,13 +33,12 @@ if TYPE_CHECKING:
         Team,
         User,
     )
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    recipient: Team | APIUser | None = None,  # not needed right now
+    recipient: Team | User | None = None,  # not needed right now
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
@@ -56,7 +55,7 @@ def _get_notification_setting_default(
 
 def _get_default_value_by_provider(
     type: NotificationSettingTypes,
-    recipient: Team | APIUser | None = None,
+    recipient: Team | User | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     return {
         provider: _get_notification_setting_default(provider, type, recipient)
@@ -66,10 +65,10 @@ def _get_default_value_by_provider(
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
-        Team | APIUser,
+        Team | User,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | APIUser,
+    recipient: Team | User,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
@@ -128,7 +127,7 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    recipient: Team | APIUser,
+    recipient: Team | User,
     subscription: GroupSubscription | None,
     notification_settings_by_recipient: Mapping[
         Team | User,
@@ -188,9 +187,9 @@ def get_values_by_provider_by_type(
 
 def transform_to_notification_settings_by_recipient(
     notification_settings: Iterable[NotificationSetting],
-    recipients: Iterable[Team | APIUser],
+    recipients: Iterable[Team | User],
 ) -> Mapping[
-    Team | APIUser,
+    Team | User,
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
@@ -199,7 +198,7 @@ def transform_to_notification_settings_by_recipient(
     """
     actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
     notification_settings_by_recipient: MutableMapping[
-        Team | APIUser,
+        Team | User,
         MutableMapping[
             NotificationScopeType,
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
