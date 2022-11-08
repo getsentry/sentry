@@ -170,7 +170,7 @@ function IssueListHeader({
                 };
 
                 return (
-                  <Item key={tabQuery} to={to}>
+                  <Item key={tabQuery} to={to} textValue={queryName}>
                     <IssueListHeaderTabContent
                       tooltipTitle={tooltipTitle}
                       tooltipHoverable={tooltipHoverable}
@@ -187,6 +187,7 @@ function IssueListHeader({
               hidden={!savedSearchTabActive}
               key={query}
               to={{query: queryParms, pathname: location.pathname}}
+              textValue={savedSearch?.name ?? t('Custom Search')}
             >
               <IssueListHeaderTabContent
                 name={savedSearch?.name ?? t('Custom Search')}
