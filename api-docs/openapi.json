@@ -233,9 +233,6 @@
     },
     "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
       "$ref": "paths/scim/team_index.json"
-    },
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}": {
-      "$ref": "paths/scim/team_details.json"
     }
   },
   "components": {
