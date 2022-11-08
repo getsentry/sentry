@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -199,12 +199,16 @@ const SavedIssueSearchesContent = ({
             />
           ))}
           {shownOrgSavedSearches.length === 0 && (
-            <p>You don't have any saved searches.</p>
+            <p>{t("You don't have any saved searches.")}</p>
           )}
         </SearchesContainer>
         {orgSavedSearches.length > shownOrgSavedSearches.length && (
           <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
-            {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
+            {tn(
+              'Show %s saved search',
+              'Show %s saved searches',
+              orgSavedSearches.length
+            )}
           </ShowAllButton>
         )}
       </Fragment>
