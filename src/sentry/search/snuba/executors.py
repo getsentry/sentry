@@ -294,15 +294,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if group_ids:
             filters["group_id"] = sorted(group_ids)
 
+        referrer = "search_sample" if get_sample else "search"
+
         snuba_search_filters = [
             sf
             for sf in search_filters or ()
-            # remove any search_filters that are only available in postgres
-            # We special case date
+            # remove any search_filters that are only available in postgres, we special case date
             if not (sf.key.name in self.postgres_only_fields or sf.key.name == "date")
         ]
-
-        referrer = "search_sample" if get_sample else "search"
 
         # common pinned parameters that won't change based off datasource
         query_partial: IntermediateSearchQueryPartial = cast(
