@@ -1,4 +1,5 @@
-import {addMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {SavedSearch} from 'sentry/types';
 import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -61,7 +62,7 @@ export const useDeleteSavedSearchOptimistic = (
       return {previousSavedSearches};
     },
     onError: (error, variables, context) => {
-      addMessage('Failed to delete saved search.', 'error');
+      addErrorMessage(t('Failed to delete saved search.'));
 
       if (context) {
         queryClient.setQueryData(

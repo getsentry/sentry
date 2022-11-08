@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModalContainer from 'sentry/components/globalModal';
+import {SavedSearchVisibility} from 'sentry/types';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 describe('SavedIssueSearches', function () {
@@ -23,6 +24,15 @@ describe('SavedIssueSearches', function () {
     isGlobal: true,
     name: 'Assigned to Me',
     query: 'is:unresolved assigned:me',
+    visibility: SavedSearchVisibility.Organization,
+  });
+
+  const userSearch = TestStubs.Search({
+    id: 'user-search',
+    isGlobal: false,
+    name: 'Just Firefox',
+    query: 'browser:firefox',
+    visibility: SavedSearchVisibility.Owner,
   });
 
   const orgSearch = TestStubs.Search({
@@ -30,13 +40,14 @@ describe('SavedIssueSearches', function () {
     isGlobal: false,
     name: 'Last 4 Hours',
     query: 'age:-4h',
+    visibility: SavedSearchVisibility.Organization,
   });
 
   const pinnedSearch = TestStubs.Search({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
-    name: 'Last 4 Hours',
+    name: 'My Pinned Search',
     query: 'age:-4h',
   });
 
@@ -56,7 +67,7 @@ describe('SavedIssueSearches', function () {
   it('displays saved searches with correct text and in correct sections', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [recommendedSearch, orgSearch, pinnedSearch],
+      body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
     });
 
     const {container} = render(<SavedIssueSearches {...defaultProps} />);
