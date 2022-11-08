@@ -39,6 +39,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+        self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.eleven_mins_ago = before_now(minutes=11)
@@ -2533,8 +2534,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": iso_format(self.eleven_mins_ago),
-            "end": iso_format(before_now(minutes=9)),
+            "start": self.eleven_mins_ago_iso,
+            "end": iso_format(self.nine_mins_ago),
         }
         response = self.do_request(query)
 
