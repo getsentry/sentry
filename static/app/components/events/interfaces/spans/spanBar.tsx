@@ -111,10 +111,11 @@ type SpanBarProps = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
-  markAnchoredSpanIsMounted?: () => void;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
+  numOfSpans: number;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
@@ -124,7 +125,6 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
-  toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   groupOccurrence?: number;
@@ -136,8 +136,8 @@ type SpanBarProps = {
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
   treeDepth: number;
-  onWheel: (deltaX: number) => void;
-  numOfSpans: number;
+  toggleSpanGroup: (() => void) | undefined;
+  markAnchoredSpanIsMounted?: () => void;
 };
 
 type SpanBarState = {
@@ -234,7 +234,6 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     this.setState({showDetail: true}, () => {
       measure?.();
-      console.log('set showDetail to true');
 
       const boundingRect = element.getBoundingClientRect();
       // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver

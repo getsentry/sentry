@@ -469,7 +469,7 @@ class SpanTree extends Component<PropType> {
   };
 
   renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
-    const {index, isVisible, key, parent, style, columnIndex} = params;
+    const {index, key, parent, style, columnIndex} = params;
 
     return (
       <CellMeasurer
@@ -540,8 +540,6 @@ class SpanTree extends Component<PropType> {
                 rowHeight={cache.rowHeight}
                 rowCount={spanTree.length}
                 rowRenderer={props => this.renderRow(props, spanTree)}
-                // TODO: Ok this overscanRowCount is too big. You can probably fix this by having it so that when spanBars are mounted, we set
-                // their left property immediately. Or maybe something will work out with using isVisible for the view manager.
                 overscanRowCount={10}
                 overscanIndicesGetter={this.overscanIndicesGetter}
                 ref={listRef}
