@@ -244,9 +244,9 @@ export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
-export type EventsStatsSeries = {
+export type EventsStatsSeries<F extends string> = {
   data: {
-    axis: string;
+    axis: F;
     values: number[];
   }[];
   meta: {
