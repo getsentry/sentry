@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.sdk import set_current_event_project
+from sentry.utils.sdk import configure_scope, set_current_event_project
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,9 @@ def build_project_config(public_key=None, **kwargs):
 
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
+    with configure_scope() as scope:
+        scope.set_tag("project.public_key", public_key)
+
     try:
         from sentry.models import ProjectKey
 
