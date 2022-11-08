@@ -28,6 +28,12 @@ class APIUser:
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
 
+    def get_full_name(self) -> str:
+        return self.name
+
+    def get_short_name(self) -> str:
+        return self.username
+
     def class_name(self) -> str:
         return "User"
 

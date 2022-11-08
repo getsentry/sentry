@@ -11,7 +11,7 @@ from sentry.notifications.types import (
 from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, UserService
+from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -35,8 +35,8 @@ class GetSendToMemberTest(TestCase):
 
     def test_send_to_user(self):
         assert self.get_send_to_member() == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -47,7 +47,9 @@ class GetSendToMemberTest(TestCase):
             project=self.project,
         )
 
-        assert self.get_send_to_member() == {ExternalProviders.SLACK: {self.user}}
+        assert self.get_send_to_member() == {
+            ExternalProviders.SLACK: {user_service.serialize_user(self.user)}
+        }
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -57,8 +59,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
@@ -71,8 +73,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
@@ -109,7 +111,7 @@ class GetSendToTeamTest(TestCase):
 
     def test_send_to_team(self):
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -137,7 +139,9 @@ class GetSendToTeamTest(TestCase):
             NotificationSettingOptionValues.NEVER,
             team=self.team,
         )
-        assert self.get_send_to_team() == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_team() == {
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)}
+        }
 
     def test_other_project_team(self):
         user_2 = self.create_user()
@@ -145,8 +149,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -157,8 +161,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -202,8 +206,8 @@ class GetSentToReleaseMembersTest(TestCase):
         event.group = self.group
         with self.feature("organizations:active-release-notifications-enable"):
             assert self.get_send_to_release_members(event) == {
-                ExternalProviders.EMAIL: {self.user},
-                ExternalProviders.SLACK: {self.user},
+                ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+                ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
             }
             assert spy_get_release_committers.call_count == 1
 
@@ -306,8 +310,14 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("team.py")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
+            ExternalProviders.SLACK: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -319,8 +329,11 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.SLACK: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
         }
 
     def test_disable_alerts_multiple_scopes(self):
