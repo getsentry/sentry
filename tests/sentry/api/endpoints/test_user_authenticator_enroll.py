@@ -318,8 +318,10 @@ class AcceptOrganizationInviteTest(APITestCase):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
-            # these session helper functions appear to modify the
-            # self.client.session?
+            # We have to add the invite details back in to the session
+            # prior to .save_session() since this re-creates the session property
+            # when under test. See here for more details:
+            # https://docs.djangoproject.com/en/2.2/topics/testing/tools/#django.test.Client.session
             self.session["webauthn_register_state"] = "state"
             self.session["invite_token"] = self.client.session["invite_token"]
             self.session["invite_member_id"] = self.client.session["invite_member_id"]
