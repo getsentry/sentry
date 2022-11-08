@@ -76,9 +76,8 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 def get_public_key_configs(
     project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> Sequence[Mapping[str, Any]]:
-    public_keys = []
-
+) -> List[Mapping[str, Any]]:
+    public_keys: List[Mapping[str, Any]] = []
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
@@ -127,12 +126,12 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Optional[List[ProjectKey]] = None) -> List[str]:
+def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
     return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[List[ProjectKey]] = None
+    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
@@ -208,7 +207,7 @@ def add_experimental_config(
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[List[ProjectKey]] = None
+    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.VISIBLE:
         return ProjectConfig(project, disabled=True)
@@ -308,7 +307,7 @@ class _ConfigBase:
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        data: Dict[Any, Any] = {}
+        data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
         for (key, val) in kwargs.items():
             if val is not None:
@@ -317,11 +316,11 @@ class _ConfigBase:
     def __setattr__(self, key: str, value: Any) -> None:
         raise Exception("Trying to change read only ProjectConfig object")
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Union[Any, Mapping[str, Any]]:
         data = self.__get_data()
         return data.get(to_camel_case_name(name))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> MutableMapping[str, Any]:
         """
         Converts the config object into a dictionary
         :return: A dictionary containing the object properties, with config properties also converted in dictionaries
@@ -376,16 +375,16 @@ class _ConfigBase:
 
         return None  # property not set or path goes beyond the Config defined valid path
 
-    def __get_data(self) -> Any:
-        return object.__getattribute__(self, "data")
+    def __get_data(self) -> Mapping[str, Any]:
+        return object.__getattribute__(self, "data")  # type: ignore
 
-    def __str__(self) -> Any[str]:
+    def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
         except Exception as e:
             return f"Content Error:{e}"
 
-    def __repr__(self) -> Any[str]:
+    def __repr__(self) -> str:
         return f"({self.__class__.__name__}){self}"
 
 
