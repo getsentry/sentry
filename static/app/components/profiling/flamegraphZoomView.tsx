@@ -336,15 +336,15 @@ function FlamegraphZoomView({
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   useEffect(() => {
-    if (flamegraphState.profiles.highlightAllFrames) {
+    if (flamegraphState.profiles.highlightFrames) {
       selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightAllFrames.name,
-        flamegraphState.profiles.highlightAllFrames.package
+        flamegraphState.profiles.highlightFrames.name,
+        flamegraphState.profiles.highlightFrames.package
       );
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightAllFrames]);
+  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
@@ -389,7 +389,7 @@ function FlamegraphZoomView({
     flamegraphCanvas,
     scheduler,
     flamegraph,
-    flamegraphState.profiles.highlightAllFrames,
+    flamegraphState.profiles.highlightFrames,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
