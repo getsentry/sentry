@@ -4,6 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.urls import reverse
 
+from sentry.eventstore.models import Event
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -21,7 +22,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def build_performance_issue_description(self, event):
+    def build_performance_issue_description(self, event: Event) -> str:
         (
             transaction_name,
             parent_span,
@@ -36,7 +37,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, 50)} |"
         return body
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_description(self, group: Group, event: Event, **kwargs: Any) -> str:
         params = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
