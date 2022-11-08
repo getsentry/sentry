@@ -65,7 +65,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
-        log_project_codemappings(code_mappings, stacktrace_paths, project)
+        report_project_codemappings(code_mappings, stacktrace_paths, project)
         return
 
     set_project_codemappings(code_mappings, organization_integration, project)
@@ -157,7 +157,7 @@ def set_project_codemappings(
         )
 
 
-def log_project_codemappings(
+def report_project_codemappings(
     code_mappings: List[CodeMapping],
     stacktrace_paths: List[str],
     project: Project,
@@ -166,13 +166,17 @@ def log_project_codemappings(
     Log the code mappings that would be created for a project.
     """
     set_tag("project.slug", project.slug)
+    if code_mappings:
+        msg = f"Project {project.slug} would create these code mappings {code_mappings} based on {stacktrace_paths=}"
+        sentry_msg = "derive_code_mappings: NO code mappings would have been created."
+    else:
+        msg = f"Project {project.slug} would NOT create code mapping based on {stacktrace_paths=}"
+        sentry_msg = "derive_code_mappings: code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
-        sentry_sdk.capture_message(
-            f"derive_code_mappings: Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
-        )
-        return
-
-    sentry_sdk.capture_message(
-        f"derive_code_mappings: Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
-    )
+        msg = f"Project {project.slug}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
+        sentry_msg = "derive_code_mappings: code mappings already exist."
+    logger.info(msg)
+    logger.info("Reported to Sentry; Query for 'level:info derive'")
+    # Using a generic message will group all events together
+    sentry_sdk.capture_message(sentry_msg)
