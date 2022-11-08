@@ -79,15 +79,18 @@ class IssueBasicMixin:
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_link(self, group, **kwargs):
         params = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
-        output = [
+        return [
             "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
             )
         ]
+
+    def get_group_description(self, group, event, **kwargs):
+        output = self.get_group_link(group, **kwargs)
         body = self.get_group_body(group, event)
         if body:
             output.extend(["", "```", body, "```"])

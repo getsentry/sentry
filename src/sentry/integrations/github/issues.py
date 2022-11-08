@@ -38,14 +38,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         return body
 
     def get_group_description(self, group: Group, event: Event, **kwargs: Any) -> str:
-        params = {}
-        if kwargs.get("link_referrer"):
-            params["referrer"] = kwargs.get("link_referrer")
-        output = [
-            "Sentry Issue: [{}]({})".format(
-                group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
-            )
-        ]
+        output = self.get_group_link(group, **kwargs)
 
         if group.issue_category == GroupCategory.PERFORMANCE:
             body = self.build_performance_issue_description(event)
