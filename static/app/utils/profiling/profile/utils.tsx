@@ -28,16 +28,16 @@ export function createSentrySampleProfileFrameIndex(
 }
 
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: Profiling.Schema['shared']['frames']
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: JSSelfProfiling.Frame[],
   trace: JSSelfProfiling.Trace
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[],
   trace?: JSSelfProfiling.Trace
 ): FrameIndex {
