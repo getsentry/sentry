@@ -74,6 +74,10 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_demo': {};
   'growth.demo_modal_clicked_signup': {};
+  'growth.end_modal_close': {};
+  'growth.end_modal_more_tours': {};
+  'growth.end_modal_restart_tours': {};
+  'growth.end_modal_signup': {};
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
   };
@@ -212,4 +216,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
     'Onboarding Wizard: Clicked More Details',
   'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
   'assistant.guide_cued': 'Assistant Guide Cued',
+  'growth.end_modal_more_tours': 'Growth: End Modal More Tours',
+  'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
+  'growth.end_modal_close': 'Growth: End Modal Close',
+  'growth.end_modal_signup': 'Growth: End Modal Signup',
 };

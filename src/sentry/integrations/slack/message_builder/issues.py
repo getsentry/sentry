@@ -33,7 +33,9 @@ from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupCategory
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -53,7 +55,9 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
-                user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
+                user_id=assigned_actor.id,
+                idp__type="slack",
+                idp__external_id=identity.idp.external_id,
             )
             assignee_text = f"<@{assignee_ident.external_id}>"
         except Identity.DoesNotExist:
@@ -105,7 +109,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    members = User.objects.get_from_group(group).distinct()
+    members = user_service.get_from_group(group)
     teams = group.project.teams.all()
 
     option_groups = []
@@ -213,7 +217,9 @@ def get_timestamp(group: Group, event: GroupEvent | None) -> float:
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: GroupEvent | None, notification: BaseNotification | None) -> str:
+def get_color(
+    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
+) -> str:
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"
@@ -221,6 +227,11 @@ def get_color(event_for_tags: GroupEvent | None, notification: BaseNotification 
         color: str | None = event_for_tags.get_tag("level")
         if color and color in LEVEL_TO_COLOR.keys():
             return color
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
+        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
+        return "info"
+
     return "error"
 
 
@@ -259,7 +270,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification)
+        color = get_color(event_for_tags, self.notification, self.group)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
@@ -351,7 +362,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification)
+        color = get_color(event_for_tags, self.notification, self.group)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
