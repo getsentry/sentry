@@ -94,6 +94,7 @@ const SavedSearchItem = ({
           position="bottom-end"
           items={actions}
           size="sm"
+          minMenuWidth={200}
           trigger={props => (
             <Button
               {...props}
@@ -114,12 +115,6 @@ function CreateNewSavedSearchButton({
   query,
   sort,
 }: CreateNewSavedSearchButtonProps) {
-  const disabled = !organization.access.includes('org:write');
-
-  const title = disabled
-    ? t('You do not have permission to create a saved search')
-    : t('Create a new saved search for your organization');
-
   const onClick = () => {
     trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
       organization,
@@ -131,11 +126,9 @@ function CreateNewSavedSearchButton({
 
   return (
     <Button
-      aria-label={t('Create a new saved search for your organization')}
-      disabled={disabled}
+      aria-label={t('Create a new saved search')}
       onClick={onClick}
       icon={<IconAdd size="sm" />}
-      title={title}
       borderless
       size="sm"
     />

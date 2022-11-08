@@ -219,7 +219,7 @@ def record_group_history(
         group=group,
         project=group.project,
         release=release,
-        actor=actor.actor if actor is not None else None,
+        actor_id=actor.actor_id if actor is not None else None,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
