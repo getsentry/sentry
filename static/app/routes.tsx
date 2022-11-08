@@ -1253,7 +1253,7 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Route
-      path="/organizations/:orgId/issues/(searches/)(:searchId/)"
+      path="/organizations/:orgId/issues/(searches/:searchId/)"
       component={errorHandler(IssueListContainer)}
     >
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
