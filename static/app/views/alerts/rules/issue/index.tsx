@@ -758,14 +758,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddRow = (type: ConditionOrActionProperty, id: string) => {
+  handleAddRow = (
+    type: ConditionOrActionProperty,
+    item: IssueAlertRuleActionTemplate
+  ) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration
       const newRule = {
-        ...this.getInitialValue(type, id),
-        id,
+        ...this.getInitialValue(type, item.id),
+        id: item.id,
+        sentryAppInstallationUuid: item.sentryAppInstallationUuid,
       };
       const newTypeList = prevState.rule ? prevState.rule[type] : [];
 
@@ -779,7 +783,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       organization,
       project_id: project.id,
       type,
-      name: id,
+      name: item.id,
     });
   };
 
@@ -795,9 +799,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddCondition = (id: string) => this.handleAddRow('conditions', id);
-  handleAddAction = (id: string) => this.handleAddRow('actions', id);
-  handleAddFilter = (id: string) => this.handleAddRow('filters', id);
+  handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('conditions', template);
+  handleAddAction = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('actions', template);
+  handleAddFilter = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('filters', template);
   handleDeleteCondition = (ruleIndex: number) =>
     this.handleDeleteRow('conditions', ruleIndex);
   handleDeleteAction = (ruleIndex: number) => this.handleDeleteRow('actions', ruleIndex);
