@@ -5,6 +5,9 @@ export type SpanContextProps = {
   markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
   scrollToHash: (hash: string) => void;
+  addExpandedSpan: (spanId: string) => void;
+  removeExpandedSpan: (spanId: string) => void;
+  isSpanExpanded: (spanId: string) => boolean;
 };
 
 const SpanContext = createContext<SpanContextProps>({
@@ -12,6 +15,9 @@ const SpanContext = createContext<SpanContextProps>({
   scrollToHash: () => undefined,
   didAnchoredSpanMount: false,
   markAnchoredSpanIsMounted: () => undefined,
+  addExpandedSpan: () => undefined,
+  removeExpandedSpan: () => undefined,
+  isSpanExpanded: () => false,
 });
 
 type Props = {
@@ -25,6 +31,10 @@ export class Provider extends Component<Props> {
 
   scrollFns: Map<string, {fn: () => void; isSpanInGroup: boolean}> = new Map();
   didAnchoredSpanMount = false;
+
+  // This set keeps track of all spans which are currently expanded to show their details.
+  // Since the span tree is virtualized, we need this so the tree can remember which spans have been expanded after they unmount
+  expandedSpansMap: Set<string> = new Set();
 
   scrollToHash = (_: string) => {
     // if (this.scrollFns.has(hash)) {
@@ -47,12 +57,27 @@ export class Provider extends Component<Props> {
     this.didAnchoredSpanMount = true;
   };
 
+  addExpandedSpan = (spanId: string) => {
+    this.expandedSpansMap.add(spanId);
+  };
+
+  removeExpandedSpan = (spanId: string) => {
+    this.expandedSpansMap.delete(spanId);
+  };
+
+  isSpanExpanded = (spanId: string) => {
+    return this.expandedSpansMap.has(spanId);
+  };
+
   render() {
     const childrenProps: SpanContextProps = {
       registerScrollFn: this.registerScrollFn,
       scrollToHash: this.scrollToHash,
       didAnchoredSpanMount: this.didAnchoredSpanMount,
       markAnchoredSpanIsMounted: this.markAnchoredSpanIsMounted,
+      addExpandedSpan: this.addExpandedSpan,
+      removeExpandedSpan: this.removeExpandedSpan,
+      isSpanExpanded: this.isSpanExpanded,
     };
 
     return (

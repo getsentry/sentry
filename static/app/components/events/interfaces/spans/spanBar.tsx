@@ -138,6 +138,9 @@ type SpanBarProps = {
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
+  addExpandedSpan: (spanId: string) => void;
+  removeExpandedSpan: (spanId: string) => void;
+  isSpanExpanded: (spanId: string) => boolean;
 };
 
 type SpanBarState = {
@@ -162,13 +165,24 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       });
     }
 
+    const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded} = this.props;
+
+    if (isGapSpan(span)) {
+      return;
+    }
+
     if (
-      !isGapSpan(this.props.span) &&
-      spanTargetHash(this.props.span.span_id) === location.hash &&
+      spanTargetHash(span.span_id) === location.hash &&
       !this.props.didAnchoredSpanMount
     ) {
       this.scrollIntoView();
-      this.props.markAnchoredSpanIsMounted?.();
+      markAnchoredSpanIsMounted?.();
+      addExpandedSpan(span.span_id);
+      return;
+    }
+
+    if (isSpanExpanded(span.span_id)) {
+      this.setState({showDetail: true});
     }
   }
 
@@ -181,12 +195,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.props.measure?.();
     }
 
-    const {span} = this.props;
+    const {span, markSpanOutOfView} = this.props;
     if (isGapSpan(span)) {
       return;
     }
 
-    this.props.markSpanOutOfView(span.span_id);
+    markSpanOutOfView(span.span_id);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
@@ -219,7 +233,17 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
         showDetail: !state.showDetail,
       }),
       () => {
-        this.props.measure?.();
+        const {measure, span, addExpandedSpan, removeExpandedSpan} = this.props;
+
+        measure?.();
+
+        if (isGapSpan(span)) {
+          return;
+        }
+
+        this.state.showDetail
+          ? addExpandedSpan(span.span_id)
+          : removeExpandedSpan(span.span_id);
       }
     );
   };

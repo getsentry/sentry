@@ -20,7 +20,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import * as AnchorLinkManager from './spanContext';
+import * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -34,6 +34,7 @@ import {
 import {
   getSpanID,
   getSpanOperation,
+  isGapSpan,
   setSpansOnTransaction,
   spanTargetHash,
 } from './utils';
@@ -59,11 +60,6 @@ const cache = new CellMeasurerCache({
 const listRef = React.createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
-  state = {
-    isScrollingToAnchor: false,
-    anchoredSpanIndex: -1,
-  };
-
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
 
@@ -228,6 +224,7 @@ class SpanTree extends Component<PropType> {
     this.props.updateScrollState();
   };
 
+  // TODO: Clean this up so spanTree contains objects instead of React nodes
   generateSpanTree = () => {
     const {
       waterfallModel,
@@ -469,7 +466,7 @@ class SpanTree extends Component<PropType> {
   };
 
   renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
-    const {index, key, parent, style, columnIndex} = params;
+    const {index, isVisible, key, parent, style, columnIndex} = params;
 
     return (
       <CellMeasurer
@@ -481,22 +478,33 @@ class SpanTree extends Component<PropType> {
       >
         {({measure}) => {
           return (
-            <AnchorLinkManager.Consumer>
-              {({didAnchoredSpanMount, markAnchoredSpanIsMounted}) => (
-                <div style={style}>
-                  {spanTree[index].type === SpanBar ? (
-                    <SpanBar
-                      {...spanTree[index].props}
-                      measure={measure}
-                      didAnchoredSpanMount={didAnchoredSpanMount}
-                      markAnchoredSpanIsMounted={markAnchoredSpanIsMounted}
-                    />
-                  ) : (
-                    spanTree[index]
-                  )}
-                </div>
-              )}
-            </AnchorLinkManager.Consumer>
+            <SpanContext.Consumer>
+              {({
+                didAnchoredSpanMount,
+                isSpanExpanded,
+                markAnchoredSpanIsMounted,
+                addExpandedSpan,
+                removeExpandedSpan,
+              }) => {
+                return (
+                  <div style={style}>
+                    {spanTree[index].type === SpanBar ? (
+                      <SpanBar
+                        {...spanTree[index].props}
+                        measure={measure}
+                        didAnchoredSpanMount={didAnchoredSpanMount}
+                        markAnchoredSpanIsMounted={markAnchoredSpanIsMounted}
+                        addExpandedSpan={addExpandedSpan}
+                        removeExpandedSpan={removeExpandedSpan}
+                        isSpanExpanded={isSpanExpanded}
+                      />
+                    ) : (
+                      spanTree[index]
+                    )}
+                  </div>
+                );
+              }}
+            </SpanContext.Consumer>
           );
         }}
       </CellMeasurer>
