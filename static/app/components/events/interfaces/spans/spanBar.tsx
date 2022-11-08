@@ -1,6 +1,7 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
+import {List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -87,7 +88,6 @@ import {
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
-import {List as ReactVirtualizedList} from 'react-virtualized';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -118,6 +118,7 @@ type SpanBarProps = {
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
   organization: Organization;
+  shouldShowDetailOnMount: boolean;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -129,7 +130,6 @@ type SpanBarProps = {
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
-  treeDepth: number;
   groupOccurrence?: number;
   groupType?: GroupType;
   isLast?: boolean;
@@ -138,7 +138,7 @@ type SpanBarProps = {
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
-  shouldShowDetailOnMount: boolean;
+  treeDepth: number;
 };
 
 type SpanBarState = {
@@ -163,7 +163,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       });
     }
 
-    if (this.props.shouldShowDetailOnMount) {
+    if (
+      !isGapSpan(this.props.span) &&
+      spanTargetHash(this.props.span.span_id) === location.hash
+    ) {
       this.scrollIntoView();
     }
   }
@@ -174,7 +177,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
-      //this.props.measure?.();
+      this.props.measure?.();
     }
 
     const {span} = this.props;
@@ -221,15 +224,18 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   };
 
   scrollIntoView = () => {
+    console.log('scrolling');
     const {measure} = this.props;
 
     const element = this.spanRowDOMRef.current;
     if (!element) {
+      console.log('no elem');
       return;
     }
 
     this.setState({showDetail: true}, () => {
       measure?.();
+      console.log('set showDetail to true');
 
       const boundingRect = element.getBoundingClientRect();
       // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
@@ -251,11 +257,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <AnchorLinkManager.Consumer>
-        {({registerScrollFn, scrollToHash, isAnchoredSpanFound}) => {
-          if (!isGapSpan(span)) {
-            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
-          }
-
+        {({
+          registerScrollFn,
+          scrollToHash,
+          isAnchoredSpanFound,
+          markAnchoredSpanFound,
+        }) => {
           if (!this.state.showDetail || !isVisible) {
             return null;
           }

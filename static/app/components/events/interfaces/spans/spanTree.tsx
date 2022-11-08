@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import {
   CellMeasurer,
   CellMeasurerCache,
@@ -37,7 +37,6 @@ import {
   spanTargetHash,
 } from './utils';
 import WaterfallModel from './waterfallModel';
-import React from 'react';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
@@ -512,7 +511,7 @@ class SpanTree extends Component<PropType> {
                 <SpanBar
                   {...spanTree[index].props}
                   measure={measure}
-                  shouldShowDetailOnMount={shouldShowDetailOnMount}
+                  shouldShowDetailOnMount={false}
                 />
               ) : (
                 spanTree[index]

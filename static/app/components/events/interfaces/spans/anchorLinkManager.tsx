@@ -1,15 +1,17 @@
 import {Component, createContext} from 'react';
 
 export type AnchorLinkManagerChildrenProps = {
+  isAnchoredSpanFound: boolean;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
   scrollToHash: (hash: string) => void;
-  isAnchoredSpanFound: boolean;
+  markAnchoredSpanFound: () => void;
 };
 
 const AnchorLinkManagerContext = createContext<AnchorLinkManagerChildrenProps>({
   registerScrollFn: () => () => undefined,
   scrollToHash: () => undefined,
   isAnchoredSpanFound: false,
+  markAnchoredSpanFound: () => undefined,
 });
 
 type Props = {
@@ -41,11 +43,16 @@ export class Provider extends Component<Props> {
     this.scrollFns.set(hash, {fn, isSpanInGroup});
   };
 
+  markAnchoredSpanFound = () => {
+    this.isAnchoredSpanFound = true;
+  };
+
   render() {
     const childrenProps: AnchorLinkManagerChildrenProps = {
       registerScrollFn: this.registerScrollFn,
       scrollToHash: this.scrollToHash,
       isAnchoredSpanFound: this.isAnchoredSpanFound,
+      markAnchoredSpanFound: this.markAnchoredSpanFound,
     };
 
     return (
