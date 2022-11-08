@@ -103,7 +103,6 @@ def get_events(
             if event_id is not None:
                 event_ids.append(event_id)
 
-    # TODO: Add more columns as more event filters are supported
     columns.append("event_id")
     events = []
     if group_ids:
@@ -138,8 +137,6 @@ def get_events(
             values = event["tags.value"]
             del event["tags.key"]
             del event["tags.value"]
-            event["tags"] = {}
-            for k, v in zip(keys, values):
-                event["tags"][k] = v
+            event["tags"] = {k: v for k, v in zip(keys, values)}
 
     return {event["event_id"]: event for event in events}
