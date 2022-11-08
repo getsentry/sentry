@@ -26,7 +26,7 @@ class AcceptInviteTest(TestCase):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
-    def _assert_pending_invite_details_in_session(self, response, om):
+    def _assert_pending_invite_details_in_session(self, om):
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
 
@@ -111,7 +111,7 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 200
         assert resp.data["needs2fa"]
 
-        self._assert_pending_invite_details_in_session(resp, om)
+        self._assert_pending_invite_details_in_session(om)
 
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()
@@ -291,7 +291,7 @@ class AcceptInviteTest(TestCase):
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
-        self._assert_pending_invite_details_in_session(resp, om)
+        self._assert_pending_invite_details_in_session(om)
 
         self._enroll_user_in_2fa()
         resp = self.client.post(
@@ -299,5 +299,4 @@ class AcceptInviteTest(TestCase):
         )
         assert resp.status_code == 204
 
-        # value set to empty string on deletion
         self._assert_pending_invite_details_not_in_session(resp)
