@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SavedSearchType} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 describe('IssueListSetAsDefault', () => {
@@ -24,26 +24,31 @@ describe('IssueListSetAsDefault', () => {
     ...routerProps,
   };
 
-  it('can set a search as default', () => {
+  it('can set a search as default', async () => {
     const mockPinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'PUT',
-      body: {},
+      body: TestStubs.Search({
+        isPinned: true,
+        visibility: SavedSearchVisibility.OwnerPinned,
+      }),
     });
 
     render(<IssueListSetAsDefault {...defaultProps} />);
 
     userEvent.click(screen.getByRole('button', {name: /set as default/i}));
 
-    expect(mockPinSearch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {query: 'is:unresolved', sort: 'date', type: SavedSearchType.ISSUE},
-      })
-    );
+    await waitFor(() => {
+      expect(mockPinSearch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {query: 'is:unresolved', sort: 'date', type: SavedSearchType.ISSUE},
+        })
+      );
+    });
   });
 
-  it('can remove a default search', () => {
+  it('can remove a default search', async () => {
     const mockUnpinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'DELETE',
@@ -58,11 +63,13 @@ describe('IssueListSetAsDefault', () => {
 
     userEvent.click(screen.getByRole('button', {name: /remove default/i}));
 
-    expect(mockUnpinSearch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {type: SavedSearchType.ISSUE},
-      })
-    );
+    await waitFor(() => {
+      expect(mockUnpinSearch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {type: SavedSearchType.ISSUE},
+        })
+      );
+    });
   });
 });
