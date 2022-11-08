@@ -1,13 +1,7 @@
-from typing import TYPE_CHECKING, List
-
 from django.db import models
 
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
-from sentry.models.organizationmember import OrganizationMember
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class CommitAuthorManager(BaseManager):
@@ -38,11 +32,12 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    def find_users(self) -> List["APIUser"]:
-        from sentry.services.hybrid_cloud.user import user_service
+    def find_users(self):
+        from sentry.models import User
 
-        users = user_service.get_many_by_email(self.email)
-        group_memberships = OrganizationMember.objects.filter(
-            organization_id=self.organization_id,
-        ).values_list("user_id", flat=True)
-        return list(filter(lambda u: u.id in group_memberships, users))
+        return User.objects.filter(
+            emails__email__iexact=self.email,
+            emails__is_verified=True,
+            sentry_orgmember_set__organization=self.organization_id,
+            is_active=True,
+        )
