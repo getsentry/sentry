@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import {ComponentProps, Fragment} from 'react';
 
 import {
   render,
@@ -10,6 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import GlobalModalContainer from 'sentry/components/globalModal';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 describe('SavedIssueSearches', function () {
@@ -158,7 +159,53 @@ describe('SavedIssueSearches', function () {
     });
   });
 
-  it('cannot delete a saved search without correct permissions', async function () {
+  it('can edit an org saved search with correct permissions', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch, orgSearch, pinnedSearch],
+    });
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/org-search/',
+      method: 'PUT',
+      body: {
+        ...orgSearch,
+        name: 'new name',
+      },
+    });
+
+    render(
+      <Fragment>
+        <SavedIssueSearches {...defaultProps} />
+        <GlobalModalContainer />
+      </Fragment>
+    );
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    userEvent.click(screen.getByRole('menuitemradio', {name: /edit/i}));
+
+    const modal = screen.getByRole('dialog');
+
+    userEvent.clear(within(modal).getByRole('textbox', {name: /name/i}));
+    userEvent.type(within(modal).getByRole('textbox', {name: /name/i}), 'new name');
+
+    userEvent.click(within(modal).getByRole('button', {name: /save/i}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'new name',
+          }),
+        })
+      );
+      expect(screen.getByText('new name')).toBeInTheDocument();
+    });
+  });
+
+  it('cannot delete or edit a saved search without correct permissions', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [recommendedSearch, orgSearch, pinnedSearch],
@@ -180,6 +227,10 @@ describe('SavedIssueSearches', function () {
 
     expect(
       screen.getByText('You do not have permission to delete this search.')
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText('You do not have permission to edit this search.')
     ).toBeInTheDocument();
   });
 

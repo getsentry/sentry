@@ -10,11 +10,12 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
+import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -47,18 +48,24 @@ const SavedSearchItem = ({
   const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
+  const canEdit =
+    savedSearch.visibility === SavedSearchVisibility.Owner || hasOrgWriteAccess;
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: 'Edit',
-      disabled: true,
-      details: 'Not yet supported',
+      disabled: !canEdit,
+      details: !canEdit ? t('You do not have permission to edit this search.') : '',
+      onAction: () => {
+        openModal(deps => (
+          <EditSavedSearchModal {...deps} {...{organization, savedSearch}} />
+        ));
+      },
     },
     {
-      disabled: !hasOrgWriteAccess,
-      details: !hasOrgWriteAccess
-        ? t('You do not have permission to delete this search.')
-        : '',
+      disabled: !canEdit,
+      details: !canEdit ? t('You do not have permission to delete this search.') : '',
       key: 'delete',
       label: t('Delete'),
       onAction: () => {

@@ -2,7 +2,13 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {SavedSearchVisibility} from 'sentry/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -13,15 +19,21 @@ describe('CreateSavedSearchModal', function () {
   });
 
   const defaultProps = {
-    Header: p => p.children,
-    Body: p => p.children,
-    Footer: p => p.children,
+    Body: ModalBody,
+    Header: makeClosableHeader(jest.fn()),
+    Footer: ModalFooter,
+    CloseButton: makeCloseButton(jest.fn()),
+    closeModal: jest.fn(),
     organization,
     query: 'is:unresolved assigned:lyn@sentry.io',
     sort: IssueSortOptions.DATE,
   };
 
   beforeEach(function () {
+    // XXX: Something here triggers a "Can't perform a React state update on an unmounted component"
+    // This warning will be gone in React 18, remove this when we upgrade.
+    jest.spyOn(console, 'error').mockImplementation(jest.fn);
+
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
@@ -127,15 +139,10 @@ describe('CreateSavedSearchModal', function () {
       features: ['issue-list-saved-searches-v2'],
       access: ['org:write'],
     });
-
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
-
     userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
-
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
-
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
         '/organizations/org-slug/searches/',
