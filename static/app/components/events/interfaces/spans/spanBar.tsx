@@ -1,7 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
-import {List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -54,7 +53,6 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -113,12 +111,11 @@ type SpanBarProps = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
-  markAnchoredSpanIsMounted: () => void;
+  markAnchoredSpanIsMounted?: () => void;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   organization: Organization;
-  shouldShowDetailOnMount: boolean;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -171,7 +168,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       !this.props.didAnchoredSpanMount
     ) {
       this.scrollIntoView();
-      this.props.markAnchoredSpanIsMounted();
+      this.props.markAnchoredSpanIsMounted?.();
     }
   }
 

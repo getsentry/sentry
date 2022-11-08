@@ -21,7 +21,6 @@ import * as AnchorLinkManager from './anchorLinkManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import {SpanContext} from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -59,7 +58,6 @@ const cache = new CellMeasurerCache({
 
 const listRef = React.createRef<ReactVirtualizedList>();
 
-const measureFunctionMap: Record<number, () => void> = {};
 class SpanTree extends Component<PropType> {
   state = {
     isScrollingToAnchor: false,
@@ -83,9 +81,11 @@ class SpanTree extends Component<PropType> {
         return;
       }
 
-      this.setState({isScrollingToAnchor: true, anchoredSpanIndex: index}, () =>
-        this.scrollUntilSpanFound(index)
-      );
+      // This is just an estimate of where the anchored span is located. We can't get its precise location here, since
+      // we need it to mount and use its boundingbox to determine that, but since the list is virtualized, there's no guarantee that
+      // this span is mounted initially. The actual scroll positioning will be determined within the SpanBar instance that is anchored,
+      // since this scroll estimation will allow that span to mount
+      window.scrollTo(0, window.scrollY + ROW_HEIGHT * index);
     }
   }
 
@@ -118,21 +118,6 @@ class SpanTree extends Component<PropType> {
       // if the spans has changed
       this.props.updateScrollState();
     }
-  }
-
-  scrollUntilSpanFound(index: number) {
-    window.scrollTo(0, window.scrollY + ROW_HEIGHT * index);
-    // interval = setInterval(() => {
-    //   window.scrollTo({top: window.scrollY + ROW_HEIGHT * 10});
-    //   if (!this.state.isScrollingToAnchor) {
-    //     clearInterval(interval);
-    //   }
-    // }, 1);
-
-    // // Backup timeout to prevent infinite scrolling if the anchored span is never found
-    // setTimeout(() => {
-    //   clearInterval(interval);
-    // }, 2000);
   }
 
   generateInfoMessage(input: {
@@ -446,7 +431,7 @@ class SpanTree extends Component<PropType> {
             markSpanOutOfView={markSpanOutOfView}
             markSpanInView={markSpanInView}
             storeSpanBar={storeSpanBar}
-            shouldShowDetailOnMount={false}
+            didAnchoredSpanMount={false}
           />
         );
 
@@ -486,16 +471,6 @@ class SpanTree extends Component<PropType> {
   renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
     const {index, isVisible, key, parent, style, columnIndex} = params;
 
-    let shouldShowDetailOnMount = false;
-
-    // TODO: This kinda works. Need a consistent way to make it so the spanDetails actually shows.
-    // It seems that we can't rely on this shouldShowDetailOnMount to work inside renderRow
-
-    if (this.state.isScrollingToAnchor && index === this.state.anchoredSpanIndex) {
-      shouldShowDetailOnMount = true;
-      this.setState({isScrollingToAnchor: false});
-    }
-
     return (
       <CellMeasurer
         key={key}
@@ -505,8 +480,6 @@ class SpanTree extends Component<PropType> {
         rowIndex={index}
       >
         {({measure}) => {
-          measureFunctionMap[index] = measure;
-
           return (
             <AnchorLinkManager.Consumer>
               {({didAnchoredSpanMount, markAnchoredSpanIsMounted}) => (
@@ -515,7 +488,6 @@ class SpanTree extends Component<PropType> {
                     <SpanBar
                       {...spanTree[index].props}
                       measure={measure}
-                      shouldShowDetailOnMount={false}
                       didAnchoredSpanMount={didAnchoredSpanMount}
                       markAnchoredSpanIsMounted={markAnchoredSpanIsMounted}
                     />
