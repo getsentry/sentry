@@ -65,16 +65,12 @@ describe('OrganizationStats', function () {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
-      organization: newOrg.organization,
     });
     expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', () => {
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
-    });
+    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
@@ -85,10 +81,7 @@ describe('OrganizationStats', function () {
    * Base + Error Handling
    */
   it('renders the base view', () => {
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
-    });
+    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
@@ -149,10 +142,7 @@ describe('OrganizationStats', function () {
       url: endpoint,
       statusCode: 500,
     });
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
-    });
+    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -166,10 +156,7 @@ describe('OrganizationStats', function () {
       statusCode: 400,
       body: {detail: 'No projects available'},
     });
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
-    });
+    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -180,10 +167,7 @@ describe('OrganizationStats', function () {
    * Router Handling
    */
   it('pushes state changes to the route', () => {
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
-    });
+    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     userEvent.click(screen.getByText('Category'));
     userEvent.click(screen.getByText('Attachments'));
@@ -223,7 +207,6 @@ describe('OrganizationStats', function () {
     );
     render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />, {
       context: routerContext,
-      organization,
     });
 
     const projectLinks = screen.getAllByTestId('badge-display-name');
@@ -250,7 +233,6 @@ describe('OrganizationStats', function () {
     ];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
-      organization: newOrg.organization,
     });
 
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -287,10 +269,7 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {
-        context: newOrg.routerContext,
-        organization: newOrg.organization,
-      }
+      {context: newOrg.routerContext}
     );
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
@@ -332,10 +311,7 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {
-        context: newOrg.routerContext,
-        organization: newOrg.organization,
-      }
+      {context: newOrg.routerContext}
     );
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
@@ -380,10 +356,7 @@ describe('OrganizationStats', function () {
           organization={newOrg.organization}
           selection={newSelection}
         />,
-        {
-          context: newOrg.routerContext,
-          organization: newOrg.organization,
-        }
+        {context: newOrg.routerContext}
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
