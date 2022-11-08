@@ -1,4 +1,14 @@
-from typing import List
+from typing import List, NamedTuple
+
+
+class Repo(NamedTuple):
+    name: str
+    branch: str
+
+
+class RepoTree(NamedTuple):
+    repo: Repo
+    files: List[str]
 
 
 def trim_tree(tree: List[str], languages: List[str]) -> List[str]:

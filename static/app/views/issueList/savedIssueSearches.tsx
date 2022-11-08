@@ -12,9 +12,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -38,6 +38,22 @@ type CreateNewSavedSearchButtonProps = Pick<
 >;
 
 const MAX_SHOWN_SEARCHES = 5;
+
+const SavedSearchItemDescription = ({
+  savedSearch,
+}: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+  if (savedSearch.isGlobal) {
+    return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
+  }
+
+  return (
+    <SavedSearchItemVisbility>
+      {savedSearch.visibility === SavedSearchVisibility.Organization
+        ? t('Org Search')
+        : t('My  Search')}
+    </SavedSearchItemVisbility>
+  );
+};
 
 const SavedSearchItem = ({
   organization,
@@ -83,7 +99,7 @@ const SavedSearchItem = ({
       >
         <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
-          <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
+          <SavedSearchItemDescription savedSearch={savedSearch} />
         </TitleDescriptionWrapper>
       </StyledItemButton>
       {!savedSearch.isGlobal && (
@@ -199,12 +215,16 @@ const SavedIssueSearchesContent = ({
             />
           ))}
           {shownOrgSavedSearches.length === 0 && (
-            <p>You don't have any saved searches.</p>
+            <p>{t("You don't have any saved searches.")}</p>
           )}
         </SearchesContainer>
         {orgSavedSearches.length > shownOrgSavedSearches.length && (
           <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
-            {t('Show all %s saved searches', orgSavedSearches.length.toLocaleString())}
+            {tn(
+              'Show %s saved search',
+              'Show all %s saved searches',
+              orgSavedSearches.length
+            )}
           </ShowAllButton>
         )}
       </Fragment>
@@ -238,7 +258,7 @@ const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
 };
 
 const StyledSidebar = styled('aside')`
-  width: 360px;
+  width: 100%;
   padding: ${space(3)} ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -248,6 +268,7 @@ const StyledSidebar = styled('aside')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-left: 1px solid ${p => p.theme.gray200};
+    max-width: 340px;
   }
 `;
 
@@ -301,18 +322,19 @@ const TitleDescriptionWrapper = styled('div')`
 
 const SavedSearchItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  ${p => p.theme.overflowEllipsis}
 `;
 
-const SavedSearchItemDescription = styled('div')`
+const SavedSearchItemVisbility = styled('div')`
+  color: ${p => p.theme.subText};
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const OverflowMenu = styled(DropdownMenuControl)`
