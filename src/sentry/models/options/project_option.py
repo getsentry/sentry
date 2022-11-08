@@ -52,7 +52,7 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
-        "sentry:spike_projection_config",
+        "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
         "digests:mail:maximum_delay",

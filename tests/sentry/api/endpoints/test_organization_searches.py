@@ -166,9 +166,21 @@ class CreateOrganizationSearchesTest(APITestCase):
             type=SearchType.ISSUE.value,
             name="hello",
             query="test",
-            Visibility=Visibility.ORGANIZATION,
+            visibility=Visibility.ORGANIZATION,
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 400
+
+    def test_member_can_create_owner_search(self):
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query="test",
+            visibility=Visibility.OWNER,
+        )
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
     def test_exists(self):
         global_search = SavedSearch.objects.create(
