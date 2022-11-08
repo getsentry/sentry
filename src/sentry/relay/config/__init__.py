@@ -70,11 +70,6 @@ def get_exposed_features(project: Project) -> Sequence[str]:
     return active_features
 
 
-def get_project_key_config(project_key):
-    """Returns a dict containing the information for a specific project key"""
-    return {"dsn": project_key.dsn_public}
-
-
 def get_public_key_configs(project, full_config, project_keys=None):
     public_keys = []
 
@@ -89,11 +84,6 @@ def get_public_key_configs(project, full_config, project_keys=None):
             # Removed that value in https://github.com/getsentry/relay/pull/778/files#diff-e66f275002251930fbfc361b4cca64ab41ff2435029f65c2fd6ffb729129909dL372
             "isEnabled": True,
         }
-
-        if full_config:
-            key["quotas"] = [
-                q.to_json_legacy() for q in quotas.get_quotas(project, key=project_key)
-            ]
 
         public_keys.append(key)
 
@@ -274,7 +264,9 @@ def _get_project_config(project, full_config=True, project_keys=None):
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
             "version": 1,
-            "drop": False,
+            "drop": features.has(
+                "organizations:release-health-drop-sessions", project.organization
+            ),
         }
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
@@ -520,7 +512,6 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-
     metrics = []
     custom_tags = []
 

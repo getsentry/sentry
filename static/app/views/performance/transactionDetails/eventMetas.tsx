@@ -24,6 +24,7 @@ import {
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import theme from 'sentry/utils/theme';
+import EventCreatedTooltip from 'sentry/views/organizationGroupDetails/eventCreatedTooltip';
 
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
@@ -97,7 +98,13 @@ class EventMetas extends Component<Props, State> {
     const type = isTransaction(event) ? 'transaction' : 'event';
 
     const timestamp = (
-      <TimeSince date={event.dateCreated || (event.endTimestamp || 0) * 1000} />
+      <TimeSince
+        tooltipBody={getDynamicText({
+          value: <EventCreatedTooltip event={event} />,
+          fixed: 'Event Created Tooltip',
+        })}
+        date={event.dateCreated || (event.endTimestamp || 0) * 1000}
+      />
     );
 
     const httpStatus = <HttpStatus event={event} />;

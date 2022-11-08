@@ -110,6 +110,7 @@ const SavedSearchItem = ({
           position="bottom-end"
           items={actions}
           size="sm"
+          minMenuWidth={200}
           trigger={props => (
             <Button
               {...props}
@@ -130,12 +131,6 @@ function CreateNewSavedSearchButton({
   query,
   sort,
 }: CreateNewSavedSearchButtonProps) {
-  const disabled = !organization.access.includes('org:write');
-
-  const title = disabled
-    ? t('You do not have permission to create a saved search')
-    : t('Create a new saved search for your organization');
-
   const onClick = () => {
     trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
       organization,
@@ -147,11 +142,9 @@ function CreateNewSavedSearchButton({
 
   return (
     <Button
-      aria-label={t('Create a new saved search for your organization')}
-      disabled={disabled}
+      aria-label={t('Create a new saved search')}
       onClick={onClick}
       icon={<IconAdd size="sm" />}
-      title={title}
       borderless
       size="sm"
     />
@@ -246,7 +239,7 @@ const SavedIssueSearches = ({
 };
 
 const StyledSidebar = styled('aside')`
-  width: 360px;
+  width: 100%;
   padding: ${space(3)} ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -256,6 +249,7 @@ const StyledSidebar = styled('aside')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-left: 1px solid ${p => p.theme.gray200};
+    max-width: 340px;
   }
 `;
 

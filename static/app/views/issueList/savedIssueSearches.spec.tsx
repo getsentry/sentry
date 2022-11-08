@@ -159,7 +159,7 @@ describe('SavedIssueSearches', function () {
     const modal = screen.getByRole('dialog');
 
     userEvent.type(
-      within(modal).getByRole('textbox', {name: 'Name'}),
+      within(modal).getByRole('textbox', {name: /name/i}),
       'new saved search'
     );
 
@@ -177,22 +177,5 @@ describe('SavedIssueSearches', function () {
 
     // Modal should close
     await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
-  });
-
-  it('disables saved search creation without org:write permission', function () {
-    render(
-      <SavedIssueSearches
-        {...defaultProps}
-        organization={{
-          ...organization,
-          access: organization.access.filter(access => access !== 'org:write'),
-        }}
-      />
-    );
-    renderGlobalModal();
-
-    expect(
-      screen.getByRole('button', {name: /create a new saved search/i})
-    ).toBeDisabled();
   });
 });
