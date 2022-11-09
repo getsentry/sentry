@@ -9,7 +9,9 @@ import RuleDetailsContainer from 'sentry/views/alerts/rules/issue/details/index'
 import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg();
+  const context = initializeOrg({
+    organization: {features: ['issue-alert-incompatible-rules']},
+  });
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
@@ -155,5 +157,43 @@ describe('AlertRuleDetails', () => {
     expect(
       await screen.findByText('The alert rule you were looking for was not found.')
     ).toBeInTheDocument();
+  });
+
+  it('renders incompatible rule filter', async () => {
+    const incompatibleRule = TestStubs.ProjectAlertRule({
+      lastTriggered: moment().subtract(2, 'day').format(),
+      conditions: [
+        {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+        {id: 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
+      ],
+    });
+    MockApiClient.mockResponses.splice(
+      MockApiClient.mockResponses.findIndex(
+        response =>
+          response.url ===
+          `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`
+      ),
+      1
+    );
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: incompatibleRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'The conditions in this alert rule conflict and might not be working properly.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('incompatible rule banner hidden for good rule', async () => {
+    createWrapper();
+    expect(
+      await screen.queryByText(
+        'The conditions in this alert rule conflict and might not be working properly.'
+      )
+    ).not.toBeInTheDocument();
   });
 });

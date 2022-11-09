@@ -123,6 +123,11 @@ type RuleTaskResponse = {
 
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
+export type SetIncompatibleFunction = (
+  type: 'condition' | 'filter',
+  index: number
+) => void;
+
 type Props = {
   location: Location;
   members: Member[] | undefined;
@@ -410,91 +415,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       });
   };
 
+  setIncompatible: SetIncompatibleFunction = (type, index) => {
+    if (type === 'condition') {
+      this.setState({incompatibleCondition: index});
+    } else {
+      this.setState({incompatibleFilter: index});
+    }
+  };
+
   fetchPreviewDebounced = debounce(() => {
     this.fetchPreview(true);
   }, 1000);
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRule = debounce(() => {
-    const {rule} = this.state;
-    if (
-      !rule ||
-      !this.props.organization.features.includes('issue-alert-incompatible-rules')
-    ) {
-      return;
-    }
-
-    const {conditions, filters} = rule;
-    // Check for more than one 'issue state change' condition
-    // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
-    if (rule.actionMatch === 'all') {
-      let firstSeen = 0;
-      let regression = 0;
-      let reappeared = 0;
-      let eventFrequency = 0;
-      for (let i = 0; i < conditions.length; i++) {
-        const id = conditions[i].id;
-        if (id.endsWith('FirstSeenEventCondition')) {
-          firstSeen = 1;
-        } else if (id.endsWith('RegressionEventCondition')) {
-          regression = 1;
-        } else if (id.endsWith('ReappearedEventCondition')) {
-          reappeared = 1;
-        } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
-          eventFrequency = 1;
-        }
-        if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
-          this.setState({incompatibleCondition: i});
-          return;
-        }
-      }
-    }
-    // Check for 'FirstSeenEventCondition' and ('IssueOccurrencesFilter' or 'AgeComparisonFilter')
-    // Considers the case where filterMatch is 'any' and all filters are incompatible
-    const firstSeen = conditions.some(condition =>
-      condition.id.endsWith('FirstSeenEventCondition')
-    );
-    if (firstSeen && (rule.actionMatch === 'all' || conditions.length === 1)) {
-      let incompatibleFilters = 0;
-      for (let i = 0; i < filters.length; i++) {
-        const filter = filters[i];
-        const id = filter.id;
-        if (id.endsWith('IssueOccurrencesFilter')) {
-          if (
-            (rule.filterMatch === 'all' && filter.value > 1) ||
-            (rule.filterMatch === 'none' && filter.value <= 1)
-          ) {
-            this.setState({incompatibleFilter: i});
-            return;
-          }
-          if (rule.filterMatch === 'any' && filter.value > 1) {
-            incompatibleFilters += 1;
-          }
-        } else if (id.endsWith('AgeComparisonFilter')) {
-          if (rule.filterMatch !== 'none') {
-            if (
-              (filter.comparison_type === 'older' && filter.value >= 0) ||
-              (filter.comparison_type === 'newer' && filter.value <= 0)
-            ) {
-              if (rule.filterMatch === 'all') {
-                this.setState({incompatibleFilter: i});
-                return;
-              }
-              incompatibleFilters += 1;
-            }
-          } else if (
-            (filter.comparison_type === 'older' && filter.value < 0) ||
-            (filter.comparison_type === 'newer' && filter.value > 0)
-          ) {
-            this.setState({incompatibleFilter: i});
-            return;
-          }
-        }
-      }
-      if (incompatibleFilters === filters.length) {
-        this.setState({incompatibleFilter: incompatibleFilters - 1});
-        return;
-      }
+    if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
+      findIncompatibleRules(this.setIncompatible, this.state.rule);
     }
   }, 500);
 
@@ -1487,6 +1423,85 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 }
 
 export default withOrganization(withProjects(IssueRuleEditor));
+
+export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, rule) => {
+  if (!rule) {
+    return;
+  }
+
+  const {conditions, filters} = rule;
+  // Check for more than one 'issue state change' condition
+  // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
+  if (rule.actionMatch === 'all') {
+    let firstSeen = 0;
+    let regression = 0;
+    let reappeared = 0;
+    let eventFrequency = 0;
+    for (let i = 0; i < conditions.length; i++) {
+      const id = conditions[i].id;
+      if (id.endsWith('FirstSeenEventCondition')) {
+        firstSeen = 1;
+      } else if (id.endsWith('RegressionEventCondition')) {
+        regression = 1;
+      } else if (id.endsWith('ReappearedEventCondition')) {
+        reappeared = 1;
+      } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+        eventFrequency = 1;
+      }
+      if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
+        setIncompatible('condition', i);
+        return;
+      }
+    }
+  }
+  // Check for 'FirstSeenEventCondition' and ('IssueOccurrencesFilter' or 'AgeComparisonFilter')
+  // Considers the case where filterMatch is 'any' and all filters are incompatible
+  const firstSeen = conditions.some(condition =>
+    condition.id.endsWith('FirstSeenEventCondition')
+  );
+  if (firstSeen && (rule.actionMatch === 'all' || conditions.length === 1)) {
+    let incompatibleFilters = 0;
+    for (let i = 0; i < filters.length; i++) {
+      const filter = filters[i];
+      const id = filter.id;
+      if (id.endsWith('IssueOccurrencesFilter')) {
+        if (
+          (rule.filterMatch === 'all' && filter.value > 1) ||
+          (rule.filterMatch === 'none' && filter.value <= 1)
+        ) {
+          setIncompatible('filter', i);
+          return;
+        }
+        if (rule.filterMatch === 'any' && filter.value > 1) {
+          incompatibleFilters += 1;
+        }
+      } else if (id.endsWith('AgeComparisonFilter')) {
+        if (rule.filterMatch !== 'none') {
+          if (
+            (filter.comparison_type === 'older' && filter.value >= 0) ||
+            (filter.comparison_type === 'newer' && filter.value <= 0)
+          ) {
+            if (rule.filterMatch === 'all') {
+              setIncompatible('filter', i);
+              return;
+            }
+            incompatibleFilters += 1;
+          }
+        } else if (
+          (filter.comparison_type === 'older' && filter.value < 0) ||
+          (filter.comparison_type === 'newer' && filter.value > 0)
+        ) {
+          setIncompatible('filter', i);
+          return;
+        }
+      }
+    }
+    if (incompatibleFilters === filters.length) {
+      setIncompatible('filter', incompatibleFilters - 1);
+      return;
+    }
+  }
+};
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`

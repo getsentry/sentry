@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
@@ -18,11 +19,15 @@ import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  findIncompatibleRules,
+  SetIncompatibleFunction,
+} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
 import AlertChart from './alertChart';
@@ -35,6 +40,7 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
+  incompatible: boolean;
   memberList: Member[];
   rule: IssueAlertRule | null;
 };
@@ -56,9 +62,12 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
+    if (this.state.rule) {
+      findIncompatibleRules(this.setIncompatible, this.state.rule);
+    }
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {params: prevParams} = prevProps;
     const {params: currParams} = this.props;
 
@@ -69,6 +78,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     ) {
       this.reloadData();
     }
+    if (this.state.rule !== prevState.rule) {
+      findIncompatibleRules(this.setIncompatible, this.state.rule);
+    }
   }
 
   getDefaultState(): State {
@@ -76,6 +88,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       rule: null,
       memberList: [],
+      incompatible: false,
     };
   }
 
@@ -174,6 +187,10 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
   };
 
+  setIncompatible: SetIncompatibleFunction = () => {
+    this.setState({incompatible: true});
+  };
+
   renderLoading() {
     return (
       <Layout.Body>
@@ -182,6 +199,30 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         </Layout.Main>
       </Layout.Body>
     );
+  }
+
+  renderIncompatibleAlert() {
+    const {orgId, projectId, ruleId} = this.props.params;
+    if (
+      this.state.incompatible &&
+      this.props.organization.features.includes('issue-alert-incompatible-rules')
+    ) {
+      return (
+        <Alert type="error" showIcon>
+          {tct(
+            'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
+            {
+              link: (
+                <a
+                  href={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+    return null;
   }
 
   renderBody() {
@@ -272,6 +313,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
+            {this.renderIncompatibleAlert()}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={period ?? ''}
