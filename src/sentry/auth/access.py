@@ -442,119 +442,190 @@ class NoAccess(OrganizationlessAccess):
         super().__init__(sso_is_valid=True)
 
 
-def from_request(
-    request: HttpRequest,
-    organization: Organization = None,
-    scopes: Iterable[str] | None = None,
-) -> Access:
-    is_superuser = is_active_superuser(request)
-
-    if not organization:
-        return from_user(
-            request.user, organization=organization, scopes=scopes, is_superuser=is_superuser
-        )
-
-    if getattr(request.user, "is_sentry_app", False):
-        return _from_sentry_app(request.user, organization=organization)
-
-    if is_superuser:
-        member = None
-        # we special case superuser so that if they're a member of the org
-        # they must still follow SSO checks, but they gain global access
-        try:
-            member = get_cached_organization_member(request.user.id, organization.id)
-        except OrganizationMember.DoesNotExist:
-            requires_sso, sso_is_valid = False, True
-        else:
-            requires_sso, sso_is_valid = _sso_params(member)
-
-        return OrganizationGlobalAccess(
-            organization=organization,
-            _member=member,
-            scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
-            sso_is_valid=sso_is_valid,
-            requires_sso=requires_sso,
-            permissions=get_permissions_for_user(request.user.id),
-        )
-
-    if hasattr(request, "auth") and not request.user.is_authenticated:
-        return from_auth(request.auth, organization)
-
-    return from_user(request.user, organization, scopes=scopes)
-
-
-# only used internally
-def _from_sentry_app(
-    user: User | AnonymousUser, organization: Organization | None = None
-) -> Access:
-    if not organization:
-        return NoAccess()
-
-    sentry_app_query = SentryApp.objects.filter(proxy_user=user)
-
-    if not sentry_app_query.exists():
-        return NoAccess()
-
-    sentry_app = sentry_app_query.first()
-
-    if not sentry_app.is_installed_on(organization):
-        return NoAccess()
-
-    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
-
-
-def from_user(
-    user: User | AnonymousUser,
-    organization: Organization | None = None,
-    scopes: Iterable[str] | None = None,
-    is_superuser: bool = False,
-) -> Access:
-    if not user or user.is_anonymous or not user.is_active:
-        return DEFAULT
-
-    def organizationless() -> Access:
-        return OrganizationlessAccess(
-            permissions=get_permissions_for_user(user.id) if is_superuser else frozenset()
-        )
-
-    if not organization:
-        return organizationless()
-
-    try:
-        om = get_cached_organization_member(user.id, organization.id)
-    except OrganizationMember.DoesNotExist:
-        return organizationless()
-
-    # ensure cached relation
-    om.organization = organization
-
-    return from_member(om, scopes=scopes, is_superuser=is_superuser)
-
-
-def from_member(
-    member: OrganizationMember,
-    scopes: Iterable[str] | None = None,
-    is_superuser: bool = False,
-) -> Access:
-    if scopes is not None:
-        scope_intersection = frozenset(scopes) & member.get_scopes()
-    else:
-        scope_intersection = member.get_scopes()
-
-    permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
-
-    return OrganizationMemberAccess(member, scope_intersection, permissions)
-
-
-def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
-    if is_system_auth(auth):
-        return SystemAccess()
-    if auth.organization_id == organization.id:
-        return OrganizationGlobalAccess(
-            auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
-        )
-    else:
-        return DEFAULT
-
-
 DEFAULT = NoAccess()
+
+
+class AccessFactory(abc.ABC):
+    @abc.abstractmethod
+    def from_request(
+        self,
+        request: HttpRequest,
+        organization: Organization = None,
+        scopes: Iterable[str] | None = None,
+    ) -> Access:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def from_user(
+        self,
+        user: User | AnonymousUser,
+        organization: Organization | None = None,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def from_member(
+        self,
+        member: OrganizationMember,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def from_auth(self, auth: ApiKey | SystemToken, organization: Organization) -> Access:
+        raise NotImplementedError
+
+
+class OrmAccessFactory(AccessFactory):
+    def from_request(
+        self,
+        request: HttpRequest,
+        organization: Organization = None,
+        scopes: Iterable[str] | None = None,
+    ) -> Access:
+        is_superuser = is_active_superuser(request)
+
+        if not organization:
+            return self.from_user(
+                request.user, organization=organization, scopes=scopes, is_superuser=is_superuser
+            )
+
+        if getattr(request.user, "is_sentry_app", False):
+            return self._from_sentry_app(request.user, organization=organization)
+
+        if is_superuser:
+            member = None
+            # we special case superuser so that if they're a member of the org
+            # they must still follow SSO checks, but they gain global access
+            try:
+                member = get_cached_organization_member(request.user.id, organization.id)
+            except OrganizationMember.DoesNotExist:
+                requires_sso, sso_is_valid = False, True
+            else:
+                requires_sso, sso_is_valid = _sso_params(member)
+
+            return OrganizationGlobalAccess(
+                organization=organization,
+                _member=member,
+                scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
+                sso_is_valid=sso_is_valid,
+                requires_sso=requires_sso,
+                permissions=get_permissions_for_user(request.user.id),
+            )
+
+        if hasattr(request, "auth") and not request.user.is_authenticated:
+            return self.from_auth(request.auth, organization)
+
+        return self.from_user(request.user, organization, scopes=scopes)
+
+    # only used internally
+    def _from_sentry_app(
+        self, user: User | AnonymousUser, organization: Organization | None = None
+    ) -> Access:
+        if not organization:
+            return NoAccess()
+
+        sentry_app_query = SentryApp.objects.filter(proxy_user=user)
+
+        if not sentry_app_query.exists():
+            return NoAccess()
+
+        sentry_app = sentry_app_query.first()
+
+        if not sentry_app.is_installed_on(organization):
+            return NoAccess()
+
+        return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
+
+    def from_user(
+        self,
+        user: User | AnonymousUser,
+        organization: Organization | None = None,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        if not user or user.is_anonymous or not user.is_active:
+            return DEFAULT
+
+        def organizationless() -> Access:
+            return OrganizationlessAccess(
+                permissions=get_permissions_for_user(user.id) if is_superuser else frozenset()
+            )
+
+        if not organization:
+            return organizationless()
+
+        try:
+            om = get_cached_organization_member(user.id, organization.id)
+        except OrganizationMember.DoesNotExist:
+            return organizationless()
+
+        # ensure cached relation
+        om.organization = organization
+
+        return self.from_member(om, scopes=scopes, is_superuser=is_superuser)
+
+    def from_member(
+        self,
+        member: OrganizationMember,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        if scopes is not None:
+            scope_intersection = frozenset(scopes) & member.get_scopes()
+        else:
+            scope_intersection = member.get_scopes()
+
+        permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
+
+        return OrganizationMemberAccess(member, scope_intersection, permissions)
+
+    def from_auth(self, auth: ApiKey | SystemToken, organization: Organization) -> Access:
+        if is_system_auth(auth):
+            return SystemAccess()
+        if auth.organization_id == organization.id:
+            return OrganizationGlobalAccess(
+                auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
+            )
+        else:
+            return DEFAULT
+
+
+class ApiAccessFactory(AccessFactory):
+    def from_request(
+        self,
+        request: HttpRequest,
+        organization: Organization = None,
+        scopes: Iterable[str] | None = None,
+    ) -> Access:
+        raise NotImplementedError  # TODO
+
+    def from_user(
+        self,
+        user: User | AnonymousUser,
+        organization: Organization | None = None,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        raise NotImplementedError  # TODO
+
+    def from_member(
+        self,
+        member: OrganizationMember,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+    ) -> Access:
+        raise NotImplementedError  # TODO
+
+    def from_auth(self, auth: ApiKey | SystemToken, organization: Organization) -> Access:
+        raise NotImplementedError  # TODO
+
+
+_default_factory: AccessFactory = OrmAccessFactory()
+from_request = _default_factory.from_request
+from_user = _default_factory.from_user
+from_member = _default_factory.from_member
+from_auth = _default_factory.from_auth
