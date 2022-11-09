@@ -150,7 +150,9 @@ class ModelManifest:
 
 
 class HybridCloudTestDecoratorVisitor(ast.NodeVisitor):
-    def __init__(self):
+    match_line: Tuple[int, int] | None
+
+    def __init__(self) -> None:
         self.match_line = None
         self.stable = False
 
@@ -169,11 +171,16 @@ class HybridCloudTestDecoratorVisitor(ast.NodeVisitor):
 
 
 class HybridCloudTestVisitor(ast.NodeVisitor):
+    import_match_line: Tuple[int, int] | None
+    class_node: ast.ClassDef | None
+    func_match_line: Tuple[int, int] | None
+    decorator_match_line: Tuple[int, int] | None
+
     def __init__(self, test_file_path: str, test_name: str):
         self.test_file_path = test_file_path
         self.test_name = test_name
         self.target_symbol_parts = test_name.split(".")
-        self.import_match_line = False
+        self.import_match_line = None
         self.decorator_match_line = None
         self.func_match_line = None
         self.class_node = None
@@ -183,7 +190,7 @@ class HybridCloudTestVisitor(ast.NodeVisitor):
     def exists(self) -> bool:
         return os.path.exists(self.test_file_path)
 
-    def load(self):
+    def load(self) -> None:
         with open(self.test_file_path) as f:
             file_ast = ast.parse(f.read())
             self.visit(file_ast)
@@ -218,7 +225,7 @@ class HybridCloudTestVisitor(ast.NodeVisitor):
 
         return self.generic_visit(node)
 
-    def mark_target(self, node: Union[ast.FunctionDef, ast.ClassDef]):
+    def mark_target(self, node: Union[ast.FunctionDef, ast.ClassDef]) -> None:
         self.func_match_line = (node.lineno, node.col_offset)
         for expr in node.decorator_list:
             decorator_visitor = HybridCloudTestDecoratorVisitor()
