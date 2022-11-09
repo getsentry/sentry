@@ -18,10 +18,6 @@ fi
 
 venv_name=".venv"
 
-pip-install() {
-    pip install $(grep ^-- requirements-base.txt) "$@"
-}
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -79,8 +75,12 @@ sudo-askpass() {
     fi
 }
 
+pip-install() {
+    pip install --constraint requirements-dev-frozen.txt "$@"
+}
+
 upgrade-pip() {
-    pip-install $(grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt)
+    pip-install pip setuptools wheel
 }
 
 install-py-dev() {
@@ -124,7 +124,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip-install -r requirements-dev-only-frozen.txt
+        pip-install -r requirements-dev.txt
     fi
     pre-commit install --install-hooks
     echo ""

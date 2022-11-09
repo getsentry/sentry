@@ -38,6 +38,7 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
+  trackAnalyticsEventV2: jest.fn(),
 }));
 
 const projectAlertRuleDetailsRoutes = [
@@ -230,6 +231,73 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('renders multiple sentry apps at the same time', async () => {
+      const linearApp = {
+        id: 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+        enabled: true,
+        actionType: 'sentryapp',
+        service: 'linear',
+        sentryAppInstallationUuid: 'linear-d864bc2a8755',
+        prompt: 'Linear',
+        label: 'Create a Linear issue with these ',
+        formFields: {
+          type: 'alert-rule-settings',
+          uri: '/hooks/sentry/alert-rule-action',
+          description:
+            'When the alert fires automatically create a Linear issue with the following properties.',
+          required_fields: [
+            {
+              name: 'teamId',
+              label: 'Team',
+              type: 'select',
+              uri: '/hooks/sentry/issues/teams',
+              choices: [['test-6f0b2b4d402b', 'Sentry']],
+            },
+          ],
+          optional_fields: [
+            // Optional fields removed
+          ],
+        },
+      };
+      const threadsApp = {
+        id: 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+        enabled: true,
+        actionType: 'sentryapp',
+        service: 'threads',
+        sentryAppInstallationUuid: 'threads-987c470e50cc',
+        prompt: 'Threads',
+        label: 'Post to a Threads channel with these ',
+        formFields: {
+          type: 'alert-rule-settings',
+          uri: '/sentry/saveAlert',
+          required_fields: [
+            {
+              type: 'select',
+              label: 'Channel',
+              name: 'channel',
+              async: true,
+              uri: '/sentry/channels',
+              choices: [],
+            },
+          ],
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/configuration/',
+        body: {actions: [linearApp, threadsApp], conditions: [], filters: []},
+      });
+
+      createWrapper();
+      await selectEvent.select(screen.getByText('Add action...'), 'Threads');
+      await selectEvent.select(screen.getByText('Add action...'), 'Linear');
+
+      expect(screen.getByText('Create a Linear issue with these')).toBeInTheDocument();
+      expect(
+        screen.getByText('Post to a Threads channel with these')
+      ).toBeInTheDocument();
     });
   });
 

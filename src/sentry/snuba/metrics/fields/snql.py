@@ -2,7 +2,6 @@ from typing import List, Optional, Sequence, Set
 
 from snuba_sdk import Column, Function
 
-from sentry import options
 from sentry.api.utils import InvalidParams
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -486,9 +485,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
                 UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
         elif transaction_name_identifier == is_null:
-            inner_tag_value = (
-                "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
-            )
+            inner_tag_value = ""
         else:
             raise InvalidParams("Invalid condition for tag value filter")
 
