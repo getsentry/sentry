@@ -24,6 +24,9 @@ class CheckMonitorsTest(TestCase):
         check_monitors()
 
         assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.ERROR).exists()
+        assert MonitorCheckIn.objects.filter(
+            monitor=monitor.id, status=CheckInStatus.MISSED
+        ).exists()
 
     def test_missing_checkin_but_disabled(self):
         org = self.create_organization()
