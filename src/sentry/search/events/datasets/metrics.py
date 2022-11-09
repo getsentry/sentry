@@ -742,6 +742,7 @@ class MetricsDatasetConfig(DatasetConfig):
             if resolved_value is None:
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
+
         if search_filter.value.is_wildcard():
             return Condition(
                 Function("match", [self.builder.resolve_column("transaction"), f"(?i){value}"]),

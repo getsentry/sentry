@@ -481,6 +481,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
 
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [self.builder.resolve_column("transaction"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
     # Query Functions
