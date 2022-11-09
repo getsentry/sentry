@@ -368,8 +368,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "failure_count",
-                    snql_metric_layer=lambda args, alias: Function(
-                        TransactionMRI.FAILURE_COUNT.value, [], alias
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(TransactionMRI.FAILURE_COUNT.value), alias
                     ),
                     default_result_type="integer",
                 ),
