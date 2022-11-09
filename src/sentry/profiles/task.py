@@ -393,18 +393,12 @@ The sorting order is callee to caller (child to parent)
 
 
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    counter = 0
     index_map = {}
     for i, frame in enumerate(frames):
-        if frame["status"] != "symbolicated":
-            index_map[counter] = [i]
-            counter += 1
-        else:
-            idx = index_map.get(counter, [])
-            idx.append(i)
-            index_map[counter] = idx
-            if "sym_addr" in frame:
-                counter += 1
+        original_idx = frame["original_index"]
+        idx_list = index_map.get(original_idx, [])
+        idx_list.append(i)
+        index_map[original_idx] = idx_list
     return index_map
 
 
