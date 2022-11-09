@@ -190,6 +190,7 @@ describe('AlertRuleDetails', () => {
 
   it('incompatible rule banner hidden for good rule', async () => {
     createWrapper();
+    expect(await screen.getAllByText('My alert rule')).toHaveLength(2);
     expect(
       await screen.queryByText(
         'The conditions in this alert rule conflict and might not be working properly.'

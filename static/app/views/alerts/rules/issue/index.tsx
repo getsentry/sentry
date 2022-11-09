@@ -1421,7 +1421,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
 export default withOrganization(withProjects(IssueRuleEditor));
 
-export const findIncompatibleRules = (rule): IncompatibleRule => {
+export const findIncompatibleRules = (
+  rule: IssueAlertRule | UnsavedIssueAlertRule | null | undefined
+): IncompatibleRule => {
   if (!rule) {
     return {type: 'none', index: null};
   }
