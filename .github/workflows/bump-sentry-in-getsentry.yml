@@ -28,12 +28,6 @@ jobs:
           # who can write to getsentry and is SAML+SSO ready.
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
 
-      - name: install dependencies
-        shell: bash
-        run: |
-          cd getsentry
-          python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
-
       - name: bump-sentry ${{ github.sha }}
         shell: bash
         run: |
