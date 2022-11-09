@@ -41,8 +41,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
-            "transaction": self._resolve_transaction_alias,
-            "tags[transaction]": self._resolve_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> str:
@@ -368,8 +366,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "failure_count",
-                    snql_metric_layer=lambda args, alias: Function(
-                        TransactionMRI.FAILURE_COUNT.value, [], alias
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(TransactionMRI.FAILURE_COUNT.value), alias
                     ),
                     default_result_type="integer",
                 ),
@@ -397,16 +395,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return function_converter
 
     # Field Aliases
-    def _resolve_transaction_alias(self, alias: str) -> SelectType:
-        return Function(
-            "transform_null_to_unparameterized",
-            [Column("d:transactions/duration@millisecond"), "transaction"],
-            alias,
-        )
-
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return self._resolve_transaction_alias(alias)
+        return AliasedExpression(self.builder.resolve_column("transaction"), alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         if self.builder.dry_run:

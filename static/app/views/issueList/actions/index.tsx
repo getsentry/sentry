@@ -27,6 +27,7 @@ type IssueListActionsProps = {
   displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
+  isSavedSearchesOpen: boolean;
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   onSortChange: (sort: string) => void;
@@ -43,6 +44,7 @@ function IssueListActions({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
+  isSavedSearchesOpen,
   onActionTaken,
   onDelete,
   onMarkReviewed,
@@ -66,7 +68,11 @@ function IssueListActions({
     setAllInQuerySelected,
   } = useSelectedGroupsState();
 
-  const disableActions = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const disableActions = useMedia(
+    `(max-width: ${
+      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+    })`
+  );
 
   const numIssues = selectedIdsSet.size;
 

@@ -90,7 +90,7 @@ class SpanDetail extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {span, organization} = this.props;
+    const {span, organization, event} = this.props;
     if ('type' in span) {
       return;
     }
@@ -98,6 +98,7 @@ class SpanDetail extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
+      project_platform: event.platform ?? 'undefined',
     });
   }
 

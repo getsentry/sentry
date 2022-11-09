@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
@@ -56,6 +55,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     query: props.query,
     sort,
     limit: 5,
+    referrer: 'api.profiling.profile-summary-table',
   });
 
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
@@ -79,10 +79,25 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     });
   }, []);
 
+  const handleFilterChange = useCallback(
+    value => {
+      browserHistory.push({
+        ...props.location,
+        query: {...props.location.query, sort: value},
+      });
+    },
+    [props.location]
+  );
+
   return (
     <Layout.Main fullWidth>
       <TableHeader>
-        <SectionHeading>{t('Recent Profiles')}</SectionHeading>
+        <CompactSelect
+          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+          options={FILTER_OPTIONS}
+          onChange={opt => handleFilterChange(opt.value)}
+        />
         <StyledPagination
           pageLinks={
             profiles.status === 'success'
@@ -136,7 +151,29 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 }
 
-const FIELDS = ['id', 'timestamp', 'release', 'profile.duration'] as const;
+const FIELDS = [
+  'id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'profile.duration',
+] as const;
+
+const FILTER_OPTIONS = [
+  {
+    label: t('Recent Profiles'),
+    value: '-timestamp',
+  },
+  {
+    label: t('Slowest Profiles'),
+    value: '-profile.duration',
+  },
+  {
+    label: t('Fastest Profiles'),
+    value: 'profile.duration',
+  },
+];
 
 type FieldType = typeof FIELDS[number];
 

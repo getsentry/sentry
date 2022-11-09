@@ -13,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 

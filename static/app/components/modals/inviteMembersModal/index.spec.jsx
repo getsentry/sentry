@@ -77,10 +77,10 @@ describe('InviteMembersModal', function () {
 
     const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
 
-    userEvent.type(emailInputs[0], 'test@test.com');
+    userEvent.paste(emailInputs[0], 'test@test.com');
     userEvent.tab();
 
-    userEvent.type(emailInputs[1], 'test@test.com');
+    userEvent.paste(emailInputs[1], 'test@test.com');
     userEvent.tab();
 
     expect(screen.getByText('Duplicate emails between invite rows.')).toBeInTheDocument();
@@ -91,10 +91,10 @@ describe('InviteMembersModal', function () {
 
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
 
-    userEvent.type(emailInput, 'test@test.com');
+    userEvent.paste(emailInput, 'test@test.com');
     userEvent.tab();
 
-    userEvent.type(emailInput, 'test2@test.com');
+    userEvent.paste(emailInput, 'test2@test.com');
     userEvent.tab();
 
     expect(screen.getByRole('button', {name: 'Send invites (2)'})).toBeInTheDocument();
@@ -124,12 +124,12 @@ describe('InviteMembersModal', function () {
     const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
 
-    userEvent.type(emailInputs[0], 'test1@test.com');
+    userEvent.paste(emailInputs[0], 'test1@test.com');
     userEvent.tab();
     await selectEvent.select(roleInputs[0], 'Admin');
     await selectEvent.select(teamInputs[0], '#team-slug');
 
-    userEvent.type(emailInputs[1], 'test2@test.com');
+    userEvent.paste(emailInputs[1], 'test2@test.com');
     userEvent.tab();
 
     userEvent.click(screen.getByRole('button', {name: 'Send invites (2)'}));
@@ -187,7 +187,7 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} organization={org} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Email Addresses'}), 'bademail');
+    userEvent.paste(screen.getByRole('textbox', {name: 'Email Addresses'}), 'bademail');
     userEvent.tab();
     userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
