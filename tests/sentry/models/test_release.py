@@ -1260,7 +1260,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 class ClearCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
 
