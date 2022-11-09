@@ -8,13 +8,12 @@ from typing import Any, Mapping, Sequence
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
 from sentry.notifications.utils import (
+    get_group_title,
     get_parent_and_repeating_spans,
-    get_performance_issue_alert_subtitle,
     get_span_and_problem,
     get_span_evidence_value,
     get_span_evidence_value_problem,
 )
-from sentry.notifications.utils import get_group_title
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.http import absolute_uri
