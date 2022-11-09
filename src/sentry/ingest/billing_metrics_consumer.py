@@ -153,25 +153,34 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         messages.
         """
         while self._ongoing_billing_outcomes:
-            produce_billing, metrics_msg = self._ongoing_billing_outcomes[0]
+            self._process_metrics_billing_bucket(wait_time=None)
 
-            if produce_billing:
-                if not produce_billing.done():
-                    break
-                # XXX(iker): in tests .exception() may return a mock, which
-                # resolves to a truthy value. Explicitly checking if it's an
-                # exception removes this log from tests. We may want to improve
-                # mocking in the tests and only check for a None value here.
-                if isinstance(produce_billing.exception(), Exception):
-                    logger.error(
-                        "Async future failed in billing metrics consumer.",
-                        exc_info=produce_billing.exception(),
-                        extra={"offset": metrics_msg.offset},
-                    )
+    def _process_metrics_billing_bucket(self, wait_time: Optional[float] = None):
+        """
+        Takes the first billing outcome from the queue and if it's completed,
+        commits the metrics bucket.
 
-            self._ongoing_billing_outcomes.popleft()
-            position = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
-            self._commit(position)
+        When a future has thrown an exception, logs it and commits the bucket
+        anyway. wait_time is used to wait on the future to finish; if `None` is
+        provided and the future is not completed, no action is taken.
+        """
+        if len(self._ongoing_billing_outcomes) < 1:
+            return
+
+        billing_future, metrics_msg = self._ongoing_billing_outcomes.popleft()
+        if billing_future:
+            try:
+                if not wait_time and not billing_future.done():
+                    return
+                billing_future.result(wait_time)
+            except Exception:
+                logger.error(
+                    "Async future failed in billing metrics consumer.",
+                    exc_info=billing_future.exception(),
+                    extra={"offset": metrics_msg.offset},
+                )
+
+        self._commit({metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())})
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
@@ -187,19 +196,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 )
                 break
 
-            future, metrics_msg = self._ongoing_billing_outcomes[0]
-            if future:
-                try:
-                    future.result(time_left)
-                except Exception:
-                    logger.error(
-                        "Async future failed in billing metrics consumer.",
-                        exc_info=future.exception(),
-                        extra={"offset": metrics_msg.offset},
-                    )
-                    self._ongoing_billing_outcomes.popleft()
-
-            self._commit_ready_msgs()
+            self._process_metrics_billing_bucket(time_left)
 
         self._billing_producer.close()
 
