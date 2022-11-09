@@ -144,17 +144,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def poll(self) -> None:
-        if self._should_commit():
-            self._bulk_commit()
-
-    def _should_commit(self) -> bool:
         self._mark_commit_ready()
-
         if not self._ready_to_commit:
-            return False
-        if self._messages_ready_since_last_commit >= self._max_batch_size:
-            return True
-        return False
+            return
+        self._commit(self._ready_to_commit)
+        self._clear_ready_queue()
 
     def _mark_commit_ready(self) -> None:
         """Removes completed futures at the beginning of
