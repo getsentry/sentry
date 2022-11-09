@@ -39,3 +39,4 @@ types-pytz
 types-pyyaml
 types-redis
 types-requests
+types-simplejson>=3.17.7.2
