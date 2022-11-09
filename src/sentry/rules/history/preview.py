@@ -119,7 +119,7 @@ def get_events(
         group_map = {event["group_id"]: event["event_id"] for event in events}
         for activity in condition_activity:
             if activity.type == ConditionActivityType.CREATE_ISSUE:
-                activity.data = {"event_id": group_map[activity.group_id]}
+                activity.data = {"event_id": group_map.get(activity.group_id, None)}
 
     if event_ids:
         events.extend(
