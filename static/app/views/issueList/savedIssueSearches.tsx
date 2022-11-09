@@ -103,11 +103,10 @@ const SavedSearchItem = ({
   ];
 
   return (
-    <SearchListItem>
+    <SearchListItem hasMenu={!savedSearch.isGlobal}>
       <StyledItemButton
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
-        hasMenu={!savedSearch.isGlobal}
         borderless
         align="left"
       >
@@ -309,14 +308,7 @@ const SearchesContainer = styled('ul')`
   margin-bottom: ${space(1)};
 `;
 
-const SearchListItem = styled('li')`
-  position: relative;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
+const StyledItemButton = styled(Button)`
   display: block;
   width: 100%;
   text-align: left;
@@ -325,11 +317,45 @@ const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
+`;
+
+const OverflowMenu = styled(DropdownMenuControl)`
+  position: absolute;
+  top: 12px;
+  right: ${space(1)};
+`;
+
+const SearchListItem = styled('li')<{hasMenu?: boolean}>`
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 
   ${p =>
     p.hasMenu &&
     css`
-      padding-right: 60px;
+      @media (max-width: ${p.theme.breakpoints.small}) {
+        ${StyledItemButton} {
+          padding-right: 60px;
+        }
+      }
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        ${OverflowMenu} {
+          display: none;
+        }
+
+        &:hover,
+        &:focus-within {
+          ${OverflowMenu} {
+            display: block;
+          }
+
+          ${StyledItemButton} {
+            padding-right: 60px;
+          }
+        }
+      }
     `}
 `;
 
@@ -353,12 +379,6 @@ const SavedSearchItemQuery = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
-`;
-
-const OverflowMenu = styled(DropdownMenuControl)`
-  position: absolute;
-  top: 12px;
-  right: ${space(1)};
 `;
 
 const ShowAllButton = styled(Button)`
