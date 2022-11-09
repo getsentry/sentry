@@ -8,11 +8,11 @@ interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   'data-test-id'?: string;
 }
 
-const Panel = styled(({children, ...props}: PanelProps) => (
+const Panel = styled(({children, ...props}: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...props}>
     <PanelProvider>{children}</PanelProvider>
   </div>
-))`
+))<PanelProps>`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px

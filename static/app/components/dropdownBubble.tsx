@@ -2,6 +2,7 @@ import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
+import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 type Params = {
@@ -42,7 +43,7 @@ const getMenuBorderRadius = ({
   width,
   theme,
 }: ParamsWithTheme) => {
-  const radius = theme.borderRadius;
+  const radius = theme.panelBorderRadius;
   if (!blendCorner || detached) {
     return css`
       border-radius: ${radius};
@@ -62,7 +63,13 @@ const getMenuBorderRadius = ({
   `;
 };
 
-const DropdownBubble = styled('div')<Params>`
+const DropdownBubble = styled(
+  ({children, ...props}: React.HTMLAttributes<HTMLDivElement>) => (
+    <div {...props}>
+      <PanelProvider>{children}</PanelProvider>
+    </div>
+  )
+)<Params>`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
