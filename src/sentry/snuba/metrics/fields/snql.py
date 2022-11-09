@@ -559,23 +559,6 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
     )
 
 
-def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
-    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
-
-    return Function(
-        "transform",
-        [
-            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
-            # Here we support the case in which the given tag value for "tag_key" is not set. In that
-            # case ClickHouse will return 0 or "" from the expression based on the array type, and we want to interpret
-            # that as "<< unparameterized >>".
-            ["" if tags_values_are_strings else 0],
-            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
-        ],
-        alias,
-    )
-
-
 def _resolve_project_threshold_config(project_ids, org_id):
     return resolve_project_threshold_config(
         tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(

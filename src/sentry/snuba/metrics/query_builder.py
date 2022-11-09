@@ -28,6 +28,7 @@ from snuba_sdk import (
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import options
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
@@ -91,6 +92,30 @@ def parse_field(field: str) -> MetricField:
         operation = None
         metric_name = field
     return MetricField(operation, get_mri(metric_name))
+
+
+def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+    """
+    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
+    as such in any query using that tag value.
+
+    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
+    transform that '' as '<< unparameterized >>'.
+
+    It is important to note that this transformation has to be applied ONLY on tag.transaction.
+    """
+    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
+
+    return Function(
+        function="transform",
+        parameters=[
+            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
+            # This will be removed once the removal of tags values as ints is merged.
+            ["" if tags_values_are_strings else 0],
+            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
+        ],
+        alias=alias,
+    )
 
 
 # Allow these snuba functions.
@@ -167,9 +192,12 @@ def resolve_tags(
             rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
 
             try:
-                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
-                    input_.op
-                ]
+                op = {
+                    Op.EQ: Op.IN,
+                    Op.IN: Op.IN,
+                    Op.NEQ: Op.NOT_IN,
+                    Op.NOT_IN: Op.NOT_IN,
+                }[input_.op]
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
@@ -196,6 +224,11 @@ def resolve_tags(
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
+            # If we are getting the column tags.transaction, we want to transform null values to
+            # '<< unparameterized >>'.
+            if input_.key == "transaction":
+                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -348,7 +381,9 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
-def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+def get_metric_object_from_metric_field(
+    metric_field: MetricField,
+) -> MetricExpressionBase:
     """Get the metric object from a metric field"""
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
@@ -447,7 +482,6 @@ def translate_meta_results(
 
 
 class SnubaQueryBuilder:
-
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
         "metrics_counters",
@@ -459,7 +493,10 @@ class SnubaQueryBuilder:
     }
 
     def __init__(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+        self,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -477,6 +514,11 @@ class SnubaQueryBuilder:
         is_column: bool = False,
     ) -> Union[Column, AliasedExpression, Function]:
         if isinstance(metric_groupby_obj.field, str):
+            if metric_groupby_obj.field == "tags[transaction]":
+                return transform_null_transaction_to_unparameterized(
+                    use_case_id, org_id, metric_groupby_obj.alias
+                )
+
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
             if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
@@ -486,13 +528,14 @@ class SnubaQueryBuilder:
             else:
                 assert isinstance(metric_groupby_obj.field, Tag)
                 column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
+
             return (
                 AliasedExpression(
-                    exp=Column(column_name),
+                    exp=Column(name=column_name),
                     alias=metric_groupby_obj.alias,
                 )
                 if not is_column
-                else Column(column_name)
+                else Column(name=column_name)
             )
 
         elif isinstance(metric_groupby_obj.field, MetricField):
@@ -592,7 +635,16 @@ class SnubaQueryBuilder:
         return orderby_fields
 
     def __build_totals_and_series_queries(
-        self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+        self,
+        entity,
+        select,
+        where,
+        groupby,
+        orderby,
+        limit,
+        offset,
+        rollup,
+        intervals_len,
     ):
         rv = {}
         totals_query = Query(
@@ -642,7 +694,11 @@ class SnubaQueryBuilder:
         )
 
     def __update_query_dicts_with_component_entities(
-        self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
+        self,
+        component_entities,
+        metric_mri_to_obj_dict,
+        fields_in_entities,
+        parent_alias,
     ):
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
