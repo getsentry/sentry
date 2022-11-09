@@ -5,22 +5,15 @@ import {TextDecoder, TextEncoder} from 'util';
 
 import {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
-import {configure as configureEnzyme} from 'enzyme'; // eslint-disable-line no-restricted-imports
-import {Location} from 'history';
-import MockDate from 'mockdate';
-import * as PropTypes from 'prop-types';
-import * as qs from 'query-string';
+import type {Location} from 'history';
+import mockdate from 'mockdate';
+import {stringify} from 'query-string';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
-
-// needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
-window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -46,14 +39,18 @@ configureRtl({testIdAttribute: 'data-test-id'});
  *
  * https://github.com/enzymejs/enzyme/issues/2429
  */
-configureEnzyme({adapter: new Adapter()});
+// eslint-disable-next-line
+if (expect.getState().testPath?.endsWith('.jsx')) {
+  const EnzymeAdapter = require('@wojtekmaj/enzyme-adapter-react-17');
+  const enzyme = require('enzyme'); // eslint-disable-line no-restricted-imports
+  enzyme.configure({adapter: new EnzymeAdapter()});
+}
 
 /**
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000);
-MockDate.set(constantDate);
+mockdate.set(new Date(1508208080000));
 
 /**
  * Global testing configuration
@@ -81,34 +78,34 @@ jest.mock('react-router', () => {
     },
   };
 });
-jest.mock('react-lazyload', () => {
-  const LazyLoadMock = ({children}) => children;
-  return LazyLoadMock;
-});
+// jest.mock('react-lazyload', function reactLazyLoad() {
+//   const LazyLoadMock = ({children}) => children;
+//   return LazyLoadMock;
+// });
 
-jest.mock('react-virtualized', () => {
-  const ActualReactVirtualized = jest.requireActual('react-virtualized');
-  return {
-    ...ActualReactVirtualized,
-    AutoSizer: ({children}) => children({width: 100, height: 100}),
-  };
-});
+// jest.mock('react-virtualized', function reactVirtualized() {
+//   const ActualReactVirtualized = jest.requireActual('react-virtualized');
+//   return {
+//     ...ActualReactVirtualized,
+//     AutoSizer: ({children}) => children({width: 100, height: 100}),
+//   };
+// });
 
-jest.mock('echarts-for-react/lib/core', () => {
-  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
-  // guaranteed to be in scope
-  const ReactActual = require('react');
+// jest.mock('echarts-for-react/lib/core', function echartsCore() {
+//   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+//   // guaranteed to be in scope
+//   const ReactActual = require('react');
 
-  // We need a class component here because `BaseChart` passes `ref` which will
-  // error if we return a stateless/functional component
-  return class extends ReactActual.Component {
-    render() {
-      return null;
-    }
-  };
-});
+//   // We need a class component here because `BaseChart` passes `ref` which will
+//   // error if we return a stateless/functional component
+//   return class extends ReactActual.Component {
+//     render() {
+//       return null;
+//     }
+//   };
+// });
 
-jest.mock('@sentry/react', () => {
+jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
@@ -163,7 +160,7 @@ const routerFixtures = {
           return to.pathname;
         }
 
-        return `${to.pathname}?${qs.stringify(to.query)}`;
+        return `${to.pathname}?${stringify(to.query)}`;
       }
 
       return '';
@@ -203,10 +200,10 @@ const routerFixtures = {
       ...context,
     },
     childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: PropTypes.object,
-      project: PropTypes.object,
+      router: {},
+      location: {},
+      organization: {},
+      project: {},
       ...childContextTypes,
     },
   }),
@@ -238,6 +235,10 @@ declare global {
   // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
+
+// needed by cbor-web for webauthn
+window.TextEncoder = TextEncoder;
+window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 window.TestStubs = fixtures;
 
