@@ -133,7 +133,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # time on removing items from the beginning; while a regular list takes
         # O(n).
         self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
-        self._messages_ready_since_last_commit: int = 0
 
     def _get_billing_producer(self) -> KafkaProducer:
         servers = _get_bootstrap_servers(topic=self._billing_topic.name, force_cluster=None)
@@ -182,10 +181,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             time_left = deadline - now if deadline else None
 
             if time_left is not None and time_left <= 0:
-                items_left = self._messages_ready_since_last_commit + len(
-                    self._ongoing_billing_outcomes
+                logger.warning(
+                    f"join timed out, items left in the queue: {len(self._ongoing_billing_outcomes)}"
                 )
-                logger.warning(f"join timed out, items left in the queue: {items_left}")
                 break
 
             future, metrics_msg = self._ongoing_billing_outcomes[0]
