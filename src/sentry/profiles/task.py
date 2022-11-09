@@ -304,9 +304,25 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
+    native_platforms = ["cocoa", "rust"]
+    idx_map = {}
+
+    if profile["platform"] in native_platforms:
+        idx_map = get_frame_index_map(profile["profile"]["frames"])
+
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
-        stack = profile["profile"]["stacks"][stack_id]
+        if profile["platform"] in native_platforms:
+            stack = []
+            for index in profile["profile"]["stacks"][stack_id]:
+                # the new stack extends the older by replacing
+                # a specific frame index with the indeces of
+                # the frames originated from the original frame
+                # should inlines be present
+                stack = stack + idx_map[index]
+            profile["profile"]["stacks"][stack_id] = stack
+        else:
+            stack = profile["profile"]["stacks"][stack_id]
 
         if len(stack) < 2:
             continue
@@ -344,6 +360,52 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
+
+
+"""
+This function returns a map {index: [indexes]} that will let us replace a specific
+frame index with (potentially) a list of frames indices that originated from that frame.
+
+The reason for this is that the frame from the SDK exists "physically",
+and symbolicator then synthesizes other frames for calls that have been inlined
+into the physical frame.
+
+Example:
+
+`
+fn a() {
+b()
+}
+fb b() {
+fn c_inlined() {}
+c_inlined()
+}
+`
+
+this would yield the following from the SDK:
+b -> a
+
+after symbolication you would have:
+c_inlined -> b -> a
+
+The sorting order is callee to caller (child to parent)
+"""
+
+
+def get_frame_index_map(frames):
+    counter = 0
+    index_map = {}
+    for i, frame in enumerate(frames):
+        if frame["status"] != "symbolicated":
+            index_map[counter] = [i]
+            counter += 1
+        else:
+            idx = index_map.get(counter, [])
+            idx.append(i)
+            index_map[counter] = idx
+            if "sym_addr" in frame:
+                counter += 1
+    return index_map
 
 
 @metrics.wraps("process_profile.deobfuscate")
