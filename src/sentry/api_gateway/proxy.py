@@ -16,7 +16,7 @@ from sentry.api.exceptions import RequestTimeout
 PROXY_CHUNK_SIZE = 512 * 1024
 
 # List of headers to strip from a proxied request
-HEADER_STRIKE_LIST = {"Content-Length"}
+HEADER_STRIKE_LIST = {"Content-Length", "Content-Encoding"}
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -46,6 +46,7 @@ def _strip_request_headers(headers) -> dict:
     for header, value in headers.items():
         if header not in HEADER_STRIKE_LIST:
             header_dict[header] = value
+    return header_dict
 
 
 def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
