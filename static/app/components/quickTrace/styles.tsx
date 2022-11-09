@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Tag, {Background} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
+import {IconPlay} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
@@ -152,6 +153,10 @@ export const ExternalDropdownLink = styled(ExternalLink)`
   &:hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+export const StyledIconPlay = styled(IconPlay)`
+  fill: ${p => p.theme.background};
 `;
 
 export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {

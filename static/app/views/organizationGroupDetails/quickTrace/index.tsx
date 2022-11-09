@@ -1,7 +1,7 @@
 import {Fragment, useContext} from 'react';
 import {Location} from 'history';
 
-import {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 
@@ -13,10 +13,9 @@ type Props = {
   location: Location;
   organization: Organization;
   isPerformanceIssue?: boolean;
-  project?: Project;
 };
 
-function QuickTrace({event, organization, project, location, isPerformanceIssue}: Props) {
+function QuickTrace({event, organization, location, isPerformanceIssue}: Props) {
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
@@ -26,7 +25,6 @@ function QuickTrace({event, organization, project, location, isPerformanceIssue}
       {hasPerformanceView && hasTraceContext && (
         <IssueQuickTrace
           organization={organization}
-          project={project}
           event={event}
           location={location}
           isPerformanceIssue={isPerformanceIssue}

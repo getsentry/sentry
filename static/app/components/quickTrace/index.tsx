@@ -16,6 +16,7 @@ import {
   QuickTraceValue,
   SectionSubtext,
   SingleEventHoverText,
+  StyledIconPlay,
   TraceConnector,
 } from 'sentry/components/quickTrace/styles';
 import {
@@ -28,7 +29,7 @@ import {
 } from 'sentry/components/quickTrace/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
-import {IconFire, IconPlay} from 'sentry/icons';
+import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -87,7 +88,17 @@ export default function QuickTrace({
   const traceLength = quickTrace.trace && quickTrace.trace.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
-  const replayId = event.tags?.find(({key}) => key === 'replayId')?.value;
+  const hasReplay =
+    Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+    Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+
+  // Using click handler to navigate to breadcrumbs/replay section because EventNodeReplay (Tag)
+  // treats href as an external link and the `to` prop doesn't initiate a scroll to the section.
+  const handleReplayClick = () => {
+    if (hasReplay) {
+      document.getElementById('breadcrumbs')?.scrollIntoView();
+    }
+  };
 
   const nodes: React.ReactNode[] = [];
 
@@ -104,12 +115,16 @@ export default function QuickTrace({
             return (
               <EventNodeReplay
                 data-test-id="replay-node"
-                to={`/organizations/${organization.slug}/replays/${current.project_slug}:${replayId}`}
-                type={replayId ? 'black' : 'white'}
-                icon={<IconPlay size="xs" />}
-                tooltipText={replayId ? '' : t('Replay cannot be found')}
+                to={{
+                  ...location,
+                  hash: '#breadcrumbs',
+                }}
+                onClick={handleReplayClick}
+                type={hasReplay ? 'black' : 'white'}
+                icon={<StyledIconPlay size="xs" />}
+                tooltipText={hasReplay ? '' : t('Replay cannot be found')}
               >
-                {replayId ? t('Replay') : '???'}
+                {hasReplay ? t('Replay') : '???'}
               </EventNodeReplay>
             );
           }

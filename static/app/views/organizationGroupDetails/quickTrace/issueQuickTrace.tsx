@@ -11,18 +11,16 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
-import {EventNodeReplay} from 'sentry/components/quickTrace/styles';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {IconClose, IconPlay} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
@@ -32,7 +30,6 @@ type Props = {
   organization: Organization;
   quickTrace: QuickTraceQueryChildrenProps;
   isPerformanceIssue?: boolean;
-  project?: Project;
 };
 
 type State = {
@@ -108,14 +105,9 @@ class IssueQuickTrace extends Component<Props, State> {
   };
 
   renderQuickTrace(results: QuickTraceQueryChildrenProps) {
-    const {event, location, organization, project, isPerformanceIssue} = this.props;
+    const {event, location, organization, isPerformanceIssue} = this.props;
     const {shouldShow} = this.state;
     const {isLoading, error, trace, type} = results;
-
-    const replayId = event.tags?.find(({key}) => key === 'replayId')?.value;
-    const showReplay =
-      organization.features.includes('session-replay-ui') &&
-      projectSupportsReplay(project);
 
     if (isLoading) {
       return <Placeholder height="24px" />;
@@ -170,16 +162,6 @@ class IssueQuickTrace extends Component<Props, State> {
       <Fragment>
         {this.renderTraceLink(results)}
         <QuickTraceWrapper>
-          {showReplay && (
-            <EventNodeReplay
-              to={`/organizations/${organization.slug}/replays/${project?.slug}:${replayId}`}
-              type={replayId ? 'black' : 'white'}
-              icon={<IconPlay size="xs" />}
-              tooltipText={replayId ? '' : t('Replay cannot be found')}
-            >
-              {replayId ? t('Replay') : '???'}
-            </EventNodeReplay>
-          )}
           <QuickTrace
             event={event}
             quickTrace={results}
@@ -219,7 +201,6 @@ const LinkContainer = styled('span')`
 
 const QuickTraceWrapper = styled('div')`
   margin-top: ${space(0.5)};
-  display: flex;
 `;
 
 const StyledAlert = styled(Alert)`

@@ -104,7 +104,6 @@ class GroupEventToolbar extends Component<Props> {
             event={evt}
             group={group}
             organization={organization}
-            project={project}
             location={location}
           />
         </div>
