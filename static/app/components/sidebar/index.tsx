@@ -16,11 +16,11 @@ import {
   IconLightning,
   IconList,
   IconPlay,
+  IconProfiling,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
-  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -279,7 +279,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconSpan size="md" />}
+        icon={<IconProfiling size="md" />}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
