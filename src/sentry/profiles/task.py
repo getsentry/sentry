@@ -304,25 +304,30 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
-    native_platforms = ["cocoa", "rust"]
     idx_map = {}
 
-    if profile["platform"] in native_platforms:
+    if profile["platform"] in SHOULD_SYMBOLICATE:
         idx_map = get_frame_index_map(profile["profile"]["frames"])
 
-    for sample in profile["profile"]["samples"]:
-        stack_id = sample["stack_id"]
-        if profile["platform"] in native_platforms:
-            stack: List[int] = []
-            for index in profile["profile"]["stacks"][stack_id]:
+        def get_stack(stack: List[int]) -> List[int]:
+            new_stack: List[int] = []
+            for index in stack:
                 # the new stack extends the older by replacing
                 # a specific frame index with the indeces of
                 # the frames originated from the original frame
                 # should inlines be present
-                stack = stack + idx_map[index]
-            profile["profile"]["stacks"][stack_id] = stack
-        else:
-            stack = profile["profile"]["stacks"][stack_id]
+                new_stack = new_stack + idx_map[index]
+            return new_stack
+
+    else:
+
+        def get_stack(stack: List[int]) -> List[int]:
+            return stack
+
+    for sample in profile["profile"]["samples"]:
+        stack_id = sample["stack_id"]
+        stack = get_stack(profile["profile"]["stacks"][stack_id])
+        profile["profile"]["stacks"][stack_id] = stack
 
         if len(stack) < 2:
             continue
