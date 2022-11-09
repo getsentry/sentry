@@ -25,7 +25,7 @@ from arroyo.backends.kafka.configuration import (
     build_kafka_configuration,
     build_kafka_consumer_configuration,
 )
-from arroyo.commit import ONCE_PER_SECOND
+from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Message, Partition, Position
@@ -49,6 +49,7 @@ def get_metrics_billing_consumer(
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
     bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
+    commit_policy = CommitPolicy(min_commit_frequency_sec=1, min_commit_messages=max_batch_size)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
@@ -61,7 +62,7 @@ def get_metrics_billing_consumer(
         ),
         topic=Topic(topic),
         processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size),
-        commit_policy=ONCE_PER_SECOND,
+        commit_policy=commit_policy,
     )
 
 
