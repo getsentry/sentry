@@ -28,7 +28,7 @@ type Props = {
   queryCount?: number;
 };
 
-function SavedSearchTabDropdown({
+function SavedSearchTab({
   isActive,
   organization,
   savedSearchList,
@@ -170,46 +170,7 @@ function SavedSearchTabDropdown({
   );
 }
 
-function SavedSearchTab(props: Props) {
-  if (!props.organization.features.includes('issue-list-saved-searches-v2')) {
-    return <SavedSearchTabDropdown {...props} />;
-  }
-
-  if (!props.isActive) {
-    return null;
-  }
-
-  const savedSearch = props.savedSearchList.find(
-    search => search.query === props.query && search.sort === props.sort
-  );
-
-  return (
-    <li data-test-id="saved-search-tab">
-      <StyledTab>
-        <span>{savedSearch ? savedSearch.name : t('Custom Search')}&nbsp;</span>
-        {props.queryCount && props.queryCount > 0 ? (
-          <Badge>
-            <QueryCount hideParens count={props.queryCount} max={1000} />
-          </Badge>
-        ) : null}
-      </StyledTab>
-    </li>
-  );
-}
-
 export default SavedSearchTab;
-
-const StyledTab = styled('div')`
-  display: flex;
-  height: 1.25rem;
-  align-items: center;
-  box-sizing: content-box;
-  padding: ${space(1)} 0;
-  color: ${p => p.theme.textColor};
-  border-bottom-width: 4px;
-  border-bottom-style: solid;
-  border-bottom-color: ${p => p.theme.active};
-`;
 
 const StyledCompactSelect = styled(CompactSelect)<{isActive?: boolean}>`
   && {
