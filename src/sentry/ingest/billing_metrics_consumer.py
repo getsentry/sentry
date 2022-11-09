@@ -142,14 +142,15 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def poll(self) -> None:
-        self._mark_commit_ready()
+        self._commit_ready_msgs()
 
-    def _mark_commit_ready(self) -> None:
-        """Removes completed futures at the beginning of
-        ongoing_billing_outcomes and adds them to ready_to_commit.
+    def _commit_ready_msgs(self) -> None:
+        """
+        Commits the messages that have been processed and produced (if needed).
 
-        If a future has errored, log an error but add to ready_to_commit
-        anyways.
+        Futures of producing billing outcomes may error. The function logs an
+        error but commits the position anyways, to not block subsequent
+        messages.
         """
         while self._ongoing_billing_outcomes:
             produce_billing, metrics_msg = self._ongoing_billing_outcomes[0]
@@ -174,7 +175,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
-        self._mark_commit_ready()
+        self._commit_ready_msgs()
 
         while self._ongoing_billing_outcomes:
             now = time.time()
@@ -205,7 +206,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     self._ongoing_billing_outcomes.popleft()
 
             if do_commit:
-                self._mark_commit_ready()
+                self._commit_ready_msgs()
 
         self._billing_producer.close()
 
