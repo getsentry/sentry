@@ -15,7 +15,7 @@ from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupB
 from sentry.snuba.metrics import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
-    tranform_mqb_query_to_metrics_query,
+    transform_mqb_query_to_metrics_query,
 )
 
 """
@@ -1100,8 +1100,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     "input, output",
     VALID_QUERIES_INTEGRATION_TEST_CASES,
 )
-def test_mqb_to_metrics_query_tranformer(input, output):
-    assert tranform_mqb_query_to_metrics_query(input) == output
+def test_mqb_to_metrics_query_transformer(input, output):
+    assert transform_mqb_query_to_metrics_query(input) == output
 
 
 def _construct_snuba_sdk_query(
@@ -1525,4 +1525,4 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
 )
 def test_invalid_mqb_queries(input, error_message):
     with pytest.raises(MQBQueryTransformationException, match=re.escape(error_message)):
-        tranform_mqb_query_to_metrics_query(input)
+        transform_mqb_query_to_metrics_query(input)
