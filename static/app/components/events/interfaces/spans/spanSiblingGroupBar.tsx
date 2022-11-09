@@ -23,7 +23,7 @@ import {
   unwrapTreeDepth,
 } from './utils';
 
-type Props = {
+export type SpanSiblingGroupBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -39,7 +39,7 @@ type Props = {
   treeDepth: number;
 };
 
-export default function SpanSiblingGroupBar(props: Props) {
+export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
   const {
     continuingTreeDepths,
     event,

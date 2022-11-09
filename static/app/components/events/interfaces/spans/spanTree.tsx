@@ -29,12 +29,13 @@ import {
   FilterSpans,
   GroupType,
   ParsedTraceType,
+  SpanTreeNode,
+  SpanTreeNodeType,
   SpanType,
 } from './types';
 import {
   getSpanID,
   getSpanOperation,
-  isGapSpan,
   setSpansOnTransaction,
   spanTargetHash,
 } from './utils';
@@ -247,7 +248,7 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove: EnhancedProcessedSpanType[];
       outOfViewSpansAbove: EnhancedProcessedSpanType[];
       spanNumber: number;
-      spanTree: JSX.Element[];
+      spanTree: SpanTreeNode[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
@@ -295,7 +296,7 @@ class SpanTree extends Component<PropType> {
             isCurrentSpanFilteredOut: false,
           });
           if (infoMessage) {
-            acc.spanTree.push(infoMessage);
+            acc.spanTree.push({type: SpanTreeNodeType.MESSAGE, element: infoMessage});
           }
         }
 
@@ -303,21 +304,21 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
-          acc.spanTree.push(
-            <SpanDescendantGroupBar
-              key={`${spanNumber}-span-group`}
-              event={waterfallModel.event}
-              span={span}
-              generateBounds={generateBounds}
-              treeDepth={treeDepth}
-              continuingTreeDepths={continuingTreeDepths}
-              spanNumber={spanNumber}
-              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
-              onWheel={onWheel}
-              generateContentSpanBarRef={generateContentSpanBarRef}
-            />
-          );
+          acc.spanTree.push({
+            type: SpanTreeNodeType.DESCENDANT_GROUP,
+            props: {
+              event: waterfallModel.event,
+              span,
+              generateBounds,
+              treeDepth,
+              continuingTreeDepths,
+              spanNumber,
+              spanGrouping: payload.spanNestedGrouping as EnhancedSpan[],
+              toggleSpanGroup: payload.toggleNestedSpanGroup as () => void,
+              onWheel,
+              generateContentSpanBarRef,
+            },
+          });
           acc.spanNumber = spanNumber + 1;
 
           acc.outOfViewSpansAbove = [];
@@ -327,24 +328,25 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
-          acc.spanTree.push(
-            <SpanSiblingGroupBar
-              key={`${spanNumber}-span-sibling`}
-              event={waterfallModel.event}
-              span={span}
-              generateBounds={generateBounds}
-              treeDepth={treeDepth}
-              continuingTreeDepths={continuingTreeDepths}
-              spanNumber={spanNumber}
-              spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
-              toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
-              isLastSibling={payload.isLastSibling ?? false}
-              occurrence={payload.occurrence}
-              onWheel={onWheel}
-              generateContentSpanBarRef={generateContentSpanBarRef}
-              isEmbeddedSpanTree={isEmbeddedSpanTree}
-            />
-          );
+          acc.spanTree.push({
+            type: SpanTreeNodeType.SIBLING_GROUP,
+            props: {
+              event: waterfallModel.event,
+              span,
+              generateBounds,
+              treeDepth,
+              continuingTreeDepths,
+              spanNumber,
+              spanGrouping: payload.spanSiblingGrouping as EnhancedSpan[],
+              toggleSiblingSpanGroup: payload.toggleSiblingSpanGroup,
+              isLastSibling: payload.isLastSibling ?? false,
+              occurrence: payload.occurrence,
+              onWheel,
+              generateContentSpanBarRef,
+              isEmbeddedSpanTree,
+            },
+          });
+
           acc.spanNumber = spanNumber + 1;
 
           acc.outOfViewSpansAbove = [];
@@ -353,7 +355,6 @@ class SpanTree extends Component<PropType> {
           return acc;
         }
 
-        const key = getSpanID(span, `span-${spanNumber}`);
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
@@ -396,41 +397,40 @@ class SpanTree extends Component<PropType> {
           spanBarType = SpanBarType.AFFECTED;
         }
 
-        acc.spanTree.push(
-          <SpanBar
-            key={key}
-            organization={organization}
-            event={waterfallModel.event}
-            spanBarColor={spanBarColor}
-            spanBarType={spanBarType}
-            span={span}
-            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
-            numOfSpanChildren={numOfSpanChildren}
-            trace={waterfallModel.parsedTrace}
-            generateBounds={generateBounds}
-            toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
-            treeDepth={treeDepth}
-            continuingTreeDepths={continuingTreeDepths}
-            spanNumber={spanNumber}
-            isLast={isLast}
-            isRoot={isRoot}
-            showEmbeddedChildren={payload.showEmbeddedChildren}
-            toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
-            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
-            fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
-            toggleSpanGroup={toggleSpanGroup}
-            numOfSpans={numOfSpans}
-            groupType={groupType}
-            groupOccurrence={payload.groupOccurrence}
-            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
-            onWheel={onWheel}
-            generateContentSpanBarRef={generateContentSpanBarRef}
-            markSpanOutOfView={markSpanOutOfView}
-            markSpanInView={markSpanInView}
-            storeSpanBar={storeSpanBar}
-            didAnchoredSpanMount={false}
-          />
-        );
+        acc.spanTree.push({
+          type: SpanTreeNodeType.SPAN,
+          props: {
+            organization,
+            event: waterfallModel.event,
+            spanBarColor,
+            spanBarType,
+            span,
+            showSpanTree: !waterfallModel.hiddenSpanSubTrees.has(getSpanID(span)),
+            numOfSpanChildren,
+            trace: waterfallModel.parsedTrace,
+            generateBounds,
+            toggleSpanTree: this.toggleSpanTree(getSpanID(span)),
+            treeDepth,
+            continuingTreeDepths,
+            spanNumber,
+            isLast,
+            isRoot,
+            showEmbeddedChildren: payload.showEmbeddedChildren,
+            toggleEmbeddedChildren: payload.toggleEmbeddedChildren,
+            toggleSiblingSpanGroup,
+            fetchEmbeddedChildrenState: payload.fetchEmbeddedChildrenState,
+            toggleSpanGroup,
+            numOfSpans,
+            groupType,
+            groupOccurrence: payload.groupOccurrence,
+            isEmbeddedTransactionTimeAdjusted: payload.isEmbeddedTransactionTimeAdjusted,
+            onWheel,
+            generateContentSpanBarRef,
+            markSpanOutOfView,
+            markSpanInView,
+            storeSpanBar,
+          },
+        });
 
         // If this is an embedded span tree, we will manually mark these spans as in view.
         // This is necessary because generally these spans are dependant on intersection observers which will
@@ -459,14 +459,48 @@ class SpanTree extends Component<PropType> {
     });
 
     if (infoMessage) {
-      spanTree.push(infoMessage);
+      spanTree.push({type: SpanTreeNodeType.MESSAGE, element: infoMessage});
     }
 
     return spanTree;
   };
 
-  renderRow(params: ListRowProps, spanTree: JSX.Element[]) {
-    const {index, isVisible, key, parent, style, columnIndex} = params;
+  renderSpanNode(
+    node: SpanTreeNode,
+    extraProps: {measure: () => void} & SpanContext.SpanContextProps
+  ) {
+    switch (node.type) {
+      case SpanTreeNodeType.SPAN:
+        return (
+          <SpanBar
+            {...node.props}
+            {...extraProps}
+            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
+          />
+        );
+      case SpanTreeNodeType.DESCENDANT_GROUP:
+        return (
+          <SpanDescendantGroupBar
+            {...node.props}
+            key={`${node.props.spanNumber}-span-group`}
+          />
+        );
+      case SpanTreeNodeType.SIBLING_GROUP:
+        return (
+          <SpanSiblingGroupBar
+            {...node.props}
+            key={`${node.props.spanNumber}-span-sibling`}
+          />
+        );
+      case SpanTreeNodeType.MESSAGE:
+        return node.element;
+      default:
+        return null;
+    }
+  }
+
+  renderRow(params: ListRowProps, spanTree: SpanTreeNode[]) {
+    const {index, key, parent, style, columnIndex} = params;
 
     return (
       <CellMeasurer
@@ -479,28 +513,10 @@ class SpanTree extends Component<PropType> {
         {({measure}) => {
           return (
             <SpanContext.Consumer>
-              {({
-                didAnchoredSpanMount,
-                isSpanExpanded,
-                markAnchoredSpanIsMounted,
-                addExpandedSpan,
-                removeExpandedSpan,
-              }) => {
+              {spanContextProps => {
                 return (
                   <div style={style}>
-                    {spanTree[index].type === SpanBar ? (
-                      <SpanBar
-                        {...spanTree[index].props}
-                        measure={measure}
-                        didAnchoredSpanMount={didAnchoredSpanMount}
-                        markAnchoredSpanIsMounted={markAnchoredSpanIsMounted}
-                        addExpandedSpan={addExpandedSpan}
-                        removeExpandedSpan={removeExpandedSpan}
-                        isSpanExpanded={isSpanExpanded}
-                      />
-                    ) : (
-                      spanTree[index]
-                    )}
+                    {this.renderSpanNode(spanTree[index], {measure, ...spanContextProps})}
                   </div>
                 );
               }}
@@ -530,7 +546,8 @@ class SpanTree extends Component<PropType> {
     }
 
     const limitExceededMessage = this.generateLimitExceededMessage();
-    limitExceededMessage && spanTree.push(limitExceededMessage);
+    limitExceededMessage &&
+      spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>

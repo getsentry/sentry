@@ -103,7 +103,8 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 export const MARGIN_LEFT = 0;
 
-type SpanBarProps = {
+export type SpanBarProps = {
+  addExpandedSpan: (spanId: string) => void;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
@@ -111,12 +112,14 @@ type SpanBarProps = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
+  isSpanExpanded: (spanId: string) => boolean;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
   organization: Organization;
+  removeExpandedSpan: (spanId: string) => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -138,9 +141,6 @@ type SpanBarProps = {
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
-  addExpandedSpan: (spanId: string) => void;
-  removeExpandedSpan: (spanId: string) => void;
-  isSpanExpanded: (spanId: string) => boolean;
 };
 
 type SpanBarState = {

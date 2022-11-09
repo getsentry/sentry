@@ -1,13 +1,13 @@
 import {Component, createContext} from 'react';
 
 export type SpanContextProps = {
+  addExpandedSpan: (spanId: string) => void;
   didAnchoredSpanMount: boolean;
+  isSpanExpanded: (spanId: string) => boolean;
   markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
-  scrollToHash: (hash: string) => void;
-  addExpandedSpan: (spanId: string) => void;
   removeExpandedSpan: (spanId: string) => void;
-  isSpanExpanded: (spanId: string) => boolean;
+  scrollToHash: (hash: string) => void;
 };
 
 const SpanContext = createContext<SpanContextProps>({
