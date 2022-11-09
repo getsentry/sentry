@@ -13,11 +13,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
@@ -39,13 +38,11 @@ type CreateNewSavedSearchButtonProps = Pick<
   'query' | 'sort' | 'organization'
 >;
 
-const MAX_SHOWN_SEARCHES = 5;
+const MAX_SHOWN_SEARCHES = 4;
 
 const SavedSearchItemDescription = ({
   savedSearch,
 }: Pick<SavedSearchItemProps, 'savedSearch'>) => {
-  const organization = useOrganization();
-
   if (savedSearch.isGlobal) {
     return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
   }
@@ -53,7 +50,7 @@ const SavedSearchItemDescription = ({
   return (
     <SavedSearchItemVisbility>
       {savedSearch.visibility === SavedSearchVisibility.Organization
-        ? t('Anyone in %s can see but not edit', organization.name)
+        ? t('Anyone in organization can see but not edit')
         : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
@@ -235,10 +232,9 @@ const SavedIssueSearchesContent = ({
         </SearchesContainer>
         {orgSavedSearches.length > shownOrgSavedSearches.length && (
           <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
-            {tn(
-              'Show %s saved search',
-              'Show all %s saved searches',
-              orgSavedSearches.length
+            {t(
+              'Show %s more',
+              (orgSavedSearches.length - shownOrgSavedSearches.length).toLocaleString()
             )}
           </ShowAllButton>
         )}
