@@ -123,10 +123,10 @@ type RuleTaskResponse = {
 
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
-export type SetIncompatibleFunction = (
-  type: 'condition' | 'filter',
-  index: number
-) => void;
+export type IncompatibleRule = {
+  index: number | null;
+  type: 'condition' | 'filter' | 'none';
+};
 
 type Props = {
   location: Location;
@@ -415,14 +415,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       });
   };
 
-  setIncompatible: SetIncompatibleFunction = (type, index) => {
-    if (type === 'condition') {
-      this.setState({incompatibleCondition: index});
-    } else {
-      this.setState({incompatibleFilter: index});
-    }
-  };
-
   fetchPreviewDebounced = debounce(() => {
     this.fetchPreview(true);
   }, 1000);
@@ -430,7 +422,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRule = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
-      findIncompatibleRules(this.setIncompatible, this.state.rule);
+      const incompatibleRule = findIncompatibleRules(this.state.rule);
+      if (incompatibleRule.type === 'condition') {
+        this.setState({incompatibleCondition: incompatibleRule.index});
+      } else if (incompatibleRule.type === 'filter') {
+        this.setState({incompatibleFilter: incompatibleRule.index});
+      }
     }
   }, 500);
 
@@ -1424,9 +1421,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
 export default withOrganization(withProjects(IssueRuleEditor));
 
-export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, rule) => {
+export const findIncompatibleRules = (rule): IncompatibleRule => {
   if (!rule) {
-    return;
+    return {type: 'none', index: null};
   }
 
   const {conditions, filters} = rule;
@@ -1449,8 +1446,7 @@ export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, 
         eventFrequency = 1;
       }
       if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
-        setIncompatible('condition', i);
-        return;
+        return {type: 'condition', index: i};
       }
     }
   }
@@ -1469,8 +1465,7 @@ export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, 
           (rule.filterMatch === 'all' && filter.value > 1) ||
           (rule.filterMatch === 'none' && filter.value <= 1)
         ) {
-          setIncompatible('filter', i);
-          return;
+          return {type: 'filter', index: i};
         }
         if (rule.filterMatch === 'any' && filter.value > 1) {
           incompatibleFilters += 1;
@@ -1482,8 +1477,7 @@ export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, 
             (filter.comparison_type === 'newer' && filter.value <= 0)
           ) {
             if (rule.filterMatch === 'all') {
-              setIncompatible('filter', i);
-              return;
+              return {type: 'filter', index: i};
             }
             incompatibleFilters += 1;
           }
@@ -1491,16 +1485,15 @@ export const findIncompatibleRules = (setIncompatible: SetIncompatibleFunction, 
           (filter.comparison_type === 'older' && filter.value < 0) ||
           (filter.comparison_type === 'newer' && filter.value > 0)
         ) {
-          setIncompatible('filter', i);
-          return;
+          return {type: 'filter', index: i};
         }
       }
     }
     if (incompatibleFilters === filters.length) {
-      setIncompatible('filter', incompatibleFilters - 1);
-      return;
+      return {type: 'filter', index: incompatibleFilters - 1};
     }
   }
+  return {type: 'none', index: null};
 };
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
