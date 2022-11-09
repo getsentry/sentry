@@ -1,5 +1,6 @@
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -10,6 +11,7 @@ class OrganizationIndexTest(APITestCase):
         self.login_as(self.user)
 
 
+@control_silo_test(stable=True)
 class OrganizationMappingsCreateTest(OrganizationIndexTest):
     method = "post"
 
@@ -22,6 +24,7 @@ class OrganizationMappingsCreateTest(OrganizationIndexTest):
             "organization_id": 1234567,
             "stripe_id": "blah",
             "idempotency_key": "blah",
+            "region_name": "de",
         }
         response = self.get_success_response(**data)
         mapping = OrganizationMapping.objects.get(slug=response.data["slug"])
@@ -36,14 +39,23 @@ class OrganizationMappingsCreateTest(OrganizationIndexTest):
             "organization_id": 1234567,
             "stripe_id": "blah",
             "idempotency_key": "key",
+            "region_name": "de",
         }
         OrganizationMapping.objects.create(**data)
-        response = self.get_success_response(**{**data, "organization_id": 7654321})
-        assert response.data["created"]
+        response = self.get_success_response(
+            **{**data, "organization_id": 7654321, "region_name": "tz"}
+        )
+        assert response.data["id"]
         assert response.data["organization_id"] == "7654321"
+        assert response.data["region_name"] == "tz"
 
     def test_dupe_slug_reservation(self):
-        basedata = {"slug": "foobar", "organization_id": 1234567, "stripe_id": "blah"}
+        basedata = {
+            "slug": "foobar",
+            "organization_id": 1234567,
+            "stripe_id": "blah",
+            "region_name": "de",
+        }
         data1 = {**basedata, "idempotency_key": "key1"}
         OrganizationMapping.objects.create(**data1)
         data2 = {**basedata, "idempotency_key": "key2"}

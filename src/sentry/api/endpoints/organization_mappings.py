@@ -18,6 +18,7 @@ class OrganizationMappingSerializer(serializers.Serializer):  # type: ignore
     )
     stripe_id = serializers.CharField(max_length=255, required=True)
     idempotency_key = serializers.CharField(max_length=48, required=True)
+    region_name = serializers.CharField(max_length=48, required=True)
 
 
 @control_silo_endpoint
@@ -40,6 +41,7 @@ class OrganizationMappingsEndpoint(Endpoint):
         :param string stripe_id: a stripe unique identifier
         :param string idempotency_key: A pseudorandom string that allows requests to be repeated safely.
                     Recommended to be an md5sum(org_id + slug + stripe_id)
+        :param string region_name: The region this organization resides in
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated:
@@ -62,6 +64,7 @@ class OrganizationMappingsEndpoint(Endpoint):
                     result.get("slug"),
                     result.get("stripe_id"),
                     result.get("idempotency_key"),
+                    result.get("region_name"),
                 )
                 return Response(serialize(mapping, request.user), status=201)
             except IntegrityError as e:

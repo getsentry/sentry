@@ -25,6 +25,7 @@ class OrganizationMapping(Model):
     # Creating an identical mapping should succeed, even if a record already exists
     # with this slug. We allow this IFF the idempotency key is identical
     idempotency_key = models.CharField(max_length=48)
+    region_name = models.CharField(max_length=48)
 
     class Meta:
         app_label = "sentry"

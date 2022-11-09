@@ -43,6 +43,7 @@ class Migration(CheckedMigration):
                 ("stripe_id", models.CharField(max_length=255, db_index=True)),
                 ("verified", models.BooleanField(default=False)),
                 ("idempotency_key", models.CharField(max_length=48)),
+                ("region_name", models.CharField(max_length=48)),
             ],
             options={
                 "db_table": "sentry_organizationmapping",
