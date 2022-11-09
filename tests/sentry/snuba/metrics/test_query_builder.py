@@ -24,6 +24,7 @@ from snuba_sdk import (
     Query,
 )
 
+from sentry import options
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -174,7 +175,16 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
             'transaction:"/bar/:orgId/"',
             lambda: [
                 Condition(
-                    Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                            [""]
+                            if options.get("sentry-metrics.performance.tags-values-are-strings")
+                            else [0],
+                            [resolve_tag_value(USE_CASE_ID, ORG_ID, "<< unparameterized >>")],
+                        ],
+                    ),
                     Op.EQ,
                     rhs=resolve_tag_value(USE_CASE_ID, ORG_ID, "/bar/:orgId/"),
                 )
@@ -1380,8 +1390,21 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""]
+                            if options.get("sentry-metrics.performance.tags-values-are-strings")
+                            else [0],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     )
                 ],
             ),
@@ -1429,8 +1452,21 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""]
+                            if options.get("sentry-metrics.performance.tags-values-are-strings")
+                            else [0],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     ),
                     Column(
                         name=resolve_tag_key(self.use_case_id, self.org_id, "platform"),
