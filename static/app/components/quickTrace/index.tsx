@@ -111,7 +111,6 @@ export default function QuickTrace({
       >
         {({projects}) => {
           const project = projects.find(p => p.slug === current.project_slug);
-          console.log(project);
           if (projectSupportsReplay(project)) {
             return (
               <EventNodeReplay
