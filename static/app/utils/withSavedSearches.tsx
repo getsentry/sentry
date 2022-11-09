@@ -20,7 +20,7 @@ type State = {
 };
 
 /**
- * HOC to provide saved search data class components.
+ * HOC to provide saved search data to class components.
  * When possible, use the hooks directly instead.
  */
 function withSavedSearchesV2<P extends InjectedSavedSearchesProps>(
