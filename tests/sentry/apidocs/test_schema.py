@@ -23,6 +23,7 @@ def test_description():
     class ExampleEndpoint(Endpoint):
         def get(self, request, *args, **kwargs):
             """
+
             Operation ID
 
             Description Line 1
@@ -46,6 +47,10 @@ def test_description():
             """
             Autoschema Description
             """
+            pass
+
+        # Should not result in an error when generating a schema
+        def delete(self, request):
             pass
 
     schema = generate_schema("foo", view=ExampleEndpoint)
