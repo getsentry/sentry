@@ -421,7 +421,8 @@ def get_group_title(group: Group, event: Event, max_length: int = 255, **kwargs:
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
     else:
-        return event.title
+        event_title: str = event.title
+        return event_title
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
