@@ -304,8 +304,6 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
-    idx_map = {}
-
     if profile["platform"] in SHOULD_SYMBOLICATE:
         idx_map = get_frame_index_map(profile["profile"]["frames"])
 
