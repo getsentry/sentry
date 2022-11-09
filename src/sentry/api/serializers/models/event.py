@@ -431,7 +431,7 @@ class ExternalEventSerializer(EventSerializer):
     """
 
     def serialize(self, obj, attrs, user):
-        from sentry.notifications.utils import get_group_title
+        from sentry.notifications.utils import get_notification_group_title
 
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
         for tag in tags:
@@ -448,7 +448,7 @@ class ExternalEventSerializer(EventSerializer):
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,
-            "title": get_group_title(obj.group, obj, 1024),
+            "title": get_notification_group_title(obj.group, obj, 1024),
             "location": obj.location,
             "culprit": obj.culprit,
             "user": user and user.get_api_context(),

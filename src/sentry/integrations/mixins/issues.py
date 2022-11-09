@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
 from sentry.notifications.utils import (
-    get_group_title,
+    get_notification_group_title,
     get_parent_and_repeating_spans,
     get_span_and_problem,
     get_span_evidence_value,
@@ -56,7 +56,7 @@ class IssueBasicMixin:
         return False
 
     def get_group_title(self, group, event, **kwargs):
-        return get_group_title(group, event, **kwargs)
+        return get_notification_group_title(group, event, **kwargs)
 
     def get_issue_url(self, key):
         """

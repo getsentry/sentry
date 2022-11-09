@@ -414,7 +414,9 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
     return repeating_span_value.replace("`", '"')
 
 
-def get_group_title(group: Group, event: Event, max_length: int = 255, **kwargs: str) -> str:
+def get_notification_group_title(
+    group: Group, event: Event, max_length: int = 255, **kwargs: str
+) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
         issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
         transaction = get_performance_issue_alert_subtitle(event)
