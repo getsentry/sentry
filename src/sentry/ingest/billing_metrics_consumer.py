@@ -143,9 +143,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def poll(self) -> None:
         while self._ongoing_billing_outcomes:
-            self._process_metrics_billing_bucket(wait_time=None)
+            self._process_metrics_billing_bucket(timeout=None)
 
-    def _process_metrics_billing_bucket(self, wait_time: Optional[float] = None):
+    def _process_metrics_billing_bucket(self, timeout: Optional[float] = None):
         """
         Takes the first billing outcome from the queue and if it's completed,
         commits the metrics bucket.
@@ -160,9 +160,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         billing_future, metrics_msg = self._ongoing_billing_outcomes[0]
         if billing_future:
             try:
-                if not wait_time and not billing_future.done():
+                if not timeout and not billing_future.done():
                     return
-                billing_future.result(wait_time)
+                billing_future.result(timeout)
             except Exception:
                 logger.error(
                     "Async future failed in billing metrics consumer.",
