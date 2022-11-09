@@ -9,14 +9,17 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
+import {
+  generateDocKeys,
+  isPlatformSupported,
+} from 'sentry/components/replaysOnboarding/utils';
 import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -24,120 +27,39 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
 
-import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
-
-function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
+function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
   const organization = useOrganization();
+
+  const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects, currentProject, setCurrentProject} = useCurrentProjectState({
+    currentPanel,
+  });
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
-
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
-
-  const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
-    filterProjects(projects);
-
-  useEffect(() => {
-    if (
-      currentProject ||
-      projects.length === 0 ||
-      !isReady ||
-      !isActive ||
-      projectsWithoutFirstTransactionEvent.length <= 0
-    ) {
-      return;
-    }
-    // Establish current project
-
-    const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    }, {});
-
-    if (selection.projects.length) {
-      const projectSelection = selection.projects.map(
-        projectId => projectMap[String(projectId)]
-      );
-
-      // Among the project selection, find a project that has performance onboarding docs support, and has not sent
-      // a first transaction event.
-      const maybeProject = projectSelection.find(project =>
-        projectsForOnboarding.includes(project)
-      );
-      if (maybeProject) {
-        setCurrentProject(maybeProject);
-        return;
-      }
-
-      // Among the project selection, find a project that has not sent a first transaction event
-      const maybeProjectFallback = projectSelection.find(project =>
-        projectsWithoutFirstTransactionEvent.includes(project)
-      );
-      if (maybeProjectFallback) {
-        setCurrentProject(maybeProjectFallback);
-        return;
-      }
-    }
-
-    // Among the projects, find a project that has performance onboarding docs support, and has not sent
-    // a first transaction event.
-    if (projectsForOnboarding.length) {
-      setCurrentProject(projectsForOnboarding[0]);
-      return;
-    }
-
-    // Otherwise, pick a first project that has not sent a first transaction event.
-    setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
-  }, [
-    selection.projects,
-    projects,
-    isActive,
-    isReady,
-    projectsForOnboarding,
-    projectsWithoutFirstTransactionEvent,
-    currentProject,
-  ]);
-
-  if (
-    !isActive ||
-    !hasProjectAccess ||
-    currentProject === undefined ||
-    !projectsLoaded ||
-    !projects ||
-    projects.length <= 0 ||
-    projectsWithoutFirstTransactionEvent.length <= 0
-  ) {
+  if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
   }
 
-  const items: MenuItemProps[] = projectsWithoutFirstTransactionEvent.reduce(
-    (acc: MenuItemProps[], project) => {
-      const itemProps: MenuItemProps = {
-        key: project.id,
-        label: (
-          <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
-        ),
-        onAction: function switchProject() {
-          setCurrentProject(project);
-        },
-      };
+  const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
+    const itemProps: MenuItemProps = {
+      key: project.id,
+      label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
+      onAction: function switchProject() {
+        setCurrentProject(project);
+      },
+    };
 
-      if (currentProject.id === project.id) {
-        acc.unshift(itemProps);
-      } else {
-        acc.push(itemProps);
-      }
+    if (currentProject.id === project.id) {
+      acc.unshift(itemProps);
+    } else {
+      acc.push(itemProps);
+    }
 
-      return acc;
-    },
-    []
-  );
+    return acc;
+  }, []);
 
   return (
     <TaskSidebarPanel
@@ -147,7 +69,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Boost Performance')}</Heading>
+        <Heading>{t('Replay Sessions')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
@@ -193,16 +115,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const doesNotSupportPerformance = currentProject.platform
-    ? withoutPerformanceSupport.has(currentProject.platform)
-    : false;
+  const doesNotSupportReplay = currentProject.platform
+    ? !replayPlatforms.includes(currentProject.platform)
+    : true;
 
-  if (doesNotSupportPerformance) {
+  if (doesNotSupportReplay) {
     return (
       <Fragment>
         <div>
           {tct(
-            'Fiddlesticks. Performance isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            'Fiddlesticks. Session Replay isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
             {platform: currentPlatform?.name || currentProject.slug}
           )}
         </div>
@@ -227,10 +149,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <div>
           <Button
             size="sm"
-            href="https://docs.sentry.io/product/performance/getting-started/"
+            href="https://github.com/getsentry/sentry-replay/blob/main/README.md"
             external
           >
-            {t('Go to documentation')}
+            {t('See Readme')}
           </Button>
         </div>
       </Fragment>
@@ -243,7 +165,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       <div>
         {tct(
-          `Adding Performance to your [platform] project is simple. Make sure you've got these basics down.`,
+          `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </div>
@@ -256,7 +178,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               api={api}
               organization={organization}
               project={currentProject}
-              eventType="transaction"
+              eventType="replay"
               onIssueReceived={() => {
                 setReceived(true);
               }}
@@ -270,7 +192,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             <OnboardingStep
               docContent={docContents[docKey]}
               docKey={docKey}
-              prefix="perf"
+              prefix="replay"
               project={currentProject}
             />
             {footer}
@@ -325,7 +247,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t("Waiting for this project's first transaction event")}
+    {t("Waiting for this project's first replay event")}
   </div>
 ))`
   display: flex;
@@ -338,7 +260,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t("We've received this project's first transaction event!")}
+    {t("We've received this project's first replay event!")}
   </div>
 ))`
   display: flex;
@@ -348,4 +270,4 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   color: ${p => p.theme.green300};
 `;
 
-export default PerformanceOnboardingSidebar;
+export default ReplaysOnboardingSidebar;
