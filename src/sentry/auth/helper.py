@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -219,9 +219,9 @@ class AuthIdentityHandler:
         user = auth_identity.user
 
         # If the user is either currently *pending* invite acceptance (as indicated
-        # from the pending-invite cookie) OR an existing invite exists on this
+        # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_cookie_or_email(
+        invite_helper = ApiInviteHelper.from_session_or_email(
             request=self.request, organization=self.organization, email=user.email
         )
 
@@ -406,7 +406,7 @@ class AuthIdentityHandler:
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
-        remove_invite_cookie(self.request, response)
+        remove_invite_details_from_session(self.request)
 
         return response
 
