@@ -33,7 +33,7 @@ from django.conf import settings
 
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome
 
@@ -184,10 +184,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         """Commits and clears the ready to commit queue."""
         if not self._ready_to_commit:
             return
-        metrics.gauge(
-            "billing_metrics_consumer.bulk_commit.queue_size",
-            value=self._messages_ready_since_last_commit,
-        )
         self._commit(self._ready_to_commit)
         self._clear_ready_queue()
 
