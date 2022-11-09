@@ -150,7 +150,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
 
         assert recording
         assert recording.checksum == sha1(b"testfoobar").hexdigest()
-        assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+        segment = ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+        assert segment.size == len(b"testfoobar")
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
