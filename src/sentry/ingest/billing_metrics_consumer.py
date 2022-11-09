@@ -175,7 +175,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     )
 
             self._ongoing_billing_outcomes.popleft()
-            position = Position(metrics_msg.next_offset, datetime.now())
+            position = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
             self._commit(position)
             self._clear_ready_queue()
 
