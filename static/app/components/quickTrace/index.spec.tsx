@@ -387,9 +387,14 @@ describe('Quick Trace', function () {
         body: [],
       });
 
+      const event = makeTransactionEvent(5) as Event;
+
       render(
         <QuickTrace
-          event={makeTransactionEvent(5) as Event}
+          event={{
+            ...event,
+            entries: TestStubs.Entries()[0],
+          }}
           quickTrace={{
             type: 'full',
             trace: [
@@ -433,7 +438,11 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={{...event, tags: [{key: 'replayId', value: '123'}]}}
+          event={{
+            ...event,
+            entries: TestStubs.Entries()[0],
+            tags: [{key: 'replayId', value: '123'}],
+          }}
           quickTrace={{
             type: 'full',
             trace: [
