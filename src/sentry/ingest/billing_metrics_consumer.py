@@ -142,16 +142,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def poll(self) -> None:
-        self._commit_ready_msgs()
-
-    def _commit_ready_msgs(self) -> None:
-        """
-        Commits the messages that have been processed and produced (if needed).
-
-        Futures of producing billing outcomes may error. The function logs an
-        error but commits the position anyways, to not block subsequent
-        messages.
-        """
         while self._ongoing_billing_outcomes:
             self._process_metrics_billing_bucket(wait_time=None)
 
