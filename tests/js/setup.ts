@@ -7,6 +7,7 @@ import {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import mockdate from 'mockdate';
+import {object as propTypesObject} from 'prop-types';
 import {stringify} from 'query-string';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -78,32 +79,32 @@ jest.mock('react-router', () => {
     },
   };
 });
-// jest.mock('react-lazyload', function reactLazyLoad() {
-//   const LazyLoadMock = ({children}) => children;
-//   return LazyLoadMock;
-// });
+jest.mock('react-lazyload', function reactLazyLoad() {
+  const LazyLoadMock = ({children}) => children;
+  return LazyLoadMock;
+});
 
-// jest.mock('react-virtualized', function reactVirtualized() {
-//   const ActualReactVirtualized = jest.requireActual('react-virtualized');
-//   return {
-//     ...ActualReactVirtualized,
-//     AutoSizer: ({children}) => children({width: 100, height: 100}),
-//   };
-// });
+jest.mock('react-virtualized', function reactVirtualized() {
+  const ActualReactVirtualized = jest.requireActual('react-virtualized');
+  return {
+    ...ActualReactVirtualized,
+    AutoSizer: ({children}) => children({width: 100, height: 100}),
+  };
+});
 
-// jest.mock('echarts-for-react/lib/core', function echartsCore() {
-//   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
-//   // guaranteed to be in scope
-//   const ReactActual = require('react');
+jest.mock('echarts-for-react/lib/core', function echartsCore() {
+  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // guaranteed to be in scope
+  const ReactActual = require('react');
 
-//   // We need a class component here because `BaseChart` passes `ref` which will
-//   // error if we return a stateless/functional component
-//   return class extends ReactActual.Component {
-//     render() {
-//       return null;
-//     }
-//   };
-// });
+  // We need a class component here because `BaseChart` passes `ref` which will
+  // error if we return a stateless/functional component
+  return class extends ReactActual.Component {
+    render() {
+      return null;
+    }
+  };
+});
 
 jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
@@ -200,10 +201,10 @@ const routerFixtures = {
       ...context,
     },
     childContextTypes: {
-      router: {},
-      location: {},
-      organization: {},
-      project: {},
+      router: propTypesObject,
+      location: propTypesObject,
+      organization: propTypesObject,
+      project: propTypesObject,
       ...childContextTypes,
     },
   }),
