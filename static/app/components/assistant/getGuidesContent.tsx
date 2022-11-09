@@ -510,7 +510,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           target: 'issue_stream',
           description: t(
             `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stack trace and other factors. Click on an issue to learn more`
+            determined by stack trace and other factors. Click on an issue to learn more.`
           ),
         },
       ],
@@ -538,7 +538,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           title: t('Retrace your steps'),
           target: 'breadcrumbs',
           description: t(
-            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events so you can see the sequence of events leading up to the error.`
+            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
           ),
           nextText: t('Got it'),
         },
@@ -576,7 +576,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       requiredTargets: ['release_states'],
       steps: [
         {
-          title: t('New and regresses issues'),
+          title: t('New and regressed issues'),
           target: 'release_states',
           description: t(
             `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
@@ -627,7 +627,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           target: 'span_tree',
           description: t(
             `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
-            did before encountering the performance.`
+            did before encountering the performance issue.`
           ),
         },
       ],
