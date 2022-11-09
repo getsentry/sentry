@@ -3,7 +3,7 @@
 import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import mockdate from 'mockdate';
