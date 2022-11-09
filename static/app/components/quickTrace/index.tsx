@@ -111,6 +111,7 @@ export default function QuickTrace({
       >
         {({projects}) => {
           const project = projects.find(p => p.slug === current.project_slug);
+          console.log(project);
           if (projectSupportsReplay(project)) {
             return (
               <EventNodeReplay
@@ -121,7 +122,7 @@ export default function QuickTrace({
                 }}
                 onClick={handleReplayClick}
                 type={hasReplay ? 'black' : 'white'}
-                icon={<StyledIconPlay size="xs" />}
+                icon={hasReplay && <StyledIconPlay size="xs" />}
                 tooltipText={hasReplay ? '' : t('Replay cannot be found')}
               >
                 {hasReplay ? t('Replay') : '???'}
