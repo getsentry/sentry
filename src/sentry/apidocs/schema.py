@@ -9,7 +9,7 @@ class SentrySchema(AutoSchema):
     def view_func(self):
         return getattr(self.view, self.method.lower())
 
-    def get_operation_id(self):
+    def get_operation_id(self) -> str:
         """
         First line of an endpoint's docstring is the operation ID
         """
@@ -18,7 +18,7 @@ class SentrySchema(AutoSchema):
             return docstring[0]
         return super().get_operation_id()
 
-    def get_description(self):
+    def get_description(self) -> str:
         """
         Docstring is used as a description for the endpoint. The operation ID is included in this.
         """
