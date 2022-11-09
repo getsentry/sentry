@@ -28,7 +28,6 @@ from snuba_sdk import (
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import options
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
@@ -104,14 +103,12 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 
     It is important to note that this transformation has to be applied ONLY on tag.transaction.
     """
-    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
-
     return Function(
         function="transform",
         parameters=[
             Column(resolve_tag_key(use_case_id, org_id, "transaction")),
             # This will be removed once the removal of tags values as ints is merged.
-            ["" if tags_values_are_strings else 0],
+            [""],
             [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
         ],
         alias=alias,

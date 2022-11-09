@@ -122,7 +122,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        groups = data["groups"]
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
 
         expected = [
@@ -180,7 +180,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        groups = data["groups"]
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
 
         expected = [
