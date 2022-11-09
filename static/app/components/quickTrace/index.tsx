@@ -89,7 +89,7 @@ export default function QuickTrace({
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const hasReplay =
-    Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+    Boolean(event.entries?.find(({type}) => type === 'breadcrumbs')) &&
     Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
 
   // Using click handler to navigate to breadcrumbs/replay section because EventNodeReplay (Tag)
