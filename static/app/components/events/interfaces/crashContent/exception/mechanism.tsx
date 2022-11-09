@@ -9,7 +9,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {IconInfo, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {StackTraceMechanism} from 'sentry/types/stacktrace';
@@ -23,6 +23,7 @@ type Props = {
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+
   const {errno, signal, mach_exception} = meta;
 
   const linkElement = help_link && isUrl(help_link) && (
@@ -31,23 +32,34 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     </StyledExternalLink>
   );
 
-  const descriptionElement = description && (
-    <Hovercard
-      header={
-        <span>
-          <Details>{t('Details')}</Details> {linkElement}
-        </span>
-      }
-      body={description}
-    >
-      <StyledIconInfo size="14px" />
-    </Hovercard>
-  );
-
   const pills = [
-    <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
-      {descriptionElement || linkElement}
-    </Pill>,
+    <Pill
+      key="mechanism"
+      name={
+        description ? (
+          <Hovercard
+            showUnderline
+            header={
+              <Details>
+                {t('Details')}
+                {linkElement}
+              </Details>
+            }
+            body={description}
+          >
+            {'mechanism'}
+          </Hovercard>
+        ) : linkElement ? (
+          <Name>
+            {'mechanism '}
+            {linkElement}
+          </Name>
+        ) : (
+          'mechanism'
+        )
+      }
+      value={type || 'unknown'}
+    />,
   ];
 
   if (!isNil(handled)) {
@@ -109,8 +121,15 @@ const StyledExternalLink = styled(ExternalLink)`
   ${iconStyle};
 `;
 
-const Details = styled('span')`
-  margin-right: ${space(1)};
+const Name = styled('span')`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const Details = styled(Name)`
+  gap: ${space(1)};
 `;
 
 const StyledPills = styled(Pills)`
@@ -120,9 +139,4 @@ const StyledPills = styled(Pills)`
     overflow: hidden;
     text-overflow: ellipsis;
   }
-`;
-
-const StyledIconInfo = styled(IconInfo)`
-  display: flex;
-  ${iconStyle};
 `;
