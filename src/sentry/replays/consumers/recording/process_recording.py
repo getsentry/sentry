@@ -235,6 +235,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 message_dict = msgpack.unpackb(message.payload.value)
 
                 if message_dict["type"] == "replay_recording_chunk":
+                    if type(message_dict["payload"]) is str:
+                        # if the payload is uncompressed, we need to encode it as bytes
+                        # as msgpack will decode it as a utf-8 python string
+                        message_dict["payload"] = message_dict["payload"].encode("utf-8")
+
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
                         self._process_chunk(
                             cast(RecordingSegmentChunkMessage, message_dict), message
