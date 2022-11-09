@@ -19,6 +19,7 @@ class CheckInStatus:
     OK = 1
     ERROR = 2
     IN_PROGRESS = 3
+    MISSING = 4
 
     FINISHED_VALUES = (OK, ERROR)
 
@@ -29,6 +30,7 @@ class CheckInStatus:
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
+            (cls.MISSING, "missing"),
         )
 
 
