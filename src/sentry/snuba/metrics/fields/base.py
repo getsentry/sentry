@@ -60,7 +60,6 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     team_key_transaction_snql,
     tolerated_count_transaction,
-    transform_null_to_unparameterized_snql,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
@@ -1571,13 +1570,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=team_key_transaction_snql,
             default_null_value=0,
             meta_type="boolean",
-        ),
-        DerivedOp(
-            op="transform_null_to_unparameterized",
-            can_orderby=False,
-            can_groupby=True,
-            can_filter=True,
-            snql_func=transform_null_to_unparameterized_snql,
         ),
     ]
 }
