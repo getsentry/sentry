@@ -77,12 +77,16 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
             )
 
         else:
-            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            groups = list(
+                Group.objects.filter(id__in=group_ids, project_id__in=project_ids).prefetch_related(
+                    "project"
+                )
+            )
             if not groups:
                 raise ParseError(detail="No matching groups found")
             elif len(groups) > 25:
                 raise ParseError(detail="Too many groups requested.")
-            elif any(g for g in groups if not request.access.has_project_access(g.project)):
+            elif not all(request.access.has_project_access(g.project) for g in groups):
                 raise PermissionDenied
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
