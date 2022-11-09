@@ -10,7 +10,6 @@ from typing import (
     Callable,
     Deque,
     Mapping,
-    MutableMapping,
     NamedTuple,
     Optional,
     Sequence,
@@ -134,7 +133,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # time on removing items from the beginning; while a regular list takes
         # O(n).
         self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
-        self._ready_to_commit: MutableMapping[Partition, Position] = {}
         self._messages_ready_since_last_commit: int = 0
 
     def _get_billing_producer(self) -> KafkaProducer:
@@ -145,10 +143,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def poll(self) -> None:
         self._mark_commit_ready()
-        if not self._ready_to_commit:
-            return
-        self._commit(self._ready_to_commit)
-        self._clear_ready_queue()
 
     def _mark_commit_ready(self) -> None:
         """Removes completed futures at the beginning of
@@ -177,21 +171,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             self._ongoing_billing_outcomes.popleft()
             position = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
             self._commit(position)
-            self._clear_ready_queue()
-
-    def _bulk_commit(self) -> None:
-        """Commits and clears the ready to commit queue."""
-        if not self._ready_to_commit:
-            return
-        self._commit(self._ready_to_commit)
-        self._clear_ready_queue()
-
-    def _clear_ready_queue(self) -> int:
-        """Clears the ready to commit queue and returns the amount of items dropped."""
-        amount_dropped = self._messages_ready_since_last_commit
-        self._ready_to_commit = {}
-        self._messages_ready_since_last_commit = 0
-        return amount_dropped
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
