@@ -145,7 +145,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         while self._ongoing_billing_outcomes:
             self._process_metrics_billing_bucket(timeout=None)
 
-    def _process_metrics_billing_bucket(self, timeout: Optional[float] = None):
+    def _process_metrics_billing_bucket(self, timeout: Optional[float] = None) -> None:
         """
         Takes the first billing outcome from the queue and if it's completed,
         commits the metrics bucket.
