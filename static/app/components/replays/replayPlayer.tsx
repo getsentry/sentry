@@ -7,6 +7,8 @@ import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay'
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 
+import PlayerDOMAlert from './playerDOMAlert';
+
 interface Props {
   className?: string;
 }
@@ -72,6 +74,7 @@ function BasePlayerRoot({className}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
+      <PlayerDOMAlert />
     </SizingWindow>
   );
 }
