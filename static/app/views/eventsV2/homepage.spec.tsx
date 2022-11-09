@@ -311,8 +311,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('flaky: DD-1151: renders changes to the discover query when no homepage', async () => {
+  it('renders changes to the discover query when no homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -344,15 +343,7 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(screen.getByText('Columns'));
-    await act(async () => {
-      await mountGlobalModal();
-    });
-
-    userEvent.click(screen.getByTestId('label'));
-    userEvent.click(screen.getByText('event.type'));
-    userEvent.click(screen.getByText('Apply'));
-
+    // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -377,13 +368,10 @@ describe('Discover > Homepage', () => {
       />
     );
 
-    await waitFor(() =>
-      expect(screen.queryByText('Edit Columns')).not.toBeInTheDocument()
-    );
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when loaded with valid event view in url params', async () => {
+  it('renders changes to the discover query when loaded with valid event view in url params', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -409,15 +397,7 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(screen.getByText('Columns'));
-    await act(async () => {
-      await mountGlobalModal();
-    });
-
-    userEvent.click(screen.getByTestId('label'));
-    userEvent.click(screen.getByText('event.type'));
-    userEvent.click(screen.getByText('Apply'));
-
+    // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -442,9 +422,6 @@ describe('Discover > Homepage', () => {
       />
     );
 
-    await waitFor(() =>
-      expect(screen.queryByText('Edit Columns')).not.toBeInTheDocument()
-    );
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
