@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
+import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   IconChevron,
   IconDashboard,
@@ -16,11 +17,11 @@ import {
   IconLightning,
   IconList,
   IconPlay,
+  IconProfiling,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
-  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -279,7 +280,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconSpan size="md" />}
+        icon={<IconProfiling size="md" />}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
@@ -367,6 +368,12 @@ function Sidebar({location, organization}: Props) {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <ReplaysOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

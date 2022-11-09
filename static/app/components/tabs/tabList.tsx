@@ -121,14 +121,16 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.map(key => {
-      const item = state.collection.getItem(key);
-      return {
-        value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-      };
-    });
+    return sortedOverflowTabs
+      .filter(key => state.collection.getItem(key))
+      .map(key => {
+        const item = state.collection.getItem(key);
+        return {
+          value: key,
+          label: item.props.children,
+          disabled: item.props.disabled,
+        };
+      });
   }, [state.collection, overflowTabs]);
 
   return (

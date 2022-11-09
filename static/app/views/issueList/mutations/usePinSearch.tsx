@@ -1,4 +1,4 @@
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
@@ -32,20 +32,25 @@ export const usePinSearch = (
         data: {query, type, sort},
       }),
     onSuccess: (savedSearch, variables, context) => {
-      queryClient.setQueryData(
+      queryClient.setQueryData<SavedSearch[]>(
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug}),
         oldData => {
           if (!Array.isArray(oldData)) {
             return oldData;
           }
 
-          return [savedSearch, ...oldData];
+          return [
+            savedSearch,
+            // Make sure we remove any existing pinned searches
+            ...oldData.filter(search => !search.isPinned),
+          ];
         }
       );
+      addSuccessMessage(t('Saved as Issues default'));
       options.onSuccess?.(savedSearch, variables, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Failed to pin search.'));
+      addErrorMessage(t('Unable to set as Issues default'));
       options.onError?.(error, variables, context);
     },
   });
