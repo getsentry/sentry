@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +8,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
-from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organizationmapping import organization_mapping_service
 
 
 class OrganizationMappingSerializer(serializers.Serializer):  # type: ignore
@@ -55,35 +55,16 @@ class OrganizationMappingsEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            with transaction.atomic():
-                try:
-                    # Creating an identical mapping should succeed, even if a record already exists
-                    # with this slug. We allow this IFF the idempotency key is identical
-                    mapping = OrganizationMapping.objects.create(
-                        organization_id=result["organization_id"],
-                        slug=result.get("slug"),
-                        stripe_id=result.get("stripe_id"),
-                    )
-                    return Response(serialize(mapping, request.user), status=201)
-                except IntegrityError:
-                    pass
-
-            # If we got here, the slug already exists
-            if result.get("idempotency_key") != "":
-                try:
-                    existing = OrganizationMapping.objects.get(
-                        slug=result.get("slug"), idempotency_key=result.get("idempotency_key")
-                    )
-                    existing.organization_id = result["organization_id"]
-                    existing.stripe_id = result["stripe_id"]
-                    existing.save()
-                    return Response(serialize(existing, request.user), status=201)
-                except OrganizationMapping.DoesNotExist:
-                    pass
-
-            # The slug exists and the idempotency key does not match
-            return Response(
-                {"detail": "An organization with this slug already exists."}, status=409
-            )
+            try:
+                mapping = organization_mapping_service.create(
+                    request.user,
+                    result.get("organization_id"),
+                    result.get("slug"),
+                    result.get("stripe_id"),
+                    result.get("idempotency_key"),
+                )
+                return Response(serialize(mapping, request.user), status=201)
+            except IntegrityError as e:
+                return Response({"detail": str(e)}, status=409)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
