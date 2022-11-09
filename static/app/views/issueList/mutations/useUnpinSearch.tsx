@@ -1,6 +1,6 @@
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {SavedSearch, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
 import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -39,15 +39,14 @@ export const useUnpinSearch = (
             return oldData;
           }
 
-          return oldData.filter(
-            search => search.visibility === SavedSearchVisibility.OwnerPinned
-          );
+          return oldData.filter(search => !search.isPinned);
         }
       );
+      addSuccessMessage(t('Successfully removed Issues default'));
       options.onSuccess?.(savedSearch, variables, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Failed to unpin search.'));
+      addErrorMessage(t('Unable to remove Issues default'));
       options.onError?.(error, variables, context);
     },
   });
