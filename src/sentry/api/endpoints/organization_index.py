@@ -23,12 +23,14 @@ from sentry.models import (
     ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.organizationmapping import organization_mapping_service
 from sentry.signals import terms_accepted
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
+    idempotency_key = serializers.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -201,6 +203,15 @@ class OrganizationIndexEndpoint(Endpoint):
             try:
                 with transaction.atomic():
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
+
+                    organization_mapping_service.create(
+                        request.user,
+                        org.id,
+                        org.slug,
+                        "",
+                        result.get("idempotency_key"),
+                        settings.SENTRY_REGION or "us",
+                    )
 
                     om = OrganizationMember.objects.create(
                         organization=org, user=request.user, role=roles.get_top_dog().id

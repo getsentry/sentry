@@ -24,7 +24,7 @@ class OrganizationMapping(Model):
     verified = models.BooleanField(default=False)
     # Creating an identical mapping should succeed, even if a record already exists
     # with this slug. We allow this IFF the idempotency key is identical
-    idempotency_key = models.CharField(max_length=48)
+    idempotency_key = models.CharField(max_length=48, null=True)
     region_name = models.CharField(max_length=48)
 
     class Meta:
