@@ -226,7 +226,9 @@ const SavedIssueSearchesContent = ({
             />
           ))}
           {shownOrgSavedSearches.length === 0 && (
-            <p>{t("You don't have any saved searches.")}</p>
+            <NoSavedSearchesText>
+              {t("You don't have any saved searches.")}
+            </NoSavedSearchesText>
           )}
         </SearchesContainer>
         {orgSavedSearches.length > shownOrgSavedSearches.length && (
@@ -363,6 +365,11 @@ const ShowAllButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.linkHoverColor};
   }
+`;
+
+const NoSavedSearchesText = styled('p')`
+  padding: 0 ${space(2)};
+  color: ${p => p.theme.subText};
 `;
 
 export default SavedIssueSearches;
