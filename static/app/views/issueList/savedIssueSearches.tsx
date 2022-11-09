@@ -17,6 +17,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
@@ -43,6 +44,8 @@ const MAX_SHOWN_SEARCHES = 5;
 const SavedSearchItemDescription = ({
   savedSearch,
 }: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+  const organization = useOrganization();
+
   if (savedSearch.isGlobal) {
     return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
   }
@@ -50,8 +53,8 @@ const SavedSearchItemDescription = ({
   return (
     <SavedSearchItemVisbility>
       {savedSearch.visibility === SavedSearchVisibility.Organization
-        ? t('Org Search')
-        : t('My  Search')}
+        ? t('Anyone in %s can see but not edit', organization.name)
+        : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
 };
@@ -244,7 +247,7 @@ const SavedIssueSearchesContent = ({
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
           <HeadingContainer>
-            <Heading>{t('Recommended')}</Heading>
+            <Heading>{t('Recommended Searches')}</Heading>
           </HeadingContainer>
           <SearchesContainer>
             {recommendedSavedSearches.map(item => (
@@ -320,7 +323,8 @@ const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
   height: auto;
   font-weight: normal;
   line-height: ${p => p.theme.text.lineHeightBody};
-  margin-top: 2px;
+
+  padding: ${space(1)} ${space(2)};
 
   ${p =>
     p.hasMenu &&
@@ -340,6 +344,7 @@ const SavedSearchItemTitle = styled('div')`
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis}
 `;
 
