@@ -6,7 +6,7 @@ import {TextDecoder, TextEncoder} from 'util';
 import type {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
-import mockdate from 'mockdate';
+import MockDate from 'mockdate';
 import {object as propTypesObject} from 'prop-types';
 import {stringify} from 'query-string';
 
@@ -62,7 +62,8 @@ if (isJSXTest || (testPath && tsxTestsWithEnzyme.some(e => testPath.endsWith(e))
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
-mockdate.set(new Date(1508208080000));
+const constantDate = new Date(1508208080000);
+MockDate.set(constantDate);
 
 /**
  * Global testing configuration
@@ -76,7 +77,7 @@ jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('react-router', () => {
+jest.mock('react-router', function reactRouterMockFactory() {
   const ReactRouter = jest.requireActual('react-router');
   return {
     ...ReactRouter,
@@ -90,12 +91,12 @@ jest.mock('react-router', () => {
     },
   };
 });
-jest.mock('react-lazyload', function reactLazyLoad() {
+jest.mock('react-lazyload', function reactLazyLoadMockFactory() {
   const LazyLoadMock = ({children}) => children;
   return LazyLoadMock;
 });
 
-jest.mock('react-virtualized', function reactVirtualized() {
+jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
@@ -103,7 +104,7 @@ jest.mock('react-virtualized', function reactVirtualized() {
   };
 });
 
-jest.mock('echarts-for-react/lib/core', () => {
+jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');

@@ -270,7 +270,6 @@ const config: Config.InitialOptions = {
       transactionOptions: {
         tags: {
           ...optionalTags,
-          setup: 'optimized',
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
           github_run_attempt: GITHUB_RUN_ATTEMPT,
