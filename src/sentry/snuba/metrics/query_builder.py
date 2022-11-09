@@ -152,10 +152,10 @@ def resolve_tags(
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
                 ],
             )
-        elif input_.function in {"match"}:
+        elif input_.function == "match":
             column = input_.parameters[0]
 
-            if not (column.subscriptable == "tags" and column.name in FILTERABLE_TAGS):
+            if column.name not in FILTERABLE_TAGS:
                 raise InvalidParams(
                     f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
                 )

@@ -1529,6 +1529,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("transaction", "/foo*", 4),
             ("transaction", "*/bar", 1),
             ("transaction", "/foo/*/transaction", 2),
+            # We also test if the transform null to unparameterized works properly.
+            ("transaction", "<< unparameterized >>", 6),
             ("os.name", "Mac OS *", 3),
             ("os.name", "Windows *", 3),
             ("os.name", "*8", 2),
