@@ -41,7 +41,18 @@ configureRtl({testIdAttribute: 'data-test-id'});
  * https://github.com/enzymejs/enzyme/issues/2429
  */
 // eslint-disable-next-line
-if (expect.getState().testPath?.endsWith('.jsx')) {
+const tsxTestsWithEnzyme = [
+  'eventsV2/savedQuery/index.spec.tsx',
+  'dataScrubbing/modals/edit.spec.tsx',
+  'eventsV2/homepage.spec.tsx',
+  'performance/table.spec.tsx',
+  'projectDebugFiles/index.spec.tsx',
+  'eventsV2/resultsChart.spec.tsx',
+];
+const testPath = expect.getState().testPath;
+
+const isJSXTest = testPath && testPath.endsWith('.jsx');
+if (isJSXTest || (testPath && tsxTestsWithEnzyme.some(e => testPath.endsWith(e)))) {
   const EnzymeAdapter = require('@wojtekmaj/enzyme-adapter-react-17');
   const enzyme = require('enzyme'); // eslint-disable-line no-restricted-imports
   enzyme.configure({adapter: new EnzymeAdapter()});
@@ -92,7 +103,7 @@ jest.mock('react-virtualized', function reactVirtualized() {
   };
 });
 
-jest.mock('echarts-for-react/lib/core', function echartsCore() {
+jest.mock('echarts-for-react/lib/core', () => {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');
