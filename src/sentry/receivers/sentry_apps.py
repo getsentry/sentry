@@ -14,7 +14,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -98,7 +98,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
 def send_workflow_webhooks(
     organization: Organization,
     issue: Group,
-    user: User,
+    user: User | APIUser,
     event: str,
     data: Mapping[str, Any] | None = None,
 ) -> None:
@@ -114,7 +114,7 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = serialize(user, serializer=UserSerializer())
+            data["user"] = user_service.serialize_users([user.id])[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 

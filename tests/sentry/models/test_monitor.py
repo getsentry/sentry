@@ -5,8 +5,10 @@ from django.utils import timezone
 
 from sentry.models import Monitor, MonitorFailure, MonitorType, ScheduleType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class MonitorTestCase(TestCase):
     def test_next_run_crontab_implicit(self):
         monitor = Monitor(

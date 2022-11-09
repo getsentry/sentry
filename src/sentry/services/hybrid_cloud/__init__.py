@@ -174,7 +174,7 @@ class use_real_service:
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
         def wrapped(*args: Any, **kwds: Any) -> Any:
-            with self:
+            with use_real_service(self.service, self.silo_mode):
                 return f(*args, **kwds)
 
         return wrapped

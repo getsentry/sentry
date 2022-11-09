@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectCodeOwnersTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))

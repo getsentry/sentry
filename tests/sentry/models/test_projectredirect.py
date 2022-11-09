@@ -3,7 +3,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRedirectTest(TestCase):
     def test_record(self):
         org = self.create_organization()

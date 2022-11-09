@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -8,6 +9,9 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.lostpasswordhash import APILostPasswordHash
 
 
 @control_silo_only_model
@@ -32,25 +36,19 @@ class LostPasswordHash(Model):
     def set_hash(self) -> None:
         self.hash = get_secure_token()
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return self.date_added > timezone.now() - timedelta(hours=48)
 
-    def get_absolute_url(self, mode="recover"):
-        url_key = "sentry-account-recover-confirm"
-        if mode == "set_password":
-            url_key = "sentry-account-set-password-confirm"
-
-        return absolute_uri(reverse(url_key, args=[self.user.id, self.hash]))
-
-    def send_email(self, request, mode="recover"):
+    @classmethod
+    def send_email(cls, user, hash, request, mode="recover") -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
         context = {
-            "user": self.user,
+            "user": user,
             "domain": get_server_hostname(),
-            "url": self.get_absolute_url(mode),
+            "url": cls.get_lostpassword_url(user.id, hash, mode),
             "datetime": timezone.now(),
             "ip_address": request.META["REMOTE_ADDR"],
         }
@@ -64,20 +62,23 @@ class LostPasswordHash(Model):
             type="user.password_recovery",
             context=context,
         )
-        msg.send_async([self.user.email])
+        msg.send_async([user.email])
+
+    # Duplicated from APILostPasswordHash
+    def get_absolute_url(self, mode: str = "recover") -> str:
+        return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
 
     @classmethod
-    def for_user(cls, user):
-        # NOTE(mattrobenolt): Some security people suggest we invalidate
-        # existing password hashes, but this opens up the possibility
-        # of a DoS vector where then password resets are continually
-        # requested, thus preventing someone from actually resetting
-        # their password.
-        # See: https://github.com/getsentry/sentry/pull/17299
-        password_hash, created = cls.objects.get_or_create(user=user)
-        if not password_hash.is_valid():
-            password_hash.date_added = timezone.now()
-            password_hash.set_hash()
-            password_hash.save()
+    def get_lostpassword_url(self, user_id: int, hash: str, mode: str = "recover") -> str:
+        url_key = "sentry-account-recover-confirm"
+        if mode == "set_password":
+            url_key = "sentry-account-set-password-confirm"
 
+        return absolute_uri(reverse(url_key, args=[user_id, hash]))
+
+    @classmethod
+    def for_user(cls, user) -> "APILostPasswordHash":
+        from sentry.services.hybrid_cloud.lostpasswordhash import lost_password_hash_service
+
+        password_hash = lost_password_hash_service.get_or_create(user.id)
         return password_hash

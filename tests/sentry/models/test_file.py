@@ -8,8 +8,10 @@ from django.db import DatabaseError
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class FileBlobTest(TestCase):
     def test_from_file(self):
         fileobj = ContentFile(b"foo bar")
