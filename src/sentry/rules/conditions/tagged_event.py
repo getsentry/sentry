@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, Tuple
 
 from django import forms
 
@@ -39,7 +39,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _passes(self, raw_tags) -> bool:
+    def _passes(self, raw_tags: Sequence[Tuple[str, Any]]) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")
