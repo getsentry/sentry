@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {useIsMounted} from 'sentry/utils/useIsMounted';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
@@ -24,7 +24,7 @@ type RouteParams = {
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();
-  const isMounted = useIsMounted();
+  const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location: props.location});
 
@@ -51,11 +51,11 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]).then(mem => {
-      if (isMounted()) {
+      if (isMountedRef.current) {
         setMembers(mem);
       }
     });
-  }, [api, organization, isMounted, project]);
+  }, [api, organization, isMountedRef, project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;

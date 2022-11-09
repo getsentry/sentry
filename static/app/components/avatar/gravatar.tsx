@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {useIsMounted} from 'sentry/utils/useIsMounted';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 import {imageStyle, ImageStyleProps} from './styles';
 
@@ -26,18 +26,18 @@ function Gravatar({
   onLoad,
   suggested,
 }: Props) {
-  const isMounted = useIsMounted();
+  const isMountedRef = useIsMountedRef();
   const [MD5, setMD5] = useState<HasherHelper>();
 
   const loadMd5Helper = useCallback(async () => {
     const mod = await import('crypto-js/md5');
 
-    if (isMounted()) {
+    if (isMountedRef.current) {
       // XXX: Use function invocation of `useState`s setter since the mod.default
       // is a function itself.
       setMD5(() => mod.default);
     }
-  }, [isMounted]);
+  }, [isMountedRef]);
 
   useEffect(() => {
     loadMd5Helper();
