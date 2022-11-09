@@ -21,6 +21,8 @@ def test_simple():
 
 def test_description():
     class ExampleEndpoint(Endpoint):
+        permission_classes = ()
+
         def get(self, request, *args, **kwargs):
             """
 
