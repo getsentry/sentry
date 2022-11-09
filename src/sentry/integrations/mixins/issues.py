@@ -8,15 +8,14 @@ from typing import Any, Mapping, Sequence
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
 from sentry.notifications.utils import (
+    get_notification_group_title,
     get_parent_and_repeating_spans,
-    get_performance_issue_alert_subtitle,
     get_span_and_problem,
     get_span_evidence_value,
     get_span_evidence_value_problem,
 )
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -57,14 +56,7 @@ class IssueBasicMixin:
         return False
 
     def get_group_title(self, group, event, **kwargs):
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
-            transaction = get_performance_issue_alert_subtitle(event)
-            title = f"{issue_type}: {transaction}"
-            # Jira API will not accept a summary field over 255 chars
-            return (title[:253] + "..") if len(title) > 255 else title
-        else:
-            return event.title
+        return get_notification_group_title(group, event, **kwargs)
 
     def get_issue_url(self, key):
         """

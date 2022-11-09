@@ -45,6 +45,7 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
 from sentry.utils.performance_issues.performance_detection import (
@@ -411,6 +412,19 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
         _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
         repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
     return repeating_span_value.replace("`", '"')
+
+
+def get_notification_group_title(
+    group: Group, event: Event, max_length: int = 255, **kwargs: str
+) -> str:
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        transaction = get_performance_issue_alert_subtitle(event)
+        title = f"{issue_type}: {transaction}"
+        return (title[: max_length - 2] + "..") if len(title) > max_length else title
+    else:
+        event_title: str = event.title
+        return event_title
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

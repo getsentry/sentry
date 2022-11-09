@@ -1,10 +1,17 @@
+import pytz
 import responses
 
+from sentry.event_manager import EventManager
 from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.issues import GroupType
 from sentry.utils import json
+from sentry.utils.samples import load_data
 
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"
 SERVICES = [
@@ -37,7 +44,15 @@ class PagerDutyNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_applies_correctly(self):
-        event = self.get_event()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "ohhhhhh noooooo",
+                "timestamp": iso_format(event_time),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
 
@@ -57,6 +72,55 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         data = json.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
+        assert data["payload"]["summary"] == event.message
+        assert data["payload"]["custom_details"]["message"] == event.message
+
+    @responses.activate
+    def test_applies_correctly_performance_issue(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = json.loads(responses.calls[0].request.body)
+
+        perf_issue_title = 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
+
+        assert data["event_action"] == "trigger"
+        assert data["payload"]["summary"] == perf_issue_title
+        assert data["payload"]["custom_details"]["title"] == perf_issue_title
 
     def test_render_label(self):
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
