@@ -157,7 +157,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if len(self._ongoing_billing_outcomes) < 1:
             return
 
-        billing_future, metrics_msg = self._ongoing_billing_outcomes.popleft()
+        billing_future, metrics_msg = self._ongoing_billing_outcomes[0]
         if billing_future:
             try:
                 if not wait_time and not billing_future.done():
@@ -170,6 +170,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     extra={"offset": metrics_msg.offset},
                 )
 
+        self._ongoing_billing_outcomes.popleft()
         self._commit({metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())})
 
     def join(self, timeout: Optional[float] = None) -> None:
