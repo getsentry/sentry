@@ -199,7 +199,7 @@ jobs:
           python-version: 3.8.13
       - name: check requirements
         run: |
-          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
+          python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
           python -S -m tools.freeze_requirements sentry
           if ! git diff --exit-code; then
             echo $'\n\nrun `make freeze-requirements` locally to update requirements'
@@ -248,7 +248,9 @@ jobs:
         with:
           python-version: 3.8.13
           cache: pip
-          cache-dependency-path: requirements-dev-only-frozen.txt
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-dev-frozen.txt
 
       - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
@@ -257,11 +259,11 @@ jobs:
 
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
-        # requirements-dev-only-frozen.txt as a fast path.
+        # requirements-dev.txt as a fast path.
         # We don't need pre-commit install --install-hooks since we're just interested
         # in running the hooks.
         run: |
-          pip install -r requirements-dev-only-frozen.txt
+          pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
           pre-commit install-hooks
 
       - name: Run pre-commit on changed files
