@@ -22,6 +22,7 @@ class ProfilesQueryBuilderProtocol(Protocol):
 
 class ProfilesQueryBuilderMixin:
     requires_organization_condition: bool = True
+    organization_column: str = "organization.id"
 
     def resolve_column_name(self: ProfilesQueryBuilderProtocol, col: str) -> str:
         # giving resolved a type here convinces mypy that the type is str

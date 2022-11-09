@@ -45,6 +45,7 @@ from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_quer
 
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
+    organization_column: str = "organization_id"
 
     def __init__(
         self,
