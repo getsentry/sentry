@@ -176,15 +176,15 @@ class AuthLoginTest(TestCase):
         assert OrganizationMember.objects.filter(user=user).exists()
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
-    def test_registration_single_org_with_invite(self, from_cookie):
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_registration_single_org_with_invite(self, from_session):
         self.session["can_register"] = True
         self.save_session()
 
         self.client.get(self.path)
 
         invite_helper = mock.Mock(valid_request=True)
-        from_cookie.return_value = invite_helper
+        from_session.return_value = invite_helper
 
         resp = self.client.post(
             self.path,
@@ -229,15 +229,15 @@ class AuthLoginTest(TestCase):
         assert resp.context["register_form"].initial["username"] == "foo@example.com"
         self.assertTemplateUsed("sentry/login.html")
 
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
-    def test_register_accepts_invite(self, from_cookie):
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_register_accepts_invite(self, from_session):
         self.session["can_register"] = True
         self.save_session()
 
         self.client.get(self.path)
 
         invite_helper = mock.Mock(valid_request=True)
-        from_cookie.return_value = invite_helper
+        from_session.return_value = invite_helper
 
         resp = self.client.post(
             self.path,
