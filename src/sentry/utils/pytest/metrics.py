@@ -1,6 +1,5 @@
 import dataclasses
 import functools
-import os
 
 import pytest
 
@@ -26,9 +25,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.snuba import tasks
     from sentry.utils import snuba
 
-    # Explicitly set option to avoid hitting DB from within resolve_tag_values
-    set_sentry_option("sentry-metrics.performance.tags-values-are-strings", False)
-
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
         mock_indexer = MockIndexer()
         monkeypatch.setattr("sentry.sentry_metrics.indexer.backend", mock_indexer)
@@ -39,18 +35,11 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve
         )
 
-        tag_values_are_strings = (
-            os.environ.get("SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE") == "1"
-        )
-        set_sentry_option(
-            "sentry-metrics.performance.tags-values-are-strings", tag_values_are_strings
-        )
         old_resolve = indexer.resolve
 
         def new_resolve(use_case_id, org_id, string):
             if (
                 use_case_id == UseCaseKey.PERFORMANCE
-                and tag_values_are_strings
                 and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
             ):
                 pytest.fail(
@@ -71,7 +60,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:
-                _validate_query(query, tag_values_are_strings)
+                _validate_query(query, True)
             elif is_metrics:
                 _validate_query(query, False)
 
@@ -87,7 +76,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:
-                _validate_query(query, tag_values_are_strings)
+                _validate_query(query, True)
             elif is_metrics:
                 _validate_query(query, False)
 

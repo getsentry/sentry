@@ -1,8 +1,7 @@
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import (
@@ -11,46 +10,8 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, SnubaTSResult
-
-
-def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
-    """Go through the results of a metrics query and reverse resolve its tags"""
-    if query_definition.use_metrics_layer:
-        return results
-    tags: List[str] = []
-    cached_resolves: Dict[int, str] = {}
-    # no-op if they're already strings
-    if query_definition.tag_values_are_strings:
-        return results
-
-    with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-        for column in query_definition.columns:
-            if (
-                isinstance(column, AliasedExpression)
-                and column.exp.subscriptable == "tags"
-                and column.alias
-            ):
-                tags.append(column.alias)
-            # transaction is a special case since we use a transform null & unparam
-            if column.alias in ["transaction", "title"]:
-                tags.append(column.alias)
-
-        for tag in tags:
-            for row in results["data"]:
-                if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(
-                        UseCaseKey.PERFORMANCE, query_definition.organization_id, row[tag]
-                    )
-                    cached_resolves[row[tag]] = resolved_tag
-                row[tag] = cached_resolves[row[tag]]
-            if tag in results["meta"]["fields"]:
-                results["meta"]["fields"][tag] = "string"
-
-    return results
 
 
 def query(
