@@ -60,7 +60,7 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size),
+        processor_factory=BillingMetricsConsumerStrategyFactory(),
         commit_policy=commit_policy,
     )
 
@@ -76,15 +76,12 @@ def _get_bootstrap_servers(topic: str, force_cluster: Optional[str]) -> Sequence
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, max_batch_size: int):
-        self.__max_batch_size = max_batch_size
-
     def create_with_partitions(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit, self.__max_batch_size)
+        return BillingTxCountMetricConsumerStrategy(commit)
 
 
 class MetricsBucket(TypedDict):
@@ -120,11 +117,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
-        max_batch_size: int,
     ) -> None:
         self._closed: bool = False
         self._commit = commit
-        self._max_batch_size: int = max_batch_size
 
         self._billing_topic = Topic(settings.KAFKA_OUTCOMES_BILLING)
         self._billing_producer = self._get_billing_producer()
