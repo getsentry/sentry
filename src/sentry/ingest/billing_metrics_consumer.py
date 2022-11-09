@@ -188,7 +188,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 break
 
             future, metrics_msg = self._ongoing_billing_outcomes[0]
-            do_commit = True
             if future:
                 try:
                     future.result(time_left)
@@ -198,14 +197,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                         exc_info=future.exception(),
                         extra={"offset": metrics_msg.offset},
                     )
-                    # Don't commit the future when it fails -- if no futher messages
-                    # are committed before shutting down the consumer, new consumers
-                    # will process the current offset again.
-                    do_commit = False
                     self._ongoing_billing_outcomes.popleft()
 
-            if do_commit:
-                self._commit_ready_msgs()
+            self._commit_ready_msgs()
 
         self._billing_producer.close()
 
