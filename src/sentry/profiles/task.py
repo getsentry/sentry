@@ -393,7 +393,7 @@ The sorting order is callee to caller (child to parent)
 
 
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    index_map = {}
+    index_map: dict[int, List[int]] = {}
     for i, frame in enumerate(frames):
         original_idx = frame["original_index"]
         idx_list = index_map.get(original_idx, [])
