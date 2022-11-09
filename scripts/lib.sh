@@ -75,8 +75,12 @@ sudo-askpass() {
     fi
 }
 
+pip-install() {
+    pip install --constraint requirements-dev-frozen.txt "$@"
+}
+
 upgrade-pip() {
-    pip install --constraint requirements-dev-frozen.txt pip setuptools wheel
+    pip-install pip setuptools wheel
 }
 
 install-py-dev() {
@@ -93,7 +97,7 @@ install-py-dev() {
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip install --constraint requirements-dev-frozen.txt -e '.[dev]'
+    SENTRY_LIGHT_BUILD=1 pip-install -e '.[dev]'
 }
 
 setup-git-config() {
@@ -120,7 +124,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev-only-frozen.txt
+        pip-install -r requirements-dev.txt
     fi
     pre-commit install --install-hooks
     echo ""

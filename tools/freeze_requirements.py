@@ -69,7 +69,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--index-url=https://pypi.devinfra.sentry.io/simple",
     )
 
-    executor = ThreadPoolExecutor(max_workers=3)
+    executor = ThreadPoolExecutor(max_workers=2)
     futures = []
 
     if repo == "sentry":
@@ -95,19 +95,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"{base_path}/requirements-dev.txt",
                     "-o",
                     f"{base_path}/requirements-dev-frozen.txt",
-                ),
-            )
-        )
-        # requirements-dev-only-frozen.txt is only used in sentry
-        # (and reused in getsentry) as a fast path for some CI jobs.
-        futures.append(
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-dev.txt",
-                    "-o",
-                    f"{base_path}/requirements-dev-only-frozen.txt",
                 ),
             )
         )
