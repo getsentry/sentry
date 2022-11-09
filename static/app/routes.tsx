@@ -1253,12 +1253,11 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Route
-      path="/organizations/:orgId/issues/"
+      path="/organizations/:orgId/issues/(searches/:searchId/)"
       component={errorHandler(IssueListContainer)}
     >
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
       <IndexRoute component={errorHandler(IssueListOverview)} />
-      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
     </Route>
   );
 
@@ -1515,9 +1514,7 @@ function buildRoutes() {
     </Route>
   );
 
-  // XXX(epurkhiser): These also exist in the legacyOrganizationRootRoutes. Not
-  // sure which one here is more correct.
-  const legacyGettingStartedRoutes = (
+  const gettingStartedRoutes = (
     <Route
       path="/:orgId/:projectId/getting-started/"
       component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
@@ -1666,8 +1663,8 @@ function buildRoutes() {
       {performanceRoutes}
       {profilingRoutes}
       {adminManageRoutes}
+      {gettingStartedRoutes}
       {legacyOrganizationRootRoutes}
-      {legacyGettingStartedRoutes}
       {legacyOrgRedirects}
     </Route>
   );

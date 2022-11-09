@@ -35,12 +35,12 @@ function IssueListFilters({
 
   return (
     <SearchContainer>
-      <PageFilterBar>
+      <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
-      </PageFilterBar>
-      <IssueListSearchBar
+      </StyledPageFilterBar>
+      <StyledIssueListSearchBar
         searchSource="main_search"
         organization={organization}
         query={query || ''}
@@ -63,14 +63,26 @@ function IssueListFilters({
 }
 
 const SearchContainer = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
   width: 100%;
   margin-bottom: ${space(2)};
-  grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr);
+const StyledPageFilterBar = styled(PageFilterBar)`
+  flex: 1;
+  width: 100%;
+  max-width: 25rem;
+`;
+
+const StyledIssueListSearchBar = styled(IssueListSearchBar)`
+  flex: 1;
+  width: 100%;
+  min-width: 20rem;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    min-width: 25rem;
   }
 `;
 

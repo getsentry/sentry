@@ -4,7 +4,12 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularit
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
-from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
+from sentry.snuba.metrics import (
+    FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
+    OPERATIONS,
+    DerivedMetricException,
+)
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
 from sentry.snuba.metrics.query import (
     MetricConditionField,
@@ -186,7 +191,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name in ["tags[environment]", "tags[transaction]"]:
+            elif condition.lhs.name in FILTERABLE_TAGS:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
@@ -230,7 +235,7 @@ def _transform_orderby(query_orderby):
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
-def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
         raise MQBQueryTransformationException(

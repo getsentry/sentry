@@ -45,7 +45,11 @@ def derive_code_mappings(
     set_user({"username": organization.slug})
 
     # Check the feature flag again to ensure the feature is still enabled.
-    if not features.has("organizations:derive-code-mappings", organization):
+    should_continue = features.has(
+        "organizations:derive-code-mappings", organization
+    ) or features.has("organizations:derive-code-mappings-dry-run", organization)
+    if not (dry_run or should_continue):
+        logger.info(f"Event from {organization.slug} org should not be processed.")
         return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
@@ -59,7 +63,11 @@ def derive_code_mappings(
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project, dry_run)
+    if dry_run:
+        report_project_codemappings(code_mappings, stacktrace_paths, project)
+        return
+
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
@@ -120,7 +128,6 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -138,12 +145,51 @@ def set_project_codemappings(
             },
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
-            repository=repository,
-            organization_integration=organization_integration,
             stack_root=code_mapping.stacktrace_root,
-            source_root=code_mapping.source_path,
-            default_branch=code_mapping.repo.branch,
-            automatically_generated=True,
+            defaults={
+                "repository": repository,
+                "organization_integration": organization_integration,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
         )
+        if not created:
+            logger.info(
+                "derive_code_mappings: code mapping already exists",
+                extra={
+                    "project": project,
+                    "stacktrace_root": code_mapping.stacktrace_root,
+                    "new_code_mapping": code_mapping,
+                    "existing_code_mapping": cm,
+                },
+            )
+
+
+def report_project_codemappings(
+    code_mappings: List[CodeMapping],
+    stacktrace_paths: List[str],
+    project: Project,
+) -> None:
+    """
+    Log the code mappings that would be created for a project.
+    """
+    set_tag("project.slug", project.slug)
+    extra = {
+        "org": project.organization.slug,
+        "project": project.slug,
+        "code_mappings": code_mappings,
+        "stacktrace_paths": stacktrace_paths,
+    }
+    if code_mappings:
+        msg = "derive_code_mappings: code mappings would have been created."
+    else:
+        msg = "derive_code_mappings: NO code mappings would have been created."
+    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
+    if existing_code_mappings.exists():
+        msg = "derive_code_mappings: code mappings already exist."
+        extra["existing_code_mappings"] = existing_code_mappings
+
+    logger.info(msg, extra)

@@ -23,10 +23,10 @@ const inlineStyle = (p: FieldWrapperProps) =>
 const getPadding = (p: FieldWrapperProps) =>
   p.stacked && !p.inline
     ? css`
-        padding: 0 ${space(1)} ${space(2)} 0;
+        padding: 0 ${space(2)} ${space(2)} 0;
       `
     : css`
-        padding: ${space(2)} ${space(1)} ${space(2)} ${space(2)};
+        padding: ${space(2)};
       `;
 
 const FieldWrapper = styled('div')<FieldWrapperProps>`

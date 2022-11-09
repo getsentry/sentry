@@ -11,7 +11,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -166,7 +166,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+            invite_helper = ApiInviteHelper.from_session(request=request, instance=self)
 
             # In single org mode, associate the user to the only organization.
             #
@@ -182,7 +182,7 @@ class AuthLoginView(BaseView):
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
                 response = self.redirect_to_org(request)
-                remove_invite_cookie(request, response)
+                remove_invite_details_from_session(request)
 
                 return response
 
@@ -221,29 +221,29 @@ class AuthLoginView(BaseView):
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
                     # Refresh the organization we fetched prior to login in order to check its login state.
-                    organization = organization_service.get_organization_by_slug(
+                    org_context = organization_service.get_organization_by_slug(
                         user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
-                        allow_stale=False,
                     )
-                    if organization.member and request.user and not is_active_superuser(request):
-                        auth.set_active_org(request, organization.slug)
+                    if org_context:
+                        if org_context.member and request.user and not is_active_superuser(request):
+                            auth.set_active_org(request, org_context.organization.slug)
 
-                    if settings.SENTRY_SINGLE_ORGANIZATION:
-                        om = organization_service.check_membership_by_email(
-                            organization.id, user.email
-                        )
-                        if om is None:
-                            request.session.pop("_next", None)
-                        else:
-                            if om.user_id is None:
+                        if settings.SENTRY_SINGLE_ORGANIZATION:
+                            om = organization_service.check_membership_by_email(
+                                org_context.organization.id, user.email
+                            )
+                            if om is None:
                                 request.session.pop("_next", None)
+                            else:
+                                if om.user_id is None:
+                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:
                     onboarding_redirect = get_client_state_redirect_uri(
-                        self.active_organization.slug, None
+                        self.active_organization.organization.slug, None
                     )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect

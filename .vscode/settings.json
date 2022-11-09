@@ -69,7 +69,7 @@
   "python.linting.flake8Enabled": true,
   // test discovery is sluggish and the UI around running
   // tests is often in your way and misclicked
-  "python.testing.pytestEnabled": false,
+  "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.nosetestsEnabled": false,
   "editor.tabSize": 4,
@@ -79,5 +79,8 @@
   "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "black",
+  "python.testing.pytestArgs": [
+    "tests"
+  ]
 }
