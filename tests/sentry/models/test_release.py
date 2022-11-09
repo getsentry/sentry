@@ -36,7 +36,9 @@ from sentry.models import (
     follows_semver_versioning_scheme,
 )
 from sentry.search.events.filter import parse_semver
+from sentry.signals import receivers_raise_on_send
 from sentry.testutils import SetRefsTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
@@ -72,6 +74,7 @@ def test_version_is_semver_invalid(release_version):
 
 @region_silo_test(stable=True)
 class MergeReleasesTest(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
         org = self.create_organization()
         commit = Commit.objects.create(organization_id=org.id, repository_id=5)
@@ -202,8 +205,9 @@ class MergeReleasesTest(TestCase):
 
 @region_silo_test(stable=True)
 class SetCommitsTestCase(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -257,8 +261,9 @@ class SetCommitsTestCase(TestCase):
 
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_backfilling_commits(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -344,8 +349,9 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time()
+    @receivers_raise_on_send()
     def test_using_saved_data(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -395,8 +401,9 @@ class SetCommitsTestCase(TestCase):
 
     @patch("sentry.models.Commit.update")
     @freeze_time()
+    @receivers_raise_on_send()
     def test_multiple_releases_only_updates_once(self, mock_update):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -414,6 +421,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "new message"}])
         assert mock_update.call_count == 1
 
+    @receivers_raise_on_send()
     def test_resolution_support_full_featured(self):
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="foo")
@@ -457,8 +465,9 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_resolution_support_without_author(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -488,8 +497,9 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
+    @receivers_raise_on_send()
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
@@ -549,8 +559,9 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_long_email(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -581,6 +592,7 @@ class SetRefsTest(SetRefsTestCase):
         self.release.add_project(self.project)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit):
         refs = [
             {
@@ -607,6 +619,7 @@ class SetRefsTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_invalid_repos(self, mock_fetch_commit):
         refs = [
             {
@@ -628,6 +641,7 @@ class SetRefsTest(SetRefsTestCase):
         assert len(ReleaseHeadCommit.objects.all()) == 0
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit):
         refs = [
             {
@@ -656,6 +670,7 @@ class SetRefsTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_fetch_false(self, mock_fetch_commit):
         refs = [
             {
@@ -1243,6 +1258,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class ClearCommitsTestCase(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name="foo")
@@ -1324,6 +1340,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_custom_manger(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
+    @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
         self.project = self.create_project(name="foo")
         self.datetime_now = timezone.now()
@@ -1335,6 +1352,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             self.release.add_project(self.project)
             assert mock_task.mock_calls == []
 
+    @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self):
         with Feature(
             {

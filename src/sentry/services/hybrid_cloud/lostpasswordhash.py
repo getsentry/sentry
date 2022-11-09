@@ -1,6 +1,7 @@
 import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
+from typing import cast
 
 from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud import (
@@ -19,7 +20,7 @@ class APILostPasswordHash:
     date_added = datetime.datetime
 
     def get_absolute_url(self, mode: str = "recover") -> str:
-        return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
+        return cast(str, LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode))
 
 
 class LostPasswordHashService(InterfaceWithLifecycle):

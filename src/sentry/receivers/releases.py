@@ -28,6 +28,7 @@ from sentry.models.grouphistory import (
     record_group_history_from_activity_type,
 )
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -112,13 +113,13 @@ def resolved_in_commit(instance, created, **kwargs):
                 acting_user = None
 
                 if user_list:
-                    acting_user = user_list[0]
+                    acting_user: APIUser = user_list[0]
                     # TODO(hybrid-cloud): rely on user options being returned in the user service get calls.
                     user_options = user_option_service.get(
                         [acting_user.id], "self_assign_issue", None
                     )
                     if len(user_options) > 0:
-                        self_assign_issue = user_options[0]
+                        self_assign_issue = user_options[0].value
                     else:
                         self_assign_issue = "0"
                     if self_assign_issue == "1" and not group.assignee_set.exists():
@@ -216,7 +217,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     user_list = ()
                 acting_user = None
                 if user_list:
-                    acting_user = user_list[0]
+                    acting_user: APIUser = user_list[0]
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=acting_user, acting_user=acting_user
                     )

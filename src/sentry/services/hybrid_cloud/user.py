@@ -24,6 +24,7 @@ class APIUser:
     actor_id: int = -1
     display_name: str = ""
     is_superuser: bool = False
+    is_authenticated: bool = False
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
