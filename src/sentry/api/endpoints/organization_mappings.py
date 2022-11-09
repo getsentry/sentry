@@ -22,6 +22,7 @@ class OrganizationMappingSerializer(serializers.Serializer):  # type: ignore
 
 @control_silo_endpoint
 class OrganizationMappingsEndpoint(Endpoint):
+    private = True
     permission_classes = (OrganizationPermission,)
 
     def post(self, request: Request) -> Response:
@@ -56,6 +57,8 @@ class OrganizationMappingsEndpoint(Endpoint):
 
             with transaction.atomic():
                 try:
+                    # Creating an identical mapping should succeed, even if a record already exists
+                    # with this slug. We allow this IFF the idempotency key is identical
                     mapping = OrganizationMapping.objects.create(
                         organization_id=result["organization_id"],
                         slug=result.get("slug"),
@@ -71,6 +74,9 @@ class OrganizationMappingsEndpoint(Endpoint):
                     existing = OrganizationMapping.objects.get(
                         slug=result.get("slug"), idempotency_key=result.get("idempotency_key")
                     )
+                    existing.organization_id = result["organization_id"]
+                    existing.stripe_id = result["stripe_id"]
+                    existing.save()
                     return Response(serialize(existing, request.user), status=201)
                 except OrganizationMapping.DoesNotExist:
                     pass

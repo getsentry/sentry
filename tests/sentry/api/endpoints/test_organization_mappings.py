@@ -38,8 +38,9 @@ class OrganizationMappingsCreateTest(OrganizationIndexTest):
             "idempotency_key": "key",
         }
         OrganizationMapping.objects.create(**data)
-        response = self.get_success_response(**data)
+        response = self.get_success_response(**{**data, "organization_id": 7654321})
         assert response.data["created"]
+        assert response.data["organization_id"] == "7654321"
 
     def test_dupe_slug_reservation(self):
         basedata = {"slug": "foobar", "organization_id": 1234567, "stripe_id": "blah"}
