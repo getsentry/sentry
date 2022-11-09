@@ -69,16 +69,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--index-url=https://pypi.devinfra.sentry.io/simple",
     )
 
-    executor = ThreadPoolExecutor(max_workers=3)
+    executor = ThreadPoolExecutor(max_workers=2)
     futures = []
 
-    if repo != "getsentry":
+    if repo == "sentry":
         futures.append(
             executor.submit(
                 worker,
                 (
                     *base_cmd,
                     f"{base_path}/requirements-base.txt",
+                    f"{base_path}/requirements-getsentry.txt",
                     "-o",
                     f"{base_path}/requirements-frozen.txt",
                 ),
@@ -90,13 +91,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 (
                     *base_cmd,
                     f"{base_path}/requirements-base.txt",
+                    f"{base_path}/requirements-getsentry.txt",
                     f"{base_path}/requirements-dev.txt",
                     "-o",
                     f"{base_path}/requirements-dev-frozen.txt",
                 ),
             )
         )
-    else:
+    elif repo == "getsentry":
         futures.append(
             executor.submit(
                 worker,
@@ -124,21 +126,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             )
         )
-
-    if repo == "sentry":
-        # requirements-dev-only-frozen.txt is only used in sentry
-        # (and reused in getsentry) as a fast path for some CI jobs.
-        futures.append(
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-dev.txt",
-                    "-o",
-                    f"{base_path}/requirements-dev-only-frozen.txt",
-                ),
-            )
-        )
+    else:
+        raise AssertionError(f"what repo? {repo=}")
 
     rc = check_futures(futures)
     executor.shutdown()

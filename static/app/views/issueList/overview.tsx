@@ -188,7 +188,12 @@ class IssueListOverview extends Component<Props, State> {
 
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
-    this.fetchSavedSearches();
+    // But if searches are already there, we can go right to fetching issues
+    if (this.props.savedSearchLoading) {
+      this.fetchSavedSearches();
+    } else {
+      this.fetchData();
+    }
     this.fetchTags();
     this.fetchMemberList();
     // let custom analytics take control
@@ -380,7 +385,9 @@ class IssueListOverview extends Component<Props, State> {
   fetchSavedSearches() {
     const {organization, api} = this.props;
 
-    fetchSavedSearches(api, organization.slug);
+    if (!organization.features.includes('issue-list-saved-searches-v2')) {
+      fetchSavedSearches(api, organization.slug);
+    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -1141,15 +1148,8 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      savedSearchLoading,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1235,6 +1235,7 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
+                isSavedSearchesOpen={isSavedSearchesOpen}
               />
               <PanelBody>
                 <ProcessingIssueList
@@ -1257,6 +1258,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    isSavedSearchesOpen={isSavedSearchesOpen}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>
@@ -1271,15 +1273,8 @@ class IssueListOverview extends Component<Props, State> {
             />
           </StyledMain>
           <SavedIssueSearches
-            {...{
-              savedSearches,
-              savedSearch,
-              savedSearchLoading,
-              organization,
-              query,
-            }}
+            {...{organization, query}}
             isOpen={isSavedSearchesOpen}
-            onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
             sort={this.getSort()}
           />

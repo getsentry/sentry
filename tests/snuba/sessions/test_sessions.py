@@ -7,7 +7,6 @@ import pytz
 from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
-from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
@@ -36,16 +35,6 @@ def parametrize_backend(cls):
     MetricsTest.__name__ = f"{cls.__name__}Metrics"
 
     globals()[MetricsTest.__name__] = MetricsTest
-
-    class DuplexTest(cls):
-        __doc__ = f"Repeat tests from {cls} with duplex backend"
-        backend = DuplexReleaseHealthBackend(
-            metrics_start=datetime.now(pytz.utc) - timedelta(days=120)
-        )
-
-    DuplexTest.__name__ = f"{cls.__name__}Duplex"
-
-    globals()[DuplexTest.__name__] = DuplexTest
 
     return cls
 

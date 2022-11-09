@@ -1,4 +1,5 @@
 import logging
+from typing import Mapping
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
@@ -111,6 +112,36 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     def rate_limits(*args, **kwargs) -> RateLimitConfig:
         return rate_limit_events(*args, **kwargs)
 
+    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+        feature_names = [
+            "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
+            "organizations:performance-dry-run-mep",
+            "organizations:performance-use-metrics",
+            "organizations:profiling",
+            "organizations:server-side-sampling",
+            "organizations:use-metrics-layer",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        all_features = (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {}
+        )
+
+        for feature_name in feature_names:
+            if feature_name not in all_features:
+                all_features[feature_name] = features.has(
+                    feature_name, organization=organization, actor=request.user
+                )
+
+        return all_features
+
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
@@ -207,39 +238,22 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
+
+        batch_features = self.get_features(organization, request)
+
         use_metrics = (
             (
-                features.has(
-                    "organizations:mep-rollout-flag", organization=organization, actor=request.user
-                )
-                and features.has(
-                    "organizations:server-side-sampling",
-                    organization=organization,
-                    actor=request.user,
-                )
+                batch_features.get("organizations:mep-rollout-flag", False)
+                and batch_features.get("organizations:server-side-sampling", False)
             )
-            or features.has(
-                "organizations:performance-use-metrics",
-                organization=organization,
-                actor=request.user,
-            )
-            or features.has(
-                "organizations:dashboards-mep", organization=organization, actor=request.user
-            )
+            or batch_features.get("organizations:performance-use-metrics", False)
+            or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        use_profiles = features.has(
-            "organizations:profiling",
-            organization=organization,
-            actor=request.user,
-        )
+        use_profiles = batch_features.get("organizations:profiling", False)
 
-        performance_dry_run_mep = features.has(
-            "organizations:performance-dry-run-mep", organization=organization, actor=request.user
-        )
-        use_metrics_layer = features.has(
-            "organizations:use-metrics-layer", organization=organization, actor=request.user
-        )
+        performance_dry_run_mep = batch_features.get("organizations:performance-dry-run-mep", False)
+        use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
         use_custom_dataset = use_metrics or use_profiles
         dataset = self.get_dataset(request) if use_custom_dataset else discover
