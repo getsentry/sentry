@@ -1439,7 +1439,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 ),
             ],
             groupby=[
-                MetricGroupByField(field="tags[transaction]", alias="transaction_name"),
+                MetricGroupByField(field="transaction", alias="transaction_name"),
             ],
             limit=Limit(limit=50),
             offset=Offset(offset=0),

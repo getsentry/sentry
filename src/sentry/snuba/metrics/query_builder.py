@@ -514,7 +514,7 @@ class SnubaQueryBuilder:
         is_column: bool = False,
     ) -> Union[Column, AliasedExpression, Function]:
         if isinstance(metric_groupby_obj.field, str):
-            if metric_groupby_obj.field == "tags[transaction]":
+            if metric_groupby_obj.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
                     use_case_id, org_id, metric_groupby_obj.alias
                 )
@@ -526,6 +526,7 @@ class SnubaQueryBuilder:
             elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_groupby_obj.field
             else:
+                # TODO: if we pass a non tag key this will return a wrong column.
                 assert isinstance(metric_groupby_obj.field, Tag)
                 column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
 
