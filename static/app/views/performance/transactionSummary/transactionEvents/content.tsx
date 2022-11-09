@@ -96,6 +96,7 @@ function EventsContent(props: Props) {
     <Layout.Main fullWidth>
       <Search {...props} />
       <EventsTable
+        referrer="api.performance.transaction-events"
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}

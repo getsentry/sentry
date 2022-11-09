@@ -168,6 +168,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        referrer="referrer"
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
@@ -222,6 +223,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        referrer="referrer"
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
@@ -257,6 +259,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        referrer="referrer"
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}

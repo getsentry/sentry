@@ -82,6 +82,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  referrer: string;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
@@ -90,7 +91,6 @@ type Props = {
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
-  referrer?: string;
   showReplayCol?: boolean;
   totalEventCount?: string;
 };
@@ -446,7 +446,7 @@ class EventsTable extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer={referrer || 'api.performance.transaction-events'}
+          referrer={referrer}
           useEvents
         >
           {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
