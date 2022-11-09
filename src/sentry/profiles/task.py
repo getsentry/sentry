@@ -313,7 +313,7 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
         if profile["platform"] in native_platforms:
-            stack = []
+            stack: List[int] = []
             for index in profile["profile"]["stacks"][stack_id]:
                 # the new stack extends the older by replacing
                 # a specific frame index with the indeces of
@@ -392,7 +392,7 @@ The sorting order is callee to caller (child to parent)
 """
 
 
-def get_frame_index_map(frames):
+def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
     counter = 0
     index_map = {}
     for i, frame in enumerate(frames):
