@@ -71,6 +71,7 @@ export {IconPin} from './iconPin';
 export {IconPlay} from './iconPlay';
 export {IconPrevious} from './iconPrevious';
 export {IconPrint} from './iconPrint';
+export {IconProfiling} from './iconProfiling';
 export {IconProject} from './iconProject';
 export {IconQuestion} from './iconQuestion';
 export {IconRefresh} from './iconRefresh';
