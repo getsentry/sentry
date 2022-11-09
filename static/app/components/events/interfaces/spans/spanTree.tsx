@@ -237,6 +237,7 @@ class SpanTree extends Component<PropType> {
       markSpanOutOfView,
       markSpanInView,
       storeSpanBar,
+      getScrollLeftValue,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
@@ -429,6 +430,7 @@ class SpanTree extends Component<PropType> {
             markSpanOutOfView,
             markSpanInView,
             storeSpanBar,
+            getScrollLeftValue,
           },
         });
 
@@ -473,23 +475,23 @@ class SpanTree extends Component<PropType> {
       case SpanTreeNodeType.SPAN:
         return (
           <SpanBar
+            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
             {...extraProps}
-            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
           />
         );
       case SpanTreeNodeType.DESCENDANT_GROUP:
         return (
           <SpanDescendantGroupBar
-            {...node.props}
             key={`${node.props.spanNumber}-span-group`}
+            {...node.props}
           />
         );
       case SpanTreeNodeType.SIBLING_GROUP:
         return (
           <SpanSiblingGroupBar
-            {...node.props}
             key={`${node.props.spanNumber}-span-sibling`}
+            {...node.props}
           />
         );
       case SpanTreeNodeType.MESSAGE:

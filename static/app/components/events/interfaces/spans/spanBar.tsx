@@ -111,6 +111,7 @@ export type SpanBarProps = {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getScrollLeftValue: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (spanId: string) => boolean;
   markSpanInView: (spanId: string, treeDepth: number) => void;
@@ -163,6 +164,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
         passive: false,
       });
+
+      const left = -this.props.getScrollLeftValue();
+      this.spanTitleRef.current.style.transform = `translateX(${left}px)`;
+      this.spanTitleRef.current.style.transformOrigin = 'left';
     }
 
     const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded} = this.props;

@@ -15,6 +15,7 @@ import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getScrollLeftValue: () => number;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -36,6 +37,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   updateScrollState: () => {},
   markSpanOutOfView: () => {},
   markSpanInView: () => {},
+  getScrollLeftValue: () => 0,
   storeSpanBar: () => {},
 });
 
@@ -539,6 +541,8 @@ export class Provider extends Component<Props, State> {
     this.throttledScroll(left, true);
   };
 
+  getScrollLeftValue = () => this.spansInView.getScrollVal();
+
   startAnimation() {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.transition = 'transform 0.3s';
@@ -580,6 +584,7 @@ export class Provider extends Component<Props, State> {
       markSpanOutOfView: this.markSpanOutOfView,
       markSpanInView: this.markSpanInView,
       storeSpanBar: this.storeSpanBar,
+      getScrollLeftValue: this.getScrollLeftValue,
     };
 
     return (
