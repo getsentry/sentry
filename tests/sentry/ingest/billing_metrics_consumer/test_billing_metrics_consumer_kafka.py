@@ -72,7 +72,6 @@ def test_outcomes_consumed(_gbp):
     fake_commit = mock.MagicMock()
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
-        max_batch_size=2,
     )
     assert not fake_commit.mock_calls
 
@@ -119,21 +118,19 @@ def test_outcomes_consumed(_gbp):
         payload=called_payload,
     )
 
-    # There's been 5 messages, 2 x 2 of them have their offsets committed
-    assert fake_commit.mock_calls.pop(0) == mock.call(
-        {Partition(topic=metrics_topic, index=0): Position(offset=2, timestamp=time)}
-    )
-    assert fake_commit.mock_calls.pop(0) == mock.call(
-        {Partition(topic=metrics_topic, index=0): Position(offset=4, timestamp=time)}
-    )
-    assert not fake_commit.mock_calls
+    assert fake_commit.mock_calls == [
+        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=1, timestamp=time)}),
+        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=2, timestamp=time)}),
+        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=3, timestamp=time)}),
+        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=4, timestamp=time)}),
+    ]
+    fake_commit.reset_mock()
 
-    # Joining must commit the offset of the last message:
+    # A join must commit the last submitted message
     strategy.join()
-    assert fake_commit.mock_calls.pop(0) == mock.call(
-        {Partition(topic=metrics_topic, index=0): Position(offset=5, timestamp=time)}
-    )
-    assert not fake_commit.mock_calls
+    assert fake_commit.mock_calls == [
+        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=5, timestamp=time)})
+    ]
 
     # The consumer rejects new messages after closing
     strategy.close()
