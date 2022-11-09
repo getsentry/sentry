@@ -65,6 +65,7 @@ const DOMAlert = styled('div')`
   background-color: ${p => p.theme.blue400};
   border-radius: ${p => p.theme.borderRadius};
   gap: 0 ${space(1)};
+  line-height: 0;
 `;
 
 const DismissButton = styled(Button)`
