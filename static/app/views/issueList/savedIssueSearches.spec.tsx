@@ -77,7 +77,7 @@ describe('SavedIssueSearches', function () {
     expect(container).toSnapshot();
   });
 
-  it('hides saves searches by default past first 5', async function () {
+  it('hides saves searches by default past first 4', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [...new Array(6)].map((_, i) => ({
@@ -91,8 +91,8 @@ describe('SavedIssueSearches', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getAllByText('Test Search')).toHaveLength(5);
-    userEvent.click(screen.getByRole('button', {name: /show all 6 saved searches/i}));
+    expect(screen.getAllByText('Test Search')).toHaveLength(4);
+    userEvent.click(screen.getByRole('button', {name: /show 2 more/i}));
     expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
 
