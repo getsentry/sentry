@@ -165,6 +165,36 @@ class ProjectRulePreviewTest(TestCase):
         assert all(group in result for group in errors)
         assert all(group not in result for group in n_plus_one)
 
+    def test_level(self):
+        event = self.store_event(
+            project_id=self.project.id,
+            data={
+                "timestamp": iso_format(timezone.now() - timedelta(hours=1)),
+                "tags": {"level": "error"},
+            },
+        )
+        Activity.objects.create(
+            project=self.project,
+            group=event.group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=timezone.now() - timedelta(hours=1),
+            data={"event_id": event.event_id},
+        )
+
+        conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
+        filters = [{"id": "sentry.rules.filters.level.LevelFilter", "level": "40", "match": "eq"}]
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
+        filters[0]["match"] = "gte"
+        filters[0]["level"] = "50"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group not in results
+
+        filters[0]["match"] = "lte"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
     def test_unsupported_conditions(self):
         self._set_up_first_seen()
         # conditions with no immediate plan to support
@@ -270,7 +300,7 @@ class GetEventsTest(TestCase):
                 timestamp=prev_hour,
             )
         ]
-        events = get_events(self.project, activity)
+        events = get_events(self.project, activity, [])
 
         assert len(events) == 1
         assert event.event_id in events
@@ -300,7 +330,7 @@ class GetEventsTest(TestCase):
                 data={"event_id": reappeared_event.event_id},
             ),
         ]
-        events = get_events(self.project, activity)
+        events = get_events(self.project, activity, [])
 
         assert len(events) == 2
         assert all([event.event_id in events for event in (regression_event, reappeared_event)])

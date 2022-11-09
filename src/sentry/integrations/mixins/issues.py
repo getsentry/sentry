@@ -7,7 +7,13 @@ from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
-from sentry.notifications.utils import get_performance_issue_alert_subtitle
+from sentry.notifications.utils import (
+    get_parent_and_repeating_spans,
+    get_performance_issue_alert_subtitle,
+    get_span_and_problem,
+    get_span_evidence_value,
+    get_span_evidence_value_problem,
+)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
@@ -15,6 +21,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.issues")
+MAX_CHAR = 50
 
 
 class ResolveSyncAction(enum.Enum):
@@ -73,19 +80,40 @@ class IssueBasicMixin:
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_link(self, group, **kwargs):
         params = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
-        output = [
+        return [
             "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
             )
         ]
+
+    def get_group_description(self, group, event, **kwargs):
+        output = self.get_group_link(group, **kwargs)
         body = self.get_group_body(group, event)
         if body:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
+
+    def get_performance_issue_description_data(self, event):
+        """Generate the span evidence data from a performance issue to populate
+        an integration's ticket description. Each integration will need to take
+        this data and format it appropriately.
+        """
+        spans, matched_problem = get_span_and_problem(event)
+        if not matched_problem:
+            return ""
+
+        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+        transaction_name = get_span_evidence_value_problem(matched_problem)
+        parent_span = get_span_evidence_value(parent_span)
+        repeating_spans = get_span_evidence_value(repeating_spans)
+        num_repeating_spans = (
+            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
+        )
+        return (transaction_name, parent_span, num_repeating_spans, repeating_spans)
 
     def get_create_issue_config(self, group, user, **kwargs):
         """
