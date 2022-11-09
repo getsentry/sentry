@@ -293,7 +293,7 @@ const HeadingContainer = styled('div')`
   &:first-of-type {
     margin-top: 0;
   }
-  margin: ${space(3)} 0 ${space(2)} ${space(2)};
+  margin: ${space(2)} 0 ${space(1)} ${space(2)};
 `;
 
 const Heading = styled('h2')`
