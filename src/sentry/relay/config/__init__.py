@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import (
     Any,
     Callable,
-    Collection,
     Dict,
     List,
     Literal,
@@ -495,8 +494,8 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractMetrics: Collection[str]
-    extractCustomTags: Collection[str]
+    extractMetrics: List[str]
+    extractCustomTags: List[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
 
@@ -521,8 +520,8 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics: Collection[str] = []
-    custom_tags: Collection[str] = []
+    metrics: List[str] = []
+    custom_tags: List[str] = []
 
     metrics.extend(sorted(TRANSACTION_METRICS))
     # TODO: for now let's extract all known measurements. we might want to
