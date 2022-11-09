@@ -28,10 +28,12 @@ const BALANCE_RESULTS_PATH = path.resolve(
 );
 
 const optionalTags: {
+  api_resolve: string;
   balancer?: boolean;
   balancer_strategy?: string;
 } = {
   balancer: false,
+  api_resolve: 'nexttick',
 };
 
 if (!!JEST_TEST_BALANCER && !CI) {

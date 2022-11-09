@@ -15,7 +15,7 @@ const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
   }
 
   if (isAsync) {
-    setTimeout(() => fn(...args), 1);
+    process.nextTick(() => fn(...args), 0);
     return;
   }
 
