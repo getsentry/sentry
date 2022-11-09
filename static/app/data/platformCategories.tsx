@@ -256,16 +256,17 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 export const replayPlatforms: readonly PlatformKey[] = [
-  'javascript',
-  'javascript-react',
   'javascript-angular',
+  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
-  'javascript-vue',
   'javascript-nextjs',
+  'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-vue',
+  'javascript',
 ];
 
 /**
@@ -274,7 +275,19 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
-export const replayOnboardingPlatforms: readonly PlatformKey[] = ['javascript'];
+export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  'javascript-angular',
+  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
+  // 'javascript-backbone', // No docs yet
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-vue',
+  'javascript',
+];
 
 /**
  * Additional aliases used for filtering in the platform picker
