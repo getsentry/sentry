@@ -227,7 +227,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     "category": DataCategory.TRANSACTION,
                     "quantity": quantity,
                 },
-                use_rapid_json=True,
             ).encode("utf-8")
             billing_payload = KafkaPayload(key=None, value=value, headers=[])
             future = self._billing_producer.produce(
