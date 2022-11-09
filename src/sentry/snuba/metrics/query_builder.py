@@ -94,6 +94,28 @@ def parse_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
+def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+    """
+    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
+    as such in any query using that tag value.
+
+    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
+    transform that '' as '<< unparameterized >>'.
+
+    It is important to note that this transformation has to be applied ONLY on tag.transaction.
+    """
+    return Function(
+        function="transform",
+        parameters=[
+            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
+            # This will be removed once the removal of tags values as ints is merged.
+            [""],
+            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
+        ],
+        alias=alias,
+    )
+
+
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
@@ -215,6 +237,11 @@ def resolve_tags(
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
+            # If we are getting the column tags.transaction, we want to transform null values to
+            # '<< unparameterized >>'.
+            if input_.key == "transaction":
+                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -500,6 +527,11 @@ class SnubaQueryBuilder:
         is_column: bool = False,
     ) -> Union[Column, AliasedExpression, Function]:
         if isinstance(metric_groupby_obj.field, str):
+            if metric_groupby_obj.field == "transaction":
+                return transform_null_transaction_to_unparameterized(
+                    use_case_id, org_id, metric_groupby_obj.alias
+                )
+
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
             if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
@@ -507,15 +539,17 @@ class SnubaQueryBuilder:
             elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_groupby_obj.field
             else:
+                # TODO: if we pass a non tag key this will return a wrong column.
                 assert isinstance(metric_groupby_obj.field, Tag)
                 column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
+
             return (
                 AliasedExpression(
-                    exp=Column(column_name),
+                    exp=Column(name=column_name),
                     alias=metric_groupby_obj.alias,
                 )
                 if not is_column
-                else Column(column_name)
+                else Column(name=column_name)
             )
 
         elif isinstance(metric_groupby_obj.field, MetricField):

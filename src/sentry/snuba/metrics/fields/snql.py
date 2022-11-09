@@ -578,24 +578,6 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
     )
 
 
-def _transform_null_to_unparameterized(org_id, column_name, alias=None):
-    return Function(
-        "transform",
-        [
-            Column(column_name),
-            [""],
-            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
-        ],
-        alias,
-    )
-
-
-def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
-    return _transform_null_to_unparameterized(
-        org_id, resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key), alias
-    )
-
-
 def _resolve_project_threshold_config(project_ids, org_id):
     return resolve_project_threshold_config(
         tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
