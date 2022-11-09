@@ -41,7 +41,7 @@ function renderModal({
       downloadUrl=""
       pageLinks={
         '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
-        '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:6:0>; rel="next"; results="true"; cursor="0:6:0"'
+        '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:12:0>; rel="next"; results="true"; cursor="0:12:0"'
       }
       attachments={attachments}
       attachmentIndex={attachmentIndex}
@@ -77,7 +77,7 @@ describe('Modals -> ScreenshotModal', function () {
       headers: {
         link:
           '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
-          '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:6:0>; rel="next"; results="true"; cursor="0:10:0"',
+          '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:12:0>; rel="next"; results="true"; cursor="0:12:0"',
       },
     });
   });
@@ -116,13 +116,19 @@ describe('Modals -> ScreenshotModal', function () {
       eventAttachment,
       initialData,
       projectSlug: project.slug,
-      attachmentIndex: 5,
+      attachmentIndex: 11,
       attachments: [
         TestStubs.EventAttachment({id: '2'}),
         TestStubs.EventAttachment({id: '3'}),
         TestStubs.EventAttachment({id: '4'}),
         TestStubs.EventAttachment({id: '5'}),
         TestStubs.EventAttachment({id: '6'}),
+        TestStubs.EventAttachment({id: '7'}),
+        TestStubs.EventAttachment({id: '8'}),
+        TestStubs.EventAttachment({id: '9'}),
+        TestStubs.EventAttachment({id: '10'}),
+        TestStubs.EventAttachment({id: '11'}),
+        TestStubs.EventAttachment({id: '12'}),
         eventAttachment,
       ],
       enablePagination: true,
@@ -134,7 +140,7 @@ describe('Modals -> ScreenshotModal', function () {
       expect(getAttachmentsMock).toHaveBeenCalledWith(
         '/issues/group-id/attachments/',
         expect.objectContaining({
-          query: expect.objectContaining({cursor: '0:6:0'}),
+          query: expect.objectContaining({cursor: '0:12:0'}),
         })
       );
     });

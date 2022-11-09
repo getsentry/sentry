@@ -107,7 +107,9 @@ function Modal({
   const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
   const previousDisabled =
     links?.previous?.results === false && currentAttachmentIndex === 0;
-  const nextDisabled = links?.next?.results === false && currentAttachmentIndex === 5;
+  const nextDisabled =
+    links?.next?.results === false &&
+    currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1;
 
   return (
     <Fragment>

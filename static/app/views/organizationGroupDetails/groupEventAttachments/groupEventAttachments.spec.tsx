@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import GroupEventAttachments from './groupEventAttachments';
+import GroupEventAttachments, {MAX_SCREENSHOTS_PER_PAGE} from './groupEventAttachments';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -47,7 +47,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {per_page: 6, screenshot: 1, types: undefined},
+        query: {per_page: MAX_SCREENSHOTS_PER_PAGE, screenshot: 1, types: undefined},
       })
     );
   });

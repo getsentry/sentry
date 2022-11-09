@@ -39,7 +39,7 @@ type State = {
   eventAttachments?: IssueAttachment[];
 } & AsyncComponent['state'];
 
-export const MAX_SCREENSHOTS_PER_PAGE = 6;
+export const MAX_SCREENSHOTS_PER_PAGE = 12;
 
 class GroupEventAttachments extends AsyncComponent<Props, State> {
   getDefaultState() {
@@ -245,10 +245,14 @@ const ScreenshotGrid = styled('div')`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    grid-template-columns: repeat(6, minmax(100px, 1fr));
   }
 `;
