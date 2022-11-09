@@ -1,6 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LazyLoad from 'sentry/components/lazyLoad';
 import {Event} from 'sentry/types/event';
+
+import ReplayContent from './replayContent';
 
 type Props = {
   event: Event;
@@ -12,8 +13,7 @@ type Props = {
 export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
   return (
     <ErrorBoundary mini>
-      <LazyLoad
-        component={() => import('./replayContent')}
+      <ReplayContent
         replaySlug={`${projectSlug}:${replayId}`}
         orgSlug={orgSlug}
         event={event}
