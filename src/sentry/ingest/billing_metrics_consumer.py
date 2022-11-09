@@ -175,10 +175,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     )
 
             self._ongoing_billing_outcomes.popleft()
-            self._ready_to_commit[metrics_msg.partition] = Position(
-                metrics_msg.next_offset, datetime.now()
-            )
-            self._messages_ready_since_last_commit += 1
+            position = Position(metrics_msg.next_offset, datetime.now())
+            self._commit(position)
+            self._clear_ready_queue()
 
     def _bulk_commit(self) -> None:
         """Commits and clears the ready to commit queue."""
