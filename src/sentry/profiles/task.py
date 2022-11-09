@@ -311,10 +311,10 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             new_stack: List[int] = []
             for index in stack:
                 # the new stack extends the older by replacing
-                # a specific frame index with the indeces of
+                # a specific frame index with the indices of
                 # the frames originated from the original frame
                 # should inlines be present
-                new_stack = new_stack + idx_map[index]
+                new_stack.extend(idx_map[index])
             return new_stack
 
     else:
