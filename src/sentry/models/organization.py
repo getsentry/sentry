@@ -520,7 +520,7 @@ class Organization(Model, SnowflakeIdMixin):
         return "sentry-organization-issue-list"
 
     @staticmethod
-    def get_url(slug: str):
+    def get_url(slug: str) -> str:
         return reverse(Organization.get_url_viewname(), args=[slug])
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
