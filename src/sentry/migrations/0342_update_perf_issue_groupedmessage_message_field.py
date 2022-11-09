@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-from sentry.db.models import GzippedDictField
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.types.issues import GroupType
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -13,7 +12,6 @@ def update_message_field(apps, schema_editor):
     for performance issues, updates Group.message field value with the value in Group.data.metadata.title
     """
     Group = apps.get_model("sentry", "Group")
-    unzipper = GzippedDictField()
 
     for group in RangeQuerySetWrapperWithProgressBar(Group.objects.all()):
         if group.type in (
@@ -39,9 +37,9 @@ def update_message_field(apps, schema_editor):
                 #   'location': '<location-of-transaction>',
                 #   'last_received': 12345567
                 # }
-                data_map = unzipper.to_python(group.data)
+                data_map = group.data
                 metadata = data_map.get("metadata")
-                if metadata and metadata.get("title"):
+                if metadata and metadata.get("title") and group.message != metadata.get("title"):
                     group.message = metadata.get("title")
                     group.save(update_fields=["message"])
             except Exception:
