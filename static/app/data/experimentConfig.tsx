@@ -1,5 +1,3 @@
-import {Experiments, ExperimentType} from 'sentry/types/experiments';
-
 /**
  * This is the value an experiment will have when the unit of assignment
  * (organization, user, etc) is not part of any experiment group.
@@ -12,16 +10,6 @@ export const unassignedValue = -1;
 /**
  * Frontend experiment configuration object
  */
-export const experimentList = [
-  {
-    key: 'OnboardingHighlightWizardExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-] as const;
+export const experimentList = [] as const;
 
-export const experimentConfig = experimentList.reduce(
-  (acc, exp) => ({...acc, [exp.key]: exp}),
-  {}
-) as Experiments;
+export const experimentConfig = {};

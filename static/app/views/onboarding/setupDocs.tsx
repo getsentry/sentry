@@ -4,21 +4,18 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -84,80 +81,25 @@ function ProjecDocs(props: {
     );
   };
 
-  useEffect(() => {
-    props.platformDocs?.wizardSetup &&
-      logExperiment({
-        key: 'OnboardingHighlightWizardExperiment',
-        organization: props.organization,
-      });
-  }, [props.organization, props.platformDocs?.wizardSetup]);
-
-  const showWizardSetup =
-    props.organization.experiments.OnboardingHighlightWizardExperiment;
-  const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
   const [interacted, setInteracted] = useState(false);
-  const docs =
-    props.platformDocs !== null &&
-    (showWizardSetup && props.platformDocs.wizardSetup ? (
-      <DocsWrapper key={props.platformDocs.html}>
-        <Content
-          dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}}
-          onMouseDown={() => {
-            !interacted &&
-              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
-                organization: props.organization,
-                project_id: props.project.id,
-                platform: props.platform || 'unknown',
-                wizard_instructions: true,
-              });
-            setInteracted(true);
-          }}
-        />
-        <Button
-          priority="link"
-          onClick={() => {
-            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_clicked_more_details', {
+  const docs = props.platformDocs !== null && (
+    <DocsWrapper key={props.platformDocs.html}>
+      <Content
+        dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+        onMouseDown={() => {
+          !interacted &&
+            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
               organization: props.organization,
               project_id: props.project.id,
-              platform: props.platform || 'unknown',
+              platform: props.platform || undefined,
+              wizard_instructions: false,
             });
-            setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed);
-          }}
-        >
-          <IconChevron
-            direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
-            style={{marginRight: space(1)}}
-          />
-          {wizardSetupDetailsCollapsed ? t('More Details') : t('Less Details')}
-        </Button>
-
-        <AnimatePresence>
-          {!wizardSetupDetailsCollapsed && (
-            <AnimatedContentWrapper>
-              <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
-              {missingExampleWarning()}
-            </AnimatedContentWrapper>
-          )}
-        </AnimatePresence>
-      </DocsWrapper>
-    ) : (
-      <DocsWrapper key={props.platformDocs.html}>
-        <Content
-          dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
-          onMouseDown={() => {
-            !interacted &&
-              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
-                organization: props.organization,
-                project_id: props.project.id,
-                platform: props.platform || undefined,
-                wizard_instructions: false,
-              });
-            setInteracted(true);
-          }}
-        />
-        {missingExampleWarning()}
-      </DocsWrapper>
-    ));
+          setInteracted(true);
+        }}
+      />
+      {missingExampleWarning()}
+    </DocsWrapper>
+  );
   const loadingError = (
     <LoadingError
       message={t(
