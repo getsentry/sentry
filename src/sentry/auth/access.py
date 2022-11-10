@@ -100,15 +100,15 @@ class Access(abc.ABC):
     # would be based on the same scopes as API access so there's clarity in
     # what things mean
 
-    sso_state: SsoState = SsoState(False, False)
+    _sso_state: SsoState = SsoState(False, False)
 
     @property
     def sso_is_valid(self) -> bool:
-        return self.sso_state.is_valid
+        return self._sso_state.is_valid
 
     @property
     def requires_sso(self) -> bool:
-        return self.sso_state.is_required
+        return self._sso_state.is_required
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -333,7 +333,7 @@ class OrganizationMemberAccess(Access):
 
         super().__init__(
             _member=member,
-            sso_state=_sso_params(member),
+            _sso_state=_sso_params(member),
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
@@ -449,7 +449,7 @@ class SystemAccess(Access):
 
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
-        super().__init__(sso_state=_SSO_BYPASS)
+        super().__init__(_sso_state=_SSO_BYPASS)
 
 
 def from_request(
@@ -482,7 +482,7 @@ def from_request(
             organization=organization,
             _member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
-            sso_state=sso_state,
+            _sso_state=sso_state,
             permissions=get_permissions_for_user(request.user.id),
         )
 
@@ -509,7 +509,7 @@ def _from_sentry_app(
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_state=_SSO_BYPASS)
+    return OrganizationGlobalMembership(organization, sentry_app.scope_list, _sso_state=_SSO_BYPASS)
 
 
 def from_user(
@@ -560,7 +560,7 @@ def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
         return SystemAccess()
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
-            auth.organization, settings.SENTRY_SCOPES, sso_state=_SSO_BYPASS
+            auth.organization, settings.SENTRY_SCOPES, _sso_state=_SSO_BYPASS
         )
     else:
         return DEFAULT
