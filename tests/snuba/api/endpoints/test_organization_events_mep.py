@@ -2003,11 +2003,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(reason="wildcard not supported")
-    def test_transaction_wildcard(self):
-        super().test_having_condition()
-
-    @pytest.mark.xfail(reason="wildcard not supported")
-    def test_transaction_status_wildcard(self):
-        super().test_having_condition()
