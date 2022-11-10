@@ -1141,7 +1141,7 @@ function buildRoutes() {
   // /discover/queries and not /discover
   const discoverRoutes = (
     <Route
-      path="/organizations/:orgId/discover/"
+      path="/organizations/:orgId/discover-broken/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
       <IndexRedirect to="queries/" />
