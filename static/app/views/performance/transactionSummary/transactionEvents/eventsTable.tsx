@@ -150,13 +150,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {
-      eventView,
-      organization,
-      location,
-      transactionName,
-      projectSlug: projectId,
-    } = this.props;
+    const {eventView, organization, location, transactionName, projectSlug} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -168,7 +162,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
-      projectId,
+      projectId: projectSlug,
     });
 
     const allowActions = [
