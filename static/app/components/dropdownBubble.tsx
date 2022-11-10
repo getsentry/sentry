@@ -1,3 +1,5 @@
+import {forwardRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,7 +7,7 @@ import space from 'sentry/styles/space';
 import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
-type Params = {
+interface DropdownBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Menu alignment
    */
@@ -26,9 +28,7 @@ type Params = {
    * The width of the menu
    */
   width?: string;
-};
-
-type ParamsWithTheme = Params & {theme: Theme};
+}
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners
@@ -42,7 +42,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: ParamsWithTheme) => {
+}: DropdownBubbleProps & {theme: Theme}) => {
   const radius = theme.panelBorderRadius;
   if (!blendCorner || detached) {
     return css`
@@ -64,12 +64,15 @@ const getMenuBorderRadius = ({
 };
 
 const DropdownBubble = styled(
-  ({children, ...props}: React.HTMLAttributes<HTMLDivElement>) => (
-    <div {...props}>
-      <PanelProvider>{children}</PanelProvider>
-    </div>
-  )
-)<Params>`
+  forwardRef<HTMLDivElement, DropdownBubbleProps>(
+    ({children, ...props}, forwardedRef) => (
+      <div ref={forwardedRef} {...props}>
+        <PanelProvider>{children}</PanelProvider>
+      </div>
+    )
+  ),
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+)`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
