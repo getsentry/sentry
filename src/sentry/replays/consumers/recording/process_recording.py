@@ -16,6 +16,7 @@ from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
+from django import db
 from django.conf import settings
 from django.db.utils import IntegrityError
 
@@ -196,6 +197,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     category=DataCategory.REPLAY,
                     quantity=1,
                 )
+
+            # Closes all database connections opened within this thread preventing backlogged
+            # threads from growing the connection count indefinitely.
+            db.connection.close_all()
 
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
