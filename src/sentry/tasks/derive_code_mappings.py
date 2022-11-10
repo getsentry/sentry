@@ -43,6 +43,7 @@ def derive_code_mappings(
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
+    set_tag("project.slug", project.slug)
 
     # Check the feature flag again to ensure the feature is still enabled.
     should_continue = features.has(
@@ -176,7 +177,6 @@ def report_project_codemappings(
     """
     Log the code mappings that would be created for a project.
     """
-    set_tag("project.slug", project.slug)
     extra = {
         "org": project.organization.slug,
         "project": project.slug,
