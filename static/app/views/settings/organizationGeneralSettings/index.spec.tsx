@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -15,8 +16,18 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 describe('OrganizationGeneralSettings', function () {
-  const organization = TestStubs.Organization();
   const ENDPOINT = '/organizations/org-slug/';
+  const {organization, router} = initializeOrg();
+
+  const defaultProps = {
+    organization,
+    router,
+    location: router.location,
+    params: {orgId: organization.slug},
+    routes: router.routes,
+    route: {},
+    routeParams: router.params,
+  };
 
   beforeEach(function () {
     OrganizationsStore.addOrReplace(organization);
@@ -27,12 +38,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    render(
-      <OrganizationGeneralSettings
-        params={{orgId: organization.slug}}
-        organization={organization}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />);
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -51,12 +57,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(
-      <OrganizationGeneralSettings
-        params={{orgId: organization.slug}}
-        organization={organization}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />);
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -81,8 +82,7 @@ describe('OrganizationGeneralSettings', function () {
   it('disables the entire form if user does not have write access', function () {
     render(
       <OrganizationGeneralSettings
-        routes={[]}
-        params={{orgId: organization.slug}}
+        {...defaultProps}
         organization={TestStubs.Organization({access: ['org:read']})}
       />
     );
@@ -107,7 +107,7 @@ describe('OrganizationGeneralSettings', function () {
   it('does not have remove organization button without org:admin permission', function () {
     render(
       <OrganizationGeneralSettings
-        params={{orgId: organization.slug}}
+        {...defaultProps}
         organization={TestStubs.Organization({
           access: ['org:write'],
         })}
@@ -124,7 +124,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(
       <OrganizationGeneralSettings
-        params={{orgId: organization.slug}}
+        {...defaultProps}
         organization={TestStubs.Organization({access: ['org:admin']})}
       />
     );
