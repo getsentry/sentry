@@ -416,7 +416,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             team_key_transactions = [(-1, "")]
         return Function(
             function="team_key_transaction",
-            parameters=[Column("d:transactions/duration@millisecond"), team_key_transactions],
+            parameters=[Column("e:custom/team_key_transaction@reserved"), team_key_transactions],
             alias="team_key_transaction",
         )
 
