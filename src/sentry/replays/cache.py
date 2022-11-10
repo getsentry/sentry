@@ -45,7 +45,7 @@ class RecordingSegmentParts:
         """Iterate over each recording segment part."""
         part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
-            yield part[i]
+            yield part[i].encode("utf-8") if type(part[i]) is str else part[i]
 
     def drop(self):
         """Delete all the parts associated with the recording segment."""
