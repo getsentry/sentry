@@ -89,16 +89,8 @@ export default function QuickTrace({
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const hasReplay =
-    Boolean(event.entries?.find(({type}) => type === 'breadcrumbs')) &&
-    Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
-
-  // Using click handler to navigate to breadcrumbs/replay section because EventNodeReplay (Tag)
-  // treats href as an external link and the `to` prop doesn't initiate a scroll to the section.
-  const handleReplayClick = () => {
-    if (hasReplay) {
-      document.getElementById('breadcrumbs')?.scrollIntoView();
-    }
-  };
+    event.entries?.some(({type}) => type === 'breadcrumbs') &&
+    event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
 
   const nodes: React.ReactNode[] = [];
 
@@ -110,25 +102,29 @@ export default function QuickTrace({
         slugs={[current.project_slug]}
       >
         {({projects}) => {
-          const project = projects.find(p => p.slug === current.project_slug);
-          if (projectSupportsReplay(project)) {
-            return (
-              <EventNodeReplay
-                data-test-id="replay-node"
-                to={{
-                  ...location,
-                  hash: '#breadcrumbs',
-                }}
-                onClick={handleReplayClick}
-                type={hasReplay ? 'black' : 'white'}
-                icon={hasReplay && <StyledIconPlay size="xs" />}
-                tooltipText={hasReplay ? '' : t('Replay cannot be found')}
-              >
-                {hasReplay ? t('Replay') : '???'}
-              </EventNodeReplay>
-            );
+          if (!projectSupportsReplay(projects[0])) {
+            return null;
           }
-          return null;
+
+          return (
+            <EventNodeReplay
+              data-test-id="replay-node"
+              to={{
+                ...location,
+                hash: '#breadcrumbs',
+              }}
+              onClick={
+                hasReplay
+                  ? () => document.getElementById('breadcrumbs')?.scrollIntoView()
+                  : undefined
+              }
+              type={hasReplay ? 'black' : 'white'}
+              icon={hasReplay && <StyledIconPlay size="xs" />}
+              tooltipText={hasReplay ? '' : t('Replay cannot be found')}
+            >
+              {hasReplay ? t('Replay') : '???'}
+            </EventNodeReplay>
+          );
         }}
       </Projects>
     );
