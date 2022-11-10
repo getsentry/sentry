@@ -58,7 +58,7 @@ _SSO_BYPASS = SsoState(False, True)
 
 def _sso_params(member: OrganizationMember) -> SsoState:
     """
-    Return a tuple of (requires_sso, sso_is_valid) for a given member.
+    Check whether SSO is required and valid for a given member.
     """
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
