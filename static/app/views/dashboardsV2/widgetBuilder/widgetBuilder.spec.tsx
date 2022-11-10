@@ -1594,7 +1594,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+      userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
       expect(await screen.findByText('This should persist')).toBeInTheDocument();
     });
@@ -1659,7 +1659,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-      userEvent.type(
+      userEvent.paste(
         screen.getByTestId('smart-search-input'),
         'transaction.duration:123a'
       );
@@ -1754,7 +1754,7 @@ describe('WidgetBuilder', function () {
         });
 
         userEvent.click(await screen.findByText('Group your results'));
-        userEvent.type(screen.getByText('Select group'), 'project{enter}');
+        userEvent.paste(screen.getByText('Select group'), 'project{enter}');
 
         await waitFor(() =>
           expect(eventsStatsMock).toHaveBeenNthCalledWith(

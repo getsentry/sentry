@@ -584,7 +584,7 @@ describe('WidgetBuilder', function () {
     it('renders with a release search bar', async function () {
       renderTestComponent();
 
-      userEvent.type(
+      userEvent.paste(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
         'session.status:'
       );
