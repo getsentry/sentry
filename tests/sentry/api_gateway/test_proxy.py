@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from rest_framework.exceptions import NotFound
 
-from sentry.api_gateway.proxy import proxy_request
+from sentry.api_gateway.proxy import HEADER_STRIKE_LIST, proxy_request
 from sentry.testutils.helpers.api_gateway import (
     SENTRY_REGION_CONFIG,
     ApiGatewayTestCase,
@@ -208,3 +208,22 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+
+    @responses.activate
+    def test_strip_request_headers(self, _):
+        request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
+        responses.add_callback(
+            responses.POST,
+            "http://region1.testserver/post",
+            verify_request_body(request_body, {"test": "header"}),
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data=request_body,
+            content_type="application/json",
+            headers={header: "1" for header in HEADER_STRIKE_LIST},
+        )
+
+        resp = proxy_request(request, self.organization.slug)
+        assert not any([header in resp for header in HEADER_STRIKE_LIST])
