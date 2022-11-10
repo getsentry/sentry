@@ -318,6 +318,7 @@ class SpanTree extends Component<PropType> {
               toggleSpanGroup: payload.toggleNestedSpanGroup as () => void,
               onWheel,
               generateContentSpanBarRef,
+              getScrollLeftValue,
             },
           });
           acc.spanNumber = spanNumber + 1;
@@ -345,6 +346,7 @@ class SpanTree extends Component<PropType> {
               onWheel,
               generateContentSpanBarRef,
               isEmbeddedSpanTree,
+              getScrollLeftValue,
             },
           });
 

@@ -34,6 +34,7 @@ export type SpanDescendantGroupBarProps = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
@@ -53,6 +54,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     toggleSpanGroup,
     onWheel,
     generateContentSpanBarRef,
+    getScrollLeftValue,
   } = props;
 
   function renderGroupSpansTitle() {
@@ -162,6 +164,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       renderSpanRectangles={renderSpanRectangles}
       onWheel={onWheel}
       generateContentSpanBarRef={generateContentSpanBarRef}
+      getScrollLeftValue={getScrollLeftValue}
     />
   );
 }

@@ -28,6 +28,7 @@ export type SpanSiblingGroupBarProps = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getScrollLeftValue: () => number;
   isEmbeddedSpanTree: boolean;
   isLastSibling: boolean;
   occurrence: number;
@@ -53,6 +54,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     onWheel,
     generateContentSpanBarRef,
     isEmbeddedSpanTree,
+    getScrollLeftValue,
   } = props;
 
   const organization = useOrganization();
@@ -154,6 +156,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       renderSpanRectangles={renderSpanRectangles}
       onWheel={onWheel}
       generateContentSpanBarRef={generateContentSpanBarRef}
+      getScrollLeftValue={getScrollLeftValue}
     />
   );
 }

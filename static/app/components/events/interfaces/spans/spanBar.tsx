@@ -164,10 +164,14 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
         passive: false,
       });
+    }
 
+    // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
+    // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
+    if (this.spanContentRef) {
       const left = -this.props.getScrollLeftValue();
-      this.spanTitleRef.current.style.transform = `translateX(${left}px)`;
-      this.spanTitleRef.current.style.transformOrigin = 'left';
+      this.spanContentRef.style.transform = `translateX(${left}px)`;
+      this.spanContentRef.style.transformOrigin = 'left';
     }
 
     const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded} = this.props;
@@ -210,6 +214,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
   spanRowDOMRef = createRef<HTMLDivElement>();
   spanTitleRef = createRef<HTMLDivElement>();
+
+  spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
@@ -570,7 +576,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return (
       <RowTitleContainer
         data-debug-id="SpanBarTitleContainer"
-        ref={generateContentSpanBarRef()}
+        ref={ref => {
+          generateContentSpanBarRef()(ref);
+          this.spanContentRef = ref;
+        }}
       >
         {this.renderSpanTreeToggler({left, errored})}
         <RowTitle

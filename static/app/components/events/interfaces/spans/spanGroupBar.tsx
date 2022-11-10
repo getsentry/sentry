@@ -1,4 +1,4 @@
-import {Fragment, LegacyRef, useEffect, useRef} from 'react';
+import {Fragment, LegacyRef, useCallback, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -44,6 +44,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
   renderGroupSpansTitle: () => React.ReactNode;
   renderSpanRectangles: () => React.ReactNode;
@@ -142,7 +143,23 @@ function renderMeasurements(
 
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
-  const {onWheel} = props;
+
+  const {onWheel, generateContentSpanBarRef, getScrollLeftValue} = props;
+
+  // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
+  // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
+  const setTransformCallback = useCallback(
+    ref => {
+      generateContentSpanBarRef()(ref);
+
+      if (ref) {
+        const left = getScrollLeftValue();
+        ref.style.transform = `translateX(${left}px)`;
+        ref.style.transformOrigin = 'left';
+      }
+    },
+    [generateContentSpanBarRef, getScrollLeftValue]
+  );
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
@@ -195,7 +212,6 @@ export function SpanGroupBar(props: Props) {
         });
 
         const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-        const {generateContentSpanBarRef} = props;
         const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
         return (
@@ -224,7 +240,7 @@ export function SpanGroupBar(props: Props) {
                       onClick={() => props.toggleSpanGroup()}
                       ref={spanTitleRef}
                     >
-                      <RowTitleContainer ref={generateContentSpanBarRef()}>
+                      <RowTitleContainer ref={setTransformCallback}>
                         {renderGroupedSpansToggler(props)}
                         <RowTitle
                           style={{
