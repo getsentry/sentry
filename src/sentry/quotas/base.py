@@ -369,22 +369,20 @@ class Quota(Service):
                 if not limit:
                     limit = options.get(option)
 
-            if not limit:
+            limit = _limit_from_settings(limit)
+            if limit is None:
                 # Unlimited.
                 continue
 
-            # Negative limits mean a reject-all quota, which
-            # cannot have an id.
+            # Negative limits mean a reject-all quota,
+            # which isn't currently supported.
+            # For now we just treat this as unlimited.
             if limit < 0:
-                limit = 0
-                id = None
-                abuse_window = None
-            else:
-                limit *= abuse_window
+                continue
 
             yield QuotaConfig(
                 id=id,
-                limit=limit,
+                limit=limit * abuse_window,
                 scope=QuotaScope.PROJECT,
                 categories=categories,
                 window=abuse_window,
