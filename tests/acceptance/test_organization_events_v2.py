@@ -714,35 +714,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             actual = [header.text for header in headers]
             assert expected == actual
 
-    @pytest.mark.skip(reason="not done")
-    @patch("django.utils.timezone.now")
-    def test_usage(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        # TODO: load events
-
-        # go to landing
-
-        # go to a precanned query
-
-        # save query 1
-
-        # add environment column
-
-        # update query
-
-        # add condition from facet map
-
-        # delete a column
-
-        # click and drag a column
-
-        # save as query 2
-
-        # load save query 1
-
-        # sort column
-
-        # update query
-
-        # delete save query 1
+@region_silo_test
+class OrganizationEventsV2TestCustomerDomain(AcceptanceTestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.landing_path = f"/discover/queries/"
+        self.result_path = f"/discover/results/"
