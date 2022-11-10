@@ -192,7 +192,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def _passes(self, attribute_values) -> bool:
+    def _passes(self, attribute_values: Sequence[Any]) -> bool:
         match = self.get_option("match")
         value = self.get_option("value")
 
