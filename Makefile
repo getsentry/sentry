@@ -5,7 +5,7 @@ PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
 freeze-requirements:
-	@python3 -S -m tools.freeze_requirements sentry
+	@python3 -S -m tools.freeze_requirements
 
 bootstrap \
 develop \

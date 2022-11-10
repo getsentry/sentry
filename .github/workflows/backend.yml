@@ -152,7 +152,7 @@ jobs:
       - name: check requirements
         run: |
           python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
-          python -S -m tools.freeze_requirements sentry
+          python -S -m tools.freeze_requirements
           if ! git diff --exit-code; then
             echo $'\n\nrun `make freeze-requirements` locally to update requirements'
             exit 1
