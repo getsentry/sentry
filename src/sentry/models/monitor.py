@@ -184,9 +184,6 @@ class Monitor(Model):
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
 
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
         affected = (
             type(self)
             .objects.filter(

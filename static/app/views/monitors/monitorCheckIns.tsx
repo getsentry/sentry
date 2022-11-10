@@ -7,7 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useApiRequests from 'sentry/utils/useApiRequests';
-import {Monitor} from 'sentry/views/monitors/types';
+import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 
@@ -15,7 +15,7 @@ type CheckIn = {
   dateCreated: string;
   duration: number;
   id: string;
-  status: 'ok' | 'error' | 'missed';
+  status: CheckInStatus;
 };
 
 type Props = {
