@@ -82,6 +82,7 @@ def process_profile(
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
         _track_outcome(
             profile=profile,
             project=project,
@@ -239,10 +240,6 @@ def _symbolicate(
                 )
                 sleep(sleep_time)
                 continue
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-            break
 
     # returns the unsymbolicated data to avoid errors later
     return (modules, stacktraces)
