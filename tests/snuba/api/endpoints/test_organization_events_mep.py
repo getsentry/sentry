@@ -502,7 +502,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "failure_rate()",
                     "failure_count()",
                 ],
-                "orderby": ["user_misery()"],
+                "orderby": ["team_key_transaction", "user_misery()"],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
                 "per_page": 50,
