@@ -23,7 +23,7 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.ERROR).exists()
+        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.MISSED_CHECKIN).exists()
         assert MonitorCheckIn.objects.filter(
             monitor=monitor.id, status=CheckInStatus.MISSED
         ).exists()
