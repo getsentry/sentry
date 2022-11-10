@@ -226,7 +226,7 @@ const SavedIssueSearchesContent = ({
           ))}
           {shownOrgSavedSearches.length === 0 && (
             <NoSavedSearchesText>
-              {t("You don't have any saved searches.")}
+              {t("You don't have any saved searches")}
             </NoSavedSearchesText>
           )}
         </SearchesContainer>
@@ -391,6 +391,7 @@ const ShowAllButton = styled(Button)`
 
 const NoSavedSearchesText = styled('p')`
   padding: 0 ${space(2)};
+  margin: ${space(0.5)} 0;
   color: ${p => p.theme.subText};
 `;
 
