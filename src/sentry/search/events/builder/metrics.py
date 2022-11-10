@@ -332,9 +332,6 @@ class MetricsQueryBuilder(QueryBuilder):
         return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if search_filter.value.is_wildcard():
-            raise IncompatibleMetricsQuery("wildcards not supported")
-
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -385,6 +382,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [lhs, f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
