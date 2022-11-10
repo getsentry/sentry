@@ -267,7 +267,9 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                 expr = metric_object_factory(orderby_field.field.op, orderby_field.field.metric_mri)
                 entities.add(expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE))
 
-        assert len(entities) == 1
+        if len(entities) > 1:
+            raise InvalidParams("The orderby cannot have fields with multiple entities.")
+
         mri_to_apply = mri_dictionary[entities.pop()]
 
     return mri_to_apply
@@ -284,6 +286,9 @@ def _tmp_alias_to_none(alias):
 
 
 def _transform_team_key_transaction_in_select(mri_to_apply, select):
+    if select is None:
+        return select
+
     def _select(select_field):
         if select_field.op == TEAM_KEY_TRANSACTION_OP:
             return MetricField(
@@ -299,6 +304,9 @@ def _transform_team_key_transaction_in_select(mri_to_apply, select):
 
 
 def _transform_team_key_transaction_in_where(mri_to_apply, where):
+    if where is None:
+        return where
+
     def _where(where_field):
         if (
             isinstance(where_field, MetricConditionField)
@@ -321,6 +329,9 @@ def _transform_team_key_transaction_in_where(mri_to_apply, where):
 
 
 def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
+    if groupby is None:
+        return groupby
+
     def _groupby(groupby_field):
         if (
             isinstance(groupby_field.field, MetricField)
@@ -341,6 +352,9 @@ def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
 
 
 def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
+    if orderby is None:
+        return orderby
+
     def _orderby(orderby_field):
         if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
             return OrderBy(
@@ -362,18 +376,10 @@ def _transform_team_key_transaction_fake_mri(project_ids, select, where, groupby
     mri_to_apply = _derive_mri_to_apply(project_ids, select, orderby)
 
     return (
-        _transform_team_key_transaction_in_select(mri_to_apply, select)
-        if select is not None
-        else None,
-        _transform_team_key_transaction_in_where(mri_to_apply, where)
-        if where is not None
-        else None,
-        _transform_team_key_transaction_in_groupby(mri_to_apply, groupby)
-        if groupby is not None
-        else None,
-        _transform_team_key_transaction_in_orderby(mri_to_apply, orderby)
-        if orderby is not None
-        else None,
+        _transform_team_key_transaction_in_select(mri_to_apply, select),
+        _transform_team_key_transaction_in_where(mri_to_apply, where),
+        _transform_team_key_transaction_in_groupby(mri_to_apply, groupby),
+        _transform_team_key_transaction_in_orderby(mri_to_apply, orderby),
     )
 
 
