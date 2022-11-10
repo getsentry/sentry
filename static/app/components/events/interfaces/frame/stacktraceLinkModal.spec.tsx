@@ -93,6 +93,7 @@ describe('StacktraceLinkModal', () => {
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it('keeps modal open on unsuccessful quick setup', async () => {
