@@ -89,6 +89,7 @@ def allow_cors_options(func):
             "sentry-trace, baggage"
         )
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Cross-Origin-Resource-Policy"] = "cross-origin"
 
         if request.META.get("HTTP_ORIGIN") == "null":
             origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
