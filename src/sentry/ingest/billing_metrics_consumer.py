@@ -5,18 +5,7 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Mapping,
-    NamedTuple,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import Any, Deque, Mapping, NamedTuple, Optional, Sequence, TypedDict, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
@@ -27,7 +16,7 @@ from arroyo.backends.kafka.configuration import (
 from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition, Position
 from django.conf import settings
 
 from sentry.constants import DataCategory
@@ -83,7 +72,7 @@ def _get_bootstrap_servers(topic: str, force_cluster: Optional[str]) -> Sequence
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return BillingTxCountMetricConsumerStrategy(commit)
@@ -121,7 +110,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def __init__(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
     ) -> None:
         self._closed: bool = False
         self._commit = commit
