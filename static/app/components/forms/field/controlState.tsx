@@ -67,7 +67,6 @@ const ControlStateWrapper = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(0.5)};
-  padding: 0 ${space(0.5)};
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`

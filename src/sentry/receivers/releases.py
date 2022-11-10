@@ -227,7 +227,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
                     ident=instance.id,
-                    user=acting_user,
+                    user_id=acting_user.id if acting_user else None,
                     data={"pull_request": instance.id},
                 )
                 record_group_history(

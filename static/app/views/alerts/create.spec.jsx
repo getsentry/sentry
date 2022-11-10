@@ -118,7 +118,7 @@ describe('ProjectAlertsCreate', function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+        expect(screen.getAllByText('all')).toHaveLength(2);
       });
       await waitFor(() => {
         expect(screen.getByText('24 hours')).toBeInTheDocument();
