@@ -114,7 +114,6 @@ def zerofill(data, start, end, rollup, orderby):
     for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv.extend(data_by_time[key])
-            del data_by_time[key]
         else:
             rv.append({"time": key})
 
