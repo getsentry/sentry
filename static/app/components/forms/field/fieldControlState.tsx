@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import space from 'sentry/styles/space';
+
 import {FieldGroupProps} from './types';
 
 type FieldControlStateProps = Pick<FieldGroupProps, 'flexibleControlStateSize'>;
@@ -7,10 +9,14 @@ type FieldControlStateProps = Pick<FieldGroupProps, 'flexibleControlStateSize'>;
 const FieldControlState = styled('div')<FieldControlStateProps>`
   display: flex;
   position: relative;
-  ${p => !p.flexibleControlStateSize && `width: 36px`};
   flex-shrink: 0;
-  justify-content: center;
+  justify-content: end;
   align-items: center;
+
+  ${p =>
+    p.flexibleControlStateSize
+      ? `&:not(:empty) { margin-left: ${space(1.5)} }`
+      : `width: 24px; margin-left: ${space(0.5)};`};
 `;
 
 export default FieldControlState;

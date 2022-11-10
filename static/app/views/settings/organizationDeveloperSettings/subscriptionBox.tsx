@@ -65,6 +65,7 @@ function SubscriptionBox({
         </SubscriptionInfo>
         <Checkbox
           key={`${resource}${checked}`}
+          aria-label={resource}
           disabled={disabled}
           id={resource}
           value={resource}

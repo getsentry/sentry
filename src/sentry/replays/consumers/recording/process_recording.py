@@ -22,7 +22,7 @@ from django.db.utils import IntegrityError
 from sentry.constants import DataCategory
 from sentry.models import File
 from sentry.models.project import Project
-from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
+from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
@@ -76,7 +76,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             segment_id=message_dict["id"],
         )
 
-        part = RecordingSegmentPart(cache_prefix)
+        part = RecordingSegmentCache(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
 
     def _process_headers(
@@ -235,6 +235,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 message_dict = msgpack.unpackb(message.payload.value)
 
                 if message_dict["type"] == "replay_recording_chunk":
+                    if type(message_dict["payload"]) is str:
+                        # if the payload is uncompressed, we need to encode it as bytes
+                        # as msgpack will decode it as a utf-8 python string
+                        message_dict["payload"] = message_dict["payload"].encode("utf-8")
+
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
                         self._process_chunk(
                             cast(RecordingSegmentChunkMessage, message_dict), message

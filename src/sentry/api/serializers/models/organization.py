@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
@@ -29,7 +29,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
+    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -240,10 +240,18 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("api-keys")
 
         # Organization flag features (not provided through the features module)
-        if OrganizationOption.objects.filter(
-            organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists():
-            feature_list.add("legacy-rate-limits")
+        options_as_features = OrganizationOption.objects.filter(
+            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
+        )
+        for option in options_as_features:
+            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            if not option_feature:
+                continue
+            feature: str = option_feature[0]  # feature flag string
+            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
+            if not callable(func) or func(option):
+                feature_list.add(feature)
+
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
@@ -488,14 +496,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return super().get_attrs(item_list, user)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
-        member_projects = list(access.projects)
-        member_project_ids = [p.id for p in member_projects]
-        other_projects = list(
-            Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE).exclude(
-                id__in=member_project_ids
-            )
+        project_list = list(
+            Project.objects.filter(
+                organization=organization, status=ProjectStatus.VISIBLE
+            ).order_by("slug")
         )
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)  # type: ignore
 
         for project in project_list:
             project.set_cached_field_value("organization", organization)
@@ -503,14 +508,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return project_list
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
-        member_teams = list(access.teams)
-        member_team_ids = [p.id for p in member_teams]
-        other_teams = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).exclude(
-                id__in=member_team_ids
+        team_list = list(
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+                "slug"
             )
         )
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)  # type: ignore
 
         for team in team_list:
             team.set_cached_field_value("organization", organization)

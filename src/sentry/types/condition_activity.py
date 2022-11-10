@@ -12,7 +12,7 @@ class ConditionActivityType(Enum):
     REAPPEARED = 2
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConditionActivity:
     group_id: str
     # potentially can have multiple types if even more conditions are supported
