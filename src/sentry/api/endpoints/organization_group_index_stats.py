@@ -78,7 +78,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
 
         else:
             groups = list(
-                Group.objects.filter(id__in=group_ids, project_id__in=project_ids).prefetch_related(
+                Group.objects.filter(id__in=group_ids, project_id__in=project_ids).select_related(
                     "project"
                 )
             )
