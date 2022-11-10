@@ -47,7 +47,25 @@ type MockResponse = [resp: ResponseType, mock: jest.Mock];
  */
 function compareRecord(want: Record<string, any>, check: Record<string, any>): boolean {
   for (const key in want) {
-    if (check[key] !== want[key]) {
+    if (Array.isArray(want[key])) {
+      if (!Array.isArray(check[key])) {
+        return false;
+      }
+
+      if (want[key].length !== check[key].length) {
+        return false;
+      }
+
+      if (want[key].length === 1 && want[key][0] !== check[key][0]) {
+        return false;
+      }
+
+      for (const value of want[key]) {
+        if (!check[key].includes(value)) {
+          return false;
+        }
+      }
+    } else if (check[key] !== want[key]) {
       return false;
     }
   }
