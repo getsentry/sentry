@@ -51,9 +51,8 @@ def get_metrics_billing_consumer(
     bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
 
     batch_time_secs = (max_batch_time // 1000) or 1
-    batch_size = max_batch_size or 100
     commit_policy = CommitPolicy(
-        min_commit_frequency_sec=batch_time_secs, min_commit_messages=batch_size
+        min_commit_frequency_sec=batch_time_secs, min_commit_messages=max_batch_size
     )
 
     return StreamProcessor(
