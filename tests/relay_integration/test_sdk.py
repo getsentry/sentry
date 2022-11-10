@@ -20,10 +20,13 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     settings.SENTRY_PROJECT = 1
 
     configure_sdk()
+    assert Hub.current.client is not None
 
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+    assert Hub.current.client is not None
 
     def inner(*args, **kwargs):
+        assert Hub.current.client is not None
         event_id = sentry_sdk.capture_event(*args, **kwargs)
         Hub.current.client.flush()
 
