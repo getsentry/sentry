@@ -88,7 +88,7 @@ const AllEventsTable = (props: Props) => {
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
-      projectId={projectSlug}
+      projectSlug={projectSlug}
       totalEventCount={totalEventCount}
       customColumns={['minidump']}
       setError={(msg: string | undefined) => setError(msg ?? '')}

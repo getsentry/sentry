@@ -89,7 +89,7 @@ type Props = {
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
-  projectId?: string;
+  projectSlug?: string;
   referrer?: string;
   showReplayCol?: boolean;
   totalEventCount?: string;
@@ -150,7 +150,13 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectId} = this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      transactionName,
+      projectSlug: projectId,
+    } = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
