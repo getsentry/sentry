@@ -76,7 +76,7 @@ describe('Sentry Application Details', function () {
         .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://webhook.com/setup'}});
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      wrapper.find('textarea[name="schema"]').simulate('change', {target: {value: '{}'}});
 
       wrapper.find('Switch[name="isAlertable"]').simulate('click');
 
@@ -365,7 +365,7 @@ describe('Sentry Application Details', function () {
         .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      wrapper.find('textarea[name="schema"]').simulate('change', {target: {value: '{}'}});
 
       wrapper
         .find('Checkbox')
@@ -392,7 +392,7 @@ describe('Sentry Application Details', function () {
         .first()
         .simulate('change', {target: {checked: true}});
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      wrapper.find('textarea[name="schema"]').simulate('change', {target: {value: '{}'}});
 
       selectByValue(wrapper, 'no-access', {name: 'Event--permission'});
 
