@@ -235,7 +235,7 @@ def _transform_orderby(query_orderby):
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
-def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
         raise MQBQueryTransformationException(

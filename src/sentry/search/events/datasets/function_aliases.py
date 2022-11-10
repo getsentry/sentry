@@ -2,7 +2,6 @@ from typing import Callable, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
-from sentry import options
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -93,9 +92,7 @@ def resolve_project_threshold_config(
         project_threshold_override_config_keys.append(
             (
                 Function("toUInt64", [project_id]),
-                transaction_id
-                if options.get("sentry-metrics.performance.tags-values-are-strings")
-                else Function("toUInt64", [transaction_id]),
+                transaction_id,
             )
         )
         project_threshold_override_config_values.append(metric)

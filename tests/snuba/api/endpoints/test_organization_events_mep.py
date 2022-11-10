@@ -403,6 +403,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "count_miserable(user)",
                         "user_misery()",
                         "failure_rate()",
+                        "failure_count()",
                     ],
                     "orderby": "tpm()",
                     "query": "event.type:transaction",
@@ -426,6 +427,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert data["count_miserable(user)"] == 1.0
             assert data["user_misery()"] == 0.058
             assert data["failure_rate()"] == 1
+            assert data["failure_count()"] == 1
 
             assert meta["isMetricsData"]
             assert field_meta["transaction"] == "string"
@@ -438,6 +440,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
             assert field_meta["failure_rate()"] == "percentage"
+            assert field_meta["failure_count()"] == "integer"
 
     def test_no_team_key_transactions(self):
         self.store_transaction_metric(

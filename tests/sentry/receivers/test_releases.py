@@ -25,7 +25,7 @@ from sentry.models import (
     UserOption,
     add_group_to_inbox,
 )
-from sentry.signals import buffer_incr_complete
+from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -67,6 +67,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupInbox.objects.filter(group=group).exists()
 
     # TODO(dcramer): pull out short ID matching and expand regexp tests
+    @receivers_raise_on_send()
     def test_simple_no_author(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -82,6 +83,7 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertResolvedFromCommit(group, commit)
 
+    @receivers_raise_on_send()
     def test_updating_commit(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -101,6 +103,7 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertResolvedFromCommit(group, commit)
 
+    @receivers_raise_on_send()
     def test_updating_commit_with_existing_grouplink(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -121,6 +124,7 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertResolvedFromCommit(group, commit)
 
+    @receivers_raise_on_send()
     def test_removes_group_link_when_message_changes(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -142,6 +146,7 @@ class ResolvedInCommitTest(TestCase):
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         self.assertNotResolvedFromCommit(group, commit)
 
+    @receivers_raise_on_send()
     def test_no_matching_group(self):
         repo = Repository.objects.create(name="example", organization_id=self.organization.id)
 
@@ -156,6 +161,7 @@ class ResolvedInCommitTest(TestCase):
             linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
 
+    @receivers_raise_on_send()
     def test_matching_author_with_assignment(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -191,6 +197,7 @@ class ResolvedInCommitTest(TestCase):
 
         assert GroupSubscription.objects.filter(group=group, user=user).exists()
 
+    @receivers_raise_on_send()
     def test_matching_author_without_assignment(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -223,6 +230,7 @@ class ResolvedInCommitTest(TestCase):
 
 @region_silo_test
 class ProjectHasReleasesReceiverTest(TestCase):
+    @receivers_raise_on_send()
     def test(self):
         buffer = Buffer()
         rp = ReleaseProject.objects.get_or_create(release=self.release, project=self.project)[0]
@@ -236,6 +244,7 @@ class ProjectHasReleasesReceiverTest(TestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_releases
 
+    @receivers_raise_on_send()
     def test_deleted_release_project(self):
         # Should just not raise an error here if the `ReleaseProject` does not exist
         buffer_incr_complete.send_robust(
@@ -247,6 +256,7 @@ class ProjectHasReleasesReceiverTest(TestCase):
 
 
 class SaveReleaseActivityReceiverTest(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
         with self.feature("organizations:active-release-monitor-alpha"):
             release = self.create_release(self.project, self.user)
@@ -258,6 +268,7 @@ class SaveReleaseActivityReceiverTest(TestCase):
             assert activity[0].type == ReleaseActivityType.CREATED.value
             assert activity[0].release_id == release.id
 
+    @receivers_raise_on_send()
     def test_update_release_should_not_create_activity(self):
         with self.feature("organizations:active-release-monitor-alpha"):
             assert ReleaseActivity.objects.all().count() == 0
@@ -278,6 +289,7 @@ class SaveReleaseActivityReceiverTest(TestCase):
 
             assert ReleaseActivity.objects.all().count() == 1
 
+    @receivers_raise_on_send()
     def test_flag_off(self):
         self.create_release(self.project, self.user)
         assert ReleaseActivity.objects.all().count() == 0
