@@ -38,6 +38,12 @@ export const _TextField = () => (
         placeholder="This is placeholder text"
       />
       <TextField
+        name="textfieldrequired"
+        label="Required Text Field"
+        placeholder="Type text and then delete it"
+        required
+      />
+      <TextField
         name="simpletextfieldvaluedisabled"
         label="Disabled - Simple Text Field with Value"
         placeholder="Simple Text Field"
@@ -49,13 +55,6 @@ export const _TextField = () => (
         label="Disabled - Simple Text Field with Placeholder"
         placeholder="This is placeholder text in a disabled field"
         disabled
-      />
-      <TextField
-        name="textfieldflexiblecontrol"
-        label="Text Field With Flexible Control State Size"
-        placeholder="Type text and then delete it"
-        required
-        flexibleControlStateSize
       />
       <TextField
         name="textfielddisabled"
