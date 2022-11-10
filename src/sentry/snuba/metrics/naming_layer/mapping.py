@@ -67,6 +67,12 @@ def get_mri(external_name: Union[Enum, str]) -> str:
 
 def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
     """Returns the public name from a MRI if it has a mapping to a public metric name, otherwise raise an exception"""
+    # We handle the edge case in which we have the fake mri from the transformer. This is not the best place to put it
+    # because it will effectively create a dependency between the two modules, but it is the simplest implementation
+    # that doesn't touch core inner workings of the metrics layer.
+    if internal_name == "e:custom/team_key_transaction@reserved":
+        return "team_key_transaction_tmp_alias"
+
     if not len(MRI_TO_NAME):
         create_name_mapping_layers()
 

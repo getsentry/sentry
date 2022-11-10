@@ -9,16 +9,22 @@ from sentry.snuba.metrics import (
     FILTERABLE_TAGS,
     OPERATIONS,
     DerivedMetricException,
+    TransactionMRI,
 )
-from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.fields.base import DERIVED_METRICS, DERIVED_OPS, metric_object_factory
 from sentry.snuba.metrics.query import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricsQuery,
 )
+from sentry.snuba.metrics.query import OrderBy
 from sentry.snuba.metrics.query import OrderBy as MetricOrderBy
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
+
+TEAM_KEY_TRANSACTION_FAKE_MRI = "e:custom/team_key_transaction@reserved"
+TEAM_KEY_TRANSACTION_TMP_ALIAS = "team_key_transaction_tmp_alias"
+TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
 
 class MQBQueryTransformationException(Exception):
@@ -235,6 +241,161 @@ def _transform_orderby(query_orderby):
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
+def _recursively_compute_ingested_mri(metric_mri):
+    if metric_mri not in DERIVED_METRICS:
+        return metric_mri
+
+    # We assume that all the derived metrics are from the same entity type, therefore we take the first ingested mri.
+    for child_metric_mri in DERIVED_METRICS[metric_mri].metrics:
+        ingested_mri = _recursively_compute_ingested_mri(child_metric_mri)
+        if ingested_mri is not None:
+            return ingested_mri
+
+    return None
+
+
+def _derive_mri_to_apply(select, orderby):
+    mri_to_apply = TransactionMRI.DURATION.value
+
+    # We first check if there is an order by field that has the team_key_transaction, otherwise
+    # we just use the default mri of duration.
+    has_order_by_tkt = False
+    if orderby is not None:
+        for orderby_field in orderby:
+            if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+                has_order_by_tkt = True
+                break
+
+    if has_order_by_tkt:
+        mri_types = dict()
+        for select_field in select:
+            if select_field.op != TEAM_KEY_TRANSACTION_OP:
+                # We assume to have a correct MRI.
+                mri_type = select_field.metric_mri.split(":")[0]
+                if mri_type not in mri_types:
+                    # We set the mri to be the first occurrence, in order to make it easier for the user.
+                    #
+                    # It is important to note that in case of derived metrics we are going to recursively obtain the
+                    # leftmost ingested mri available in the dependency tree.
+                    mri_types[mri_type] = (
+                        select_field.metric_mri
+                        if mri_type != "e"
+                        else _recursively_compute_ingested_mri(select_field.metric_mri)
+                    )
+
+        if len(mri_types) == 1:
+            # In order to simplify the code we just set the MRI of the team_key_transaction to be equal
+            # to the one of the entity in the select in order to make sure that the "get_entity" method
+            # will always return the same result.
+            mri_to_apply = mri_types[list(mri_types.keys())[0]]
+
+    return mri_to_apply
+
+
+def _tmp_alias_to_none(alias):
+    # If we encounter a metric field with the temporary alias it means that the user set a team_key_transaction field
+    # without the alias, but we had to inject a custom alias to avoid having an exception while calling
+    # get_public_name_from_mri().
+    if alias == f"{TEAM_KEY_TRANSACTION_OP}({TEAM_KEY_TRANSACTION_TMP_ALIAS}":
+        return None
+
+    return alias
+
+
+def _transform_team_key_transaction_in_select(mri_to_apply, select):
+    def _select(select_field):
+        if select_field.op == TEAM_KEY_TRANSACTION_OP:
+            return MetricField(
+                op=select_field.op,
+                metric_mri=mri_to_apply,
+                params=select_field.params,
+                alias=_tmp_alias_to_none(select_field.alias),
+            )
+
+        return select_field
+
+    return list(map(_select, select))
+
+
+def _transform_team_key_transaction_in_where(mri_to_apply, where):
+    def _where(where_field):
+        if (
+            isinstance(where_field, MetricConditionField)
+            and where_field.lhs.op == TEAM_KEY_TRANSACTION_OP
+        ):
+            return MetricConditionField(
+                lhs=MetricField(
+                    op=where_field.lhs.op,
+                    metric_mri=mri_to_apply,
+                    params=where_field.lhs.params,
+                    alias=_tmp_alias_to_none(where_field.lhs.alias),
+                ),
+                op=where_field.op,
+                rhs=where_field.rhs,
+            )
+
+        return where_field
+
+    return list(map(_where, where))
+
+
+def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
+    def _groupby(groupby_field):
+        if (
+            isinstance(groupby_field.field, MetricField)
+            and groupby_field.field.op == TEAM_KEY_TRANSACTION_OP
+        ):
+            return MetricGroupByField(
+                field=MetricField(
+                    op=groupby_field.field.op,
+                    metric_mri=mri_to_apply,
+                    params=groupby_field.field.params,
+                    alias=_tmp_alias_to_none(groupby_field.field.alias),
+                ),
+            )
+
+        return groupby_field
+
+    return list(map(_groupby, groupby))
+
+
+def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
+    def _orderby(orderby_field):
+        if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+            return OrderBy(
+                field=MetricField(
+                    op=orderby_field.field.op,
+                    metric_mri=mri_to_apply,
+                    params=orderby_field.field.params,
+                    alias=_tmp_alias_to_none(orderby_field.field.alias),
+                ),
+                direction=orderby_field.direction,
+            )
+
+        return orderby_field
+
+    return list(map(_orderby, orderby))
+
+
+def _transform_team_key_transaction_fake_mri(select, where, groupby, orderby):
+    mri_to_apply = _derive_mri_to_apply(select, orderby)
+
+    return (
+        _transform_team_key_transaction_in_select(mri_to_apply, select)
+        if select is not None
+        else None,
+        _transform_team_key_transaction_in_where(mri_to_apply, where)
+        if where is not None
+        else None,
+        _transform_team_key_transaction_in_groupby(mri_to_apply, groupby)
+        if groupby is not None
+        else None,
+        _transform_team_key_transaction_in_orderby(mri_to_apply, orderby)
+        if orderby is not None
+        else None,
+    )
+
+
 def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
@@ -261,4 +422,17 @@ def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "interval": interval,
         **_get_mq_dict_params_from_where(query.where),
     }
+
+    # This code is just an edge case specific for the team_key_transaction derived operation.
+    (select, where, groupby, orderby) = _transform_team_key_transaction_fake_mri(
+        mq_dict["select"],
+        mq_dict["where"],
+        mq_dict["groupby"],
+        mq_dict["orderby"],
+    )
+    mq_dict["select"] = select
+    mq_dict["where"] = where
+    mq_dict["groupby"] = groupby
+    mq_dict["orderby"] = orderby
+
     return MetricsQuery(**mq_dict)
