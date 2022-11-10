@@ -15,7 +15,24 @@ import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
-export class Request {
+interface RequestInterface {
+  /**
+   * Is the request still in flight
+   */
+  alive: boolean;
+  cancel(): void;
+
+  /**
+   * Promise which will be resolved when the request has completed
+   */
+  requestPromise: Promise<Response>;
+  /**
+   * AbortController to cancel the in-flight request. This will not be set in
+   * unsupported browsers.
+   */
+  aborter?: AbortController;
+}
+export class Request implements RequestInterface {
   /**
    * Is the request still in flight
    */
@@ -175,10 +192,6 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
 export function hasProjectBeenRenamed(response: ResponseMeta) {
   const code = response?.responseJSON?.detail?.code;
 
-  // XXX(billy): This actually will never happen because we can't intercept the 302
-  // jQuery ajax will follow the redirect by default...
-  //
-  // TODO(epurkhiser): We use fetch now, is the above comment still true?
   if (code !== PROJECT_MOVED) {
     return false;
   }
@@ -238,7 +251,7 @@ type ClientOptions = {
   baseUrl?: string;
 };
 
-type HandleRequestErrorOptions = {
+export type HandleRequestErrorOptions = {
   id: string;
   path: string;
   requestOptions: Readonly<RequestOptions>;

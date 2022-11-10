@@ -1,13 +1,14 @@
 import isEqual from 'lodash/isEqual';
 
-import * as ApiNamespace from 'sentry/api';
+import type {HandleRequestErrorOptions, RequestOptions, ResponseMeta} from 'sentry/api';
+import ModalStore from 'sentry/stores/modalStore';
 
-const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
+import {SUDO_REQUIRED, SUPERUSER_REQUIRED} from '../constants/apiErrorCodes';
 
 export class Request {}
 
-export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
-export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
+export const initApiClientErrorHandling = () => false;
+export const hasProjectBeenRenamed = (_args: any[]) => false;
 
 const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
   if (!fn) {
@@ -28,10 +29,10 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
  * Callables for matching requests based on arbitrary conditions.
  */
 interface MatchCallable {
-  (url: string, options: ApiNamespace.RequestOptions): boolean;
+  (url: string, options: RequestOptions): boolean;
 }
 
-type ResponseType = ApiNamespace.ResponseMeta & {
+type ResponseType = ResponseMeta & {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
@@ -47,9 +48,8 @@ type MockResponse = [resp: ResponseType, mock: jest.Mock];
  * Compare two records. `want` is all the entries we want to have the same value in `check`
  */
 function compareRecord(want: Record<string, any>, check: Record<string, any>): boolean {
-  for (const entry of Object.entries(want)) {
-    const [key, value] = entry;
-    if (!isEqual(check[key], value)) {
+  for (const key in want) {
+    if (!isEqual(check[key], want[key])) {
       return false;
     }
   }
@@ -68,7 +68,7 @@ afterEach(() => {
   }
 });
 
-class Client implements ApiNamespace.Client {
+class Client implements Client {
   static mockResponses: MockResponse[] = [];
 
   static mockAsync = false;
@@ -153,7 +153,7 @@ class Client implements ApiNamespace.Client {
     return mock;
   }
 
-  static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
+  static findMockResponse(url: string, options: Readonly<RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
       if (url !== response.url) {
         return false;
@@ -165,7 +165,7 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  activeRequests: Record<string, ApiNamespace.Request> = {};
+  activeRequests: Record<string, typeof Request> = {};
   baseUrl = '';
 
   uniqueId() {
@@ -184,8 +184,7 @@ class Client implements ApiNamespace.Client {
     _cleanup: boolean = false
   ) {
     return (...args: T) => {
-      // @ts-expect-error
-      if (RealApi.hasProjectBeenRenamed(...args)) {
+      if (hasProjectBeenRenamed(args)) {
         return;
       }
       respond(Client.mockAsync, func, ...args);
@@ -197,7 +196,7 @@ class Client implements ApiNamespace.Client {
     {
       includeAllArgs,
       ...options
-    }: {includeAllArgs?: boolean} & Readonly<ApiNamespace.RequestOptions> = {}
+    }: {includeAllArgs?: boolean} & Readonly<RequestOptions> = {}
   ): any {
     return new Promise((resolve, reject) => {
       this.request(path, {
@@ -215,7 +214,7 @@ class Client implements ApiNamespace.Client {
   static errors: Record<string, Error> = {};
 
   // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
-  request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
+  request(url: string, options: Readonly<RequestOptions> = {}): any {
     const [response, mock] = Client.findMockResponse(url, options) || [
       undefined,
       undefined,
@@ -293,7 +292,54 @@ class Client implements ApiNamespace.Client {
     respond(Client.mockAsync, options.complete);
   }
 
-  handleRequestError = RealApi.Client.prototype.handleRequestError;
+  handleRequestError(
+    {id, path, requestOptions}: HandleRequestErrorOptions,
+    response: ResponseMeta,
+    textStatus: string,
+    errorThrown: string
+  ) {
+    const code = response?.responseJSON?.detail?.code;
+    const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
+
+    let didSuccessfullyRetry = false;
+
+    if (isSudoRequired) {
+      openSudo({
+        isSuperuser: code === SUPERUSER_REQUIRED,
+        sudo: code === SUDO_REQUIRED,
+        retryRequest: async () => {
+          try {
+            const data = await this.requestPromise(path, requestOptions);
+            requestOptions.success?.(data);
+            didSuccessfullyRetry = true;
+          } catch (err) {
+            requestOptions.error?.(err);
+          }
+        },
+        onClose: () =>
+          // If modal was closed, then forward the original response
+          !didSuccessfullyRetry && requestOptions.error?.(response),
+      });
+      return;
+    }
+
+    const errorCb = this.wrapCallback<[ResponseMeta, string, string]>(
+      id,
+      requestOptions.error
+    );
+    errorCb?.(response, textStatus, errorThrown);
+  }
+}
+
+async function openSudo({onClose, ...args}: any = {}) {
+  const mod = await import('sentry/components/modals/sudoModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
+function openModal(renderer: (renderProps: any) => React.ReactNode, options?: any) {
+  ModalStore.openModal(renderer, options ?? {});
 }
 
 export {Client};
