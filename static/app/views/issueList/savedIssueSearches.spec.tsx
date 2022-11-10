@@ -123,7 +123,7 @@ describe('SavedIssueSearches', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getByText("You don't have any saved searches.")).toBeInTheDocument();
+    expect(screen.getByText(/You don't have any saved searches/i)).toBeInTheDocument();
   });
 
   it('does not show overflow menu for recommended searches', async function () {
