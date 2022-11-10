@@ -32,7 +32,7 @@ def build_project_config(public_key=None, **kwargs):
 
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
-    sentry_sdk.set_tag("project.public_key", public_key)
+    sentry_sdk.set_tag("public_key", public_key)
 
     try:
         from sentry.models import ProjectKey
