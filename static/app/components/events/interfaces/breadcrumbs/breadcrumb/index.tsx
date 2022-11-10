@@ -1,25 +1,24 @@
-import {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Highlight from 'sentry/components/highlight';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import Category from './category';
 import {Data} from './data';
-import Level from './level';
+import {Level} from './level';
 import Time from './time';
-import Type from './type';
+import {Type} from './type';
 
-type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
+type Props = {
   breadcrumb: Crumb;
-  ['data-test-id']: string;
   displayRelativeTime: boolean;
   event: Event;
   onLoad: () => void;
-  organization: Organization;
   relativeTime: string;
   scrollbarSize: number;
   searchTerm: string;
@@ -28,8 +27,7 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   meta?: Record<any, any>;
 };
 
-export const Breadcrumb = memo(function Breadcrumb({
-  organization,
+export function Breadcrumb({
   event,
   breadcrumb,
   relativeTime,
@@ -38,48 +36,53 @@ export const Breadcrumb = memo(function Breadcrumb({
   onLoad,
   scrollbarSize,
   style,
-  route,
-  router,
   meta,
-  ['data-test-id']: dataTestId,
+  ...props
 }: Props) {
-  const {type, description, color, level, category, timestamp} = breadcrumb;
+  const organization = useOrganization();
   const error = breadcrumb.type === BreadcrumbType.ERROR;
+  const category = !defined(breadcrumb.category) ? t('generic') : breadcrumb.category;
 
   return (
     <Wrapper
+      {...props}
       style={style}
       error={error}
       onLoad={onLoad}
-      data-test-id={dataTestId}
       scrollbarSize={scrollbarSize}
     >
-      <Type type={type} color={color} description={description} error={error} />
-      <Category category={category} searchTerm={searchTerm} />
+      <Type
+        type={breadcrumb.type}
+        color={breadcrumb.color}
+        description={breadcrumb.description}
+        error={error}
+      />
+      <Category title={category}>
+        <Highlight text={searchTerm}>{category}</Highlight>
+      </Category>
       <Data
         event={event}
         organization={organization}
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
-        route={route}
-        router={router}
         meta={meta}
       />
       <div>
-        <Level level={level} searchTerm={searchTerm} />
+        <Level level={breadcrumb.level} searchTerm={searchTerm} />
       </div>
       <Time
-        timestamp={timestamp}
+        timestamp={breadcrumb.timestamp}
         relativeTime={relativeTime}
         displayRelativeTime={displayRelativeTime}
         searchTerm={searchTerm}
       />
     </Wrapper>
   );
-});
+}
 
 const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
   display: grid;
+  transform: scaleY(-1);
   grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
 
   > * {
@@ -128,7 +131,7 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
   word-break: break-all;
   white-space: pre-wrap;
   :not(:last-child) {
-    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+    border-top: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }
 
   ${p =>
@@ -144,4 +147,10 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
         background: ${p.theme.red300};
       }
     `}
+`;
+
+const Category = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 700;
 `;

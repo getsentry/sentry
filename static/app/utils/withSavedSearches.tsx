@@ -1,9 +1,12 @@
-import {Component} from 'react';
+import {Component, useMemo} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
 import {SavedSearch} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
+import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
 
 type InjectedSavedSearchesProps = {
   savedSearch: SavedSearch | null;
@@ -17,9 +20,36 @@ type State = {
 };
 
 /**
+ * HOC to provide saved search data to class components.
+ * When possible, use the hooks directly instead.
+ */
+function withSavedSearchesV2<P extends InjectedSavedSearchesProps>(
+  WrappedComponent: React.ComponentType<P>
+) {
+  return (
+    props: Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>
+  ) => {
+    const organization = useOrganization();
+    const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg({
+      orgSlug: organization.slug,
+    });
+    const selectedSavedSearch = useSelectedSavedSearch();
+
+    return (
+      <WrappedComponent
+        {...(props as P)}
+        savedSearches={props.savedSearches ?? savedSearches}
+        savedSearchLoading={props.savedSearchLoading ?? isLoading}
+        savedSearch={props.savedSearch ?? selectedSavedSearch}
+      />
+    );
+  };
+}
+
+/**
  * Wrap a component with saved issue search data from the store.
  */
-function withSavedSearches<P extends InjectedSavedSearchesProps>(
+function withSavedSearchesV1<P extends InjectedSavedSearchesProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   class WithSavedSearches extends Component<
@@ -84,6 +114,28 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
   }
 
   return WithSavedSearches;
+}
+
+/**
+ * Temporary wrapper that provides saved searches data from the store or react-query,
+ * depending on the issue-list-saved-searches-v2 feature flag.
+ */
+function withSavedSearches<P extends InjectedSavedSearchesProps>(
+  WrappedComponent: React.ComponentType<P>
+) {
+  return (
+    props: Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>
+  ) => {
+    const organization = useOrganization();
+
+    const WithSavedSearchesComponent = useMemo(() => {
+      return organization.features.includes('issue-list-saved-searches-v2')
+        ? withSavedSearchesV2(WrappedComponent)
+        : withSavedSearchesV1(WrappedComponent);
+    }, [organization]);
+
+    return <WithSavedSearchesComponent {...props} />;
+  };
 }
 
 export default withSavedSearches;

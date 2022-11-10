@@ -20,9 +20,11 @@ from sentry.models.releasefile import (
     update_artifact_index,
 )
 from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class ReleaseFileTestCase(TestCase):
     def test_normalize(self):
         n = ReleaseFile.normalize

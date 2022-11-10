@@ -138,7 +138,7 @@ export function TagFacets({
         event?.tags.find(({key}) => key === state.selectedTag)?.value === value;
       return {
         name,
-        value: name,
+        value,
         count,
         url,
         active: isTagValueOfCurrentEvent,

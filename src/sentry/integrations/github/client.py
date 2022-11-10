@@ -97,20 +97,20 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             if msg == "Git Repository is empty.":
                 logger.warning(f"{repo_full_name} is empty.")
             elif msg == "Not Found":
-                logger.error(f"The Github App does not have access to {repo_full_name}.")
+                logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                sentry_sdk.capture_exception(e)
+                logger.exception("An unknown error has ocurred.")
 
         return tree
 
     def get_trees_for_org(
-        self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
+        self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
     ) -> Dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org.
         """
         trees: Dict[str, RepoTree] = {}
-        cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
+        cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
         repo_key = "githubtrees:repo"
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:

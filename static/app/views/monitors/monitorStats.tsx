@@ -1,11 +1,14 @@
-import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
-import MiniBarChart, {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {SeriesDataUnit} from 'sentry/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import useApiRequests from 'sentry/utils/useApiRequests';
 
@@ -60,49 +63,60 @@ const MonitorStats = ({monitor}: Props) => {
     failed.data.push({name: timestamp, value: p.error});
     durationData.push([timestamp, Math.trunc(p.duration)]);
   });
-  const colors = [theme.green300, theme.red300];
+  const colors = [theme.green200, theme.red200];
 
+  const durationTitle = t('Average Duration');
   const additionalSeries: LineSeriesOption[] = [
     LineSeries({
-      name: t('Duration'),
+      name: durationTitle,
       data: durationData,
       lineStyle: {color: theme.purple300, width: 2},
       itemStyle: {color: theme.purple300},
       yAxisIndex: 1,
+      animation: false,
     }),
   ];
 
   const height = 150;
-  const yAxisOptions: YAXisComponentOption = {
+  const getYAxisOptions = (aggregateType: AggregationOutputType) => ({
     max: getYAxisMaxFn(height),
     splitLine: {
       show: false,
     },
-  };
+    axisLabel: {
+      formatter: (value: number) => axisLabelFormatter(value, aggregateType, true),
+      showMaxLabel: false,
+    },
+  });
 
   return renderComponent(
     <Panel>
       <PanelBody withPadding>
         {!emptyStats ? (
-          <MiniBarChart
+          <BarChart
             isGroupedByDate
             showTimeInTooltip
-            labelYAxisExtents
-            stacked
-            colors={colors}
-            height={height}
             series={[success, failed]}
+            stacked
             additionalSeries={additionalSeries}
-            yAxes={[
-              {...yAxisOptions, type: 'value'},
-              {
-                ...yAxisOptions,
-                type: 'value',
-                axisLabel: {
-                  formatter: '{value} ms',
-                },
+            height={height}
+            colors={colors}
+            tooltip={{
+              trigger: 'axis',
+              valueFormatter: (value: number, label?: string) => {
+                return label === durationTitle
+                  ? tooltipFormatter(value, 'duration')
+                  : tooltipFormatter(value, 'number');
               },
-            ]}
+            }}
+            yAxes={[{...getYAxisOptions('number')}, {...getYAxisOptions('duration')}]}
+            grid={{
+              top: 6,
+              bottom: 0,
+              left: 4,
+              right: 0,
+            }}
+            animation={false}
           />
         ) : (
           <EmptyMessage

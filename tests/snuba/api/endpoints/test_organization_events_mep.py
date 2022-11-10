@@ -403,6 +403,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "count_miserable(user)",
                         "user_misery()",
                         "failure_rate()",
+                        "failure_count()",
                     ],
                     "orderby": "tpm()",
                     "query": "event.type:transaction",
@@ -426,6 +427,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert data["count_miserable(user)"] == 1.0
             assert data["user_misery()"] == 0.058
             assert data["failure_rate()"] == 1
+            assert data["failure_count()"] == 1
 
             assert meta["isMetricsData"]
             assert field_meta["transaction"] == "string"
@@ -438,6 +440,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
             assert field_meta["failure_rate()"] == "percentage"
+            assert field_meta["failure_count()"] == "integer"
 
     def test_no_team_key_transactions(self):
         self.store_transaction_metric(
@@ -1925,6 +1928,60 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
+
+    def test_transaction_wildcard(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p90()",
+                ],
+                "query": "transaction:foo*",
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p90()"] == 1
+
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+        assert data[0]["transaction"] == "foo_transaction"
+
+    def test_transaction_status_wildcard(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p90()",
+                ],
+                "query": "transaction.status:f*bar",
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p90()"] == 1
+
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

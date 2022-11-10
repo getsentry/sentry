@@ -1,5 +1,4 @@
-import {useEffect, useState} from 'react';
-import {InjectedRouter, PlainRoute} from 'react-router';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -11,6 +10,7 @@ import space from 'sentry/styles/space';
 import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useSessionStorage from 'sentry/utils/useSessionStorage';
 
 type StoredLinkedEvent = {
@@ -23,37 +23,23 @@ type StoredLinkedEvent = {
 type Props = {
   eventId: string;
   orgSlug: Organization['slug'];
-  route: PlainRoute;
-  router: InjectedRouter;
 };
 
 const errorMessage = t(
   'An error occurred while fetching the data of the breadcrumb event link'
 );
 
-export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
+export function LinkedEvent({orgSlug, eventId}: Props) {
   const [storedLinkedEvent, setStoredLinkedEvent, removeStoredLinkedEvent] =
     useSessionStorage<undefined | StoredLinkedEvent>(eventId);
 
   const [eventIdLookup, setEventIdLookup] = useState<undefined | EventIdResponse>();
   const [hasError, setHasError] = useState(false);
+  const routeContext = useRouteContext();
 
   const api = useApi();
 
-  useEffect(() => {
-    fetchEventById();
-    router.setRouteLeaveHook(route, onRouteLeave);
-  }, []);
-
-  useEffect(() => {
-    fetchIssueByGroupId();
-  }, [eventIdLookup]);
-
-  function onRouteLeave() {
-    removeStoredLinkedEvent();
-  }
-
-  async function fetchEventById() {
+  const fetchEventById = useCallback(async () => {
     if (storedLinkedEvent) {
       return;
     }
@@ -71,14 +57,22 @@ export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
 
       // do nothing. The link won't be displayed
     }
-  }
+  }, [storedLinkedEvent, api, eventId, orgSlug]);
 
-  async function fetchIssueByGroupId() {
+  const onRouteLeave = useCallback(() => {
+    removeStoredLinkedEvent();
+  }, [removeStoredLinkedEvent]);
+
+  useEffect(() => {
+    fetchEventById();
+    routeContext.router.setRouteLeaveHook(routeContext, onRouteLeave);
+  }, [fetchEventById, routeContext, onRouteLeave]);
+
+  const fetchIssueByGroupId = useCallback(async () => {
     if (!!storedLinkedEvent || !eventIdLookup) {
       return;
     }
@@ -103,7 +97,11 @@ export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
 
       // do nothing. The link won't be displayed
     }
-  }
+  }, [api, orgSlug, eventIdLookup, storedLinkedEvent, setStoredLinkedEvent]);
+
+  useEffect(() => {
+    fetchIssueByGroupId();
+  }, [fetchIssueByGroupId]);
 
   if (hasError) {
     return null;
