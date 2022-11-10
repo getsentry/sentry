@@ -109,10 +109,10 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[1].id == "pat"
+        assert quotas[1].id == "pati"
         assert quotas[1].scope == QuotaScope.PROJECT
         assert quotas[1].scope_id is None
-        assert quotas[1].categories == {DataCategory.TRANSACTION}
+        assert quotas[1].categories == {DataCategory.TRANSACTION_INDEXED}
         assert quotas[1].limit == 6000
         assert quotas[1].window == 10
         assert quotas[1].reason_code == "project_abuse_limit"

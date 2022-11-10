@@ -336,8 +336,8 @@ class Quota(Service):
                     "sentry:project-transaction-limit",
                     "getsentry.rate-limit.project-transactions",
                 ),
-                "pat",
-                (DataCategory.TRANSACTION,),
+                "pati",  # project abuse transaction indexed limit
+                (DataCategory.TRANSACTION_INDEXED,),
             ),
             (
                 "project-abuse-quota.attachment-limit",
