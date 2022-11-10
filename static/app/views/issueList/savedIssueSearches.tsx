@@ -270,7 +270,7 @@ const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
 
 const StyledSidebar = styled('aside')`
   width: 100%;
-  padding: ${space(3)} ${space(2)};
+  padding: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
@@ -288,10 +288,12 @@ const HeadingContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   height: 38px;
+  padding-left: ${space(2)};
+  margin-top: ${space(3)};
+
   &:first-of-type {
     margin-top: 0;
   }
-  margin: ${space(2)} 0 ${space(1)} ${space(2)};
 `;
 
 const Heading = styled('h2')`
@@ -380,8 +382,7 @@ const SavedSearchItemQuery = styled('div')`
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
   font-weight: normal;
-  margin-top: 2px;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)};
 
   &:hover {
     color: ${p => p.theme.linkHoverColor};
