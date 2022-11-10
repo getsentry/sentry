@@ -133,7 +133,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         while self._ongoing_billing_outcomes:
             self._process_metrics_billing_bucket(timeout=None)
 
-    def _process_metrics_billing_bucket(self, timeout: Optional[float] = None) -> None:
+    def _process_metrics_billing_bucket(
+        self, timeout: Optional[float] = None, force: bool = False
+    ) -> None:
         """
         Takes the first billing outcome from the queue and if it's completed,
         commits the metrics bucket.
@@ -159,7 +161,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 )
 
         self._ongoing_billing_outcomes.popleft()
-        self._commit({metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())})
+        mapping = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
+        self._commit(mapping, force)
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
@@ -174,7 +177,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 )
                 break
 
-            self._process_metrics_billing_bucket(time_left)
+            self._process_metrics_billing_bucket(time_left, force=True)
 
         self._billing_producer.close()
 
