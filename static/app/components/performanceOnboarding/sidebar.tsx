@@ -9,6 +9,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
@@ -25,7 +26,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
-import OnBoardingStep from './step';
 import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
@@ -250,7 +250,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       {docKeys.map((docKey, index) => {
         let footer: React.ReactNode = null;
 
-        if (index === 2) {
+        if (index === docKeys.length - 1) {
           footer = (
             <EventWaiter
               api={api}
@@ -267,10 +267,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         }
         return (
           <div key={index}>
-            <OnBoardingStep
-              docKey={docKey}
-              project={currentProject}
+            <OnboardingStep
               docContent={docContents[docKey]}
+              docKey={docKey}
+              prefix="perf"
+              project={currentProject}
             />
             {footer}
           </div>
