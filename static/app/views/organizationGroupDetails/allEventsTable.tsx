@@ -14,6 +14,7 @@ export interface Props {
   location: Location;
   organization: Organization;
   projectId: string;
+  projectSlug: string;
   excludedTags?: string[];
   totalEventCount?: string;
 }
@@ -25,6 +26,7 @@ const AllEventsTable = (props: Props) => {
     issueId,
     isPerfIssue,
     excludedTags,
+    projectSlug,
     projectId,
     totalEventCount,
   } = props;
@@ -32,6 +34,7 @@ const AllEventsTable = (props: Props) => {
   const routes = useRoutes();
 
   const isReplayEnabled = organization.features.includes('session-replay-ui');
+
   const fields: string[] = [
     'id',
     'transaction',
@@ -56,6 +59,7 @@ const AllEventsTable = (props: Props) => {
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId} event.type:transaction`
     : `issue.id:${issueId}`;
+  eventView.project = [parseInt(projectId, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
 
@@ -84,7 +88,7 @@ const AllEventsTable = (props: Props) => {
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
-      projectId={projectId}
+      projectSlug={projectSlug}
       totalEventCount={totalEventCount}
       customColumns={['minidump']}
       setError={(msg: string | undefined) => setError(msg ?? '')}
