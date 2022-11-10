@@ -154,6 +154,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     project_id=message_dict["project_id"],
                     segment_id=headers["segment_id"],
                     file_id=file.id,
+                    size=len(recording_segment),
                 )
             except IntegrityError:
                 # Same message was encountered more than once.
