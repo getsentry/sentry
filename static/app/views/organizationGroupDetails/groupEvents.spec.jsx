@@ -415,6 +415,31 @@ describe('groupEvents', function () {
       );
     });
 
+    it('only request for a single projectId', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{
+            query: {
+              environment: ['prod', 'staging'],
+              sort: 'user',
+              project: [group.project.id, '456'],
+            },
+          }}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({project: [group.project.id]}),
+        })
+      );
+    });
+
     it('shows discover query error message', async () => {
       discoverRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',

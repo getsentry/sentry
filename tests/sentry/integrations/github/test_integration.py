@@ -604,7 +604,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             # These checks are useful since they will be available in the GCP logs
             expected_msg = "The Github App does not have access to Test-Organization/baz."
             assert self._caplog.records[8].message == expected_msg
-            assert self._caplog.records[8].levelname == "ERROR"
+            assert self._caplog.records[8].levelname == "WARNING"
             # XXX: We would need to patch timezone to make sure the time is always the same
             assert self._caplog.records[9].message.startswith("Caching trees for Test-Organization")
             assert self._caplog.records[9].levelname == "INFO"
