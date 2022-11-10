@@ -7,7 +7,6 @@ from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
-from dateutil.parser import parse as parse_datetime
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -29,6 +28,7 @@ from sentry.search.events.fields import (
     is_function,
 )
 from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.search.utils import parse_iso_timestamp
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
@@ -105,7 +105,7 @@ def zerofill(data, start, end, rollup, orderby):
     for obj in data:
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
-            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
+            obj["time"] = int(to_timestamp(parse_iso_timestamp(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
