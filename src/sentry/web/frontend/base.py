@@ -16,7 +16,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
-from sentry.api.utils import is_member_disabled_from_limit
+from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
@@ -29,7 +29,7 @@ from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
-from sentry.utils.http import absolute_uri
+from sentry.utils.http import absolute_uri, is_using_customer_domain
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -189,15 +189,35 @@ class OrganizationMixin:
     def redirect_to_org(self, request: Request):
         from sentry import features
 
+        using_customer_domain = request and is_using_customer_domain(request)
+
         # TODO(dcramer): deal with case when the user cannot create orgs
         if self.active_organization:
-            url = Organization.get_url(self.active_organization.organization.slug)
+            current_org_slug = self.active_organization.organization.slug
+            url = Organization.get_url(current_org_slug)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
+            org_exists = False
             url = "/organizations/new/"
-            if request.subdomain:
+            if using_customer_domain:
                 url = absolute_uri(url)
+
+            if using_customer_domain and request.user and request.user.is_authenticated:
+                organizations = organization_service.get_organizations(
+                    user_id=request.user.id, scope=None, only_visible=True
+                )
+                org_exists = (
+                    organization_service.check_organization_by_slug(
+                        slug=request.subdomain, only_visible=True
+                    )
+                    is not None
+                )
+                if org_exists and organizations:
+                    url = reverse("sentry-auth-organization", args=[request.subdomain])
+                    url_prefix = generate_organization_url(request.subdomain)
+                    url = absolute_uri(url, url_prefix=url_prefix)
+
         return HttpResponseRedirect(url)
 
 
@@ -237,7 +257,10 @@ class BaseView(View, OrganizationMixin):
 
         """
 
-        self.determine_active_organization(request, kwargs.get("organization_slug", None))
+        organization_slug = kwargs.get("organization_slug", None)
+        if request and is_using_customer_domain(request):
+            organization_slug = request.subdomain
+        self.determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
             if hasattr(self.dispatch.__func__, "csrf_exempt"):
