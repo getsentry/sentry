@@ -207,10 +207,12 @@ class OrganizationMixin:
                 organizations = organization_service.get_organizations(
                     user_id=request.user.id, scope=None, only_visible=True
                 )
-                maybe_org = organization_service.get_organization_by_slug(
-                    user_id=None, slug=request.subdomain, only_visible=True
+                org_exists = (
+                    organization_service.check_organization_by_slug(
+                        slug=request.subdomain, only_visible=True
+                    )
+                    is not None
                 )
-                org_exists = maybe_org and maybe_org.organization
                 if org_exists and organizations:
                     url = reverse("sentry-auth-organization", args=[request.subdomain])
                     url_prefix = generate_organization_url(request.subdomain)
