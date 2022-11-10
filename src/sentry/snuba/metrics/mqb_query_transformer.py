@@ -4,6 +4,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularit
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
@@ -11,7 +12,7 @@ from sentry.snuba.metrics import (
     DerivedMetricException,
     TransactionMRI,
 )
-from sentry.snuba.metrics.fields.base import DERIVED_METRICS, DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
 from sentry.snuba.metrics.query import (
     MetricConditionField,
     MetricField,
@@ -241,20 +242,11 @@ def _transform_orderby(query_orderby):
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
-def _recursively_compute_ingested_mri(metric_mri):
-    if metric_mri not in DERIVED_METRICS:
-        return metric_mri
-
-    # We assume that all the derived metrics are from the same entity type, therefore we take the first ingested mri.
-    for child_metric_mri in DERIVED_METRICS[metric_mri].metrics:
-        ingested_mri = _recursively_compute_ingested_mri(child_metric_mri)
-        if ingested_mri is not None:
-            return ingested_mri
-
-    return None
-
-
-def _derive_mri_to_apply(select, orderby):
+def _derive_mri_to_apply(project_ids, select, orderby):
+    mri_dictionary = {
+        "generic_metrics_distributions": TransactionMRI.DURATION.value,
+        "generic_metrics_sets": TransactionMRI.USER.value,
+    }
     mri_to_apply = TransactionMRI.DURATION.value
 
     # We first check if there is an order by field that has the team_key_transaction, otherwise
@@ -267,27 +259,16 @@ def _derive_mri_to_apply(select, orderby):
                 break
 
     if has_order_by_tkt:
-        mri_types = dict()
-        for select_field in select:
-            if select_field.op != TEAM_KEY_TRANSACTION_OP:
-                # We assume to have a correct MRI.
-                mri_type = select_field.metric_mri.split(":")[0]
-                if mri_type not in mri_types:
-                    # We set the mri to be the first occurrence, in order to make it easier for the user.
-                    #
-                    # It is important to note that in case of derived metrics we are going to recursively obtain the
-                    # leftmost ingested mri available in the dependency tree.
-                    mri_types[mri_type] = (
-                        select_field.metric_mri
-                        if mri_type != "e"
-                        else _recursively_compute_ingested_mri(select_field.metric_mri)
-                    )
+        # TODO: add here optimization that gets an entity from the select (either set of distribution) and sets it
+        #  to all tkt in the query.
+        entities = set()
+        for orderby_field in orderby:
+            if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
+                expr = metric_object_factory(orderby_field.field.op, orderby_field.field.metric_mri)
+                entities.add(expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE))
 
-        if len(mri_types) == 1:
-            # In order to simplify the code we just set the MRI of the team_key_transaction to be equal
-            # to the one of the entity in the select in order to make sure that the "get_entity" method
-            # will always return the same result.
-            mri_to_apply = mri_types[list(mri_types.keys())[0]]
+        assert len(entities) == 1
+        mri_to_apply = mri_dictionary[entities.pop()]
 
     return mri_to_apply
 
@@ -377,8 +358,8 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
     return list(map(_orderby, orderby))
 
 
-def _transform_team_key_transaction_fake_mri(select, where, groupby, orderby):
-    mri_to_apply = _derive_mri_to_apply(select, orderby)
+def _transform_team_key_transaction_fake_mri(project_ids, select, where, groupby, orderby):
+    mri_to_apply = _derive_mri_to_apply(project_ids, select, orderby)
 
     return (
         _transform_team_key_transaction_in_select(mri_to_apply, select)
@@ -425,14 +406,12 @@ def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
 
     # This code is just an edge case specific for the team_key_transaction derived operation.
     (select, where, groupby, orderby) = _transform_team_key_transaction_fake_mri(
+        mq_dict["project_ids"],
         mq_dict["select"],
         mq_dict["where"],
         mq_dict["groupby"],
         mq_dict["orderby"],
     )
-    mq_dict["select"] = select
-    mq_dict["where"] = where
-    mq_dict["groupby"] = groupby
-    mq_dict["orderby"] = orderby
+    mq_dict.update({"select": select, "where": where, "groupby": groupby, "orderby": orderby})
 
     return MetricsQuery(**mq_dict)

@@ -443,6 +443,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["failure_count()"] == "integer"
 
     def test_user_misery_and_team_key_sort(self):
+        self.features["organizations:use-metrics-layer"] = True
         self.store_transaction_metric(
             1,
             tags={
