@@ -215,7 +215,12 @@ function TransactionHeader({
           const renderWebVitals = getWebVitals(!!hasMeasurements);
 
           return (
-            <TabList hideBorder>
+            <TabList
+              hideBorder
+              outerWrapStyles={{
+                gridColumn: '1 / -1',
+              }}
+            >
               <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
               <Item key={Tab.Events}>{t('All Events')}</Item>
               <Item key={Tab.Tags}>{t('Tags')}</Item>

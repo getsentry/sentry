@@ -69,9 +69,15 @@ function useOverflowTabs({
 interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
   className?: string;
   hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
 }
 
-function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
+function BaseTabList({
+  hideBorder = false,
+  className,
+  outerWrapStyles,
+  ...props
+}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -134,7 +140,7 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap>
+    <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
