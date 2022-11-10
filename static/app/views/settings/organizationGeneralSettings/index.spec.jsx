@@ -1,23 +1,24 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 describe('OrganizationGeneralSettings', function () {
-  enforceActOnUseLegacyStoreHook();
-
-  let organization;
-  let routerContext;
+  const organization = TestStubs.Organization();
   const ENDPOINT = '/organizations/org-slug/';
 
   beforeEach(function () {
-    ({organization, routerContext} = initializeOrg());
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -26,160 +27,132 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={organization}
-      />,
-      routerContext
+      />
     );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
 
-    await tick();
-    wrapper.update();
-    wrapper.find('Switch[id="isEarlyAdopter"]').simulate('click');
-    expect(mock).toHaveBeenCalledWith(
-      ENDPOINT,
-      expect.objectContaining({
-        data: {isEarlyAdopter: true},
-      })
-    );
+    userEvent.click(screen.getByRole('checkbox', {name: /early adopter/i}));
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {isEarlyAdopter: true},
+        })
+      );
+    });
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={organization}
-      />,
-      routerContext
+      />
     );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
 
-    await tick();
-    wrapper.update();
+    userEvent.clear(screen.getByRole('textbox', {name: /slug/i}));
+    userEvent.type(screen.getByRole('textbox', {name: /slug/i}), 'new-slug');
 
-    // Change slug
-    act(() => {
-      wrapper
-        .find('input[id="slug"]')
-        .simulate('change', {target: {value: 'new-slug'}})
-        .simulate('blur');
+    userEvent.click(screen.getByLabelText('Save'));
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {slug: 'new-slug'},
+        })
+      );
+      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
     });
-
-    await tick();
-    wrapper.update();
-
-    act(() => {
-      wrapper.find('button[aria-label="Save"]').simulate('click');
-    });
-
-    expect(mock).toHaveBeenCalledWith(
-      ENDPOINT,
-      expect.objectContaining({
-        data: {slug: 'new-slug'},
-      })
-    );
-
-    await tick();
-    // Not sure why this needs to be async, but it does
-    expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
   });
 
-  it('disables the entire form if user does not have write access', async function () {
-    ({organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: ['org:read']}),
-    }));
-    const wrapper = mountWithTheme(
+  it('disables the entire form if user does not have write access', function () {
+    render(
       <OrganizationGeneralSettings
         routes={[]}
         params={{orgId: organization.slug}}
-        organization={organization}
-      />,
-      routerContext
+        organization={TestStubs.Organization({access: ['org:read']})}
+      />
     );
 
-    await tick();
-    wrapper.update();
+    const formElements = [
+      ...screen.getAllByRole('textbox'),
+      ...screen.getAllByRole('button'),
+      ...screen.getAllByRole('checkbox'),
+    ];
 
-    expect(wrapper.find('Form FormField[disabled=false]')).toHaveLength(0);
-    expect(wrapper.find('PermissionAlert').first().text()).toEqual(
-      'These settings can only be edited by users with the organization owner or manager role.'
-    );
+    for (const formElement of formElements) {
+      expect(formElement).toBeDisabled();
+    }
+
+    expect(
+      screen.getByText(
+        'These settings can only be edited by users with the organization owner or manager role.'
+      )
+    ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button', async function () {
-    const wrapper = mountWithTheme(
+  it('does not have remove organization button without org:admin permission', function () {
+    render(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={TestStubs.Organization({
           access: ['org:write'],
         })}
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
+    expect(
+      screen.queryByRole('button', {name: /remove organization/i})
+    ).not.toBeInTheDocument();
   });
 
   it('can remove organization when org admin', async function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
 
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={TestStubs.Organization({access: ['org:admin']})}
-      />,
-      routerContext
+      />
     );
+    renderGlobalModal();
+
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
     });
 
-    await tick();
-    wrapper.update();
-    wrapper.find('Confirm[priority="danger"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: /remove organization/i}));
 
-    const modal = await mountGlobalModal();
+    const modal = screen.getByRole('dialog');
 
-    // Lists projects in modal
-    const projectList = modal.find('List[data-test-id="removed-projects-list"]');
-    expect(projectList).toHaveLength(1);
-    expect(projectList.text()).toBe('project');
+    expect(
+      within(modal).getByText('This will also remove the following associated projects:')
+    ).toBeInTheDocument();
+    expect(within(modal).getByText('project')).toBeInTheDocument();
 
-    // Confirm delete
-    modal.find('Button[priority="danger"]').simulate('click');
-    expect(mock).toHaveBeenCalledWith(
-      ENDPOINT,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
-  });
+    userEvent.click(within(modal).getByRole('button', {name: /remove organization/i}));
 
-  it('does not render join request switch with SSO enabled', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/auth-provider/`,
-      method: 'GET',
-      body: TestStubs.AuthProvider(),
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
     });
-
-    const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
-      TestStubs.routerContext([{organization}])
-    );
-
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
   });
 });
