@@ -74,6 +74,7 @@ def get_monitor_context(monitor):
 class MonitorStatus(ObjectStatus):
     OK = 4
     ERROR = 5
+    MISSED_CHECKIN = 6
 
     @classmethod
     def as_choices(cls):
@@ -84,6 +85,7 @@ class MonitorStatus(ObjectStatus):
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
+            (cls.MISSED_CHECKIN, "missed_checkin"),
         )
 
 
@@ -190,6 +192,9 @@ class Monitor(Model):
             },
         )
 
+        new_status = MonitorStatus.ERROR
+        if reason == MonitorFailure.MISSED_CHECKIN:
+            new_status = MonitorStatus.MISSED_CHECKIN
         affected = (
             type(self)
             .objects.filter(
@@ -197,7 +202,7 @@ class Monitor(Model):
             )
             .update(
                 next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=MonitorStatus.ERROR,
+                status=new_status,
                 last_checkin=last_checkin,
             )
         )
