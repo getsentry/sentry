@@ -49,9 +49,13 @@ function BaseTab(
   const {
     key,
     rendered,
-    props: {to},
+    props: {to, hidden},
   } = item;
-  const {tabProps, isSelected, isDisabled} = useTab({key}, state, ref);
+  const {tabProps, isSelected, isDisabled} = useTab(
+    {key, isDisabled: hidden},
+    state,
+    ref
+  );
 
   const InnerWrap = useCallback(
     ({children}) =>
@@ -74,6 +78,7 @@ function BaseTab(
   return (
     <TabWrap
       {...tabProps}
+      hidden={hidden}
       disabled={isDisabled}
       selected={isSelected}
       overflowing={overflowing}
