@@ -164,21 +164,6 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
 
-        # mock_onboarding_task.assert_called_with(
-        #     organization_id=self.project.organization_id,
-        #     task=OnboardingTask.SESSION_REPLAY,
-        #     status=OnboardingTaskStatus.COMPLETE,
-        #     date_completed=ANY,
-        # )
-
-        # mock_record.assert_called_with(
-        #     "first_replay.sent",
-        #     organization_id=self.organization.id,
-        #     project_id=self.project.id,
-        #     platform=self.project.platform,
-        #     user_id=self.organization.default_owner_id,
-        # )
-
     def test_duplicate_segment_flow(self):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
