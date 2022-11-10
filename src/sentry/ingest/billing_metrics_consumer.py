@@ -50,7 +50,7 @@ def get_metrics_billing_consumer(
     topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
     bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
 
-    batch_time_secs = (max_batch_time // 1000) or 1
+    batch_time_secs = max_batch_time / 1000
     commit_policy = CommitPolicy(
         min_commit_frequency_sec=batch_time_secs, min_commit_messages=max_batch_size
     )
