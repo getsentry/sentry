@@ -107,6 +107,22 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert resp.status_code == 400
         assert "not a valid SearchType" in resp.data["type"][0]
 
+    def test_empty_query(self):
+        self.login_as(self.member)
+        query = ""
+        search_type = SearchType.ISSUE.value
+        sort = SortOptions.DATE
+        self.get_success_response(type=search_type, query=query, sort=sort, status_code=201)
+        assert SavedSearch.objects.filter(
+            organization=self.organization,
+            name=PINNED_SEARCH_NAME,
+            owner=self.member,
+            type=search_type,
+            query=query,
+            sort=sort,
+            visibility=Visibility.OWNER_PINNED,
+        ).exists()
+
 
 @region_silo_test
 class DeleteOrganizationPinnedSearchTest(APITestCase):

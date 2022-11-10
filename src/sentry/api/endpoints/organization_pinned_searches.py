@@ -13,7 +13,7 @@ PINNED_SEARCH_NAME = "My Pinned Search"
 
 class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     sort = serializers.ChoiceField(
         choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
     )
