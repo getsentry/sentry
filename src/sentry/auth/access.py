@@ -33,6 +33,10 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.services.hybrid_cloud.organization import (
+    DatabaseBackedOrganizationService,
+    OrganizationService,
+)
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
@@ -445,45 +449,14 @@ class NoAccess(OrganizationlessAccess):
 DEFAULT = NoAccess()
 
 
-class AccessFactory(abc.ABC):
-    @abc.abstractmethod
+@dataclass(frozen=True)
+class AccessFactory:
+    organization_service: OrganizationService
+
     def from_request(
         self,
         request: HttpRequest,
-        organization: Organization = None,
-        scopes: Iterable[str] | None = None,
-    ) -> Access:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def from_user(
-        self,
-        user: User | AnonymousUser,
         organization: Organization | None = None,
-        scopes: Iterable[str] | None = None,
-        is_superuser: bool = False,
-    ) -> Access:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def from_member(
-        self,
-        member: OrganizationMember,
-        scopes: Iterable[str] | None = None,
-        is_superuser: bool = False,
-    ) -> Access:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def from_auth(self, auth: ApiKey | SystemToken, organization: Organization) -> Access:
-        raise NotImplementedError
-
-
-class OrmAccessFactory(AccessFactory):
-    def from_request(
-        self,
-        request: HttpRequest,
-        organization: Organization = None,
         scopes: Iterable[str] | None = None,
     ) -> Access:
         is_superuser = is_active_superuser(request)
@@ -523,7 +496,7 @@ class OrmAccessFactory(AccessFactory):
 
     # only used internally
     def _from_sentry_app(
-        self, user: User | AnonymousUser, organization: Organization | None = None
+        user: User | AnonymousUser, organization: Organization | None = None
     ) -> Access:
         if not organization:
             return NoAccess()
@@ -594,37 +567,7 @@ class OrmAccessFactory(AccessFactory):
             return DEFAULT
 
 
-class ApiAccessFactory(AccessFactory):
-    def from_request(
-        self,
-        request: HttpRequest,
-        organization: Organization = None,
-        scopes: Iterable[str] | None = None,
-    ) -> Access:
-        raise NotImplementedError  # TODO
-
-    def from_user(
-        self,
-        user: User | AnonymousUser,
-        organization: Organization | None = None,
-        scopes: Iterable[str] | None = None,
-        is_superuser: bool = False,
-    ) -> Access:
-        raise NotImplementedError  # TODO
-
-    def from_member(
-        self,
-        member: OrganizationMember,
-        scopes: Iterable[str] | None = None,
-        is_superuser: bool = False,
-    ) -> Access:
-        raise NotImplementedError  # TODO
-
-    def from_auth(self, auth: ApiKey | SystemToken, organization: Organization) -> Access:
-        raise NotImplementedError  # TODO
-
-
-_default_factory: AccessFactory = OrmAccessFactory()
+_default_factory: AccessFactory = AccessFactory(DatabaseBackedOrganizationService())
 from_request = _default_factory.from_request
 from_user = _default_factory.from_user
 from_member = _default_factory.from_member
