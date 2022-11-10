@@ -1,4 +1,3 @@
-import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
@@ -11,7 +10,7 @@ type Props = {
   searchTerm?: string;
 };
 
-const Level = memo(function Level({level, searchTerm = ''}: Props) {
+export function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
@@ -44,9 +43,7 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
         </LevelTag>
       );
   }
-});
-
-export default Level;
+}
 
 const LevelTag = styled(Tag)`
   display: flex;

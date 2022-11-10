@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
-import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
+import {Level} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
+import {Type} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 

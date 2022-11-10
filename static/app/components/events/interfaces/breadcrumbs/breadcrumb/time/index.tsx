@@ -1,4 +1,3 @@
-import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
@@ -16,12 +15,7 @@ type Props = {
   timestamp?: string;
 };
 
-const Time = memo(function Time({
-  timestamp,
-  relativeTime,
-  displayRelativeTime,
-  searchTerm,
-}: Props) {
+export function Time({timestamp, relativeTime, displayRelativeTime, searchTerm}: Props) {
   if (!(defined(timestamp) && defined(relativeTime))) {
     return <div />;
   }
@@ -52,7 +46,7 @@ const Time = memo(function Time({
       </Tooltip>
     </Wrapper>
   );
-});
+}
 
 export default Time;
 
