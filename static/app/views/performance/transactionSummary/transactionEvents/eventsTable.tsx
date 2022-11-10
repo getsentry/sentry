@@ -162,7 +162,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
-      projectId: projectSlug,
+      projectSlug,
     });
 
     const allowActions = [
