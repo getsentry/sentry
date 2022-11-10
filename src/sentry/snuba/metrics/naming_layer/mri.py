@@ -110,6 +110,7 @@ class TransactionMRI(Enum):
     MISERABLE_USER = "e:transactions/user.miserable@none"
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
+    TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
 
 
 @dataclass

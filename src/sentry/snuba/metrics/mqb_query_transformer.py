@@ -23,8 +23,7 @@ from sentry.snuba.metrics.query import OrderBy
 from sentry.snuba.metrics.query import OrderBy as MetricOrderBy
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 
-TEAM_KEY_TRANSACTION_FAKE_MRI = "e:custom/team_key_transaction@reserved"
-TEAM_KEY_TRANSACTION_TMP_ALIAS = "team_key_transaction_tmp_alias"
+TEAM_KEY_TRANSACTION_FAKE_MRI = "e:transactions/team_key_transaction@none"
 TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
 
@@ -275,16 +274,6 @@ def _derive_mri_to_apply(project_ids, select, orderby):
     return mri_to_apply
 
 
-def _tmp_alias_to_none(alias):
-    # If we encounter a metric field with the temporary alias it means that the user set a team_key_transaction field
-    # without the alias, but we had to inject a custom alias to avoid having an exception while calling
-    # get_public_name_from_mri().
-    if alias == f"{TEAM_KEY_TRANSACTION_OP}({TEAM_KEY_TRANSACTION_TMP_ALIAS}":
-        return None
-
-    return alias
-
-
 def _transform_team_key_transaction_in_select(mri_to_apply, select):
     if select is None:
         return select
@@ -295,7 +284,7 @@ def _transform_team_key_transaction_in_select(mri_to_apply, select):
                 op=select_field.op,
                 metric_mri=mri_to_apply,
                 params=select_field.params,
-                alias=_tmp_alias_to_none(select_field.alias),
+                alias=select_field.alias,
             )
 
         return select_field
@@ -317,7 +306,7 @@ def _transform_team_key_transaction_in_where(mri_to_apply, where):
                     op=where_field.lhs.op,
                     metric_mri=mri_to_apply,
                     params=where_field.lhs.params,
-                    alias=_tmp_alias_to_none(where_field.lhs.alias),
+                    alias=where_field.lhs.alias,
                 ),
                 op=where_field.op,
                 rhs=where_field.rhs,
@@ -342,7 +331,7 @@ def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
                     op=groupby_field.field.op,
                     metric_mri=mri_to_apply,
                     params=groupby_field.field.params,
-                    alias=_tmp_alias_to_none(groupby_field.field.alias),
+                    alias=groupby_field.field.alias,
                 ),
             )
 
@@ -362,7 +351,7 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
                     op=orderby_field.field.op,
                     metric_mri=mri_to_apply,
                     params=orderby_field.field.params,
-                    alias=_tmp_alias_to_none(orderby_field.field.alias),
+                    alias=orderby_field.field.alias,
                 ),
                 direction=orderby_field.direction,
             )
