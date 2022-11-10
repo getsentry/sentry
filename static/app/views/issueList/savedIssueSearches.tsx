@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -38,7 +38,7 @@ type CreateNewSavedSearchButtonProps = Pick<
   'query' | 'sort' | 'organization'
 >;
 
-const MAX_SHOWN_SEARCHES = 5;
+const MAX_SHOWN_SEARCHES = 4;
 
 const SavedSearchItemDescription = ({
   savedSearch,
@@ -50,8 +50,8 @@ const SavedSearchItemDescription = ({
   return (
     <SavedSearchItemVisbility>
       {savedSearch.visibility === SavedSearchVisibility.Organization
-        ? t('Org Search')
-        : t('My  Search')}
+        ? t('Anyone in organization can see but not edit')
+        : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
 };
@@ -100,11 +100,10 @@ const SavedSearchItem = ({
   ];
 
   return (
-    <SearchListItem>
+    <SearchListItem hasMenu={!savedSearch.isGlobal}>
       <StyledItemButton
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
-        hasMenu={!savedSearch.isGlobal}
         borderless
         align="left"
       >
@@ -226,15 +225,16 @@ const SavedIssueSearchesContent = ({
             />
           ))}
           {shownOrgSavedSearches.length === 0 && (
-            <p>{t("You don't have any saved searches.")}</p>
+            <NoSavedSearchesText>
+              {t("You don't have any saved searches")}
+            </NoSavedSearchesText>
           )}
         </SearchesContainer>
         {orgSavedSearches.length > shownOrgSavedSearches.length && (
           <ShowAllButton size="zero" borderless onClick={() => setShowAll(true)}>
-            {tn(
-              'Show %s saved search',
-              'Show all %s saved searches',
-              orgSavedSearches.length
+            {t(
+              'Show %s more',
+              (orgSavedSearches.length - shownOrgSavedSearches.length).toLocaleString()
             )}
           </ShowAllButton>
         )}
@@ -242,7 +242,7 @@ const SavedIssueSearchesContent = ({
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
           <HeadingContainer>
-            <Heading>{t('Recommended')}</Heading>
+            <Heading>{t('Recommended Searches')}</Heading>
           </HeadingContainer>
           <SearchesContainer>
             {recommendedSavedSearches.map(item => (
@@ -270,7 +270,7 @@ const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
 
 const StyledSidebar = styled('aside')`
   width: 100%;
-  padding: ${space(3)} ${space(2)};
+  padding: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
@@ -288,10 +288,12 @@ const HeadingContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   height: 38px;
+  padding-left: ${space(2)};
+  margin-top: ${space(3)};
+
   &:first-of-type {
     margin-top: 0;
   }
-  margin: ${space(3)} 0 ${space(2)} ${space(2)};
 `;
 
 const Heading = styled('h2')`
@@ -304,26 +306,54 @@ const SearchesContainer = styled('ul')`
   margin-bottom: ${space(1)};
 `;
 
-const SearchListItem = styled('li')`
-  position: relative;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
+const StyledItemButton = styled(Button)`
   display: block;
   width: 100%;
   text-align: left;
   height: auto;
   font-weight: normal;
   line-height: ${p => p.theme.text.lineHeightBody};
-  margin-top: 2px;
+
+  padding: ${space(1)} ${space(2)};
+`;
+
+const OverflowMenu = styled(DropdownMenuControl)`
+  position: absolute;
+  top: 12px;
+  right: ${space(1)};
+`;
+
+const SearchListItem = styled('li')<{hasMenu?: boolean}>`
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 
   ${p =>
     p.hasMenu &&
     css`
-      padding-right: 60px;
+      @media (max-width: ${p.theme.breakpoints.small}) {
+        ${StyledItemButton} {
+          padding-right: 60px;
+        }
+      }
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        ${OverflowMenu} {
+          display: none;
+        }
+
+        &:hover,
+        &:focus-within {
+          ${OverflowMenu} {
+            display: block;
+          }
+
+          ${StyledItemButton} {
+            padding-right: 60px;
+          }
+        }
+      }
     `}
 `;
 
@@ -338,6 +368,7 @@ const SavedSearchItemTitle = styled('div')`
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -348,21 +379,20 @@ const SavedSearchItemQuery = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const OverflowMenu = styled(DropdownMenuControl)`
-  position: absolute;
-  top: 12px;
-  right: ${space(1)};
-`;
-
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
   font-weight: normal;
-  margin-top: 2px;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)};
 
   &:hover {
     color: ${p => p.theme.linkHoverColor};
   }
+`;
+
+const NoSavedSearchesText = styled('p')`
+  padding: 0 ${space(2)};
+  margin: ${space(0.5)} 0;
+  color: ${p => p.theme.subText};
 `;
 
 export default SavedIssueSearches;
