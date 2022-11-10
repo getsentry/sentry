@@ -23,7 +23,6 @@ from sentry.snuba.metrics.query import OrderBy
 from sentry.snuba.metrics.query import OrderBy as MetricOrderBy
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 
-TEAM_KEY_TRANSACTION_FAKE_MRI = "e:transactions/team_key_transaction@none"
 TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
 
@@ -361,15 +360,17 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
     return list(map(_orderby, orderby))
 
 
-def _transform_team_key_transaction_fake_mri(project_ids, select, where, groupby, orderby):
-    mri_to_apply = _derive_mri_to_apply(project_ids, select, orderby)
-
-    return (
-        _transform_team_key_transaction_in_select(mri_to_apply, select),
-        _transform_team_key_transaction_in_where(mri_to_apply, where),
-        _transform_team_key_transaction_in_groupby(mri_to_apply, groupby),
-        _transform_team_key_transaction_in_orderby(mri_to_apply, orderby),
+def _transform_team_key_transaction_fake_mri(mq_dict):
+    mri_to_apply = _derive_mri_to_apply(
+        mq_dict["project_ids"], mq_dict["select"], mq_dict["orderby"]
     )
+
+    return {
+        "select": _transform_team_key_transaction_in_select(mri_to_apply, mq_dict["select"]),
+        "where": _transform_team_key_transaction_in_where(mri_to_apply, mq_dict["where"]),
+        "groupby": _transform_team_key_transaction_in_groupby(mri_to_apply, mq_dict["groupby"]),
+        "orderby": _transform_team_key_transaction_in_orderby(mri_to_apply, mq_dict["orderby"]),
+    }
 
 
 def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
@@ -400,13 +401,6 @@ def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
     }
 
     # This code is just an edge case specific for the team_key_transaction derived operation.
-    (select, where, groupby, orderby) = _transform_team_key_transaction_fake_mri(
-        mq_dict["project_ids"],
-        mq_dict["select"],
-        mq_dict["where"],
-        mq_dict["groupby"],
-        mq_dict["orderby"],
-    )
-    mq_dict.update({"select": select, "where": where, "groupby": groupby, "orderby": orderby})
+    mq_dict.update(**_transform_team_key_transaction_fake_mri(mq_dict))
 
     return MetricsQuery(**mq_dict)

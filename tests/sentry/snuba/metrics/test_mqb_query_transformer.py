@@ -13,8 +13,8 @@ from snuba_sdk.query import Query
 
 from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField, MetricsQuery
 from sentry.snuba.metrics import OrderBy as MetricsOrderBy
+from sentry.snuba.metrics import TransactionMRI
 from sentry.snuba.metrics.mqb_query_transformer import (
-    TEAM_KEY_TRANSACTION_FAKE_MRI,
     MQBQueryTransformationException,
     transform_mqb_query_to_metrics_query,
 )
@@ -208,7 +208,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Function(
                     function="team_key_transaction",
                     parameters=[
-                        Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
@@ -222,7 +222,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Function(
                     function="team_key_transaction",
                     parameters=[
-                        Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
@@ -264,7 +264,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     lhs=Function(
                         function="team_key_transaction",
                         parameters=[
-                            Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                             [(13, "foo_transaction")],
                         ],
                         alias="team_key_transaction",
@@ -287,7 +287,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     exp=Function(
                         function="team_key_transaction",
                         parameters=[
-                            Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                             [(13, "foo_transaction")],
                         ],
                         alias="team_key_transaction",
@@ -393,7 +393,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Function(
                     function="team_key_transaction",
                     parameters=[
-                        Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
@@ -403,7 +403,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Function(
                     function="team_key_transaction",
                     parameters=[
-                        Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
@@ -443,7 +443,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     lhs=Function(
                         function="team_key_transaction",
                         parameters=[
-                            Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                             [(13, "foo_transaction")],
                         ],
                         alias="team_key_transaction",
@@ -458,7 +458,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     exp=Function(
                         function="team_key_transaction",
                         parameters=[
-                            Column(TEAM_KEY_TRANSACTION_FAKE_MRI),
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
                             [(13, "foo_transaction")],
                         ],
                         alias="team_key_transaction",
