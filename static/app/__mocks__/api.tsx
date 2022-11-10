@@ -1,5 +1,3 @@
-import isEqual from 'lodash/isEqual';
-
 import type {HandleRequestErrorOptions, RequestOptions, ResponseMeta} from 'sentry/api';
 import ModalStore from 'sentry/stores/modalStore';
 
@@ -49,7 +47,7 @@ type MockResponse = [resp: ResponseType, mock: jest.Mock];
  */
 function compareRecord(want: Record<string, any>, check: Record<string, any>): boolean {
   for (const key in want) {
-    if (!isEqual(check[key], want[key])) {
+    if (check[key] !== want[key]) {
       return false;
     }
   }
@@ -331,7 +329,7 @@ class Client implements Client {
   }
 }
 
-async function openSudo({onClose, ...args}: any = {}) {
+export async function openSudo({onClose, ...args}: any = {}) {
   const mod = await import('sentry/components/modals/sudoModal');
   const {default: Modal} = mod;
 
