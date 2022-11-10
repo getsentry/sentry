@@ -119,17 +119,27 @@ def test_outcomes_consumed(_gbp):
     )
 
     assert fake_commit.mock_calls == [
-        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=1, timestamp=time)}),
-        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=2, timestamp=time)}),
-        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=3, timestamp=time)}),
-        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=4, timestamp=time)}),
+        mock.call(
+            {Partition(topic=metrics_topic, index=0): Position(offset=1, timestamp=time)}, False
+        ),
+        mock.call(
+            {Partition(topic=metrics_topic, index=0): Position(offset=2, timestamp=time)}, False
+        ),
+        mock.call(
+            {Partition(topic=metrics_topic, index=0): Position(offset=3, timestamp=time)}, False
+        ),
+        mock.call(
+            {Partition(topic=metrics_topic, index=0): Position(offset=4, timestamp=time)}, False
+        ),
     ]
     fake_commit.reset_mock()
 
     # A join must commit the last submitted message
     strategy.join()
     assert fake_commit.mock_calls == [
-        mock.call({Partition(topic=metrics_topic, index=0): Position(offset=5, timestamp=time)})
+        mock.call(
+            {Partition(topic=metrics_topic, index=0): Position(offset=5, timestamp=time)}, True
+        )
     ]
 
     # The consumer rejects new messages after closing
