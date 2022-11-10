@@ -68,7 +68,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import ConditionGroup
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -134,7 +134,14 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, OrderBy, get_date_range
+from ..snuba.metrics import (
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricsQuery,
+    OrderBy,
+    get_date_range,
+)
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from . import assert_status_code
 from .factories import Factories
@@ -1402,7 +1409,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        where: Optional[ConditionGroup] = None,
+        where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[OrderBy]] = None,
         limit: Optional[Limit] = None,
