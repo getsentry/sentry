@@ -28,7 +28,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
-            "transaction.duration": self._duration_filter_converter,
             "transaction": self._transaction_filter_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
@@ -400,8 +399,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return AliasedExpression(self.builder.resolve_column("transaction"), alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
-        if self.builder.dry_run:
-            return field_aliases.dry_run_default(self.builder, constants.TEAM_KEY_TRANSACTION_ALIAS)
         team_key_transactions = field_aliases.get_team_transactions(self.builder)
         count = len(team_key_transactions)
 
@@ -434,16 +431,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
-
-    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if (
-            self.builder.dry_run
-            and search_filter.value.raw_value == 900000
-            and search_filter.operator == "<"
-        ):
-            return None
-
-        return self.builder._default_filter_converter(search_filter)
 
     def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator

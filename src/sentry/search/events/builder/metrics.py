@@ -49,7 +49,6 @@ class MetricsQueryBuilder(QueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
-        dry_run: Optional[bool] = False,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -60,7 +59,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self._indexer_cache: Dict[str, Optional[int]] = {}
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
-        self.dry_run = dry_run
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -148,11 +146,6 @@ class MetricsQueryBuilder(QueryBuilder):
         :param name: The unresolved sentry name.
         """
         missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
-        if self.dry_run:
-            if name in constants.DRY_RUN_COLUMNS:
-                return Column(name)
-            else:
-                raise missing_column
         try:
             return super().column(name)
         except InvalidSearchQuery:
@@ -160,11 +153,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def aliased_column(self, name: str) -> SelectType:
         missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
-        if self.dry_run:
-            if name in constants.DRY_RUN_COLUMNS:
-                return Column(name)
-            else:
-                raise missing_column
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
@@ -312,8 +300,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
-        if self.dry_run:
-            return -1
         if value not in self._indexer_cache:
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
@@ -327,8 +313,6 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
         if self.is_performance or self.use_metrics_layer:
             return value
-        if self.dry_run:
-            return -1
         return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -655,8 +639,6 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
-        if self.dry_run:
-            return result
         # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
         # goal is to get n=limit results from one query, then use those n results to create a condition for the
         # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
@@ -826,7 +808,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
-        dry_run: Optional[bool] = False,
         limit: Optional[int] = 10000,
         use_metrics_layer: Optional[bool] = False,
     ):
@@ -838,7 +819,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
-            dry_run=dry_run,
             use_metrics_layer=use_metrics_layer,
         )
         if self.granularity.granularity > interval:
@@ -992,11 +972,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                             data[meta["name"]] = self.get_default_value(meta["type"])
                 return metric_layer_result
         queries = self.get_snql_query()
-        if self.dry_run:
-            return {
-                "data": [],
-                "meta": [],
-            }
         if queries:
             results = bulk_snql_query(queries, referrer, use_cache)
         else:

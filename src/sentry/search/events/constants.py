@@ -244,24 +244,6 @@ METRIC_DURATION_COLUMNS = {
     for key, value in METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
-# So we can dry run some queries to see how often they'd be compatible
-DRY_RUN_COLUMNS = {
-    METRIC_TOLERATED_TAG_VALUE,
-    METRIC_SATISFIED_TAG_VALUE,
-    METRIC_FRUSTRATED_TAG_VALUE,
-    METRIC_SATISFACTION_TAG_KEY,
-    "environment",
-    "http.method",
-    "measurement_rating",
-    "organization_id",
-    "project.id",
-    "project_id",
-    "release",
-    "timestamp",
-    "transaction.op",
-    "transaction",
-    "transaction.status",
-}
 METRIC_PERCENTILES = {
     0.25,
     0.5,

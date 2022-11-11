@@ -116,7 +116,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
-            "organizations:performance-dry-run-mep",
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:server-side-sampling",
@@ -252,7 +251,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_profiles = batch_features.get("organizations:profiling", False)
 
-        performance_dry_run_mep = batch_features.get("organizations:performance-dry-run-mep", False)
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
         use_custom_dataset = use_metrics or use_profiles
@@ -287,9 +285,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "has_metrics": use_metrics,
                 "use_metrics_layer": use_metrics_layer,
             }
-            if not metrics_enhanced and performance_dry_run_mep:
+            if not metrics_enhanced:
                 sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.query(dry_run=True, **query_details)
+                metrics_enhanced_performance.query(**query_details)
             return dataset.query(**query_details)
 
         with self.handle_query_errors():

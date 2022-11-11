@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Function
@@ -11,16 +11,6 @@ from sentry.models import ProjectTeam
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
 from sentry.utils.numbers import format_grouped_length
-
-
-def dry_run_default(
-    builder: builder.QueryBuilder, alias: str, *args: Any, **kwargs: Any
-) -> SelectType:
-    """It doesn't really matter what we return here, the query won't be run
-
-    This is so we can easily swap to something when we're dry running to prevent hitting postgres at all
-    """
-    return Function("toUInt64", [0], alias)
 
 
 def resolve_team_key_transaction_alias(

@@ -1,7 +1,6 @@
 import datetime
 import math
 from typing import List
-from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -1409,84 +1408,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["count_unique_user"] == 0
         # Handled by the discover transform later so its fine that this is nan
         assert math.isnan(data["p50"])
-
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
-        query = MetricsQueryBuilder(
-            self.params,
-            # Include a tag:value search as well since that resolves differently
-            query=f"project:{self.project.slug} transaction:foo_transaction",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[
-                "transaction",
-                "p95(transaction.duration)",
-                "p100(measurements.lcp)",
-                "apdex()",
-                "count_web_vitals(measurements.lcp, good)",
-            ],
-            dry_run=True,
-        )
-        query.run_query("test_query")
-        assert not mock_indexer.called
-        assert not mock_query.called
-
-    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
-        MetricsQueryBuilder(
-            self.params,
-            query=f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[
-                "transaction",
-                "count_web_vitals(measurements.lcp, good)",
-                "count_web_vitals(measurements.lcp, good)",
-                "count_web_vitals(measurements.lcp, good)",
-                "count_web_vitals(measurements.lcp, good)",
-                "count_web_vitals(measurements.lcp, good)",
-            ],
-        )
-
-        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
-
-        expected.extend(
-            [
-                mock.call(
-                    UseCaseKey.PERFORMANCE,
-                    self.organization.id,
-                    constants.METRICS_MAP["measurements.lcp"],
-                ),
-                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
-            ]
-        )
-
-        self.assertCountEqual(mock_indexer.mock_calls, expected)
-
-    def test_custom_measurement_allowed(self):
-        MetricsQueryBuilder(
-            self.params,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[
-                "transaction",
-                "avg(measurements.custom.measurement)",
-                "p50(measurements.custom.measurement)",
-                "p75(measurements.custom.measurement)",
-                "p90(measurements.custom.measurement)",
-                "p95(measurements.custom.measurement)",
-                "p99(measurements.custom.measurement)",
-                "p100(measurements.custom.measurement)",
-                "percentile(measurements.custom.measurement, 0.95)",
-                "sum(measurements.custom.measurement)",
-                "max(measurements.custom.measurement)",
-                "min(measurements.custom.measurement)",
-                "count_unique(user)",
-            ],
-            query="transaction:foo_transaction",
-            allow_metric_aggregates=False,
-            use_aggregate_conditions=True,
-            # Use dry run for now to not hit indexer
-            dry_run=True,
-        )
 
     def test_group_by_not_in_select(self):
         query = MetricsQueryBuilder(

@@ -82,7 +82,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-use-metrics",
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
-            "organizations:performance-dry-run-mep",
             "organizations:use-metrics-layer",
         ]
         batch_features = features.batch_has(
@@ -163,9 +162,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 actor=request.user,
             )
 
-            performance_dry_run_mep = batch_features.get(
-                "organizations:performance-dry-run-mep", False
-            )
             use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
             use_custom_dataset = use_metrics or use_profiles
@@ -211,9 +207,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "has_metrics": use_metrics,
                 "use_metrics_layer": use_metrics_layer,
             }
-            if not metrics_enhanced and performance_dry_run_mep:
+            if not metrics_enhanced:
                 sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+                metrics_enhanced_performance.timeseries_query(**query_details)
             return dataset.timeseries_query(**query_details)
 
         try:

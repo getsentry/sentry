@@ -120,7 +120,6 @@ default_manager.add("organizations:onboarding", OrganizationFeature)  # Only ena
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-ingest", OrganizationFeature)
