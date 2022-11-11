@@ -52,6 +52,7 @@ class MonitorDetails extends AsyncView<Props, State> {
               orgId={this.props.params.orgId}
               onUpdate={this.onUpdate}
             />
+
             {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
 
             <MonitorStats monitor={monitor} />
