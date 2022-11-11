@@ -15,12 +15,10 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
       type: BreadcrumbType.ERROR,
     };
   }
-
   // special case for 'ui.' and `sentry.` category breadcrumbs
   // TODO: find a better way to customize UI around non-schema data
   if (breadcrumb.type === BreadcrumbType.DEFAULT && defined(breadcrumb?.category)) {
     const [category, subcategory] = breadcrumb.category.split('.');
-
     if (category === 'ui') {
       return {
         ...breadcrumb,
