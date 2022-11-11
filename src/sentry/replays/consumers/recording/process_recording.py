@@ -61,7 +61,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     ) -> None:
         self.__closed = False
         self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
-        self.__threadpool = concurrent.futures.ThreadPoolExecutor()
+        self.__threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
@@ -154,6 +154,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     project_id=message_dict["project_id"],
                     segment_id=headers["segment_id"],
                     file_id=file.id,
+                    size=len(recording_segment),
                 )
             except IntegrityError:
                 # Same message was encountered more than once.
@@ -257,10 +258,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
     def close(self) -> None:
         self.__closed = True
+        self.__threadpool.shutdown(wait=False)
 
     def terminate(self) -> None:
         self.close()
-        self.__threadpool.shutdown(wait=False)
 
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()

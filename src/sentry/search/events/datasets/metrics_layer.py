@@ -416,7 +416,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             team_key_transactions = [(-1, "")]
         return Function(
             function="team_key_transaction",
-            parameters=[Column("d:transactions/duration@millisecond"), team_key_transactions],
+            parameters=[Column("e:transactions/team_key_transaction@none"), team_key_transactions],
             alias="team_key_transaction",
         )
 
@@ -471,6 +471,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             if resolved_value is None:
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [self.builder.resolve_column("transaction"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
 
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 

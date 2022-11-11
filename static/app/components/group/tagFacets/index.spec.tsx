@@ -21,6 +21,7 @@ describe('Tag Facets', function () {
           topValues: [
             {
               name: 'org.mozilla.ios.Fennec@106.0',
+              value: 'org.mozilla.ios.Fennec@106.0',
               count: 30,
             },
           ],
@@ -35,6 +36,7 @@ describe('Tag Facets', function () {
             },
             {
               name: 'iOS 16.0',
+              value: 'iOS 16.0',
               count: 10,
             },
           ],
@@ -44,32 +46,42 @@ describe('Tag Facets', function () {
           topValues: [
             {
               name: 'iPhone15',
+              value: 'iPhone15',
               count: 7,
             },
             {
               name: 'Android Phone',
+              value: 'Android Phone',
               count: 10,
             },
             {
               name: 'iPhone12',
+              value: 'iPhone12',
               count: 13,
             },
             {
               name: 'iPhone11',
+              value: 'iPhone11',
               count: 15,
             },
             {
               name: 'iPhone10',
+              value: 'iPhone10',
               count: 18,
             },
             {
               name: 'Other device',
+              value: 'Other device',
               count: 2,
             },
           ],
         },
       },
     });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
   });
 
   it('does not display anything if no tag values recieved', async function () {
@@ -233,6 +245,7 @@ describe('Tag Facets', function () {
           topValues: [
             {
               name: 'abcdef123456',
+              value: 'abcdef123456',
               readable: 'Galaxy S22',
               count: 2,
             },
@@ -258,5 +271,65 @@ describe('Tag Facets', function () {
     userEvent.click(screen.getByText('device'));
     expect(screen.getByText('Galaxy S22')).toBeInTheDocument();
     expect(screen.getByText('100%')).toBeInTheDocument();
+  });
+
+  it('does not duplicate release values with same name', async function () {
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/issues/1/tags/',
+      body: {
+        release: {
+          key: 'release',
+          topValues: [
+            {
+              name: '1.0',
+              value: 'something@1.0',
+              count: 30,
+            },
+            {
+              name: '1.0',
+              value: '1.0',
+              count: 10,
+            },
+          ],
+        },
+        os: {
+          key: 'os',
+          topValues: [
+            {
+              name: 'Android 12',
+              value: 'Android 12',
+              count: 20,
+            },
+          ],
+        },
+      },
+    });
+
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    expect(screen.getByText('Android 12')).toBeInTheDocument();
+    userEvent.click(screen.getByText('release'));
+    expect(screen.getAllByText('1.0')).toHaveLength(2);
+
+    // Test that the tag isn't being duplicated to the os tab
+    userEvent.click(screen.getByText('os'));
+    expect(screen.queryByText('1.0')).not.toBeInTheDocument();
+
+    // Test that the tag hasn't been duplicated in the release tab
+    userEvent.click(screen.getByText('release'));
+    expect(screen.getAllByText('1.0')).toHaveLength(2);
   });
 });

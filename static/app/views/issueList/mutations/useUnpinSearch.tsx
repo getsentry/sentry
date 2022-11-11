@@ -42,11 +42,11 @@ export const useUnpinSearch = (
           return oldData.filter(search => !search.isPinned);
         }
       );
-      addSuccessMessage(t('Successfully removed Issues default'));
+      addSuccessMessage(t("You'll no longer see this search by default."));
       options.onSuccess?.(savedSearch, variables, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Unable to remove Issues default'));
+      addErrorMessage(t('Unable to remove the default search.'));
       options.onError?.(error, variables, context);
     },
   });

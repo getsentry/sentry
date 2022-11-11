@@ -66,6 +66,7 @@ from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
@@ -107,7 +108,6 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
         function="transform",
         parameters=[
             Column(resolve_tag_key(use_case_id, org_id, "transaction")),
-            # This will be removed once the removal of tags values as ints is merged.
             [""],
             [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
         ],
@@ -119,7 +119,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
@@ -149,6 +149,21 @@ def resolve_tags(
                 [
                     resolve_tags(use_case_id, org_id, input_.parameters[0]),
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                ],
+            )
+        elif input_.function == "match":
+            column = input_.parameters[0]
+
+            if column.name not in FILTERABLE_TAGS:
+                raise InvalidParams(
+                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
+                )
+
+            return Function(
+                function=input_.function,
+                parameters=[
+                    resolve_tags(use_case_id, org_id, column),
+                    input_.parameters[1],  # We directly pass the regex.
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:

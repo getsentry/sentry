@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -15,6 +15,8 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import withDomainRedirect from 'sentry/utils/withDomainRedirect';
+import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
@@ -141,6 +143,8 @@ function buildRoutes() {
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
 
+  const usingCustomerDomain = Boolean(window.__initialData.customerDomain);
+
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
@@ -189,13 +193,38 @@ function buildRoutes() {
         path="/organizations/:orgId/disabled-member/"
         component={make(() => import('sentry/views/disabledMember'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/join-request/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/organizationJoinRequest'))
+          )}
+          key="orgless-join-request"
+        />
+      ) : null}
       <Route
         path="/join-request/:orgId/"
-        component={make(() => import('sentry/views/organizationJoinRequest'))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationJoinRequest'))
+        )}
+        key="org-join-request"
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/onboarding/"
+          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
+          key="orgless-onboarding"
+        >
+          <Route
+            path=":step/"
+            component={make(() => import('sentry/views/onboarding/onboarding'))}
+          />
+        </Route>
+      ) : null}
       <Route
         path="/onboarding/:orgId/"
-        component={errorHandler(OrganizationContextContainer)}
+        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
+        key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
         <Route
@@ -1139,11 +1168,8 @@ function buildRoutes() {
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
   // /discover/queries and not /discover
-  const discoverRoutes = (
-    <Route
-      path="/organizations/:orgId/discover/"
-      component={make(() => import('sentry/views/eventsV2'))}
-    >
+  const discoverChildRoutes = (
+    <Fragment>
       <IndexRedirect to="queries/" />
       <Route
         path="homepage/"
@@ -1161,7 +1187,27 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/eventsV2/eventDetails'))}
       />
-    </Route>
+    </Fragment>
+  );
+  const discoverRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/discover/"
+          component={withDomainRequired(make(() => import('sentry/views/eventsV2')))}
+          key="orgless-discover-route"
+        >
+          {discoverChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/discover/"
+        component={withDomainRedirect(make(() => import('sentry/views/eventsV2')))}
+        key="org-discover-route"
+      >
+        {discoverChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const performanceRoutes = (
