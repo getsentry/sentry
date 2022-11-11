@@ -10,7 +10,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

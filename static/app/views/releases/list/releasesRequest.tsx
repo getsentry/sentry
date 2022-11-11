@@ -17,7 +17,7 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {defined, percent} from 'sentry/utils';

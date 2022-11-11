@@ -3,8 +3,9 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
-import type {Group, IssueCategory} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import {IssueCategory} from 'sentry/types/group';
 
 const {organization, project} = initializeData({
   features: ['performance-issues'],

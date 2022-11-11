@@ -26,14 +26,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
-  Event,
-  Group,
-  IssueCategory,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
+import type {Event, Group, Organization, Project, User} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';

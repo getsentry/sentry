@@ -3,7 +3,7 @@ import {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
-import {RecentSearch, SavedSearch} from 'sentry/types';
+import type {RecentSearch, SavedSearch} from 'sentry/types';
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 

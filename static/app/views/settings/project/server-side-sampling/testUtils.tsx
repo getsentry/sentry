@@ -4,7 +4,8 @@ import {InjectedRouter} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'sentry/components/globalModal';
-import type {Organization, Outcome, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,

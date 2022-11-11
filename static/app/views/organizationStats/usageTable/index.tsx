@@ -11,7 +11,8 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {DataCategory, Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
+import {DataCategory} from 'sentry/types/core';
 import theme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
