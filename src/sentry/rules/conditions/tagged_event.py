@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, Sequence, Tuple
 
 from django import forms
 
@@ -8,6 +8,7 @@ from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.types.condition_activity import ConditionActivity
 
 
 class TaggedEventForm(forms.Form):  # type: ignore
@@ -38,7 +39,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
+    def _passes(self, raw_tags: Sequence[Tuple[str, Any]]) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -51,8 +52,8 @@ class TaggedEventCondition(EventCondition):
         tags = (
             k
             for gen in (
-                (k.lower() for k, v in event.tags),
-                (tagstore.get_standardized_key(k) for k, v in event.tags),
+                (k.lower() for k, v in raw_tags),
+                (tagstore.get_standardized_key(k) for k, v in raw_tags),
             )
             for k in gen
         )
@@ -70,7 +71,7 @@ class TaggedEventCondition(EventCondition):
 
         values = (
             v.lower()
-            for k, v in event.tags
+            for k, v in raw_tags
             if k.lower() == key or tagstore.get_standardized_key(k) == key
         )
 
@@ -124,6 +125,18 @@ class TaggedEventCondition(EventCondition):
 
         raise RuntimeError("Invalid Match")
 
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
+        return self._passes(event.tags)
+
+    def passes_activity(
+        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+    ) -> bool:
+        try:
+            tags = event_map[condition_activity.data["event_id"]]["tags"]
+            return self._passes(tags.items())
+        except (TypeError, KeyError):
+            return False
+
     def render_label(self) -> str:
         data = {
             "key": self.data["key"],
@@ -131,3 +144,6 @@ class TaggedEventCondition(EventCondition):
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
+
+    def get_event_columns(self) -> Sequence[str]:
+        return ["tags.key", "tags.value"]

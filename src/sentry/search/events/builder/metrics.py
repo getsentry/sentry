@@ -22,14 +22,12 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
-    EventsResponse,
     HistogramParams,
     ParamsType,
     QueryFramework,
@@ -44,6 +42,9 @@ from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_quer
 
 
 class MetricsQueryBuilder(QueryBuilder):
+    requires_organization_condition = True
+    organization_column: str = "organization_id"
+
     def __init__(
         self,
         *args: Any,
@@ -60,9 +61,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self.tag_values_are_strings = options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        )
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -142,7 +140,7 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance and self.tag_values_are_strings:
+        if self.is_performance:
             return f"tags_raw[{tag_id}]"
         else:
             return f"tags[{tag_id}]"
@@ -245,11 +243,6 @@ class MetricsQueryBuilder(QueryBuilder):
             granularity = 60
         return Granularity(granularity)
 
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
-        return conditions
-
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -330,16 +323,13 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance and self.tag_values_are_strings or self.use_metrics_layer:
+        if self.is_performance or self.use_metrics_layer:
             return value
         if self.dry_run:
             return -1
         return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if search_filter.value.is_wildcard():
-            raise IncompatibleMetricsQuery("wildcards not supported")
-
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -391,6 +381,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     1,
                 )
 
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [lhs, f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+
         return Condition(lhs, Op(search_filter.operator), value)
 
     def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
@@ -415,10 +412,8 @@ class MetricsQueryBuilder(QueryBuilder):
         for value in sorted_values:
             if value:
                 values.append(self._resolve_environment_filter_value(value))
-            elif self.tag_values_are_strings:
-                values.append("")
             else:
-                values.append(0)
+                values.append("")
         values.sort()
         environment = self.column("environment")
         if len(values) == 1:
@@ -437,6 +432,33 @@ class MetricsQueryBuilder(QueryBuilder):
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
+        if self.use_metrics_layer:
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            return Request(
+                dataset=self.dataset.value,
+                app_id="default",
+                query=Query(
+                    match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                    # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                    select=self.aggregates
+                    + [
+                        # Team key transaction is a special case sigh
+                        col
+                        for col in self.columns
+                        if isinstance(col, Function) and col.function == "team_key_transaction"
+                    ],
+                    array_join=self.array_join,
+                    where=self.where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=self.orderby,
+                    limit=self.limit,
+                    offset=self.offset,
+                    limitby=self.limitby,
+                ),
+                flags=Flags(turbo=self.turbo),
+            )
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
         primary_framework = query_framework.pop(primary)
@@ -576,62 +598,44 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        self.validate_having_clause()
-        self.validate_orderby_clause()
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
-                tranform_mqb_query_to_metrics_query,
+                transform_mqb_query_to_metrics_query,
             )
 
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-
-            snuba_query = Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                limitby=self.limitby,
-            )
+            snuba_query = self.get_snql_query().query
             try:
-                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
-                metrics_data = get_series(
-                    projects=self.params.projects,
-                    metrics_query=metric_query,
-                    use_case_id=use_case_id,
-                    include_meta=True,
-                )
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.params.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                    )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
-            # series does some strange stuff to the clickhouse response, turn it back so we can handle it
-            metric_layer_result: Any = {
-                "data": [],
-                "meta": metrics_data["meta"],
-            }
-            for group in metrics_data["groups"]:
-                data = group["by"]
-                data.update(group["totals"])
-                metric_layer_result["data"].append(data)
-                for meta in metric_layer_result["meta"]:
-                    if data[meta["name"]] is None:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
-            return metric_layer_result
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data[meta["name"]] is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+                return metric_layer_result
+
+        self.validate_having_clause()
+        self.validate_orderby_clause()
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
 
@@ -737,41 +741,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     row[meta["name"]] = self.get_default_value(meta["type"])
 
         return result
-
-    def process_results(self, results: Any) -> EventsResponse:
-        """Go through the results of a metrics query and reverse resolve its tags"""
-        processed_results: EventsResponse = super().process_results(results)
-        tags: List[str] = []
-        cached_resolves: Dict[int, Optional[str]] = {}
-        # no-op if they're already strings
-        if self.tag_values_are_strings:
-            return processed_results
-
-        with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-            for column in self.columns:
-                if (
-                    isinstance(column, AliasedExpression)
-                    and column.exp.subscriptable == "tags"
-                    and column.alias
-                ):
-                    tags.append(column.alias)
-                # transaction is a special case since we use a transform null & unparam
-                if column.alias in ["transaction", "title"]:
-                    tags.append(column.alias)
-
-            for tag in tags:
-                for row in processed_results["data"]:
-                    if isinstance(row[tag], int):
-                        if row[tag] not in cached_resolves:
-                            resolved_tag = indexer.reverse_resolve(
-                                UseCaseKey.PERFORMANCE, self.organization_id, row[tag]
-                            )
-                            cached_resolves[row[tag]] = resolved_tag
-                        row[tag] = cached_resolves[row[tag]]
-                if tag in processed_results["meta"]["fields"]:
-                    processed_results["meta"]["fields"][tag] = "string"
-
-        return processed_results
 
     @staticmethod
     def get_default_value(meta_type: str) -> Any:
@@ -926,6 +895,32 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         This is because different functions will use different entities
         """
         # No need for primary from the query framework since there's no orderby to worry about
+        if self.use_metrics_layer:
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            return [
+                Request(
+                    dataset=self.dataset.value,
+                    app_id="default",
+                    query=Query(
+                        match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                        # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                        select=self.aggregates
+                        + [
+                            # Team key transaction is a special case sigh
+                            col
+                            for col in self.columns
+                            if isinstance(col, Function) and col.function == "team_key_transaction"
+                        ],
+                        array_join=self.array_join,
+                        where=self.where,
+                        having=self.having,
+                        groupby=self.groupby,
+                        orderby=[],
+                        granularity=self.granularity,
+                    ),
+                )
+            ]
         _, query_framework = self._create_query_framework()
 
         queries: List[Request] = []
@@ -954,63 +949,46 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
-                tranform_mqb_query_to_metrics_query,
+                transform_mqb_query_to_metrics_query,
             )
 
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-
-            snuba_query = Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=[],
-                granularity=self.granularity,
-            )
+            snuba_query = self.get_snql_query()[0].query
             try:
-                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
-                metrics_data = get_series(
-                    projects=self.params.projects,
-                    metrics_query=metric_query,
-                    use_case_id=use_case_id,
-                    include_meta=True,
-                )
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.params.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                    )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
-            metric_layer_result: Any = {
-                "data": [],
-                "meta": metrics_data["meta"],
-            }
-            # metric layer adds bucketed time automatically but doesn't remove it
-            for meta in metric_layer_result["meta"]:
-                if meta["name"] == "bucketed_time":
-                    meta["name"] = "time"
-            for index, interval in enumerate(metrics_data["intervals"]):
-                # the metric layer changes the intervals to datetime objects when we want the isoformat
-                data = {self.time_alias: interval.isoformat()}
-                # only need the first thing in groups since we don't groupby
-                for key, value_list in (
-                    metrics_data.get("groups", [{}])[0].get("series", {}).items()
-                ):
-                    data[key] = value_list[index]
-                metric_layer_result["data"].append(data)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                # metric layer adds bucketed time automatically but doesn't remove it
                 for meta in metric_layer_result["meta"]:
-                    if meta["name"] not in data:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
-            return metric_layer_result
+                    if meta["name"] == "bucketed_time":
+                        meta["name"] = "time"
+                for index, interval in enumerate(metrics_data["intervals"]):
+                    # the metric layer changes the intervals to datetime objects when we want the isoformat
+                    data = {self.time_alias: interval.isoformat()}
+                    # only need the first thing in groups since we don't groupby
+                    for key, value_list in (
+                        metrics_data.get("groups", [{}])[0].get("series", {}).items()
+                    ):
+                        data[key] = value_list[index]
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if meta["name"] not in data:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+                return metric_layer_result
         queries = self.get_snql_query()
         if self.dry_run:
             return {

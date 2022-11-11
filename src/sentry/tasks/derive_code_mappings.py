@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 from typing import Any, List, Mapping, Tuple
 
-import sentry_sdk
 from sentry_sdk import set_tag, set_user
 
 from sentry import features
@@ -44,6 +43,7 @@ def derive_code_mappings(
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
+    set_tag("project.slug", project.slug)
 
     # Check the feature flag again to ensure the feature is still enabled.
     should_continue = features.has(
@@ -65,7 +65,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
-        log_project_codemappings(code_mappings, stacktrace_paths, project)
+        report_project_codemappings(code_mappings, stacktrace_paths, project)
         return
 
     set_project_codemappings(code_mappings, organization_integration, project)
@@ -146,18 +146,30 @@ def set_project_codemappings(
             },
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
-            repository=repository,
-            organization_integration=organization_integration,
             stack_root=code_mapping.stacktrace_root,
-            source_root=code_mapping.source_path,
-            default_branch=code_mapping.repo.branch,
-            automatically_generated=True,
+            defaults={
+                "repository": repository,
+                "organization_integration": organization_integration,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
         )
+        if not created:
+            logger.info(
+                "derive_code_mappings: code mapping already exists",
+                extra={
+                    "project": project,
+                    "stacktrace_root": code_mapping.stacktrace_root,
+                    "new_code_mapping": code_mapping,
+                    "existing_code_mapping": cm,
+                },
+            )
 
 
-def log_project_codemappings(
+def report_project_codemappings(
     code_mappings: List[CodeMapping],
     stacktrace_paths: List[str],
     project: Project,
@@ -165,14 +177,19 @@ def log_project_codemappings(
     """
     Log the code mappings that would be created for a project.
     """
-    set_tag("project.slug", project.slug)
+    extra = {
+        "org": project.organization.slug,
+        "project": project.slug,
+        "code_mappings": code_mappings,
+        "stacktrace_paths": stacktrace_paths,
+    }
+    if code_mappings:
+        msg = "derive_code_mappings: code mappings would have been created."
+    else:
+        msg = "derive_code_mappings: NO code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
-        sentry_sdk.capture_message(
-            f"derive_code_mappings: Dry run {project.slug=}: found {existing_code_mappings=} while attempting to create {code_mappings=} for {stacktrace_paths=}"
-        )
-        return
+        msg = "derive_code_mappings: code mappings already exist."
+        extra["existing_code_mappings"] = existing_code_mappings
 
-    sentry_sdk.capture_message(
-        f"derive_code_mappings: Dry run {project.slug=}: would create these new code mapping based on {stacktrace_paths=}: {code_mappings}"
-    )
+    logger.info(msg, extra)

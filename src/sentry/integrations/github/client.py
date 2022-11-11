@@ -97,20 +97,20 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             if msg == "Git Repository is empty.":
                 logger.warning(f"{repo_full_name} is empty.")
             elif msg == "Not Found":
-                logger.error(f"The Github App does not have access to {repo_full_name}.")
+                logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                sentry_sdk.capture_exception(e)
+                logger.exception("An unknown error has ocurred.")
 
         return tree
 
     def get_trees_for_org(
-        self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
+        self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
     ) -> Dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org.
         """
         trees: Dict[str, RepoTree] = {}
-        cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
+        cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
         repo_key = "githubtrees:repo"
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:
@@ -137,9 +137,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until {next_time}.")
         else:
-            for repo_info in cached_repositories:
-                trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
-            logger.info(f"Using cached trees for {gh_org}.")
+            try:
+                for repo_info in cached_repositories:
+                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
+                    # This assertion will help clear the cache off dictionaries
+                    assert type(repo_tree) == RepoTree
+                    trees[repo_info["full_name"]] = repo_tree
+
+                logger.info(f"Using cached trees for {gh_org}.")
+            except AssertionError:
+                # Reset the control cache in order to repopulate
+                cache.delete(cache_key)
+                logger.exception(f"We reset the cache for {cache_key}.")
 
         return trees
 

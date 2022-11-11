@@ -60,7 +60,6 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     team_key_transaction_snql,
     tolerated_count_transaction,
-    transform_null_to_unparameterized_snql,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
@@ -1563,6 +1562,28 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=count_transaction_name_snql_factory,
             default_null_value=0,
         ),
+        # This specific derived operation doesn't require a metric_mri supplied to the MetricField but
+        # in order to avoid breaking the contract we should always pass it. When using it in the orderby
+        # clause you should put a metric mri with the same entity as the only entity used in the select.
+        # E.g. if you have a select with user_misery which is a set entity and team_key_transaction and you want
+        # to order by team_key_transaction, you will have to supply to the team_key_transaction MetricField
+        # an mri that has the set entity.
+        #
+        # OrderBy(
+        #     field=MetricField(
+        #         op="team_key_transaction",
+        #         # This has entity type set, which is the entity type of the select (in the select you can only have
+        #         one entity type across selections if you use the team_key_transaction in the order by).
+        #         metric_mri=TransactionMRI.USER.value,
+        #         params={
+        #             "team_key_condition_rhs": [
+        #                 (self.project.id, "foo_transaction"),
+        #             ]
+        #         },
+        #         alias="team_key_transactions",
+        #     ),
+        #     direction=Direction.DESC,
+        # )
         DerivedOp(
             op="team_key_transaction",
             can_orderby=True,
@@ -1571,13 +1592,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=team_key_transaction_snql,
             default_null_value=0,
             meta_type="boolean",
-        ),
-        DerivedOp(
-            op="transform_null_to_unparameterized",
-            can_orderby=False,
-            can_groupby=True,
-            can_filter=True,
-            snql_func=transform_null_to_unparameterized_snql,
         ),
     ]
 }

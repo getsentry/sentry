@@ -2,7 +2,6 @@ from typing import List, Optional, Sequence, Set
 
 from snuba_sdk import Column, Function
 
-from sentry import options
 from sentry.api.utils import InvalidParams
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -35,7 +34,9 @@ def _aggregation_on_session_status_func_factory(aggregate):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                        UseCaseKey.RELEASE_HEALTH,
+                                        org_id,
+                                        "session.status",
                                     )
                                 ),
                                 resolve_tag_value(
@@ -78,7 +79,9 @@ def _aggregation_on_tx_status_func_factory(aggregate):
 
         tx_col = Column(
             resolve_tag_key(
-                UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_STATUS.value
+                UseCaseKey.PERFORMANCE,
+                org_id,
+                TransactionTagsKey.TRANSACTION_STATUS.value,
             )
         )
         excluded_statuses = resolve_tag_values(UseCaseKey.PERFORMANCE, org_id, exclude_tx_statuses)
@@ -101,7 +104,10 @@ def _aggregation_on_tx_status_func_factory(aggregate):
     def _snql_on_tx_status_factory(org_id, exclude_tx_statuses: List[str], metric_ids, alias=None):
         return Function(
             aggregate,
-            [Column("value"), _get_snql_conditions(org_id, metric_ids, exclude_tx_statuses)],
+            [
+                Column("value"),
+                _get_snql_conditions(org_id, metric_ids, exclude_tx_statuses),
+            ],
             alias,
         )
 
@@ -162,7 +168,10 @@ def _set_count_aggregation_on_tx_satisfaction_factory(
     org_id, satisfaction: str, metric_ids, alias=None
 ):
     return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
-        org_id=org_id, satisfaction_value=satisfaction, metric_ids=metric_ids, alias=alias
+        org_id=org_id,
+        satisfaction_value=satisfaction,
+        metric_ids=metric_ids,
+        alias=alias,
     )
 
 
@@ -321,7 +330,10 @@ def _count_if_with_conditions(
 
 
 def satisfaction_count_transaction(
-    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    project_ids: Sequence[int],
+    org_id: int,
+    metric_ids: Set[int],
+    alias: Optional[str] = None,
 ):
     return _count_if_with_conditions(
         [
@@ -335,7 +347,10 @@ def satisfaction_count_transaction(
 
 
 def tolerated_count_transaction(
-    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    project_ids: Sequence[int],
+    org_id: int,
+    metric_ids: Set[int],
+    alias: Optional[str] = None,
 ):
     return _count_if_with_conditions(
         [
@@ -349,7 +364,10 @@ def tolerated_count_transaction(
 
 
 def all_transactions(
-    project_ids: Sequence[int], org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    project_ids: Sequence[int],
+    org_id: int,
+    metric_ids: Set[int],
+    alias: Optional[str] = None,
 ):
     return _count_if_with_conditions(
         [
@@ -486,9 +504,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
                 UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
         elif transaction_name_identifier == is_null:
-            inner_tag_value = (
-                "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
-            )
+            inner_tag_value = ""
         else:
             raise InvalidParams("Invalid condition for tag value filter")
 
@@ -543,7 +559,10 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
 
         project_id, transaction_name = elem
         team_key_conditions.add(
-            (project_id, resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name))
+            (
+                project_id,
+                resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name),
+            )
         )
 
     return Function(
@@ -556,23 +575,6 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
             list(team_key_conditions),
         ],
         alias=alias,
-    )
-
-
-def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
-    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
-
-    return Function(
-        "transform",
-        [
-            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
-            # Here we support the case in which the given tag value for "tag_key" is not set. In that
-            # case ClickHouse will return 0 or "" from the expression based on the array type, and we want to interpret
-            # that as "<< unparameterized >>".
-            ["" if tags_values_are_strings else 0],
-            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
-        ],
-        alias,
     )
 
 

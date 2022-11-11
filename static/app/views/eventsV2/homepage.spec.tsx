@@ -1,8 +1,14 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -161,10 +167,10 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
+    await act(tick);
+    renderGlobalModal();
+
     userEvent.click(screen.getByText('Columns'));
-    await act(async () => {
-      await mountGlobalModal();
-    });
 
     userEvent.click(screen.getByTestId('label'));
     userEvent.click(screen.getByText('event.type'));
@@ -342,6 +348,7 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
+    renderGlobalModal();
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
@@ -396,6 +403,7 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
+    renderGlobalModal();
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
