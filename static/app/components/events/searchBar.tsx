@@ -9,7 +9,8 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import type {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {

@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import {SelectField, TextField} from 'sentry/components/forms';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import type {Organization, SavedSearchVisibility} from 'sentry/types';
+import type {Organization} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 

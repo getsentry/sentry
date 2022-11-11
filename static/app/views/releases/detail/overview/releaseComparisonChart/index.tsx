@@ -18,15 +18,14 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Organization,
-  ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
 } from 'sentry/types';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';

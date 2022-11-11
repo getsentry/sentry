@@ -13,14 +13,9 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
-  ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
+import type {ReleaseProject, ReleaseWithHealth, SessionApiResponse} from 'sentry/types';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 import {

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {HealthStatsPeriodOption} from 'sentry/types';
+import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
 

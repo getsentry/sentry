@@ -4,14 +4,9 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import type {
-  EntryType,
-  Event,
-  Project,
-  STACK_TYPE,
-  STACK_VIEW,
-  Thread,
-} from 'sentry/types';
+import type {Event, Project, Thread} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
+import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {PermalinkTitle} from '../../traceEventDataSection';

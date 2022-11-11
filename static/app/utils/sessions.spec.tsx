@@ -1,4 +1,5 @@
-import type {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import {SessionStatus} from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {
   filterSessionsInTimeWindow,
   getCount,

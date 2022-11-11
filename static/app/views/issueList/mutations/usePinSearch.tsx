@@ -1,6 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {SavedSearch, SavedSearchType} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

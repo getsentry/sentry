@@ -25,8 +25,8 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionFieldWithOperation,
 } from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {formatVersion} from 'sentry/utils/formatters';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,

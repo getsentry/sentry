@@ -8,14 +8,9 @@ import {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {

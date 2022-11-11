@@ -30,7 +30,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, Project, Release, Tag} from 'sentry/types';
+import type {Organization, PageFilters, Project, Release, Tag} from 'sentry/types';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';

@@ -6,7 +6,7 @@ import {
 } from 'sentry/actionCreators/savedSearches';
 import {Client} from 'sentry/api';
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
-import type {SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 
 describe('SavedSearchesStore', function () {
   let api;

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 describe('IssueListSetAsDefault', () => {

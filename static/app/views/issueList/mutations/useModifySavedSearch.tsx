@@ -1,4 +1,5 @@
-import type {SavedSearch, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

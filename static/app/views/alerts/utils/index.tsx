@@ -1,8 +1,9 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import type {Organization, SessionFieldWithOperation} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';

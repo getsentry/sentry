@@ -1,12 +1,8 @@
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {
-  Organization,
-  PageFilters,
-  SavedSearchType,
-  TagCollection,
-} from 'sentry/types';
+import type {Organization, PageFilters, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import {getFieldDefinition, REPLAY_FIELDS} from 'sentry/utils/fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(

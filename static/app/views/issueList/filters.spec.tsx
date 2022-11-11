@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
-import type {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 
 import IssueListFilters from './filters';
 

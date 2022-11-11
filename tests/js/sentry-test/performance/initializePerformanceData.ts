@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import type {EntryType, EventTransaction, Project} from 'sentry/types';
+import type {EventTransaction, Project} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {

@@ -6,7 +6,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Group, IssueCategory} from 'sentry/types';
+import type {Group} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 
 import UnhandledTag, {
   TagAndMessageWrapper,

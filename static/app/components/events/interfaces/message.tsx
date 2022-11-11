@@ -2,7 +2,8 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {EntryType, Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {

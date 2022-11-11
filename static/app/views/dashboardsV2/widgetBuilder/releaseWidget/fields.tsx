@@ -1,13 +1,13 @@
 import invert from 'lodash/invert';
 
-import {
+import type {
   SelectValue,
   SessionAggregationColumn,
-  SessionField,
   SessionsMeta,
   SessionsOperation,
-  SessionStatus,
 } from 'sentry/types';
+import {SessionStatus} from 'sentry/types/organization';
+import {SessionField} from 'sentry/types/sessions';
 import {defined} from 'sentry/utils';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
