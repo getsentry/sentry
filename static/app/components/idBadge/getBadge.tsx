@@ -4,7 +4,7 @@ import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {Member, User} from 'sentry/types';
+import type {Member, User} from 'sentry/types';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type DisplayName = BaseBadgeProps['displayName'];

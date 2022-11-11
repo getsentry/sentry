@@ -1,4 +1,4 @@
-import {DataCategory} from 'sentry/types';
+import type {DataCategory} from 'sentry/types';
 import {
   BILLION,
   formatUsageWithUnits,

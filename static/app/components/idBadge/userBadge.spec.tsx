@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types';
 
 describe('UserBadge', function () {
   const user: AvatarUser = TestStubs.User();

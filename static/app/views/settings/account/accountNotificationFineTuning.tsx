@@ -10,7 +10,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/accountNotificationSettings';
 import {t} from 'sentry/locale';
-import {Organization, Project, UserEmail} from 'sentry/types';
+import type {Organization, Project, UserEmail} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import AsyncView from 'sentry/views/asyncView';
 import {

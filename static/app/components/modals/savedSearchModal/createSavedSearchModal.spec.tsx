@@ -9,7 +9,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearchVisibility} from 'sentry/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {

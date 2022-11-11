@@ -12,7 +12,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Plugin, Project, TimeseriesValue} from 'sentry/types';
+import type {Organization, Plugin, Project, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

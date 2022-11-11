@@ -4,7 +4,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformType} from 'sentry/types';
+import type {ExceptionValue, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';

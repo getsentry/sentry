@@ -8,7 +8,7 @@ import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import useOrganization from 'sentry/utils/useOrganization';
 

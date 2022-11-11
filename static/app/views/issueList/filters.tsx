@@ -11,7 +11,7 @@ import {
   makeSaveSearchAction,
 } from 'sentry/components/smartSearchBar/actions';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
 

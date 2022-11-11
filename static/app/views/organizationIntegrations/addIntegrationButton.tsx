@@ -1,7 +1,7 @@
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {IntegrationWithConfig} from 'sentry/types';
+import type {IntegrationWithConfig} from 'sentry/types';
 
 import AddIntegration from './addIntegration';
 

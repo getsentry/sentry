@@ -12,7 +12,7 @@ import ProgressRing, {
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
+import type {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';

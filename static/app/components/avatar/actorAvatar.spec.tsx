@@ -4,7 +4,7 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Team, User} from 'sentry/types';
+import type {Team, User} from 'sentry/types';
 
 describe('ActorAvatar', function () {
   const user: User = {

@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types';
 import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 
 import {CommonStoreDefinition} from './types';

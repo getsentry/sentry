@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,

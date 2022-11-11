@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformType} from 'sentry/types';
+import type {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 

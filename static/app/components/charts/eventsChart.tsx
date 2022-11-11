@@ -28,7 +28,7 @@ import {
 import {WorldMapChart, WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, OrganizationSummary} from 'sentry/types';
+import type {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {

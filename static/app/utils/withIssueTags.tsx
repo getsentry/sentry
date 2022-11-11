@@ -3,7 +3,7 @@ import {useCallback, useEffect, useState} from 'react';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {TagCollection, Team, User} from 'sentry/types';
+import type {TagCollection, Team, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {

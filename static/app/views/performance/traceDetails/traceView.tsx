@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';

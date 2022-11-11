@@ -1,6 +1,6 @@
 import {RouteContextInterface} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import type {AvatarUser} from './user';

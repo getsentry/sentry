@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {

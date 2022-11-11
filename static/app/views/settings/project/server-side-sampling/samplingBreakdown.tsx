@@ -11,7 +11,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';

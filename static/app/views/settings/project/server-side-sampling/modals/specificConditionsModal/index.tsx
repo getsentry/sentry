@@ -18,7 +18,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import type {Organization, Project, SelectValue} from 'sentry/types';
 import {
   SamplingConditionOperator,
   SamplingInnerName,

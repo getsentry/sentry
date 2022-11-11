@@ -23,7 +23,12 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
-import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

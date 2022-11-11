@@ -5,7 +5,7 @@ import {update} from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {

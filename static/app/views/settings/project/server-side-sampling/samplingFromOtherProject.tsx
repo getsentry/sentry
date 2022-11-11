@@ -5,7 +5,7 @@ import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
 import {useDistribution} from './utils/useDistribution';

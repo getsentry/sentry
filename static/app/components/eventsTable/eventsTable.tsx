@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 import {t} from 'sentry/locale';
-import {Project, Tag} from 'sentry/types';
+import type {Project, Tag} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withProjects from 'sentry/utils/withProjects';

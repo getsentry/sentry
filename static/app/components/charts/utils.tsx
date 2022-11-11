@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

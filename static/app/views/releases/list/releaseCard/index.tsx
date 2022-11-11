@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, Release} from 'sentry/types';
+import type {Organization, PageFilters, Release} from 'sentry/types';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';

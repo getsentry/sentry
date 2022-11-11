@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Environment, TagWithTopValues} from 'sentry/types';
+import type {Environment, TagWithTopValues} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';

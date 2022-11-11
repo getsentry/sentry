@@ -16,7 +16,7 @@ import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {

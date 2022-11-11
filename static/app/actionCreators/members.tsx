@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
 function getMemberUser(member: Member) {
   return {

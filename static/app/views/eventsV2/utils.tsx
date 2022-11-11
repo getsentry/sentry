@@ -7,7 +7,12 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
+import type {
+  NewQuery,
+  Organization,
+  OrganizationSummary,
+  SelectValue,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';

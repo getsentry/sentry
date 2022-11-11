@@ -9,7 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {InternalAppApiToken, Organization} from 'sentry/types';
+import type {InternalAppApiToken, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';

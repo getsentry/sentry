@@ -14,7 +14,7 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';

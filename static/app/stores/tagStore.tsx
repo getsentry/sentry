@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {Tag, TagCollection} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 

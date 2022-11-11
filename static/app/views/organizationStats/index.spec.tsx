@@ -5,7 +5,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DataCategory, PageFilters} from 'sentry/types';
+import type {DataCategory, PageFilters} from 'sentry/types';
 import {OrganizationStats, PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';

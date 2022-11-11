@@ -1,7 +1,7 @@
 import findIndex from 'lodash/findIndex';
 import {createStore, StoreDefinition} from 'reflux';
 
-import {SavedSearch, SavedSearchType} from 'sentry/types';
+import type {SavedSearch, SavedSearchType} from 'sentry/types';
 
 type State = {
   hasError: boolean;

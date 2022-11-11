@@ -9,7 +9,7 @@ import PanelTable, {
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';

@@ -2,7 +2,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 

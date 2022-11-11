@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
 type Props = {
   leadsToApp: boolean;

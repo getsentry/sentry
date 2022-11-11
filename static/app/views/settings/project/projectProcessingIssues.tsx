@@ -26,7 +26,7 @@ import TimeSince from 'sentry/components/timeSince';
 import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
+import type {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

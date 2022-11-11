@@ -6,7 +6,7 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, Meta} from 'sentry/types';
+import type {AvatarUser, Meta} from 'sentry/types';
 import {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 

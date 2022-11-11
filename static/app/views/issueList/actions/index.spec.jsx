@@ -12,7 +12,7 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueCategory} from 'sentry/types';
+import type {IssueCategory} from 'sentry/types';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
 const organization = TestStubs.Organization();

@@ -1,6 +1,6 @@
 import {Layout} from 'react-grid-layout';
 
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the

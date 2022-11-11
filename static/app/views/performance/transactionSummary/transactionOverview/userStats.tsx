@@ -10,7 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';

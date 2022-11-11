@@ -5,7 +5,7 @@ import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {ExceptionType, Group} from 'sentry/types';
+import type {ExceptionType, Group} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';

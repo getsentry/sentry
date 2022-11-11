@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';

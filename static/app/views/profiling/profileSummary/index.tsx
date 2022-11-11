@@ -16,7 +16,7 @@ import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearch
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {PageFilters, Project} from 'sentry/types';
+import type {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';

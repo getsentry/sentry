@@ -18,7 +18,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
+import type {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';

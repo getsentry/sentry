@@ -1,6 +1,6 @@
 import {Client} from 'sentry/api';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
-import {SentryAppComponent} from 'sentry/types';
+import type {SentryAppComponent} from 'sentry/types';
 
 export async function fetchSentryAppComponents(
   api: Client,

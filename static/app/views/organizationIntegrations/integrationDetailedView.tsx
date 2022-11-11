@@ -10,7 +10,7 @@ import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import type {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
 import {getAlertText} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 

@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {SentryAppComponent} from 'sentry/types';
+import type {SentryAppComponent} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {

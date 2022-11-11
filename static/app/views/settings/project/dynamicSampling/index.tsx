@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import ServerSideSampling from '../server-side-sampling';

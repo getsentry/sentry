@@ -6,7 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
+import type {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';

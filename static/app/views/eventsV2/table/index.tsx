@@ -6,7 +6,7 @@ import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';

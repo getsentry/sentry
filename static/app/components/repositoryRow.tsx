@@ -17,7 +17,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Repository, RepositoryStatus} from 'sentry/types';
+import type {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

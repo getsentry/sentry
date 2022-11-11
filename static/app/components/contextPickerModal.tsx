@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import space from 'sentry/styles/space';
-import {Integration, Organization, Project} from 'sentry/types';
+import type {Integration, Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';

@@ -14,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Authenticator, OrganizationSummary} from 'sentry/types';
+import type {Authenticator, OrganizationSummary} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';

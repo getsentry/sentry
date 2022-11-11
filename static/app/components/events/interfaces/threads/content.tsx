@@ -4,7 +4,7 @@ import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
-import {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
+import type {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
 
 import NoStackTraceMessage from '../noStackTraceMessage';
 

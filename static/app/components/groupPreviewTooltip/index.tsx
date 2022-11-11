@@ -1,7 +1,7 @@
 import {Fragment, ReactChild} from 'react';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types';
+import type {IssueCategory} from 'sentry/types';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 import {StackTracePreview} from './stackTracePreview';

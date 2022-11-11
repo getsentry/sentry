@@ -15,7 +15,7 @@ import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {TableData} from 'sentry/utils/discover/discoverQuery';

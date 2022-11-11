@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 import {Redaction} from './redaction';
 import {getTooltipText} from './utils';

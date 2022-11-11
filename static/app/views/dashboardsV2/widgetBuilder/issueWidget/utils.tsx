@@ -1,4 +1,4 @@
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 

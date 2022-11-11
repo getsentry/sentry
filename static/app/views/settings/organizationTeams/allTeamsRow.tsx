@@ -12,7 +12,7 @@ import {PanelItem} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

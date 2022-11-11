@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 enum ReprocessableEventReason {

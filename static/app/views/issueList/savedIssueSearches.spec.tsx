@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModalContainer from 'sentry/components/globalModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearchVisibility} from 'sentry/types';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 describe('SavedIssueSearches', function () {

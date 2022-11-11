@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchProjectDetails} from 'sentry/actionCreators/project';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

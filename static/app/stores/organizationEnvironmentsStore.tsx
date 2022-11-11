@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {Environment} from 'sentry/types';
+import type {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 
 import {CommonStoreDefinition} from './types';

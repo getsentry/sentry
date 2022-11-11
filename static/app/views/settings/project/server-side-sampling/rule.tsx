@@ -14,7 +14,7 @@ import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 

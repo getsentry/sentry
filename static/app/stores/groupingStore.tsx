@@ -8,7 +8,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 import {CommonStoreDefinition} from './types';

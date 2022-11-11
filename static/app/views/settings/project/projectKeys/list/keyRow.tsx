@@ -10,7 +10,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';

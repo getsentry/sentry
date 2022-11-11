@@ -1,4 +1,4 @@
-import {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types';
 
 import {generateDocKeys, isPlatformSupported} from './utils';
 

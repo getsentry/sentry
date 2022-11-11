@@ -9,7 +9,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

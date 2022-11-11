@@ -6,7 +6,7 @@ import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';

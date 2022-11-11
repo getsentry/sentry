@@ -6,7 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
+import type {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';

@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

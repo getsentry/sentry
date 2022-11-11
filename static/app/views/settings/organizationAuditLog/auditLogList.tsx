@@ -12,7 +12,7 @@ import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AuditLog, Organization, User} from 'sentry/types';
+import type {AuditLog, Organization, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

@@ -1,4 +1,4 @@
-import {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types';
 
 // TODO(ts): add the correct type
 export type Rules = Array<any> | null;

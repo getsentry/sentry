@@ -11,7 +11,7 @@ import Form from 'sentry/components/forms/form';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
 
 import AppStoreConnect from './appStoreConnect';

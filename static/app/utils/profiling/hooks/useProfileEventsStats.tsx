@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {EventsStatsSeries} from 'sentry/types';
+import type {EventsStatsSeries} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

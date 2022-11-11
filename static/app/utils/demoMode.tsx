@@ -1,4 +1,4 @@
-import {OnboardingTaskKey} from 'sentry/types';
+import type {OnboardingTaskKey} from 'sentry/types';
 
 export function extraQueryParameter(): URLSearchParams {
   const extraQueryString = window.SandboxData?.extraQueryString || '';

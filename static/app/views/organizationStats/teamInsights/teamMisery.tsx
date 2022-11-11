@@ -13,7 +13,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, SavedQueryVersions} from 'sentry/types';
+import type {Organization, Project, SavedQueryVersions} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
   TableDataRow,

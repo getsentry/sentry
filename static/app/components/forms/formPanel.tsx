@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconChevron} from 'sentry/icons';
-import {Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {FieldObject, JsonFormObject} from './types';

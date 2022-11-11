@@ -1,7 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 describe('withPageFilters HoC', function () {

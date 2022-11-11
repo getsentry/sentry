@@ -7,7 +7,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {MetaError} from 'sentry/types';
+import type {MetaError} from 'sentry/types';
 
 function formatErrorKind(kind: string) {
   return capitalize(kind.replace(/_/g, ' '));

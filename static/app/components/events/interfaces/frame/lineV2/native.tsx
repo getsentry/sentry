@@ -4,7 +4,7 @@ import scrollToElement from 'scroll-to-element';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
 import DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';

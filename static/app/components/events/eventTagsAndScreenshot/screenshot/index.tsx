@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import type {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import ImageVisualization from './imageVisualization';

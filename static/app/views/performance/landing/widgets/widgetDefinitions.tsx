@@ -1,6 +1,6 @@
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../../data';
 

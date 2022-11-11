@@ -5,7 +5,7 @@ import FileIcon from 'sentry/components/fileIcon';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
-import {AvatarUser, CommitAuthor} from 'sentry/types';
+import type {AvatarUser, CommitAuthor} from 'sentry/types';
 
 type Props = {
   authors: CommitAuthor[];

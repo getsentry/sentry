@@ -7,7 +7,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {
   MIN_PROJECTS_FOR_PAGINATION,

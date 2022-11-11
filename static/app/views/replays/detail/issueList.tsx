@@ -9,7 +9,7 @@ import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group'
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';

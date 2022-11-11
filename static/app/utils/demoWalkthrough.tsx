@@ -6,7 +6,7 @@ import {
   findCompleteTasks,
   findUpcomingTasks,
 } from 'sentry/components/onboardingWizard/utils';
-import {OnboardingTask, Organization, Project} from 'sentry/types';
+import type {OnboardingTask, Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 

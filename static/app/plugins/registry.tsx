@@ -2,7 +2,7 @@
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {DefaultPlugin} from 'sentry/plugins/defaultPlugin';
 import SessionStackPlugin from 'sentry/plugins/sessionstack';
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type PluginComponent =

@@ -1,5 +1,5 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 export type StepData = {
   platform?: PlatformKey | null;

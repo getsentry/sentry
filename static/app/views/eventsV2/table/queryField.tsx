@@ -13,7 +13,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
   AggregationKeyWithAlias,

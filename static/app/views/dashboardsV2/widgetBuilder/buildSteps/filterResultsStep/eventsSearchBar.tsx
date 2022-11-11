@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {Organization, PageFilters, SavedSearchType} from 'sentry/types';
+import type {Organization, PageFilters, SavedSearchType} from 'sentry/types';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';

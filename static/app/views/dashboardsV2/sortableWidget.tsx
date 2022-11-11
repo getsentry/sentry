@@ -2,7 +2,7 @@ import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 

@@ -2,7 +2,7 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {Environment} from 'sentry/types';
+import type {Environment} from 'sentry/types';
 
 type Props = {
   environments: Environment[];

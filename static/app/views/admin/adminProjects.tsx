@@ -3,7 +3,7 @@ import moment from 'moment';
 
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 
 type Row = {

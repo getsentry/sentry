@@ -2,7 +2,7 @@ import React, {Fragment, isValidElement} from 'react';
 
 import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 
 export interface ValueProps
   extends Pick<KeyValueListData[0], 'subjectIcon' | 'meta' | 'value'> {

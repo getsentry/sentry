@@ -10,7 +10,7 @@ import {
   TOGGLE_BORDER_BOX,
   TOGGLE_BUTTON_MAX_WIDTH,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

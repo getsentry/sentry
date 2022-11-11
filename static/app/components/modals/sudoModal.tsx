@@ -16,7 +16,7 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

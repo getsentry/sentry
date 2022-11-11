@@ -10,7 +10,7 @@ import Tag from 'sentry/components/tag';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AuthProvider} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types';
 import {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 

@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CursorHandler} from 'sentry/components/pagination';
-import {AuditLog} from 'sentry/types';
+import type {AuditLog} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,5 +1,5 @@
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
+import type {Group, GroupStats, TimeseriesValue} from 'sentry/types';
 
 const g = (id: string, params?: Partial<Group>) => TestStubs.Group({id, ...params});
 

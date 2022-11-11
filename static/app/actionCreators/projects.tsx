@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Project, Team} from 'sentry/types';
+import type {Project, Team} from 'sentry/types';
 
 type UpdateParams = {
   orgId: string;

@@ -10,7 +10,7 @@ import Field from 'sentry/components/forms/field';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import type {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';

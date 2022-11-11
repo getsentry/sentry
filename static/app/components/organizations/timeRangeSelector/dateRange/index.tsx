@@ -12,7 +12,7 @@ import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePi
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,

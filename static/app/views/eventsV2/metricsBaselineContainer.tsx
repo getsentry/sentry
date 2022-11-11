@@ -7,7 +7,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {isMultiSeriesStats, lightenHexToRgb} from 'sentry/components/charts/utils';
-import {EventsStats, Organization} from 'sentry/types';
+import type {EventsStats, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {EventsTableData} from 'sentry/utils/discover/discoverQuery';

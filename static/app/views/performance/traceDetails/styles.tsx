@@ -7,7 +7,7 @@ import {Panel} from 'sentry/components/panels';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {appendTagCondition} from 'sentry/utils/queryString';

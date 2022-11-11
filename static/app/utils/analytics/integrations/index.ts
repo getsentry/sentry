@@ -1,4 +1,4 @@
-import {IntegrationType, SentryAppStatus} from 'sentry/types';
+import type {IntegrationType, SentryAppStatus} from 'sentry/types';
 
 import {codeownersEventMap, CodeownersEventParameters} from './codeownersAnalyticsEvents';
 import {platformEventMap, PlatformEventParameters} from './platformAnalyticsEvents';

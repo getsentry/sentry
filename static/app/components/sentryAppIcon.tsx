@@ -1,5 +1,5 @@
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
-import {AvatarSentryApp} from 'sentry/types';
+import type {AvatarSentryApp} from 'sentry/types';
 
 type Props = {
   sentryApp: AvatarSentryApp;

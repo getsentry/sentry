@@ -14,7 +14,7 @@ import Version from 'sentry/components/version';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SourceMapsArchive} from 'sentry/types';
+import type {SourceMapsArchive} from 'sentry/types';
 
 type Props = {
   archive: SourceMapsArchive;

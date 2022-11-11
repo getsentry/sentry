@@ -16,7 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {SamplingSdkVersion} from 'sentry/types/sampling';
 import {RouteContext} from 'sentry/views/routeContext';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';

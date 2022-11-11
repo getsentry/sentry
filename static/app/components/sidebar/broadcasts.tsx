@@ -11,7 +11,7 @@ import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Broadcast, Organization} from 'sentry/types';
+import type {Broadcast, Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';

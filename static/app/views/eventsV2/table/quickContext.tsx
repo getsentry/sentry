@@ -19,7 +19,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
+import type {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

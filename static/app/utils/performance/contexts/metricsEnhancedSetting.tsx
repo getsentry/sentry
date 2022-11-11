@@ -2,7 +2,7 @@ import {Dispatch, ReactNode, useCallback, useReducer} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';

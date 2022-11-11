@@ -8,7 +8,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
   TableDataRow,

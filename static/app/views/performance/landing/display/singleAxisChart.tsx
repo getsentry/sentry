@@ -1,6 +1,6 @@
 import {Location} from 'history';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 
 import _Footer from '../../charts/footer';

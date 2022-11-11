@@ -1,7 +1,7 @@
 import {useContext} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';

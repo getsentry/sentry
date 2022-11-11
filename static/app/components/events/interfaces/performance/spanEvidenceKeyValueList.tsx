@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';

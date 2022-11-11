@@ -10,7 +10,7 @@ import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tct, tn} from 'sentry/locale';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import type {AvatarProject, OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';

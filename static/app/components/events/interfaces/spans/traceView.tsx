@@ -3,7 +3,7 @@ import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
 
 import * as CursorGuideHandler from './cursorGuideHandler';

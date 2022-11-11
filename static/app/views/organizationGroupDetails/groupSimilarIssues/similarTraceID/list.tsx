@@ -17,7 +17,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {GroupResolution} from 'sentry/types';
+import type {GroupResolution} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 

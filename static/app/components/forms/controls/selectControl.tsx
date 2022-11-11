@@ -18,7 +18,7 @@ import omit from 'lodash/omit';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import {FormSize} from 'sentry/utils/theme';
 

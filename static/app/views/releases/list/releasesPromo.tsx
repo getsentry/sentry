@@ -21,7 +21,7 @@ import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, Project, SentryApp} from 'sentry/types';
+import type {Organization, Project, SentryApp} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import useApiRequests from 'sentry/utils/useApiRequests';

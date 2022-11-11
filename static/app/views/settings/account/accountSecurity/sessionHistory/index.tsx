@@ -6,7 +6,7 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {InternetProtocol} from 'sentry/types';
+import type {InternetProtocol} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

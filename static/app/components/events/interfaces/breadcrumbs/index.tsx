@@ -10,7 +10,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

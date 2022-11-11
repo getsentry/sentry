@@ -1,5 +1,5 @@
 import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {PlatformType} from 'sentry/types';
+import type {PlatformType} from 'sentry/types';
 import {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 import {IntegrationView} from './index';

@@ -1,4 +1,4 @@
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 import usePageFilters from './usePageFilters';

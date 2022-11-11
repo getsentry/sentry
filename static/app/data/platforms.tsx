@@ -2,7 +2,7 @@ import integrationDocsPlatforms from 'integration-docs-platforms';
 import sortBy from 'lodash/sortBy';
 
 import {t} from 'sentry/locale';
-import {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 

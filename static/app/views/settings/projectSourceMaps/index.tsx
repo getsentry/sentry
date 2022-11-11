@@ -1,7 +1,7 @@
 import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type RouteParams = {

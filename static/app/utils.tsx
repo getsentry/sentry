@@ -3,7 +3,7 @@ import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
 

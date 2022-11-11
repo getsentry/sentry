@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   MetricDataSwitcherOutcome,

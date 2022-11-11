@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
-import {AvatarUser, Member} from 'sentry/types';
+import type {AvatarUser, Member} from 'sentry/types';
 
 interface Props {
   member: Member;

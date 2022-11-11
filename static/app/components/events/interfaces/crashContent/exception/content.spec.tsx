@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EntryType} from 'sentry/types';
+import type {EntryType} from 'sentry/types';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {

@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {DataCategory, Outcome} from 'sentry/types';
+import type {DataCategory, Outcome} from 'sentry/types';
 
 /**
  * Exporting for use in Storybook only. Do not import this

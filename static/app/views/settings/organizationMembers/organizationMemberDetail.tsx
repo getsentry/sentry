@@ -22,7 +22,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Member, Organization, Team} from 'sentry/types';
+import type {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';

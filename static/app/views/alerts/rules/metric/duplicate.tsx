@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {

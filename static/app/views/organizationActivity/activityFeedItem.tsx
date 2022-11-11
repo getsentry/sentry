@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import {Activity, GroupActivity, Organization} from 'sentry/types';
+import type {Activity, GroupActivity, Organization} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
 const defaultProps = {

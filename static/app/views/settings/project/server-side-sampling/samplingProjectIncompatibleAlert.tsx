@@ -3,7 +3,7 @@ import {useEffect} from 'react';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';

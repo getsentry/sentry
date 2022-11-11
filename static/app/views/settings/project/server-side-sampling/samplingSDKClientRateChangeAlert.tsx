@@ -3,7 +3,7 @@ import {useEffect} from 'react';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {Organization, Project, SeriesApi} from 'sentry/types';
+import type {Organization, Project, SeriesApi} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 

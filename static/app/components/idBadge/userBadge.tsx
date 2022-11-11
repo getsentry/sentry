@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import space from 'sentry/styles/space';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types';
 
 type Props = {
   avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];

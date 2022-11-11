@@ -17,7 +17,7 @@ import {PanelTable} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BaseGroup, Group, Organization, Project} from 'sentry/types';
+import type {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';

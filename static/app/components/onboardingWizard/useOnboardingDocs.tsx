@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {PlatformIntegration, Project} from 'sentry/types';
+import type {PlatformIntegration, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

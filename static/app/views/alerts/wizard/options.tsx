@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {
   Dataset,
   EventTypes,

@@ -5,7 +5,7 @@ import FileChange from 'sentry/components/fileChange';
 import {ListGroup, ListGroupItem} from 'sentry/components/listGroup';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FilesByRepository} from 'sentry/types';
+import type {FilesByRepository} from 'sentry/types';
 
 type CollapsedProps = {
   count: number;

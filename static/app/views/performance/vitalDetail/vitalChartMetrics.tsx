@@ -14,7 +14,7 @@ import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, MetricsApiResponse} from 'sentry/types';
+import type {DateString, MetricsApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';

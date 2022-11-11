@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Group, Organization, Project, UserReport} from 'sentry/types';
+import type {Group, Organization, Project, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 

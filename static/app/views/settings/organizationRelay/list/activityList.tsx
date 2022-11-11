@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import DateTime from 'sentry/components/dateTime';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {RelayActivity} from 'sentry/types';
+import type {RelayActivity} from 'sentry/types';
 
 type Props = {
   activities: Array<RelayActivity>;

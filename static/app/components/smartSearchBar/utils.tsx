@@ -27,7 +27,7 @@ import {
   Shortcut,
   ShortcutType,
 } from './types';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 

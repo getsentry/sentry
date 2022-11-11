@@ -11,7 +11,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 
 export type ReprocessEventModalOptions = {
   groupId: Group['id'];

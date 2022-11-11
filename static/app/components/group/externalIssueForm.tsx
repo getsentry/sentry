@@ -8,7 +8,7 @@ import AbstractExternalIssueForm, {
 import {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
+import type {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),

@@ -16,7 +16,7 @@ import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, UpdateSdkSuggestion} from 'sentry/types';
+import type {Organization, UpdateSdkSuggestion} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';

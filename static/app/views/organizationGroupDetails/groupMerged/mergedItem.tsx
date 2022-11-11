@@ -8,7 +8,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 type Props = {
   fingerprint: Fingerprint;

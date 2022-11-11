@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import isObject from 'lodash/isObject';
 
-import {EventGroupComponent} from 'sentry/types';
+import type {EventGroupComponent} from 'sentry/types';
 
 import GroupingComponent, {
   GroupingComponentListItem,

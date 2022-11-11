@@ -1,7 +1,7 @@
 import isNil from 'lodash/isNil';
 
 import {t} from 'sentry/locale';
-import {SavedSearch} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

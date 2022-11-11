@@ -12,7 +12,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Scope, Team} from 'sentry/types';
+import type {Organization, Scope, Team} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 

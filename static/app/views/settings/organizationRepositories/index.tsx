@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 

@@ -12,7 +12,7 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, TeamWithProjects} from 'sentry/types';
+import type {DateString, TeamWithProjects} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import useOrganization from 'sentry/utils/useOrganization';

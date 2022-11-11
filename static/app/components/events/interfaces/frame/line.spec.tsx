@@ -1,7 +1,7 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import Line from 'sentry/components/events/interfaces/frame/line';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {
   const event = TestStubs.Event();

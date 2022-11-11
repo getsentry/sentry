@@ -5,7 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {InternalAppApiToken, SentryApp} from 'sentry/types';
+import type {InternalAppApiToken, SentryApp} from 'sentry/types';
 
 /**
  * Install a sentry application

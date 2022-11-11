@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 interface Props {
   location: Location;

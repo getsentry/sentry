@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Commit, Repository, User} from 'sentry/types';
+import type {Commit, Repository, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';

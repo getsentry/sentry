@@ -3,7 +3,7 @@ import {Component, Fragment} from 'react';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, toTitleCase} from 'sentry/utils';
 

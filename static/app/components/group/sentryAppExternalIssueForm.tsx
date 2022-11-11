@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
-import {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
+import type {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';

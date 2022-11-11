@@ -10,7 +10,7 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, Group, Organization} from 'sentry/types';
+import type {DateString, EventError, Group, Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {
   findRangeOfMultiSeries,

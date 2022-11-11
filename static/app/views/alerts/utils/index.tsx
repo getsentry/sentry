@@ -1,7 +1,7 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import {Organization, SessionFieldWithOperation} from 'sentry/types';
+import type {Organization, SessionFieldWithOperation} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';

@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
+import type {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
 import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';

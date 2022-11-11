@@ -13,7 +13,7 @@ import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GroupTombstone} from 'sentry/types';
+import type {GroupTombstone} from 'sentry/types';
 
 type RowProps = {
   data: GroupTombstone;

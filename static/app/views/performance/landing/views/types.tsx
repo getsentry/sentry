@@ -1,6 +1,6 @@
 import {Location} from 'history';
 
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 
 export type BasePerformanceViewProps = {

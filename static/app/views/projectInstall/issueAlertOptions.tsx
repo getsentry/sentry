@@ -10,7 +10,7 @@ import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 enum MetricValues {

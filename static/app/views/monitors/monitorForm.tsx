@@ -11,7 +11,7 @@ import FormModel from 'sentry/components/forms/model';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {PageFilters, Project, SelectValue} from 'sentry/types';
+import type {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 

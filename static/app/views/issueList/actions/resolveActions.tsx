@@ -1,5 +1,5 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import {Organization, Release} from 'sentry/types';
+import type {Organization, Release} from 'sentry/types';
 
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 

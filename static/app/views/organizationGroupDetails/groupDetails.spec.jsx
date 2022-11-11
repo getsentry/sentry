@@ -6,7 +6,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types';
+import type {IssueCategory} from 'sentry/types';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');

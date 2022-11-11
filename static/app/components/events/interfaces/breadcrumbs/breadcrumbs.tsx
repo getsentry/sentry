@@ -13,7 +13,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EntryType} from 'sentry/types';
+import type {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 import {Breadcrumb} from './breadcrumb';

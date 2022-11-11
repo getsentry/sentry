@@ -9,7 +9,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 
 type Props = {

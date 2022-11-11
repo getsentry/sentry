@@ -1,7 +1,7 @@
 import {FieldGroupProps} from 'sentry/components/forms/field/types';
 import SeparatorField from 'sentry/components/forms/fields/separatorField';
 import {Field} from 'sentry/components/forms/types';
-import {Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types';
 
 import BlankField from './fields/blankField';
 import BooleanField, {BooleanFieldProps} from './fields/booleanField';

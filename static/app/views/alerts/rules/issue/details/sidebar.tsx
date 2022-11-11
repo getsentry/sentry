@@ -9,7 +9,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Member, Team} from 'sentry/types';
+import type {Actor, Member, Team} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
 import {TextAction, TextCondition} from './textRule';

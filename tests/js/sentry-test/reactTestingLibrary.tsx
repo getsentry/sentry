@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import merge from 'lodash/merge';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,

@@ -5,7 +5,7 @@ import DateTime from 'sentry/components/dateTime';
 import Tag from 'sentry/components/tag';
 import TimeSince, {getRelativeDate} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {InboxDetails} from 'sentry/types';
+import type {InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';

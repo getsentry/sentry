@@ -2,7 +2,7 @@ import {Component, useMemo} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
-import {SavedSearch} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';

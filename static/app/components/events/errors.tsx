@@ -10,7 +10,7 @@ import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
-import {Artifact, Organization, Project} from 'sentry/types';
+import type {Artifact, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 

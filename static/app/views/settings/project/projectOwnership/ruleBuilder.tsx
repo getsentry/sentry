@@ -11,7 +11,7 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import SelectOwners, {
   Owner,
 } from 'sentry/views/settings/project/projectOwnership/selectOwners';

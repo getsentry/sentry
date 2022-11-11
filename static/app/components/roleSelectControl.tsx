@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
-import {MemberRole} from 'sentry/types';
+import type {MemberRole} from 'sentry/types';
 
 type OptionType = {
   details: React.ReactNode;

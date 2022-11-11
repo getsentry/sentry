@@ -6,7 +6,7 @@ import Alert from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {DASHBOARDS_TEMPLATES, EMPTY_DASHBOARD} from './data';

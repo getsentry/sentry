@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
+import type {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {

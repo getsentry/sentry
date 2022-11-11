@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import {CursorHandler} from 'sentry/components/pagination';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';

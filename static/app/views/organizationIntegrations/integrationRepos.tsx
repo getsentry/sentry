@@ -16,7 +16,7 @@ import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import space from 'sentry/styles/space';
-import {Integration, Organization, Repository} from 'sentry/types';
+import type {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] & {

@@ -7,7 +7,7 @@ import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {AvatarUser, Organization, Tag} from 'sentry/types';
+import type {AvatarUser, Organization, Tag} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';

@@ -1,4 +1,4 @@
-import {OnboardingTask} from 'sentry/types';
+import type {OnboardingTask} from 'sentry/types';
 
 export const taskIsDone = (task: OnboardingTask) =>
   ['complete', 'skipped'].includes(task.status);

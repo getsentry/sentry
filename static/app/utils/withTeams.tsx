@@ -1,4 +1,4 @@
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import useTeams from 'sentry/utils/useTeams';
 

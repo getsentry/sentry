@@ -5,7 +5,7 @@ import CompactSelect from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';

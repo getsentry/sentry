@@ -10,7 +10,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Member} from 'sentry/types';
+import type {Group, Member} from 'sentry/types';
 
 type Props = {
   error: boolean;

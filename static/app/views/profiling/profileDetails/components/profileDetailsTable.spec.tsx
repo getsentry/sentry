@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {RequestState} from 'sentry/types';
+import type {RequestState} from 'sentry/types';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeSentrySampledProfile} from 'sentry/utils/profiling/profile/sentrySampledProfile.specutil';
 

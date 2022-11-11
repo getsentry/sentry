@@ -8,7 +8,7 @@ import {Client, ResponseMeta} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse} from 'sentry/types';
+import type {MetricsApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 

@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Modal from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventAttachment, Project} from 'sentry/types';
+import type {EventAttachment, Project} from 'sentry/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

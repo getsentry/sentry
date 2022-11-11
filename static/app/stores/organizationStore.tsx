@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 
 import HookStore from './hookStore';

@@ -2,7 +2,7 @@ import set from 'lodash/set';
 
 import {FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, Project} from 'sentry/types';
+import type {OrganizationSummary, Project} from 'sentry/types';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,

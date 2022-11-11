@@ -11,7 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Repository} from 'sentry/types';
+import type {Organization, Repository} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import space from 'sentry/styles/space';
-import {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 

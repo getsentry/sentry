@@ -3,7 +3,11 @@ import {useEffect, useState} from 'react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsMetaCollection, MetricsTagCollection, Organization} from 'sentry/types';
+import type {
+  MetricsMetaCollection,
+  MetricsTagCollection,
+  Organization,
+} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 

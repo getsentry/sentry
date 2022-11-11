@@ -8,7 +8,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, ReleaseProject} from 'sentry/types';
+import type {Organization, ReleaseProject} from 'sentry/types';
 
 type Props = {
   location: Location;

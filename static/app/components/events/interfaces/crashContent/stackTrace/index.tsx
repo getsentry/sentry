@@ -1,5 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {PlatformType} from 'sentry/types';
+import type {PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';

@@ -8,7 +8,7 @@ import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ReleaseComparisonChartType} from 'sentry/types';
+import type {ReleaseComparisonChartType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';

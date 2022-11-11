@@ -3,7 +3,7 @@ import {useCallback} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import type {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';

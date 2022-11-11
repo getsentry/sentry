@@ -8,7 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventGroupingConfig, Organization, Project} from 'sentry/types';
+import type {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

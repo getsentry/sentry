@@ -9,7 +9,7 @@ import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, Commit, Group, IssueCategory} from 'sentry/types';
+import type {AvatarProject, Commit, Group, IssueCategory} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';

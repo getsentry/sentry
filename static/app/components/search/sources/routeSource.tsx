@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import flattenDepth from 'lodash/flattenDepth';
 
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import withLatestContext from 'sentry/utils/withLatestContext';

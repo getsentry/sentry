@@ -7,7 +7,7 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {Group, Organization, Plugin, Project} from 'sentry/types';
+import type {Group, Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

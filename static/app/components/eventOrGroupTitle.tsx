@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
+import type {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';

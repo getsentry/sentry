@@ -12,7 +12,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
+import type {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';

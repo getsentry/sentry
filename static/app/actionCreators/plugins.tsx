@@ -6,7 +6,7 @@ import {
 import {Client, RequestOptions} from 'sentry/api';
 import {t} from 'sentry/locale';
 import PluginsStore from 'sentry/stores/pluginsStore';
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle

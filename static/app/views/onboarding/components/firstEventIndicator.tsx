@@ -6,7 +6,7 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';

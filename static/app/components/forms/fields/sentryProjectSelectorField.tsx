@@ -4,7 +4,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import {InputFieldProps} from './inputField';

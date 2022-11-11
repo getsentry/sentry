@@ -8,7 +8,7 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import RuleBuilder from './ruleBuilder';

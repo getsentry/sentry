@@ -1,4 +1,4 @@
-import {PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types';
 
 export type CoreUIEventParameters = {
   'number_drag_control.clicked': {};

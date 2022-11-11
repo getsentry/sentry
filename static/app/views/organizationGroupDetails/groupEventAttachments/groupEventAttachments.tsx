@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueAttachment, Project} from 'sentry/types';
+import type {IssueAttachment, Project} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 
 import GroupEventAttachmentsFilter, {
