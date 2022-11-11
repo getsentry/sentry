@@ -126,7 +126,7 @@ describe('StacktraceLinkModal', () => {
       expect(closeModal).not.toHaveBeenCalled();
     });
     expect(
-      screen.getByText('We don’t have access to that GitHub repo', {exact: false})
+      screen.getByText('We don’t have access to that', {exact: false})
     ).toBeInTheDocument();
   });
 });
