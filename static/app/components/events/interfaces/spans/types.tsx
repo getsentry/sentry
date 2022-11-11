@@ -227,6 +227,8 @@ type SpanBarNode = {
     | 'addExpandedSpan'
     | 'removeExpandedSpan'
     | 'isSpanExpanded'
+    | 'cellMeasurerCache'
+    | 'listRef'
   >;
   type: SpanTreeNodeType.SPAN;
 };

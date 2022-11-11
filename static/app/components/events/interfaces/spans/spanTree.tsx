@@ -471,7 +471,11 @@ class SpanTree extends Component<PropType> {
 
   renderSpanNode(
     node: SpanTreeNode,
-    extraProps: {measure: () => void} & SpanContext.SpanContextProps
+    extraProps: {
+      cellMeasurerCache: CellMeasurerCache;
+      listRef: React.RefObject<ReactVirtualizedList>;
+      measure: () => void;
+    } & SpanContext.SpanContextProps
   ) {
     switch (node.type) {
       case SpanTreeNodeType.SPAN:
@@ -520,7 +524,12 @@ class SpanTree extends Component<PropType> {
               {spanContextProps => {
                 return (
                   <div style={style}>
-                    {this.renderSpanNode(spanTree[index], {measure, ...spanContextProps})}
+                    {this.renderSpanNode(spanTree[index], {
+                      measure,
+                      listRef,
+                      cellMeasurerCache: cache,
+                      ...spanContextProps,
+                    })}
                   </div>
                 );
               }}

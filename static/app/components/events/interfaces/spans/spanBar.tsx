@@ -1,6 +1,7 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
+import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -105,6 +106,7 @@ export const MARGIN_LEFT = 0;
 
 export type SpanBarProps = {
   addExpandedSpan: (spanId: string) => void;
+  cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
@@ -114,6 +116,7 @@ export type SpanBarProps = {
   getScrollLeftValue: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (spanId: string) => boolean;
+  listRef: React.RefObject<ReactVirtualizedList>;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
@@ -174,7 +177,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded} = this.props;
+    const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded, measure} =
+      this.props;
 
     if (isGapSpan(span)) {
       return;
@@ -191,7 +195,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     if (isSpanExpanded(span.span_id)) {
-      this.setState({showDetail: true});
+      this.setState({showDetail: true}, () => measure?.());
     }
   }
 
@@ -201,15 +205,26 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
-      this.props.measure?.();
     }
 
-    const {span, markSpanOutOfView} = this.props;
+    const {
+      span,
+      markSpanOutOfView,
+      cellMeasurerCache,
+      spanNumber,
+      listRef,
+      isSpanExpanded,
+    } = this.props;
     if (isGapSpan(span)) {
       return;
     }
 
     markSpanOutOfView(span.span_id);
+
+    if (!isSpanExpanded) {
+      cellMeasurerCache.clear(spanNumber - 1, 0);
+      listRef.current?.recomputeRowHeights(spanNumber - 1);
+    }
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
