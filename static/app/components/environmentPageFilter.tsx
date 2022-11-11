@@ -120,18 +120,18 @@ function EnvironmentPageFilter({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   flex: 1 1 0%;
   margin-left: ${space(1)};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-align: left;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
+  width: max-content;
+  min-width: 0;
 `;
 
 export default withRouter<Props>(EnvironmentPageFilter);
