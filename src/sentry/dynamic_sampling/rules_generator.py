@@ -23,7 +23,15 @@ from sentry.models import Project, Release
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz
-HEALTH_CHECK_GLOBS = ["*healthcheck*", "*healthy*", "*live*", "*ready*", "*heartbeat*", "*/health"]
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+]
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
