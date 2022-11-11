@@ -459,6 +459,8 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    # Projects
+    url(r"^projects/", react_page_view, name="projects"),
     # Discover
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
