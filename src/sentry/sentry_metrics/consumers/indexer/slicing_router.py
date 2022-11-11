@@ -1,4 +1,4 @@
-from typing import MutableMapping, Optional
+from typing import MutableMapping
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer
@@ -15,54 +15,63 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRouter,
     RoutingPayload,
 )
-from sentry.utils import kafka_config
+
+
+class SlicingConfigurationException(Exception):
+    """
+    Exception raised when the configuration for the SlicingRouter is invalid.
+    """
+
+
+def _validate_slicing_consumer_config(sliceable: Sliceable) -> None:
+    """
+    Validate all the required settings needed for a slicing router.
+    """
+    if not is_sliced(sliceable):
+        raise SlicingConfigurationException(
+            f"{sliceable} is not " f"defined in settings.SENTRY_SLICING_CONFIG"
+        )
+
+    for topic_tuple in settings.SLICED_KAFKA_TOPIC_MAP.keys():
+        if topic_tuple not in settings.SLICED_KAFKA_BROKER_CONFIG.keys():
+            raise SlicingConfigurationException(
+                f"missing topic definition " f"{topic_tuple} in settings.SLICED_KAFKA_BROKER_CONFIG"
+            )
 
 
 class SlicingRouter(MessageRouter):
+    """
+    Router which works based on the settings defined for slicing.
+    """
+
     def __init__(
         self,
         sliceable: Sliceable,
-        output_topic: str,
     ) -> None:
         self.__sliceable = sliceable
-        self.__output_topic = output_topic
         self.__slice_to_producer: MutableMapping[int, MessageRoute] = {}
+        _validate_slicing_consumer_config(self.__sliceable)
 
-        if not is_sliced(self.__sliceable):
-            self.__slice_to_producer[0] = MessageRoute(
+        for (
+            current_sliceable,
+            current_slice_id,
+        ), topic_name in settings.SLICED_KAFKA_TOPIC_MAP.items():
+            self.__slice_to_producer[current_slice_id] = MessageRoute(
                 producer=Producer(
-                    kafka_config.get_kafka_producer_cluster_options(
-                        settings.KAFKA_TOPICS[self.__output_topic]["cluster"]
-                    )
+                    settings.SLICED_KAFKA_BROKER_CONFIG[(current_sliceable, current_slice_id)]
                 ),
-                topic=Topic(self.__output_topic),
+                topic=Topic(topic_name),
             )
-            self.__slicing_enabled = False
-        else:
-            for (
-                current_sliceable,
-                current_slice_id,
-            ), config in settings.SLICED_KAFKA_BROKER_CONFIG.items():
-                self.__slice_to_producer[current_slice_id] = MessageRoute(
-                    producer=Producer(config),
-                    topic=Topic(
-                        settings.SLICED_KAFKA_TOPIC_MAP[(current_sliceable, current_slice_id)]
-                    ),
-                )
-            assert len(self.__slice_to_producer) == len(
-                settings.SENTRY_SLICING_CONFIG[sliceable].keys()
-            )
-            self.__slicing_enabled = True
+        assert len(self.__slice_to_producer) == len(
+            settings.SENTRY_SLICING_CONFIG[sliceable].keys()
+        )
 
     def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         """
-        Get route for the message. If slicing is enabled, the message will be routed
-        based on the mapping of partition to slice. If slicing is disabled, the message
-        will be routed to the default topic.
+        Get route for the message. The message will be routed based on the org_id
+        present in the message payload header and how it maps to a specific
+        slice.
         """
-        if not self.__slicing_enabled:
-            return self.__slice_to_producer[0]
-
         org_id = message.payload.routing_header.get("org_id", None)
 
         if org_id is None:
@@ -75,6 +84,6 @@ class SlicingRouter(MessageRouter):
 
         return producer
 
-    def shutdown(self, timeout: Optional[float] = None) -> None:
+    def shutdown(self) -> None:
         for route in self.__slice_to_producer.values():
-            route.producer.flush(timeout=timeout)
+            route.producer.flush()

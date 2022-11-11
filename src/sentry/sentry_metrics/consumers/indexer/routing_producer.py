@@ -22,7 +22,7 @@ class RoutingPayload(NamedTuple):
     """
 
     routing_header: MutableMapping[str, Any]
-    payload: KafkaPayload
+    routing_message: KafkaPayload
 
 
 class MessageRoute(NamedTuple):
@@ -59,12 +59,10 @@ class MessageRouter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def shutdown(self, timeout: Optional[float]) -> None:
+    def shutdown(self) -> None:
         """
-        Shutdown the router. This method is called when join() is called on
-        the strategy. This method can be used to perform any cleanup needed
-        by the router. Most often that would always include closing the
-        producers that are used by the router.
+        Shutdown the router. This method can be used to perform any cleanup
+        needed by the router.
         """
         raise NotImplementedError
 
@@ -77,11 +75,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
     the documentation for the MessageRouter class for more details.
 
     The strategy also does not own any producers. The producers are owned by
-    the message router. As such, the strategy does not close the producers.
-    So it is important that the message router closes the producers when its
-    shutdown method is called. shutdown() is not called during the close()
-    method as it has to be non-blocking. The shutdown() method is therefore
-    called during the join() method.
+    the message router.
     """
 
     def __init__(
@@ -93,7 +87,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__message_router = message_router
         self.__closed = False
         self.__offsets_to_be_committed: MutableMapping[Partition, Position] = {}
-        self.__queue: Deque[Tuple[Message[KafkaPayload], Future[Message[KafkaPayload]]]] = deque()
+        self.__queue: Deque[Tuple[Partition, Position, Future[Message[KafkaPayload]]]] = deque()
 
     def poll(self) -> None:
         """
@@ -104,7 +98,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         which is not yet completed.
         """
         while self.__queue:
-            message, future = self.__queue[0]
+            partition, position, future = self.__queue[0]
 
             if not future.done():
                 break
@@ -112,9 +106,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             future.result()
 
             self.__queue.popleft()
-            self.__offsets_to_be_committed[message.partition] = Position(
-                message.next_offset, message.timestamp
-            )
+            self.__offsets_to_be_committed[partition] = position
 
         self.__commit_function(self.__offsets_to_be_committed)
 
@@ -131,11 +123,15 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             partition=message.partition,
             offset=message.offset,
             timestamp=message.timestamp,
-            payload=message.payload.payload,
+            payload=message.payload.routing_message.value,
         )
 
         self.__queue.append(
-            (output_message, producer.produce(destination=topic, payload=output_message.payload))
+            (
+                output_message.partition,
+                output_message.position_to_commit,
+                producer.produce(destination=topic, payload=output_message.payload),
+            )
         )
 
     def terminate(self) -> None:
@@ -160,12 +156,11 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
                 logger.warning(f"Timed out with {len(self.__queue)} futures in queue")
                 break
 
-            message, future = self.__queue.popleft()
+            partition, position, future = self.__queue.popleft()
             future.result(remaining)
-            offset = {message.partition: message.position_to_commit}
+            offset = {partition: position}
 
             logger.info("Committing offset: %r", offset)
             self.__commit_function(offset, force=True)
 
-        remaining = timeout - (time.time() - start) if timeout is not None else None
-        self.__message_router.shutdown(remaining)
+        self.__message_router.shutdown()

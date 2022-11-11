@@ -11,11 +11,12 @@ from confluent_kafka import Producer
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRoute,
     MessageRouter,
+    RoutingPayload,
     RoutingProducerStep,
 )
 
 
-class RoundRobinRouter(MessageRouter[KafkaPayload]):
+class RoundRobinRouter(MessageRouter):
     def __init__(self) -> None:
         self.all_broker_storages: MutableSequence[MemoryMessageStorage[KafkaPayload]] = []
         self.all_producers: MutableSequence[Producer] = []
@@ -27,9 +28,9 @@ class RoundRobinRouter(MessageRouter[KafkaPayload]):
             self.all_broker_storages.append(broker_storage)
             self.all_producers.append(broker.get_producer())
 
-    def get_route_for_message(self, message: Message[KafkaPayload]) -> MessageRoute:
-        routing_key, routing_value = message.payload.headers[0]
-        dest_id = int(routing_value) % len(self.all_producers)
+    def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
+        routing_key = message.payload.routing_header["key"]
+        dest_id = routing_key % len(self.all_producers)
         return MessageRoute(self.all_producers[dest_id], Topic(f"result-topic-{dest_id}"))
 
     def shutdown(self, timeout: Optional[float] = None) -> None:
@@ -56,7 +57,9 @@ def test_routing_producer() -> None:
 
     for i in range(3):
         value = b'{"something": "something"}'
-        data = KafkaPayload(None, value, [("key", b"%d" % i)])
+        data = RoutingPayload(
+            routing_header={"key": i}, routing_message=KafkaPayload(None, value, [])
+        )
         message = Message(
             Partition(orig_topic, 0),
             1,
@@ -72,7 +75,6 @@ def test_routing_producer() -> None:
             Partition(Topic(f"result-topic-{i}"), 0), 0
         )
         assert produced_message is not None
-        assert produced_message.payload.value == value
         assert (
             router.all_broker_storages[i].consume(Partition(Topic(f"result-topic-{i}"), 0), 1)
             is None
