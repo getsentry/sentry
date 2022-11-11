@@ -257,20 +257,42 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                 break
 
     if has_order_by_team_key_transaction:
-        # TODO: add here optimization that gets an entity from the select (either set of distribution) and sets it
-        #  to all tkt in the query.
         entities = set()
-        for orderby_field in orderby:
-            if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
-                expr = metric_object_factory(orderby_field.field.op, orderby_field.field.metric_mri)
-                entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
-                if isinstance(entity, str):
-                    entities.add(entity)
 
-        if len(entities) > 1:
-            raise InvalidParams("The orderby cannot have fields with multiple entities.")
+        if len(orderby) == 1:
+            # If the number of clauses in the order by is equal to 1 and the order by has a team_key_transaction it
+            # means that it must be the only one, therefore we want to infer the MRI type of the team_key_transaction
+            # from one entity in the select in order to save up a query. This is just an optimization for the edge case
+            # in which the select has a different entity than the default entity for the team_key_transaction, which
+            # is the distribution, inferred from TransactionMRI.DURATION.
+            for select_field in select:
+                if select_field.op != TEAM_KEY_TRANSACTION_OP:
+                    expr = metric_object_factory(select_field.op, select_field.metric_mri)
+                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                    if isinstance(entity, str):
+                        entities.add(entity)
+        else:
+            # If the number of clauses in the order by is more than 1 it means that together with team_key_transaction
+            # there are other order by conditions and by definition we want all the order by conditions to belong to
+            # the same entity type, therefore we want to check how many entities are there in the other order by
+            # conditions and if there is only one we will infer the MRI type of the team_key_transaction
+            # from that one entity. If, on the other hand, there are multiple entities, then we throw an error because
+            # an order by across multiple entities is not supported.
+            for orderby_field in orderby:
+                if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
+                    expr = metric_object_factory(
+                        orderby_field.field.op, orderby_field.field.metric_mri
+                    )
+                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                    if isinstance(entity, str):
+                        entities.add(entity)
 
-        if len(entities) != 0:
+            if len(entities) > 1:
+                raise InvalidParams("The orderby cannot have fields with multiple entities.")
+
+        if len(entities) > 0:
+            # Only if entities are found in the clauses we are going to update the MRI to apply, otherwise we will just
+            # resort to the default one.
             mri_to_apply = mri_dictionary[entities.pop()]
 
     return mri_to_apply

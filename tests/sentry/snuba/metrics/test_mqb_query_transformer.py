@@ -551,6 +551,154 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             match=Entity("generic_metrics_distributions"),
             select=[
                 AliasedExpression(
+                    exp=Column("e:transactions/user_misery@ratio"),
+                    alias="user_misery",
+                ),
+                Function(
+                    function="team_key_transaction",
+                    parameters=[
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
+                        [(13, "foo_transaction")],
+                    ],
+                    alias="team_key_transaction",
+                ),
+            ],
+            groupby=[
+                Function(
+                    function="team_key_transaction",
+                    parameters=[
+                        Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
+                        [(13, "foo_transaction")],
+                    ],
+                    alias="team_key_transaction",
+                ),
+            ],
+            array_join=None,
+            where=[
+                Condition(
+                    lhs=Column(
+                        name="timestamp",
+                    ),
+                    op=Op.GTE,
+                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132),
+                ),
+                Condition(
+                    lhs=Column(
+                        name="timestamp",
+                    ),
+                    op=Op.LT,
+                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132),
+                ),
+                Condition(
+                    lhs=Column(
+                        name="project_id",
+                    ),
+                    op=Op.IN,
+                    rhs=[13],
+                ),
+                Condition(
+                    lhs=Column(
+                        name="org_id",
+                    ),
+                    op=Op.EQ,
+                    rhs=14,
+                ),
+                Condition(
+                    lhs=Function(
+                        function="team_key_transaction",
+                        parameters=[
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
+                            [(13, "foo_transaction")],
+                        ],
+                        alias="team_key_transaction",
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            ],
+            having=[],
+            orderby=[
+                OrderBy(
+                    exp=Function(
+                        function="team_key_transaction",
+                        parameters=[
+                            Column(TransactionMRI.TEAM_KEY_TRANSACTION.value),
+                            [(13, "foo_transaction")],
+                        ],
+                        alias="team_key_transaction",
+                    ),
+                    direction=Direction.ASC,
+                ),
+            ],
+            limitby=None,
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            granularity=Granularity(granularity=86400),
+            totals=None,
+        ),
+        MetricsQuery(
+            org_id=14,
+            project_ids=[13],
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri="e:transactions/user_misery@ratio",
+                    alias="user_misery",
+                ),
+                MetricField(
+                    op="team_key_transaction",
+                    metric_mri="s:transactions/user@none",
+                    params={"team_key_condition_rhs": [(13, "foo_transaction")]},
+                    alias="team_key_transaction",
+                ),
+            ],
+            start=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132),
+            granularity=Granularity(granularity=86400),
+            where=[
+                MetricConditionField(
+                    lhs=MetricField(
+                        op="team_key_transaction",
+                        metric_mri="s:transactions/user@none",
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
+                        alias="team_key_transaction",
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            groupby=[
+                MetricGroupByField(
+                    MetricField(
+                        op="team_key_transaction",
+                        metric_mri="s:transactions/user@none",
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
+                        alias="team_key_transaction",
+                    ),
+                ),
+            ],
+            orderby=[
+                MetricsOrderBy(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri="s:transactions/user@none",
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
+                        alias="team_key_transaction",
+                    ),
+                    direction=Direction.ASC,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        ),
+        id="team_key_transaction transformation with single order by and user_misery in select",
+    ),
+    pytest.param(
+        Query(
+            match=Entity("generic_metrics_distributions"),
+            select=[
+                AliasedExpression(
                     exp=Column("e:transactions/apdex@ratio"),
                     alias="apdex",
                 ),
