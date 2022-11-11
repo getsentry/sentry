@@ -240,7 +240,7 @@ export function renderTemplate(
 
     for (const item of group) {
       if (isString(item)) {
-        children.push(<span key={idx++}>{item}</span>);
+        children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
         children.push(renderGroup(item.group));
       }
@@ -251,7 +251,7 @@ export function renderTemplate(
     let reference = components[groupKey] ?? <span key={idx++} />;
 
     if (!isValidElement(reference)) {
-      reference = <span key={idx++}>{reference}</span>;
+      reference = <Fragment key={idx++}>{reference}</Fragment>;
     }
 
     const element = reference as React.ReactElement;
@@ -280,7 +280,7 @@ function mark(node: React.ReactNode): string {
   // require some understanding of reacts internal types.
   const proxy = {
     $$typeof: Symbol.for('react.element'),
-    type: 'span',
+    type: Symbol.for('react.fragment'),
     key: null,
     ref: null,
     props: {
