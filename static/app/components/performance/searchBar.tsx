@@ -49,12 +49,6 @@ function SearchBar(props: SearchBarProps) {
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
 
-  const prepareQuery = (query: string) => {
-    const prependedChar = query[0] === '*' ? '' : '*';
-    const appendedChar = query[query.length - 1] === '*' ? '' : '*';
-    return `${prependedChar}${query}${appendedChar}`;
-  };
-
   const handleSearchChange = query => {
     setSearchString(query);
 
@@ -136,7 +130,7 @@ function SearchBar(props: SearchBarProps) {
         try {
           setLoading(true);
           const conditions = new MutableSearch('');
-          conditions.addFilterValues('transaction', [prepareQuery(query)], false);
+          conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
           conditions.addFilterValues('event.type', ['transaction']);
 
           // clear any active requests
@@ -234,6 +228,15 @@ function SearchBar(props: SearchBarProps) {
     </Container>
   );
 }
+
+// When fetching autocomplete results, we want to wrap the user input in
+// wildcard characters so we fetch fuzzy-matched strings, not just the exact
+// input
+const wrapQueryInWildcards = (query: string) => {
+  const prependedChar = query[0] === '*' ? '' : '*';
+  const appendedChar = query[query.length - 1] === '*' ? '' : '*';
+  return `${prependedChar}${query}${appendedChar}`;
+};
 
 const Container = styled('div')`
   position: relative;
