@@ -1,7 +1,7 @@
 import type {Organization, Project, StacktraceLinkResult} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 
-interface UseStackTraceLinkProps {
+interface UseStacktraceLinkProps {
   frame: {
     absPath?: string;
     filename?: string;
@@ -16,7 +16,7 @@ interface UseStackTraceLinkProps {
   sdkName?: string;
 }
 
-export function useStackTraceLink(options: UseStackTraceLinkProps) {
+export function useStacktraceLink(options: UseStacktraceLinkProps) {
   const response = useQuery<StacktraceLinkResult>([
     `/projects/${options.organization.slug}/${options.project.slug}/stacktrace-link/`,
     {
