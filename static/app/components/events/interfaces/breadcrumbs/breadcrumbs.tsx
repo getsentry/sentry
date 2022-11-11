@@ -1,17 +1,20 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
-import {css} from '@emotion/react';
+import {useEffect, useRef, useState} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+  List,
+  ListRowProps,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {PanelTable} from 'sentry/components/panels';
-import {PanelTableProps} from 'sentry/components/panels/panelTable';
 import Tooltip from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
 
 import {Breadcrumb} from './breadcrumb';
 
@@ -22,45 +25,108 @@ const cache = new CellMeasurerCache({
   minHeight: 42,
 });
 
-type Props = {
-  displayRelativeTime: boolean;
-  event: Event;
+type Props = Pick<
+  React.ComponentProps<typeof Breadcrumb>,
+  | 'event'
+  | 'organization'
+  | 'searchTerm'
+  | 'relativeTime'
+  | 'displayRelativeTime'
+  | 'router'
+  | 'route'
+> & {
+  breadcrumbs: Crumb[];
+  emptyMessage: Pick<
+    React.ComponentProps<typeof PanelTable>,
+    'emptyMessage' | 'emptyAction'
+  >;
   onSwitchTimeFormat: () => void;
-  relativeTime: string;
-  searchTerm: string;
-  breadcrumbs?: Crumb[];
-  emptyAction?: PanelTableProps['emptyAction'];
-  emptyMessage?: PanelTableProps['emptyMessage'];
 };
 
-export function Breadcrumbs({
+function Breadcrumbs({
   breadcrumbs,
   displayRelativeTime,
   onSwitchTimeFormat,
+  organization,
   searchTerm,
   event,
   relativeTime,
   emptyMessage,
-  emptyAction,
+  route,
+  router,
 }: Props) {
+  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
   const entryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.BREADCRUMBS
   );
 
+  let listRef: List | null = null;
   const contentRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<List>(null);
-
-  const updateGrid = useCallback(() => {
-    if (listRef.current) {
-      cache.clearAll();
-      listRef.current.forceUpdateGrid();
-    }
-  }, []);
 
   useEffect(() => {
     updateGrid();
-  }, [breadcrumbs, updateGrid]);
+  }, []);
+
+  useEffect(() => {
+    if (!!breadcrumbs.length && !scrollToIndex) {
+      setScrollToIndex(breadcrumbs.length - 1);
+      return;
+    }
+
+    updateGrid();
+  }, [breadcrumbs]);
+
+  useEffect(() => {
+    if (scrollToIndex !== undefined) {
+      updateGrid();
+    }
+  }, [scrollToIndex]);
+
+  function updateGrid() {
+    if (listRef) {
+      cache.clearAll();
+      listRef.forceUpdateGrid();
+    }
+  }
+
+  function renderRow({index, key, parent, style}: ListRowProps) {
+    const breadcrumb = breadcrumbs[index];
+    const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+    const {height} = style;
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
+      >
+        {({measure}) => (
+          <Breadcrumb
+            data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
+            style={style}
+            onLoad={measure}
+            organization={organization}
+            searchTerm={searchTerm}
+            breadcrumb={breadcrumb}
+            meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
+            event={event}
+            relativeTime={relativeTime}
+            displayRelativeTime={displayRelativeTime}
+            height={height ? String(height) : undefined}
+            scrollbarSize={
+              (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
+                ? scrollbarSize
+                : 0
+            }
+            router={router}
+            route={route}
+          />
+        )}
+      </CellMeasurer>
+    );
+  }
 
   return (
     <StyledPanelTable
@@ -84,70 +150,27 @@ export function Breadcrumbs({
         </Time>,
         '',
       ]}
-      isEmpty={!(breadcrumbs ?? []).length}
-      emptyMessage={emptyMessage}
-      emptyAction={emptyAction}
-      isLoading={breadcrumbs === undefined}
+      isEmpty={!breadcrumbs.length}
+      {...emptyMessage}
     >
       <Content ref={contentRef}>
         <AutoSizer disableHeight onResize={updateGrid}>
           {({width}) => (
             <StyledList
-              ref={listRef}
+              ref={(el: List | null) => {
+                listRef = el;
+              }}
               deferredMeasurementCache={cache}
               height={PANEL_MAX_HEIGHT}
-              scrollToIndex={0}
-              scrollToAlignment="end"
               overscanRowCount={5}
-              rowCount={(breadcrumbs ?? []).length}
+              rowCount={breadcrumbs.length}
               rowHeight={cache.rowHeight}
-              rowRenderer={rowProps => {
-                return (
-                  <CellMeasurer
-                    cache={cache}
-                    columnIndex={0}
-                    key={rowProps.key}
-                    parent={rowProps.parent}
-                    rowIndex={rowProps.index}
-                    style={rowProps.style}
-                  >
-                    {({measure}) => (
-                      <Breadcrumb
-                        data-test-id={
-                          (breadcrumbs ?? [])[(breadcrumbs ?? []).length - 1].id ===
-                          (breadcrumbs ?? [])[rowProps.index].id
-                            ? 'last-crumb'
-                            : 'crumb'
-                        }
-                        style={rowProps.style}
-                        onLoad={measure}
-                        searchTerm={searchTerm}
-                        breadcrumb={(breadcrumbs ?? [])[rowProps.index]}
-                        meta={
-                          event._meta?.entries?.[entryIndex]?.data?.values?.[
-                            rowProps.index
-                          ]
-                        }
-                        event={event}
-                        relativeTime={relativeTime}
-                        displayRelativeTime={displayRelativeTime}
-                        height={
-                          rowProps.style.height
-                            ? String(rowProps.style.height)
-                            : undefined
-                        }
-                        scrollbarSize={
-                          (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
-                            ? scrollbarSize
-                            : 0
-                        }
-                      />
-                    )}
-                  </CellMeasurer>
-                );
-              }}
+              rowRenderer={renderRow}
               width={width}
               onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
+              // when the component mounts, it scrolls to the last item
+              scrollToIndex={scrollToIndex}
+              scrollToAlignment={scrollToIndex ? 'end' : undefined}
             />
           )}
         </AutoSizer>
@@ -155,6 +178,8 @@ export function Breadcrumbs({
     </StyledPanelTable>
   );
 }
+
+export default Breadcrumbs;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   display: grid;
@@ -175,11 +200,10 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
 
     /* Content */
     :nth-child(n + 7) {
-      ${p => !p.isEmpty && 'transform: scaleY(-1)'}; /* Flip the list */
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        css`
+        `
           padding: 0;
         `}
     }

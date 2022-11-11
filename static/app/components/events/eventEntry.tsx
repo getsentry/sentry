@@ -25,7 +25,7 @@ import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 import {Resources} from './interfaces/performance/resources';
 import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   event: Event;
   organization: SharedViewOrganization | Organization;
@@ -34,7 +34,16 @@ type Props = {
   isShare?: boolean;
 };
 
-function EventEntry({entry, projectSlug, event, organization, group, isShare}: Props) {
+function EventEntry({
+  entry,
+  projectSlug,
+  event,
+  organization,
+  group,
+  isShare,
+  route,
+  router,
+}: Props) {
   const hasHierarchicalGrouping =
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
@@ -110,7 +119,10 @@ function EventEntry({entry, projectSlug, event, organization, group, isShare}: P
       return (
         <Breadcrumbs
           data={entry.data}
+          organization={organization as Organization}
           event={event}
+          router={router}
+          route={route}
           isShare={isShare}
           projectSlug={projectSlug}
         />

@@ -10,16 +10,16 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import SearchBarAction from '../searchBarAction';
 
-import {Level} from './breadcrumb/level';
-import {Type} from './breadcrumb/type';
-import {Breadcrumbs} from './breadcrumbs';
+import Level from './breadcrumb/level';
+import Type from './breadcrumb/type';
+import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
 
 type FilterOptions = NonNullable<
@@ -28,28 +28,54 @@ type FilterOptions = NonNullable<
 
 type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   data: {
-    values: RawCrumb[];
+    values: Array<RawCrumb>;
   };
   event: Event;
+  organization: Organization;
   projectSlug: string;
   isShare?: boolean;
 };
 
-function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
-  const organization = useOrganization();
+type State = {
+  breadcrumbs: Crumb[];
+  displayRelativeTime: boolean;
+  filterOptions: FilterOptions;
+  filterSelections: FilterOptions;
+  filteredByFilter: Crumb[];
+  filteredBySearch: Crumb[];
+  searchTerm: string;
+  relativeTime?: string;
+};
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  projectSlug,
+  isShare,
+  route,
+  router,
+}: Props) {
+  const [state, setState] = useState<State>({
+    searchTerm: '',
+    breadcrumbs: [],
+    filteredByFilter: [],
+    filteredBySearch: [],
+    filterOptions: [],
+    filterSelections: [],
+    displayRelativeTime: false,
+  });
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [breadcrumbs, setBreadcrumbs] = useState<Crumb[]>([]);
-  const [filteredByFilter, setFilteredByFilter] = useState<Crumb[]>([]);
-  const [filteredBySearch, setFilteredBySearch] = useState<Crumb[] | undefined>(
-    undefined
-  );
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>([]);
-  const [filterSelections, setFilterSelections] = useState<FilterOptions>([]);
-  const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
-  const [relativeTime, setRelativeTime] = useState<string | undefined>(undefined);
+  const {
+    filterOptions,
+    breadcrumbs,
+    searchTerm,
+    filteredBySearch,
+    displayRelativeTime,
+    relativeTime,
+    filteredByFilter,
+  } = state;
 
   useEffect(() => {
     loadBreadcrumbs();
@@ -65,13 +91,16 @@ function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
       crumbs = [...crumbs, virtualCrumb];
     }
 
-    const transformedCrumbs = transformCrumbs(crumbs).reverse();
+    const transformedCrumbs = transformCrumbs(crumbs);
 
-    setRelativeTime(transformedCrumbs[transformedCrumbs.length - 1]?.timestamp);
-    setBreadcrumbs(transformedCrumbs);
-    setFilteredByFilter(transformedCrumbs);
-    setFilteredBySearch(transformedCrumbs);
-    setFilterOptions(getFilterOptions(transformedCrumbs));
+    setState({
+      ...state,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
+      breadcrumbs: transformedCrumbs,
+      filteredByFilter: transformedCrumbs,
+      filteredBySearch: transformedCrumbs,
+      filterOptions: getFilterOptions(transformedCrumbs),
+    });
   }
 
   function getFilterOptions(crumbs: ReturnType<typeof transformCrumbs>) {
@@ -222,36 +251,54 @@ function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
   }
 
   function handleSearch(value: string) {
-    setSearchTerm(value);
-    setFilteredBySearch(filterBySearch(value, filteredByFilter));
+    setState({
+      ...state,
+      searchTerm: value,
+      filteredBySearch: filterBySearch(value, filteredByFilter),
+    });
   }
 
   function handleFilter(newfilterOptions: FilterOptions) {
     const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
+    setState({
+      ...state,
+      filterSelections: newfilterOptions,
+      filteredByFilter: newfilteredByFilter,
+      filteredBySearch: filterBySearch(searchTerm, newfilteredByFilter),
+    });
+  }
 
-    setFilterSelections(newfilterOptions);
-    setFilteredByFilter(newfilteredByFilter);
-    setFilteredBySearch(filterBySearch(searchTerm, newfilteredByFilter));
+  function handleSwitchTimeFormat() {
+    setState({
+      ...state,
+      displayRelativeTime: !displayRelativeTime,
+    });
   }
 
   function handleResetFilter() {
-    setFilterSelections([]);
-    setFilteredByFilter(breadcrumbs);
-    setFilteredBySearch(filterBySearch(searchTerm, breadcrumbs));
+    setState({
+      ...state,
+      filterSelections: [],
+      filteredByFilter: breadcrumbs,
+      filteredBySearch: filterBySearch(searchTerm, breadcrumbs),
+    });
   }
 
   function handleResetSearchBar() {
-    setSearchTerm('');
-    setFilteredBySearch(breadcrumbs);
+    setState({
+      ...state,
+      searchTerm: '',
+      filteredBySearch: breadcrumbs,
+    });
   }
 
   function getEmptyMessage() {
-    if ((filteredBySearch ?? []).length) {
+    if (filteredBySearch.length) {
       return {};
     }
 
-    if (searchTerm && !(filteredBySearch ?? []).length) {
-      const hasActiveFilter = filterSelections.length > 0;
+    if (searchTerm && !filteredBySearch.length) {
+      const hasActiveFilter = state.filterSelections.length > 0;
 
       return {
         emptyMessage: t('Sorry, no breadcrumbs match your search query'),
@@ -282,7 +329,7 @@ function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
       onChange={handleSearch}
       query={searchTerm}
       filterOptions={filterOptions}
-      filterSelections={filterSelections}
+      filterSelections={state.filterSelections}
       onFilterChange={handleFilter}
       isFullWidth={showReplay}
     />
@@ -296,7 +343,7 @@ function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
       wrapTitle={false}
       isCentered
     >
-      {showReplay && (
+      {showReplay ? (
         <Fragment>
           <EventReplay
             replayId={replayId!}
@@ -306,14 +353,17 @@ function BreadcrumbsContainer({data, event, projectSlug, isShare}: Props) {
           />
           {searchBar}
         </Fragment>
-      )}
+      ) : null}
       <ErrorBoundary>
         <GuideAnchor target="breadcrumbs" position="bottom">
           <Breadcrumbs
-            {...getEmptyMessage()}
+            router={router}
+            route={route}
+            emptyMessage={getEmptyMessage()}
             breadcrumbs={filteredBySearch}
             event={event}
-            onSwitchTimeFormat={() => setDisplayRelativeTime(!displayRelativeTime)}
+            organization={organization}
+            onSwitchTimeFormat={handleSwitchTimeFormat}
             displayRelativeTime={displayRelativeTime}
             searchTerm={searchTerm}
             relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
