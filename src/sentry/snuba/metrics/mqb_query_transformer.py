@@ -249,14 +249,14 @@ def _derive_mri_to_apply(project_ids, select, orderby):
 
     # We first check if there is an order by field that has the team_key_transaction, otherwise
     # we just use the default mri of duration.
-    has_order_by_tkt = False
+    has_order_by_team_key_transaction = False
     if orderby is not None:
         for orderby_field in orderby:
             if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
-                has_order_by_tkt = True
+                has_order_by_team_key_transaction = True
                 break
 
-    if has_order_by_tkt:
+    if has_order_by_team_key_transaction:
         entities = set()
 
         if len(orderby) == 1:
