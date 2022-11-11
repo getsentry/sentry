@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Sequence
 
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -131,7 +131,7 @@ class OrganizationProfilingProfilesEndpoint(OrganizationProfilingPaginatedBaseEn
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> StreamingHttpResponse:
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
@@ -147,7 +147,7 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingStatsEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> StreamingHttpResponse:
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
