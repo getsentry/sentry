@@ -23,7 +23,7 @@ export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> 
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <h1>New Monitor</h1>
+          <h1>{t('New Monitor')}</h1>
           <HelpText>
             {t(
               `Creating a monitor will allow you to track the executions of a scheduled

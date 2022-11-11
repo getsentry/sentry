@@ -1,6 +1,7 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
@@ -42,7 +43,7 @@ export default class EditMonitor extends AsyncView<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <h1>Edit Monitor</h1>
+          <h1>{t('Edit Monitor')}</h1>
 
           <MonitorForm
             monitor={monitor}
