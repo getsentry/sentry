@@ -56,20 +56,16 @@ def get_direct_hit_response(
     return None
 
 
-def get_query_for_group(
-    query: str, snuba_params: Mapping[str, Any], group: Group
-) -> Tuple[Filter, Dataset]:
+def get_query_for_group(query: str, snuba_params: Mapping[str, Any], group: Group) -> QueryBuilder:
     dataset = Dataset.Events
     if group.issue_category == GroupCategory.PERFORMANCE:
         dataset = Dataset.Transactions
-    snuba_query = QueryBuilder(
+    return QueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
         params=snuba_params,
         selected_columns=["id", "project.id"],
     )
-
-    return snuba_query
 
 
 def get_filter_for_group(

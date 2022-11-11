@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, cast
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -115,7 +115,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
 
         full = request.GET.get("full", False)
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> Any:
             if use_builder:
                 results = snuba_query.run_query(referrer=referrer)
                 results = [
