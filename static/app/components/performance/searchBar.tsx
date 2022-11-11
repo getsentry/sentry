@@ -229,9 +229,6 @@ function SearchBar(props: SearchBarProps) {
   );
 }
 
-// When fetching autocomplete results, we want to wrap the user input in
-// wildcard characters so we fetch fuzzy-matched strings, not just the exact
-// input
 const wrapQueryInWildcards = (query: string) => {
   const prependedChar = query[0] === '*' ? '' : '*';
   const appendedChar = query[query.length - 1] === '*' ? '' : '*';
