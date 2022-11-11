@@ -266,6 +266,7 @@ const config: Config.InitialOptions = {
         environment: CI ? 'ci' : 'local',
         tracesSampleRate: 1,
         profilesSampleRate: 0.1,
+        transportOptions: {keepAlive: true},
       },
       transactionOptions: {
         tags: {
