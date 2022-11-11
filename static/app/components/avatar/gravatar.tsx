@@ -1,8 +1,9 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 import {imageStyle, ImageStyleProps} from './styles';
 
@@ -25,25 +26,21 @@ function Gravatar({
   onLoad,
   suggested,
 }: Props) {
-  const isMounted = useRef(false);
+  const isMountedRef = useIsMountedRef();
   const [MD5, setMD5] = useState<HasherHelper>();
 
   const loadMd5Helper = useCallback(async () => {
     const mod = await import('crypto-js/md5');
 
-    if (isMounted.current) {
+    if (isMountedRef.current) {
       // XXX: Use function invocation of `useState`s setter since the mod.default
       // is a function itself.
       setMD5(() => mod.default);
     }
-  }, []);
+  }, [isMountedRef]);
 
   useEffect(() => {
-    isMounted.current = true;
     loadMd5Helper();
-    return () => {
-      isMounted.current = false;
-    };
   }, [loadMd5Helper]);
 
   if (MD5 === undefined) {
