@@ -257,9 +257,15 @@ interface DataItem {
 }
 
 const wrapQueryInWildcards = (query: string) => {
-  const prependedChar = query[0] === '*' ? '' : '*';
-  const appendedChar = query[query.length - 1] === '*' ? '' : '*';
-  return `${prependedChar}${query}${appendedChar}`;
+  if (!query.startsWith('* ')) {
+    query = '*' + query;
+  }
+
+  if (!query.endsWith('*')) {
+    query = query + '*';
+  }
+
+  return query;
 };
 
 const Container = styled('div')`
