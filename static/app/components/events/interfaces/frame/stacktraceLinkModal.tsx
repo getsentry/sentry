@@ -48,10 +48,13 @@ function StacktraceLinkModal({
     ['github', 'gitlab'].includes(integration.provider?.key)
   );
   // If they have more than one, they'll have to navigate themselves
-  const sourceUrl =
-    sourceCodeProviders.length === 1
-      ? `https://${sourceCodeProviders[0].domainName}`
-      : undefined;
+  const hasOneSourceCodeIntegration = sourceCodeProviders.length === 1;
+  const sourceUrl = hasOneSourceCodeIntegration
+    ? `https://${sourceCodeProviders[0].domainName}`
+    : undefined;
+  const providerName = hasOneSourceCodeIntegration
+    ? sourceCodeProviders[0].name
+    : t('source code');
 
   const onManualSetup = () => {
     trackIntegrationAnalytics('integrations.stacktrace_manual_option_clicked', {
@@ -116,14 +119,14 @@ function StacktraceLinkModal({
             <StyledAlert type="error" showIcon>
               {error === 'Could not find repo'
                 ? tct(
-                    'We don’t have access to that GitHub repo. To fix this, [link:add your repo.]',
+                    'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
                     {
-                      // TODO Add link to config page
+                      provider: providerName,
                       link: (
                         <Link
                           onClick={onManualSetup}
                           to={
-                            sourceCodeProviders.length === 1
+                            hasOneSourceCodeIntegration
                               ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.name}/${sourceCodeProviders[0].id}/`
                               : `/settings/${organization.slug}/integrations/`
                           }
@@ -137,15 +140,16 @@ function StacktraceLinkModal({
             </StyledAlert>
           )}
           {tct(
-            'We can’t find the file path for [filename] in your GitHub repo. Add the correct link below to enable git blame and suspect commits for this project.',
+            'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
             {
+              provider: providerName,
               filename: <StyledCode>{filename}</StyledCode>,
             }
           )}
           <StyledList symbol="colored-numeric">
             <li>
               <ItemContainer>
-                {sourceCodeProviders.length === 1
+                {hasOneSourceCodeIntegration
                   ? tct('Go to [link]', {
                       link: (
                         <ExternalLink href={sourceUrl}>
