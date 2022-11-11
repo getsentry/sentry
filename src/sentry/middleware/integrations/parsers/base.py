@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Any, Callable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from django.http.request import HttpRequest
 from django.urls import ResolverMatch, resolve
@@ -10,9 +10,11 @@ from django.urls import ResolverMatch, resolve
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.client import RegionSiloClient
+from sentry.types.region import Region, get_region_for_organization
+from sentry.utils import json
 
 # TODO(Leander): Replace once type is in place
-Region = Any
 logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,19 @@ class BaseRequestParser(abc.ABC):
         self.match: ResolverMatch = resolve(self.request.path)
         self.response_handler = response_handler
         self.error_message = "Integration Request Parsers should only be run on the control silo."
+
+    def _get_request_args(self):
+        query_params = getattr(self.request, self.request.method, None)
+        # In the event we receive an empty body `b''`, still treat it as a JSON request
+        data = json.loads(self.request.body if len(self.request.body) > 0 else "{}")
+        request_args = {
+            "method": self.request.method,
+            "path": self.request.path,
+            "headers": self.request.headers,
+            "data": data,
+            "params": dict(query_params) if query_params is not None else None,
+        }
+        return request_args.values()
 
     def get_response_from_control_silo(self):
         """
@@ -37,7 +52,7 @@ class BaseRequestParser(abc.ABC):
             raise SiloLimit.AvailabilityError(self.error_message)
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, regions):
+    def get_response_from_region_silo(self, regions: Iterable[Region]):
         """
         Used to process the incoming request from region silos.
         This shouldn't use the API Gateway to stay performant.
@@ -49,10 +64,14 @@ class BaseRequestParser(abc.ABC):
             )
             raise SiloLimit.AvailabilityError(self.error_message)
 
-        # TODO(Leander): Implement once region mapping and cross-silo synchronous requests exist
-        # responses = [region.send(self.request) for region in regions]
-        # return responses[0] -> Send back the first response
-        return self.response_handler(self.request)
+        region_response = None
+        request_args = self._get_request_args()
+        for region in regions:
+            region_client = RegionSiloClient(region)
+            region_response = region_client.request(*request_args)
+
+        # If the response is sent to multiple regions, return the latest response to the requestor
+        return region_response
 
     def get_response(self):
         """
@@ -89,15 +108,13 @@ class BaseRequestParser(abc.ABC):
         """
         Use the get_organizations() method to identify forwarding regions.
         """
-        # TODO(Leander): Implement once region mapping exists
         if not organizations:
-            organizations = self.get_integration()
+            organizations = self.get_organizations()
         if not organizations:
             logger.error(
                 "integration_control.base.no_organizations",
                 extra={"path": self.request.path},
             )
             return []
-        # organizations = self.get_organizations()
-        # return [organization.region for organization in organizations]
-        return []
+
+        return [get_region_for_organization(organization) for organization in organizations]
