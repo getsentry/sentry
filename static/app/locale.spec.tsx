@@ -13,7 +13,7 @@ describe('locale.gettextComponentTemplate', () => {
       })
     ).toMatchInlineSnapshot(`
       <React.Fragment>
-        <span>
+        <React.Fragment>
           <React.Fragment>
             hello
           </React.Fragment>
@@ -28,7 +28,7 @@ describe('locale.gettextComponentTemplate', () => {
               3
             </React.Fragment>
           </code>
-        </span>
+        </React.Fragment>
       </React.Fragment>
     `);
   });
