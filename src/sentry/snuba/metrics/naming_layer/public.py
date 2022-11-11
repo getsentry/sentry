@@ -86,6 +86,7 @@ class TransactionMetricKey(Enum):
     MISERABLE_USER = "transaction.miserable_user"
     USER_MISERY = "transaction.user_misery"
     FAILURE_COUNT = "transaction.failure_count"
+    TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should
