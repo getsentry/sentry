@@ -23,6 +23,12 @@ class SlicingConfigurationException(Exception):
     """
 
 
+class MissingOrgInRoutingHeader(Exception):
+    """
+    Exception raised when the routing header does not contain an org_id.
+    """
+
+
 def _validate_slicing_consumer_config(sliceable: Sliceable) -> None:
     """
     Validate all the required settings needed for a slicing router.
@@ -75,7 +81,7 @@ class SlicingRouter(MessageRouter):
         org_id = message.payload.routing_header.get("org_id", None)
 
         if org_id is None:
-            producer = self.__slice_to_producer[0]
+            raise MissingOrgInRoutingHeader("org_id is missing from the routing header")
         else:
             slice_id = map_logical_partition_to_slice(
                 self.__sliceable, map_org_id_to_logical_partition(org_id)

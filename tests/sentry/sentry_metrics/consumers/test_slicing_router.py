@@ -13,6 +13,7 @@ from sentry.conf.server import (
 )
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.consumers.indexer.slicing_router import (
+    MissingOrgInRoutingHeader,
     SlicingConfigurationException,
     SlicingRouter,
     _validate_slicing_consumer_config,
@@ -25,7 +26,7 @@ def metrics_message(org_id: int) -> Message[RoutingPayload]:
         partition=Partition(Topic("source_topic"), 0),
         payload=RoutingPayload(
             routing_header={"org_id": org_id},
-            payload=KafkaPayload(
+            routing_message=KafkaPayload(
                 key=b"",
                 value=b"{}",
                 headers=[],
@@ -60,7 +61,7 @@ def setup_slicing(monkeypatch) -> None:
 
 
 @pytest.mark.parametrize("org_id", [1, 127, 128, 256, 257])
-def test_slicing_router_with_slicing(metrics_message, setup_slicing) -> None:
+def test_with_slicing(metrics_message, setup_slicing) -> None:
     """
     With partitioning settings, the SlicingRouter should route to the correct topic
     based on the org_id header.
@@ -77,8 +78,34 @@ def test_slicing_router_with_slicing(metrics_message, setup_slicing) -> None:
     router.shutdown()
 
 
+def test_with_no_org_in_routing_header(setup_slicing) -> None:
+    """
+    With partitioning settings, the SlicingRouter should route to the correct topic
+    based on the org_id header.
+    """
+    message = Message(
+        partition=Partition(Topic("source_topic"), 0),
+        payload=RoutingPayload(
+            routing_header={},
+            routing_message=KafkaPayload(
+                key=b"",
+                value=b"{}",
+                headers=[],
+            ),
+        ),
+        offset=0,
+        timestamp=datetime.now(),
+    )
+    assert message.payload.routing_header.get("org_id") is None
+    router = SlicingRouter("generic_metrics_sets")
+    with pytest.raises(MissingOrgInRoutingHeader):
+        _ = router.get_route_for_message(message)
+
+    router.shutdown()
+
+
 @pytest.mark.parametrize("org_id", [100])
-def test_slicing_router_with_misconfiguration(metrics_message, monkeypatch):
+def test_with_misconfiguration(metrics_message, monkeypatch):
     """
     Configuring topic override only does not kick in routing logic. So the
     messages should be routed to the logical topic.
@@ -99,7 +126,7 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
     Validate that the slicing consumer config is valid.
     """
     with pytest.raises(
-        SlicingConfigurationException, match=r"not defined " r"in settings.SENTRY_SLICING_CONFIG"
+        SlicingConfigurationException, match=r"not defined in settings.SENTRY_SLICING_CONFIG"
     ):
         _validate_slicing_consumer_config("generic_metrics_sets")
 
@@ -118,7 +145,7 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
         (KAFKA_SNUBA_GENERIC_METRICS, 0),
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
-    with pytest.raises(SlicingConfigurationException, match=r"missing topic " r"definition"):
+    with pytest.raises(SlicingConfigurationException, match=r"missing topic definition"):
         _validate_slicing_consumer_config("generic_metrics_sets")
 
     monkeypatch.setitem(
