@@ -11,8 +11,8 @@ import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {DataCategory, Organization, Project} from 'sentry/types';
-import {Outcome} from 'sentry/types/core';
+import type {Organization, Project} from 'sentry/types';
+import {DataCategory, Outcome} from 'sentry/types/core';
 import withProjects from 'sentry/utils/withProjects';
 
 import {UsageSeries} from './types';
