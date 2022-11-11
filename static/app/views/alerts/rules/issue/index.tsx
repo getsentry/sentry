@@ -1566,11 +1566,9 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  & > span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const TestButtonWrapper = styled('div')`
