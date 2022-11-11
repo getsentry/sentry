@@ -189,7 +189,7 @@ function SearchBar(props: SearchBarProps) {
 
   const handleClickItemIcon = (value: string) => {
     const item = decodeValueToItem(value);
-    navigateToTransactionSummary(item);
+    navigateToItemTransactionSummary(item);
   };
 
   const handleSearch = (query: string) => {
@@ -199,7 +199,7 @@ function SearchBar(props: SearchBarProps) {
     closeDropdown();
   };
 
-  const navigateToTransactionSummary = (item: DataItem) => {
+  const navigateToItemTransactionSummary = (item: DataItem) => {
     const {transaction, project_id} = item;
 
     const query = eventView.generateQueryStringObject();
@@ -211,6 +211,7 @@ function SearchBar(props: SearchBarProps) {
       projectID: String(project_id),
       query,
     });
+
     browserHistory.push(next);
   };
 
