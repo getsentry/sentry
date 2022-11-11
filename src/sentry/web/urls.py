@@ -461,6 +461,8 @@ urlpatterns += [
     ),
     # Discover
     url(r"^discover/", react_page_view, name="discover"),
+    # Request to join an organization
+    url(r"^join-request/", react_page_view, name="join-request"),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(
