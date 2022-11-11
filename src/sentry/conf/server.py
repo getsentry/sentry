@@ -1169,7 +1169,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
-    # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
