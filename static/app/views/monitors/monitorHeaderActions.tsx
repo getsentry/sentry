@@ -117,6 +117,7 @@ const ButtonContainer = styled('div')`
   margin-bottom: ${space(3)};
   display: flex;
   flex-shrink: 1;
+  align-self: flex-end;
 `;
 
 export default MonitorHeaderActions;
