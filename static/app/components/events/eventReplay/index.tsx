@@ -1,7 +1,8 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import {Event} from 'sentry/types/event';
+import {useCallback} from 'react';
 
-import ReplayContent from './replayContent';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import LazyLoad from 'sentry/components/lazyLoad';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   event: Event;
@@ -11,9 +12,12 @@ type Props = {
 };
 
 export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
+  const component = useCallback(() => import('./replayContent'), []);
+
   return (
     <ErrorBoundary mini>
-      <ReplayContent
+      <LazyLoad
+        component={component}
         replaySlug={`${projectSlug}:${replayId}`}
         orgSlug={orgSlug}
         event={event}
