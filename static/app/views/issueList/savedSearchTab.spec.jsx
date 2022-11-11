@@ -100,4 +100,59 @@ describe('IssueListSavedSearchTab', () => {
     renderSavedSearch();
     expect(screen.queryByText('Unresolved')).not.toBeInTheDocument();
   });
+
+  describe('saved searches v2', () => {
+    const orgWithSavedSearchesV2 = TestStubs.Organization({
+      features: ['issue-list-saved-searches-v2'],
+    });
+
+    it('renders nothing when inactive', () => {
+      render(
+        <IssueListSavedSearchTab
+          organization={orgWithSavedSearchesV2}
+          savedSearchList={savedSearchList}
+          onSavedSearchSelect={onSelect}
+          onSavedSearchDelete={onDelete}
+          query="not a saved search"
+          isActive={false}
+        />,
+        {context: TestStubs.routerContext()}
+      );
+
+      expect(screen.queryByTestId('saved-search-tab')).not.toBeInTheDocument();
+    });
+
+    it('displays Custom Search when on a search that is not saved', () => {
+      render(
+        <IssueListSavedSearchTab
+          organization={orgWithSavedSearchesV2}
+          savedSearchList={savedSearchList}
+          onSavedSearchSelect={onSelect}
+          onSavedSearchDelete={onDelete}
+          query="not a saved search"
+          isActive
+        />,
+        {context: TestStubs.routerContext()}
+      );
+
+      expect(screen.getByText('Custom Search')).toBeInTheDocument();
+    });
+
+    it('displays the saved search name when on a saved search', () => {
+      render(
+        <IssueListSavedSearchTab
+          organization={orgWithSavedSearchesV2}
+          savedSearchList={savedSearchList}
+          onSavedSearchSelect={onSelect}
+          onSavedSearchDelete={onDelete}
+          query="is:unresolved assigned:me"
+          sort="date"
+          isActive
+        />,
+        {context: TestStubs.routerContext()}
+      );
+
+      expect(screen.getByText('Assigned to me')).toBeInTheDocument();
+    });
+  });
 });

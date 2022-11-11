@@ -5,8 +5,6 @@ import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
-import {closestCenter, DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -95,54 +93,49 @@ type State = {
 class Dashboard extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    const {dashboard, organization} = props;
-    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
+    const {dashboard} = props;
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     this.state = {
       isMobile: false,
       layouts: {
-        [DESKTOP]: isUsingGrid ? desktopLayout : [],
-        [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
+        [DESKTOP]: desktopLayout,
+        [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
       },
       windowWidth: window.innerWidth,
     };
   }
 
   static getDerivedStateFromProps(props, state) {
-    if (props.organization.features.includes('dashboard-grid-layout')) {
-      if (state.isMobile) {
-        // Don't need to recalculate any layout state from props in the mobile view
-        // because we want to force different positions (i.e. new widgets added
-        // at the bottom)
-        return null;
-      }
+    if (state.isMobile) {
+      // Don't need to recalculate any layout state from props in the mobile view
+      // because we want to force different positions (i.e. new widgets added
+      // at the bottom)
+      return null;
+    }
 
-      // If the user clicks "Cancel" and the dashboard resets,
-      // recalculate the layout to revert to the unmodified state
-      const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
-      if (
-        !isEqual(
-          dashboardLayout.map(pickDefinedStoreKeys),
-          state.layouts[DESKTOP].map(pickDefinedStoreKeys)
-        )
-      ) {
-        return {
-          ...state,
-          layouts: {
-            [DESKTOP]: dashboardLayout,
-            [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
-          },
-        };
-      }
+    // If the user clicks "Cancel" and the dashboard resets,
+    // recalculate the layout to revert to the unmodified state
+    const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
+    if (
+      !isEqual(
+        dashboardLayout.map(pickDefinedStoreKeys),
+        state.layouts[DESKTOP].map(pickDefinedStoreKeys)
+      )
+    ) {
+      return {
+        ...state,
+        layouts: {
+          [DESKTOP]: dashboardLayout,
+          [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
+        },
+      };
     }
     return null;
   }
 
   componentDidMount() {
-    const {organization, newWidget} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
-      window.addEventListener('resize', this.debouncedHandleResize);
-    }
+    const {newWidget} = this.props;
+    window.addEventListener('resize', this.debouncedHandleResize);
 
     // Always load organization tags on dashboards
     this.fetchTags();
@@ -167,10 +160,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.props.organization.features.includes('dashboard-grid-layout')) {
-      window.removeEventListener('resize', this.debouncedHandleResize);
-    }
-
+    window.removeEventListener('resize', this.debouncedHandleResize);
     window.clearTimeout(this.forceCheckTimeout);
   }
 
@@ -330,8 +320,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview, dashboard, location} =
-      this.props;
+    const {isEditing, widgetLimitReached, isPreview, dashboard, location} = this.props;
 
     const widgetProps = {
       widget,
@@ -344,26 +333,16 @@ class Dashboard extends Component<Props, State> {
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
-    if (organization.features.includes('dashboard-grid-layout')) {
-      const key = constructGridItemKey(widget);
-      const dragId = key;
-      return (
-        <div key={key} data-grid={widget.layout}>
-          <SortableWidget
-            {...widgetProps}
-            dragId={dragId}
-            isMobile={isMobile}
-            windowWidth={windowWidth}
-            index={String(index)}
-          />
-        </div>
-      );
-    }
-
-    const key = generateWidgetId(widget, index);
-    const dragId = key;
+    const key = constructGridItemKey(widget);
     return (
-      <SortableWidget {...widgetProps} key={key} dragId={dragId} index={String(index)} />
+      <div key={key} data-grid={widget.layout}>
+        <SortableWidget
+          {...widgetProps}
+          isMobile={isMobile}
+          windowWidth={windowWidth}
+          index={String(index)}
+        />
+      </div>
     );
   }
 
@@ -467,7 +446,7 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  renderGridDashboard() {
+  render() {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, widgetLimitReached} = this.props;
     const {widgets} = dashboard;
@@ -515,72 +494,9 @@ class Dashboard extends Component<Props, State> {
       </GridLayout>
     );
   }
-
-  renderDndDashboard = () => {
-    const {isEditing, onUpdate, dashboard, widgetLimitReached} = this.props;
-    const {widgets} = dashboard;
-
-    const items = this.getWidgetIds();
-
-    return (
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={({over, active}) => {
-          const activeDragId = active.id;
-          const getIndex = items.indexOf.bind(items);
-
-          const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
-
-          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
-            const overIndex = getIndex(over.id);
-            if (activeIndex !== overIndex) {
-              onUpdate(arrayMove(widgets, activeIndex, overIndex));
-            }
-          }
-        }}
-      >
-        <WidgetContainer>
-          <SortableContext items={items} strategy={rectSortingStrategy}>
-            {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && !widgetLimitReached && (
-              <AddWidget onAddWidget={this.handleStartAdd} />
-            )}
-          </SortableContext>
-        </WidgetContainer>
-      </DndContext>
-    );
-  };
-
-  render() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
-      return this.renderGridDashboard();
-    }
-
-    return this.renderDndDashboard();
-  }
 }
 
 export default withApi(withPageFilters(Dashboard));
-
-const WidgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
 
 // A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved

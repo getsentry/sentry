@@ -128,7 +128,7 @@ function TransactionHeader({
           replayEventView.getEventsAPIPayload(location)
         );
 
-        setReplaysCount(Number(data.data[0]['count_unique(replayId)']));
+        setReplaysCount(Number(data.data?.[0]?.['count_unique(replayId)'] ?? 0));
       } catch (err) {
         Sentry.captureException(err);
         return null;
@@ -215,7 +215,12 @@ function TransactionHeader({
           const renderWebVitals = getWebVitals(!!hasMeasurements);
 
           return (
-            <TabList hideBorder>
+            <TabList
+              hideBorder
+              outerWrapStyles={{
+                gridColumn: '1 / -1',
+              }}
+            >
               <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
               <Item key={Tab.Events}>{t('All Events')}</Item>
               <Item key={Tab.Tags}>{t('Tags')}</Item>

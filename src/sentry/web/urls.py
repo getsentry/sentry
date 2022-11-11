@@ -459,6 +459,8 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    # Discover
+    url(r"^discover/", react_page_view, name="discover"),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(

@@ -3,10 +3,12 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.models import Monitor, MonitorFailure, MonitorType, ScheduleType
+from sentry.models import Monitor, MonitorFailure, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class MonitorTestCase(TestCase):
     def test_next_run_crontab_implicit(self):
         monitor = Monitor(
@@ -114,6 +116,46 @@ class MonitorTestCase(TestCase):
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
                 "fingerprint": ["monitor", str(monitor.guid), "duration"],
+                "logger": "",
+                "type": "default",
+            },
+        ) == dict(event)
+
+    @patch("sentry.coreapi.insert_data_to_database_legacy")
+    def test_mark_failed_with_missed_reason(self, mock_insert_data_to_database_legacy):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        assert monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+
+        monitor.refresh_from_db()
+        assert monitor.status == MonitorStatus.MISSED_CHECKIN
+
+        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
+
+        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
+
+        assert dict(
+            event,
+            **{
+                "level": "error",
+                "project": self.project.id,
+                "platform": "other",
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                    }
+                },
+                "logentry": {"formatted": "Monitor failure: test monitor (missed_checkin)"},
+                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
                 "logger": "",
                 "type": "default",
             },

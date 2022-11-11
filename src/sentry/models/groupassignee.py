@@ -21,30 +21,34 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | User,
+        assigned_to: Team | APIUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity, GroupSubscription, Team, User
+        from sentry.models import Activity, GroupSubscription, Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
-        if isinstance(assigned_to, User):
+        assigned_to_id = assigned_to.id
+        if assigned_to.class_name() == "User":
             assignee_type = "user"
+            assignee_type_attr = "user_id"
             other_type = "team"
         elif isinstance(assigned_to, Team):
             assignee_type = "team"
+            assignee_type_attr = "team_id"
             other_type = "user"
         else:
             raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
@@ -52,13 +56,17 @@ class GroupAssigneeManager(BaseManager):
         now = timezone.now()
         assignee, created = self.get_or_create(
             group=group,
-            defaults={"project": group.project, assignee_type: assigned_to, "date_added": now},
+            defaults={
+                "project": group.project,
+                assignee_type_attr: assigned_to_id,
+                "date_added": now,
+            },
         )
 
         if not created:
             affected = not create_only and self.filter(group=group).exclude(
-                **{assignee_type: assigned_to}
-            ).update(**{assignee_type: assigned_to, other_type: None, "date_added": now})
+                **{assignee_type_attr: assigned_to_id}
+            ).update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
         else:
             affected = True
             issue_assigned.send_robust(

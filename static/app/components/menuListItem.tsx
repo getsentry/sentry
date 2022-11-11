@@ -207,7 +207,18 @@ function getTextColor({
   }
 }
 
-function getFocusBackground({theme, priority}: {priority: Priority; theme: Theme}) {
+function getFocusBackground({
+  theme,
+  priority,
+  disabled,
+}: {
+  disabled: boolean;
+  priority: Priority;
+  theme: Theme;
+}) {
+  if (disabled) {
+    return theme.hover;
+  }
   switch (priority) {
     case 'primary':
       return theme.purple100;
@@ -353,7 +364,6 @@ const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;

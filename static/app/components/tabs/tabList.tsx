@@ -1,4 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
@@ -68,23 +69,47 @@ function useOverflowTabs({
 interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
   className?: string;
   hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
 }
 
-function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
+function BaseTabList({
+  hideBorder = false,
+  className,
+  outerWrapStyles,
+  ...props
+}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
-  const {value, defaultValue, onChange, orientation, disabled, ...otherRootProps} =
-    rootProps;
+  const {
+    value,
+    defaultValue,
+    onChange,
+    orientation,
+    disabled,
+    keyboardActivation = 'manual',
+    ...otherRootProps
+  } = rootProps;
 
   // Load up list state
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: onChange,
+    onSelectionChange: key => {
+      onChange?.(key);
+
+      // If the newly selected tab is a tab link, then navigate to the specified link
+      const linkTo = [...(props.items ?? [])].find(item => item.key === key)?.to;
+      if (!linkTo) {
+        return;
+      }
+      browserHistory.push(linkTo);
+    },
     isDisabled: disabled,
+    keyboardActivation,
     ...otherRootProps,
     ...props,
   };
+
   const state = useTabListState(ariaProps);
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
@@ -102,18 +127,20 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.map(key => {
-      const item = state.collection.getItem(key);
-      return {
-        value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-      };
-    });
+    return sortedOverflowTabs
+      .filter(key => state.collection.getItem(key))
+      .map(key => {
+        const item = state.collection.getItem(key);
+        return {
+          value: key,
+          label: item.props.children,
+          disabled: item.props.disabled,
+        };
+      });
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap>
+    <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}

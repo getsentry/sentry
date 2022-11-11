@@ -2,8 +2,10 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from sentry.integrations.utils.code_mapping import CodeMapping, Repo
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
+from sentry.models.repository import Repository
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -143,9 +145,64 @@ class TestIdentfiyStacktracePaths(TestCase):
             )
         ],
     )
+    @patch("sentry.tasks.derive_code_mappings.logger")
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_duplicates(
+        self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
+    ):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+        )
+        organization_integration = OrganizationIntegration.objects.get(
+            organization=self.organization, integration=integration
+        )
+        repository = Repository.objects.create(
+            name="repo",
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        event = self.store_event(data=self.test_data, project_id=self.project.id)
+        RepositoryProjectPathConfig.objects.create(
+            project=self.project,
+            stack_root="sentry/models",
+            source_root="src/sentry/models",
+            repository=repository,
+            organization_integration=organization_integration,
+        )
+
+        assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+        with patch(
+            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+            return_value=["sentry/models/release.py", "sentry/tasks.py"],
+        ) as mock_identify_stacktraces, self.tasks():
+            derive_code_mappings(self.project.id, event.data)
+
+        assert mock_identify_stacktraces.call_count == 1
+        assert mock_get_trees_for_org.call_count == 1
+        assert mock_generate_code_mappings.call_count == 1
+        code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
+        assert code_mapping.exists()
+        assert code_mapping.first().automatically_generated is False
+        assert mock_logger.info.call_count == 1
+
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch(
+        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        return_value=[
+            CodeMapping(
+                repo=Repo(name="repo", branch="master"),
+                stacktrace_root="sentry/models",
+                source_path="src/sentry/models",
+            )
+        ],
+    )
+    @patch("sentry.tasks.derive_code_mappings.logger")
     @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_dry_run(
-        self, mock_generate_code_mappings, mock_get_trees_for_org
+        self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
         self.create_integration(
             organization=self.organization,
@@ -159,12 +216,10 @@ class TestIdentfiyStacktracePaths(TestCase):
         with patch(
             "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
             return_value=["sentry/models/release.py", "sentry/tasks.py"],
-        ) as mock_identify_stacktraces, patch(
-            "sentry_sdk.capture_message"
-        ) as capture_message, self.tasks():
+        ) as mock_identify_stacktraces, self.tasks():
             derive_code_mappings(self.project.id, event.data, dry_run=True)
 
-        assert capture_message.call_count == 1
+        assert mock_logger.info.call_count == 1
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1

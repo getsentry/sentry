@@ -45,9 +45,13 @@ def resolve_axis_column(column: str, index: int = 0) -> str:
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ) or features.has("organizations:performance-view", organization, actor=request.user)
+        return (
+            features.has("organizations:discover-basic", organization, actor=request.user)
+            or features.has("organizations:performance-view", organization, actor=request.user)
+            or features.has(
+                "organizations:performance-issues-all-events-tab", organization, actor=request.user
+            )
+        )
 
     def get_equation_list(self, organization: Organization, request: Request) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""

@@ -1,6 +1,50 @@
+from __future__ import annotations
+
+import functools
 import logging
+import sys
+from typing import Any, Callable, List
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
+
+_all = object()
+_receivers_that_raise = []
+
+
+class receivers_raise_on_send:
+    """
+    Testing utility that forces send_robust to raise, rather than return, exceptions for signal receivers
+    that match the given receivers within the context.  The default receivers mode is to raise all receiver exceptions.
+
+    This behavior only works in tests.
+    """
+
+    receivers: Any
+
+    def __init__(self, receivers: Any | List[Any] = _all):
+        self.receivers = receivers
+
+    def __enter__(self) -> None:
+        global _receivers_that_raise
+        self.old = _receivers_that_raise
+
+        if self.receivers is _all:
+            _receivers_that_raise = self.receivers
+        else:
+            _receivers_that_raise += self.receivers
+
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(f)
+        def wrapped(*args: Any, **kwds: Any) -> Any:
+            with receivers_raise_on_send(self.receivers):
+                return f(*args, **kwds)
+
+        return wrapped
+
+    def __exit__(self, *args) -> bool | None:
+        global _receivers_that_raise
+        _receivers_that_raise = self.old
+        return None
 
 
 class BetterSignal(Signal):
@@ -42,6 +86,10 @@ class BetterSignal(Signal):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
+                if "pytest" in sys.modules:
+                    if _receivers_that_raise is _all or receiver in _receivers_that_raise:
+                        raise
+
                 logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
                 responses.append((receiver, err))
             else:

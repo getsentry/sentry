@@ -107,54 +107,6 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
-  backend-test-snuba-contains-metrics-tag-values:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: backend test (snuba contains metrics tag values)
-    runs-on: ubuntu-20.04
-    timeout-minutes: 40
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0]
-        pg-version: ['9.6']
-
-    env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 1
-      MIGRATIONS_TEST_MIGRATE: 1
-
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          snuba: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: ${{ matrix.pg-version }}
-
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: |
-          export PYTEST_ADDOPTS="-m 'sentry_metrics and not broken_under_tags_values_as_strings'"
-          export SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE=1
-          make test-python-ci
-          make test-snuba
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-
   cli:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -199,8 +151,8 @@ jobs:
           python-version: 3.8.13
       - name: check requirements
         run: |
-          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
-          python -S -m tools.freeze_requirements sentry
+          python -m pip install -q --constraint requirements-dev-frozen.txt pip-tools
+          python -S -m tools.freeze_requirements
           if ! git diff --exit-code; then
             echo $'\n\nrun `make freeze-requirements` locally to update requirements'
             exit 1
@@ -248,7 +200,9 @@ jobs:
         with:
           python-version: 3.8.13
           cache: pip
-          cache-dependency-path: requirements-dev-only-frozen.txt
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-dev-frozen.txt
 
       - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
@@ -257,11 +211,11 @@ jobs:
 
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
-        # requirements-dev-only-frozen.txt as a fast path.
+        # requirements-dev.txt as a fast path.
         # We don't need pre-commit install --install-hooks since we're just interested
         # in running the hooks.
         run: |
-          pip install -r requirements-dev-only-frozen.txt
+          pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
           pre-commit install-hooks
 
       - name: Run pre-commit on changed files

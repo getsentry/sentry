@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import Fuse from 'fuse.js';
 
+type FuseSearchParams<T> = Parameters<Fuse<T>['search']>;
 export function useFuseSearch<T extends Record<string, unknown>>(
   data: T[],
   options: Fuse.IFuseOptions<T>
@@ -13,8 +14,7 @@ export function useFuseSearch<T extends Record<string, unknown>>(
   }, [data]);
 
   const search = useCallback(
-    (...args: Parameters<Fuse<T>['search']>) => {
-      const [pattern, opts] = args;
+    (pattern: FuseSearchParams<T>[0] | undefined, opts?: FuseSearchParams<T>[1]) => {
       if (!pattern) {
         return data;
       }

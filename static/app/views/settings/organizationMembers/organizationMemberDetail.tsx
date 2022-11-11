@@ -327,11 +327,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                   'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
                 )}
               >
-                <Tooltip
-                  data-test-id="reset-2fa-tooltip"
-                  disabled={this.showResetButton()}
-                  title={this.getTooltip()}
-                >
+                <Tooltip disabled={this.showResetButton()} title={this.getTooltip()}>
                   <Confirm
                     disabled={!this.showResetButton()}
                     message={tct(
@@ -339,9 +335,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                       {name: member.name ? member.name : 'this member'}
                     )}
                     onConfirm={this.handle2faReset}
-                    data-test-id="reset-2fa-confirm"
                   >
-                    <Button data-test-id="reset-2fa" priority="danger">
+                    <Button priority="danger">
                       {t('Reset two-factor authentication')}
                     </Button>
                   </Confirm>

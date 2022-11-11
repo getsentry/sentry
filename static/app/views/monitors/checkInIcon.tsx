@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
+import {CheckInStatus} from './types';
+
 type Props = {
   size: number | string;
-  status: 'error' | 'ok';
+  status: CheckInStatus;
   color?: string;
 };
 
@@ -21,6 +23,8 @@ export default styled('div')<Props>`
             ? p.theme.error
             : p.status === 'ok'
             ? p.theme.success
+            : p.status === 'missed'
+            ? p.theme.yellow300
             : p.theme.disabled
         };`};
 `;
