@@ -1,4 +1,9 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
+import type {
+  PlainRoute,
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
@@ -128,6 +133,7 @@ export type AnalyticsHooks = {
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
 
+  'analytics:track-button-clicks': TrackButtonClicks;
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
@@ -360,6 +366,24 @@ type AnalyticsTrackEventV2 = (
     time?: number;
   }
 ) => void;
+
+/**
+ * Automatic Button Click Tracking
+ */
+type TrackButtonClicks = (opts: {
+  organization: Organization;
+  routes: PlainRoute[];
+  data?: {
+    icon?: string;
+    id?: string;
+    link?: string;
+    name?: string;
+    priority?: string;
+    text?: string;
+  };
+  newEventKey?: string;
+  newEventName?: string;
+}) => void;
 
 /**
  * Trigger ad hoc analytics tracking in the hook store.

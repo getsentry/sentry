@@ -6,9 +6,12 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -81,6 +84,15 @@ interface BaseButtonProps
    */
   name?: string;
   /**
+   * Used when you want to overwrite the default Reload event key for analytics
+   */
+  newEventKey?: string;
+  /**
+   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
+   * you must pass in a newEventName to send an Amplitude event.
+   */
+  newEventName?: string;
+  /**
    * Callback for when the button is clicked.
    */
   onClick?: (e: React.MouseEvent) => void;
@@ -133,6 +145,8 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
+export const trackButtonClick = HookStore.get('analytics:track-button-clicks')[0];
+
 function BaseButton({
   size = 'md',
   to,
@@ -149,8 +163,13 @@ function BaseButton({
   disabled = false,
   tooltipProps,
   onClick,
+  newEventName,
+  newEventKey,
   ...buttonProps
 }: ButtonProps) {
+  const organization = useOrganization();
+  const routes = useRoutes();
+
   // Intercept onClick and propagate
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -165,9 +184,41 @@ function BaseButton({
         return;
       }
 
+      const iconType = icon?.type.displayName;
+      const buttonLabel =
+        typeof children === 'string' ? children : children?.type.displayName;
+
+      trackButtonClick({
+        newEventName,
+        newEventKey,
+        organization,
+        routes,
+        data: {
+          priority,
+          text: buttonLabel,
+          icon: iconType,
+          name: buttonProps.name,
+          id: buttonProps['data-test-id'],
+          link: href,
+        },
+      });
+
       onClick(e);
     },
-    [onClick, busy, disabled]
+    [
+      onClick,
+      busy,
+      disabled,
+      buttonProps,
+      children,
+      href,
+      icon?.type.displayName,
+      newEventName,
+      newEventKey,
+      organization,
+      priority,
+      routes,
+    ]
   );
 
   function getUrl<T extends Url>(prop: T): T | undefined {
