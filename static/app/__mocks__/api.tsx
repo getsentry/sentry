@@ -1,9 +1,30 @@
-import type {HandleRequestErrorOptions, RequestOptions, ResponseMeta} from 'sentry/api';
+import type {
+  ApiClient,
+  HandleRequestErrorOptions,
+  RequestInterface,
+  RequestOptions,
+  ResponseMeta,
+} from 'sentry/api';
 import ModalStore from 'sentry/stores/modalStore';
 
 import {SUDO_REQUIRED, SUPERUSER_REQUIRED} from '../constants/apiErrorCodes';
 
-export class Request {}
+export class Request implements RequestInterface {
+  alive: boolean = true;
+  requestPromise: Promise<Response>;
+  aborter?: AbortController;
+
+  constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
+    this.requestPromise = requestPromise;
+    this.aborter = aborter;
+    this.alive = true;
+  }
+
+  cancel() {
+    this.alive = false;
+    this.aborter?.abort();
+  }
+}
 
 export const initApiClientErrorHandling = () => false;
 export const hasProjectBeenRenamed = (_args: any[]) => false;
@@ -84,7 +105,7 @@ afterEach(() => {
   }
 });
 
-class Client implements Client {
+class Client implements ApiClient {
   static mockResponses: MockResponse[] = [];
 
   static mockAsync = false;
@@ -181,7 +202,7 @@ class Client implements Client {
     });
   }
 
-  activeRequests: Record<string, typeof Request> = {};
+  activeRequests: Record<string, Request> = {};
   baseUrl = '';
 
   uniqueId() {

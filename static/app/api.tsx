@@ -15,7 +15,7 @@ import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
-interface RequestInterface {
+export interface RequestInterface {
   /**
    * Is the request still in flight
    */
@@ -257,12 +257,42 @@ export type HandleRequestErrorOptions = {
   requestOptions: Readonly<RequestOptions>;
 };
 
+export interface ApiClient {
+  activeRequests: Record<string, Request>;
+  baseUrl: string;
+
+  clear(): void;
+  handleRequestError(
+    {id, path, requestOptions}: HandleRequestErrorOptions,
+    response: ResponseMeta,
+    textStatus: string,
+    errorThrown: string
+  ): void;
+  request(path: string, options: Readonly<RequestOptions>): Request;
+  requestPromise<IncludeAllArgsType extends boolean>(
+    path: string,
+    {
+      includeAllArgs,
+      ...options
+    }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions>
+  ): Promise<
+    IncludeAllArgsType extends true
+      ? [any, string | undefined, ResponseMeta | undefined]
+      : any
+  >;
+
+  wrapCallback<T extends any[]>(
+    id: string,
+    func: FunctionCallback<T> | undefined,
+    cleanup: boolean
+  ): (...args: T) => void;
+}
 /**
  * The API client is used to make HTTP requests to Sentry's backend.
  *
  * This is they preferred way to talk to the backend.
  */
-export class Client {
+export class Client implements ApiClient {
   baseUrl: string;
   activeRequests: Record<string, Request>;
 
