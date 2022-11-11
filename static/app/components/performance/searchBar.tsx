@@ -113,13 +113,13 @@ function SearchBar(props: SearchBarProps) {
 
     if (key === 'Enter') {
       event.preventDefault();
-      const currentItem = searchResults[0].children[highlightedItemIndex];
-      if (!currentItem?.value) {
-        return;
-      }
+      const currentItem = searchResults[0]?.children[highlightedItemIndex];
 
-      handleSearch(currentItem.value);
-      return;
+      if (currentItem?.value) {
+        handleChooseItem(currentItem.value);
+      } else {
+        handleSearch(searchString);
+      }
     }
   };
 
@@ -182,17 +182,25 @@ function SearchBar(props: SearchBarProps) {
     [api, url, eventView.statsPeriod, projectIdStrings.join(',')]
   );
 
-  const handleSearch = (query: string) => {
-    const {transaction} = decodeValueToItem(query);
+  const handleChooseItem = (value: string) => {
+    const item = decodeValueToItem(value);
+    handleSearch(item.transaction);
+  };
 
+  const handleClickItemIcon = (value: string) => {
+    const item = decodeValueToItem(value);
+    navigateToTransactionSummary(item);
+  };
+
+  const handleSearch = (query: string) => {
     setSearchResults([]);
-    setSearchString(transaction);
-    onSearch(`transaction:${transaction}`);
+    setSearchString(query);
+    onSearch(`transaction:${query}`);
     closeDropdown();
   };
 
-  const navigateToTransactionSummary = (name: string) => {
-    const {transaction, project_id} = decodeValueToItem(name);
+  const navigateToTransactionSummary = (item: DataItem) => {
+    const {transaction, project_id} = item;
 
     const query = eventView.generateQueryStringObject();
     setSearchResults([]);
@@ -220,8 +228,8 @@ function SearchBar(props: SearchBarProps) {
           searchSubstring={searchString}
           loading={loading}
           items={searchResults}
-          onClick={handleSearch}
-          onIconClick={navigateToTransactionSummary}
+          onClick={handleChooseItem}
+          onIconClick={handleClickItemIcon}
         />
       )}
     </Container>
