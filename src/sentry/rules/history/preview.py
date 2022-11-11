@@ -108,7 +108,7 @@ def get_filters(
         try:
             event_columns.update(filter_object.get_event_columns())
         except NotImplementedError:
-            return None
+            raise PreviewException
 
     filter_func = get_match_function(filter_match)
     if filter_func is None:
