@@ -247,7 +247,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
-        label={t('Session Replay')}
+        label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
         isBeta
