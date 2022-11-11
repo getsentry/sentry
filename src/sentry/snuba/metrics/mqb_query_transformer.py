@@ -249,14 +249,14 @@ def _derive_mri_to_apply(project_ids, select, orderby):
 
     # We first check if there is an order by field that has the team_key_transaction, otherwise
     # we just use the default mri of duration.
-    has_order_by_tkt = False
+    has_order_by_team_key_transaction = False
     if orderby is not None:
         for orderby_field in orderby:
             if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
-                has_order_by_tkt = True
+                has_order_by_team_key_transaction = True
                 break
 
-    if has_order_by_tkt:
+    if has_order_by_team_key_transaction:
         # TODO: add here optimization that gets an entity from the select (either set of distribution) and sets it
         #  to all tkt in the query.
         entities = set()
@@ -277,7 +277,7 @@ def _transform_team_key_transaction_in_select(mri_to_apply, select):
     if select is None:
         return select
 
-    def _select(select_field):
+    def _select_predicate(select_field):
         if select_field.op == TEAM_KEY_TRANSACTION_OP:
             return MetricField(
                 op=select_field.op,
@@ -288,14 +288,14 @@ def _transform_team_key_transaction_in_select(mri_to_apply, select):
 
         return select_field
 
-    return list(map(_select, select))
+    return list(map(_select_predicate, select))
 
 
 def _transform_team_key_transaction_in_where(mri_to_apply, where):
     if where is None:
         return where
 
-    def _where(where_field):
+    def _where_predicate(where_field):
         if (
             isinstance(where_field, MetricConditionField)
             and where_field.lhs.op == TEAM_KEY_TRANSACTION_OP
@@ -313,14 +313,14 @@ def _transform_team_key_transaction_in_where(mri_to_apply, where):
 
         return where_field
 
-    return list(map(_where, where))
+    return list(map(_where_predicate, where))
 
 
 def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
     if groupby is None:
         return groupby
 
-    def _groupby(groupby_field):
+    def _groupby_predicate(groupby_field):
         if (
             isinstance(groupby_field.field, MetricField)
             and groupby_field.field.op == TEAM_KEY_TRANSACTION_OP
@@ -336,14 +336,14 @@ def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
 
         return groupby_field
 
-    return list(map(_groupby, groupby))
+    return list(map(_groupby_predicate, groupby))
 
 
 def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
     if orderby is None:
         return orderby
 
-    def _orderby(orderby_field):
+    def _orderby_predicate(orderby_field):
         if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
             return OrderBy(
                 field=MetricField(
@@ -357,7 +357,7 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
 
         return orderby_field
 
-    return list(map(_orderby, orderby))
+    return list(map(_orderby_predicate, orderby))
 
 
 def _transform_team_key_transaction_fake_mri(mq_dict):
