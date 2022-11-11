@@ -276,9 +276,9 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.SESSION_REPLAY,
-      title: t('Enable replay sessions'),
+      title: t('See a video-like reproduction'),
       description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay of your web application.'
+        'Get to the root cause of error or latency issues faster by seeing all the technical details related to those issues in video-like reproductions of your user sessions.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -296,7 +296,7 @@ export function getOnboardingTasks({
             eventType="replay"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
           >
-            {() => <EventWaitingIndicator text={t('Waiting for session')} />}
+            {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>
         ) : null
       ),
