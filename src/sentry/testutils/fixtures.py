@@ -413,6 +413,9 @@ class Fixtures:
     def create_sentry_function(self, *args, **kwargs):
         return Factories.create_sentry_function(*args, **kwargs)
 
+    def create_saved_search(self, *args, **kwargs):
+        return Factories.create_saved_search(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
