@@ -5,7 +5,7 @@
  * or used in multiple views.
  */
 import type {getInterval} from 'sentry/components/charts/utils';
-import {MenuListItemProps} from 'sentry/components/menuListItem';
+import type {MenuListItemProps} from 'sentry/components/menuListItem';
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**

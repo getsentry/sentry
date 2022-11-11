@@ -17,7 +17,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {IntervalPeriod, SelectValue} from 'sentry/types';
-import {DataCategory} from 'sentry/types';
+import {DataCategory} from 'sentry/types/core';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme, {Theme} from 'sentry/utils/theme';

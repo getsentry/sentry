@@ -3,7 +3,7 @@ import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import type {Outcome} from 'sentry/types';
-import {DataCategory} from 'sentry/types';
+import {DataCategory} from 'sentry/types/core';
 
 /**
  * Exporting for use in Storybook only. Do not import this

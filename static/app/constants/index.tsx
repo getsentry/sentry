@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategory} from 'sentry/types';
+import {DataCategory} from 'sentry/types/core';
 
 /**
  * Common constants here
