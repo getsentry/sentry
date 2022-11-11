@@ -100,8 +100,8 @@ function useReplaysFromTransaction({
     const listData = await fetchReplayList({
       api,
       eventView,
-      location,
       organization,
+      query: location.query,
     });
 
     const replays: ReplayListRecordWithTx[] | undefined = listData.replays?.map(
