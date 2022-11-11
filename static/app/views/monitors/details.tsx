@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,27 +44,28 @@ class MonitorDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <MonitorHeader
-            monitor={monitor}
-            orgId={this.props.params.orgId}
-            onUpdate={this.onUpdate}
-          />
+      <Fragment>
+        <MonitorHeader
+          monitor={monitor}
+          orgId={this.props.params.orgId}
+          onUpdate={this.onUpdate}
+        />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
 
-          {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
+            <MonitorStats monitor={monitor} />
 
-          <MonitorStats monitor={monitor} />
+            <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
 
-          <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
+            <Panel>
+              <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-          <Panel>
-            <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
-
-            <MonitorCheckIns monitor={monitor} />
-          </Panel>
-        </Layout.Main>
-      </Layout.Body>
+              <MonitorCheckIns monitor={monitor} />
+            </Panel>
+          </Layout.Main>
+        </Layout.Body>
+      </Fragment>
     );
   }
 }
