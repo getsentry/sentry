@@ -1,12 +1,12 @@
 import {Component, createContext} from 'react';
 
 export type SpanContextProps = {
-  addExpandedSpan: (spanId: string) => void;
+  addExpandedSpan: (spanId: string, callback?: () => void) => void;
   didAnchoredSpanMount: boolean;
   isSpanExpanded: (spanId: string) => boolean;
   markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
-  removeExpandedSpan: (spanId: string) => void;
+  removeExpandedSpan: (spanId: string, callback?: () => void) => void;
   scrollToHash: (hash: string) => void;
 };
 
@@ -57,12 +57,14 @@ export class Provider extends Component<Props> {
     this.didAnchoredSpanMount = true;
   };
 
-  addExpandedSpan = (spanId: string) => {
+  addExpandedSpan = (spanId: string, callback?: () => void) => {
     this.expandedSpansMap.add(spanId);
+    callback?.();
   };
 
-  removeExpandedSpan = (spanId: string) => {
+  removeExpandedSpan = (spanId: string, callback?: () => void) => {
     this.expandedSpansMap.delete(spanId);
+    callback?.();
   };
 
   isSpanExpanded = (spanId: string) => {
