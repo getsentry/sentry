@@ -23,7 +23,7 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
 
 
@@ -158,6 +158,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
+@region_silo_test(stable=True)
 class ConvertJavaScriptConsoleTagTest(TestCase):
     def test_valid(self):
         filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
@@ -174,6 +175,7 @@ class ConvertJavaScriptConsoleTagTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+@region_silo_test(stable=True)
 class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
@@ -190,6 +192,7 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
 
+@region_silo_test(stable=True)
 class ConvertStatusValueTest(TestCase):
     def test_valid(self):
         for status_string, status_val in STATUS_QUERY_CHOICES.items():
@@ -214,6 +217,7 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+@region_silo_test(stable=True)
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
         assert convert_actor_or_none_value(
@@ -235,7 +239,7 @@ class ConvertActorOrNoneValueTest(TestCase):
         )
 
 
-@control_silo_test
+@region_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
@@ -248,6 +252,7 @@ class ConvertUserValueTest(TestCase):
         assert convert_user_value(["fake-user"], [], None, None)[0].id == 0
 
 
+@region_silo_test(stable=True)
 class ConvertReleaseValueTest(TestCase):
     def test(self):
         assert convert_release_value(["123"], [self.project], self.user, None) == "123"
@@ -258,6 +263,7 @@ class ConvertReleaseValueTest(TestCase):
         assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
 
 
+@region_silo_test(stable=True)
 class ConvertFirstReleaseValueTest(TestCase):
     def test(self):
         assert convert_first_release_value(["123"], [self.project], self.user, None) == ["123"]
@@ -270,6 +276,7 @@ class ConvertFirstReleaseValueTest(TestCase):
         assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]
 
 
+@region_silo_test(stable=True)
 class ConvertCategoryValueTest(TestCase):
     def test(self):
         with self.feature("organizations:performance-issues"):
@@ -290,6 +297,7 @@ class ConvertCategoryValueTest(TestCase):
                 convert_category_value(["hellboy"], [self.project], self.user, None)
 
 
+@region_silo_test(stable=True)
 class ConvertTypeValueTest(TestCase):
     def test(self):
         with self.feature("organizations:performance-issues"):
