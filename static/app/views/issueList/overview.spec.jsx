@@ -18,7 +18,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
@@ -58,7 +57,6 @@ const routerProps = {
 };
 
 describe('IssueList', function () {
-  let wrapper;
   let props;
 
   let group;
@@ -151,16 +149,6 @@ describe('IssueList', function () {
 
     TagStore.init();
 
-    mountWithThemeAndOrg = (component, opts) =>
-      mountWithTheme(component, {
-        ...opts,
-        wrappingComponent: ({children}) => (
-          <OrganizationContext.Provider value={organization}>
-            {children}
-          </OrganizationContext.Provider>
-        ),
-      });
-
     props = {
       api,
       savedSearchLoading: false,
@@ -185,10 +173,6 @@ describe('IssueList', function () {
   afterEach(function () {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
-    if (wrapper) {
-      wrapper.unmount();
-    }
-    wrapper = null;
   });
 
   describe('withStores and feature flags', function () {
