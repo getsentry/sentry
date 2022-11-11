@@ -9,17 +9,16 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -105,68 +104,71 @@ class Monitors extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        <PageHeader>
-          <HeaderTitle>
-            <div>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <HeaderTitle>
               {t('Monitors')} <FeatureBadge type="beta" />
-            </div>
+            </HeaderTitle>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
             <NewMonitorButton size="sm">{t('New Monitor')}</NewMonitorButton>
-          </HeaderTitle>
-        </PageHeader>
-        <Filters>
-          <ProjectPageFilter resetParamsOnChange={['cursor']} />
-          <SearchBar
-            query={decodeScalar(qs.parse(location.search)?.query, '')}
-            placeholder={t('Search for monitors.')}
-            onSearch={this.handleSearch}
-          />
-        </Filters>
-        {monitorList?.length ? (
-          <Fragment>
-            <Panel>
-              <PanelBody>
-                {monitorList?.map(monitor => (
-                  <PanelItemCentered key={monitor.id}>
-                    <MonitorIcon status={monitor.status} size={16} />
-                    <StyledLink
-                      to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
-                    >
-                      {monitor.name}
-                    </StyledLink>
-                    {monitor.nextCheckIn ? (
-                      <StyledTimeSince date={monitor.lastCheckIn} />
-                    ) : (
-                      t('n/a')
-                    )}
-                  </PanelItemCentered>
-                ))}
-              </PanelBody>
-            </Panel>
-            {monitorListPageLinks && (
-              <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <Filters>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <SearchBar
+                query={decodeScalar(qs.parse(location.search)?.query, '')}
+                placeholder={t('Search for monitors.')}
+                onSearch={this.handleSearch}
+              />
+            </Filters>
+            {monitorList?.length ? (
+              <Fragment>
+                <Panel>
+                  <PanelBody>
+                    {monitorList?.map(monitor => (
+                      <PanelItemCentered key={monitor.id}>
+                        <MonitorIcon status={monitor.status} size={16} />
+                        <StyledLink
+                          to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                        >
+                          {monitor.name}
+                        </StyledLink>
+                        {monitor.nextCheckIn ? (
+                          <StyledTimeSince date={monitor.lastCheckIn} />
+                        ) : (
+                          t('n/a')
+                        )}
+                      </PanelItemCentered>
+                    ))}
+                  </PanelBody>
+                </Panel>
+                {monitorListPageLinks && (
+                  <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+                )}
+              </Fragment>
+            ) : (
+              <OnboardingPanel image={<img src={onboardingImg} />}>
+                <h3>{t('Monitor your recurring jobs')}</h3>
+                <p>
+                  {t(
+                    'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
+                  )}
+                </p>
+                <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
+              </OnboardingPanel>
             )}
-          </Fragment>
-        ) : (
-          <OnboardingPanel image={<img src={onboardingImg} />}>
-            <h3>{t('Monitor your recurring jobs')}</h3>
-            <p>
-              {t(
-                'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
-              )}
-            </p>
-            <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
-          </OnboardingPanel>
-        )}
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
 
-const HeaderTitle = styled(PageHeading)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
+const HeaderTitle = styled(Layout.Title)`
+  margin-top: 0;
 `;
 
 const PanelItemCentered = styled(PanelItem)`
