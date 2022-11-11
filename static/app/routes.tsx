@@ -10,7 +10,7 @@ import {
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
@@ -142,8 +142,6 @@ function buildRoutes() {
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
-
-  const usingCustomerDomain = Boolean(window.__initialData.customerDomain);
 
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
