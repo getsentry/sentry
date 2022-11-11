@@ -193,9 +193,21 @@ function buildRoutes() {
         path="/organizations/:orgId/disabled-member/"
         component={make(() => import('sentry/views/disabledMember'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/join-request/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/organizationJoinRequest'))
+          )}
+          key="orgless-join-request"
+        />
+      ) : null}
       <Route
         path="/join-request/:orgId/"
-        component={make(() => import('sentry/views/organizationJoinRequest'))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationJoinRequest'))
+        )}
+        key="org-join-request"
       />
       <Route
         path="/onboarding/:orgId/"
