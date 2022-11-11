@@ -30,7 +30,7 @@ from sentry.signals import terms_accepted
 class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
-    idempotency_key = serializers.BooleanField(required=False)
+    idempotency_key = serializers.CharField(max_length=32, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -208,8 +208,8 @@ class OrganizationIndexEndpoint(Endpoint):
                         request.user,
                         org.id,
                         org.slug,
-                        "",
-                        result.get("idempotency_key"),
+                        org.stripe_id,
+                        result.get("idempotency_key", ""),
                         settings.SENTRY_REGION or "us",
                     )
 

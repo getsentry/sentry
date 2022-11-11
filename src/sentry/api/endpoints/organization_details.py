@@ -2,6 +2,7 @@ import logging
 from copy import copy
 from datetime import datetime
 
+from django.conf import settings
 from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
@@ -38,6 +39,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.organizationmapping import organization_mapping_service
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -489,7 +491,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
-            organization, changed_data = serializer.save()
+            with transaction.atomic():
+                organization, changed_data = serializer.save()
+                if "slug" in changed_data:
+                    organization_mapping_service.create(
+                        request.user,
+                        organization.id,
+                        organization.slug,
+                        organization.stripe_id,
+                        request.data.get("idempotency_key", ""),
+                        settings.SENTRY_REGION or "us",
+                    )
 
             if was_pending_deletion:
                 self.create_audit_entry(
