@@ -28,6 +28,7 @@ class OnboardingTask:
     FIRST_TRANSACTION = 11
     METRIC_ALERT = 12
     INTEGRATIONS = 13
+    SESSION_REPLAY = 14
 
 
 class OnboardingTaskStatus:
@@ -122,6 +123,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
+        (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
     )
 
     # Used in the API to map IDs to string keys. This keeps things
@@ -147,6 +149,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
+            OnboardingTask.SESSION_REPLAY,
         ]
     )
 
@@ -163,6 +166,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
+            OnboardingTask.SESSION_REPLAY,
         ]
     )
 
