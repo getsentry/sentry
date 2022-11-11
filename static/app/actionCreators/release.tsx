@@ -8,7 +8,8 @@ import {
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import type {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import type {Deploy, Release} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
 
 type ParamsGet = {
   orgSlug: string;
