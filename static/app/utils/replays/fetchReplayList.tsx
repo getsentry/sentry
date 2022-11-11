@@ -6,7 +6,7 @@ import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-startedAt';
 
@@ -33,14 +33,14 @@ type Result = State;
 type Props = {
   api: Client;
   eventView: EventView;
-  location: Location;
   organization: Organization;
+  query: ReplayListLocationQuery;
 };
 
 async function fetchReplayList({
   api,
   organization,
-  location,
+  query,
   eventView,
 }: Props): Promise<Result> {
   try {
@@ -49,8 +49,8 @@ async function fetchReplayList({
     const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
       query: {
-        ...eventView.getEventsAPIPayload(location),
-        cursor: location.query.cursor,
+        ...eventView.getEventsAPIPayload({query} as Location),
+        cursor: query.cursor,
       },
     });
 

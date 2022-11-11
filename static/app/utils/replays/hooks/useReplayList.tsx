@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -19,8 +19,6 @@ type Result = State;
 function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
-  const querySearchRef = useRef<string>();
-  const controllerRef = useRef<AbortController | null>(null);
 
   const [data, setData] = useState<State>({
     fetchError: undefined,
@@ -29,43 +27,29 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const loadReplays = useCallback(
-    async (abortSignal: AbortSignal) => {
-      setData(prev => ({
-        ...prev,
-        isFetching: true,
-      }));
-      const response = await fetchReplayList({
-        api,
-        organization,
-        location,
-        eventView,
-      });
+  // The object usually contains the same values, but it's identity changes,
+  // causing the list to re-render on pageload.
+  // TODO(replay): Stringify then parse `location.query` to keep react-hooks happy.
+  const query = JSON.stringify(location.query);
 
-      if (!abortSignal.aborted) {
-        setData(response);
-      }
-    },
-    [api, organization, location, eventView]
-  );
+  const loadReplays = useCallback(async () => {
+    setData(prev => ({
+      ...prev,
+      isFetching: true,
+    }));
+    const response = await fetchReplayList({
+      api,
+      eventView,
+      organization,
+      query: JSON.parse(query),
+    });
 
-  useEffect(() => {
-    if (!querySearchRef.current || querySearchRef.current !== location.search) {
-      controllerRef.current = new AbortController();
-      querySearchRef.current = location.search;
-
-      loadReplays(controllerRef.current.signal);
-    }
-  }, [loadReplays, location.search]);
+    setData(response);
+  }, [api, organization, query, eventView]);
 
   useEffect(() => {
-    const controller = controllerRef?.current;
-    return () => {
-      if (controller) {
-        controller.abort();
-      }
-    };
-  }, []);
+    loadReplays();
+  }, [loadReplays]);
 
   return data;
 }
