@@ -35,7 +35,7 @@ function TagBreakdown({segments, maxItems, selectedTag, colors}: TagBreakdownPro
       />
       {visibleSegments.map((segment, index) => {
         return (
-          <BreakdownRow key={segment.name}>
+          <BreakdownRow key={segment.value}>
             <LegendIcon color={colors[index]} />
             <Tooltip title={segment.tooltip}>
               <TagLabel active={segment.active}>{segment.name}</TagLabel>
