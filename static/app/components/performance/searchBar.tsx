@@ -139,7 +139,7 @@ function SearchBar(props: SearchBarProps) {
           }
 
           const [results] = await doDiscoverQuery<{
-            data: Array<{'count()': number; project_id: number; transaction: string}>;
+            data: DataItem[];
           }>(api, url, {
             field: ['transaction', 'project_id', 'count()'],
             project: projectIdStrings,
@@ -152,7 +152,7 @@ function SearchBar(props: SearchBarProps) {
           const parsedResults = results.data.reduce(
             (searchGroup: SearchGroup, item) => {
               searchGroup.children.push({
-                value: `${item.transaction}:${item.project_id}`,
+                value: encodeItemToValue(item),
                 title: item.transaction,
                 type: ItemType.LINK,
                 desc: '',
@@ -183,25 +183,24 @@ function SearchBar(props: SearchBarProps) {
   );
 
   const handleSearch = (query: string) => {
-    const lastIndex = query.lastIndexOf(':');
-    const transactionName = query.slice(0, lastIndex);
+    const {transaction} = decodeValueToItem(query);
+
     setSearchResults([]);
-    setSearchString(transactionName);
-    onSearch(`transaction:${transactionName}`);
+    setSearchString(transaction);
+    onSearch(`transaction:${transaction}`);
     closeDropdown();
   };
 
   const navigateToTransactionSummary = (name: string) => {
-    const lastIndex = name.lastIndexOf(':');
-    const transactionName = name.slice(0, lastIndex);
-    const projectId = name.slice(lastIndex + 1);
+    const {transaction, project_id} = decodeValueToItem(name);
+
     const query = eventView.generateQueryStringObject();
     setSearchResults([]);
 
     const next = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
-      transaction: String(transactionName),
-      projectID: projectId,
+      transaction,
+      projectID: String(project_id),
       query,
     });
     browserHistory.push(next);
@@ -227,6 +226,25 @@ function SearchBar(props: SearchBarProps) {
       )}
     </Container>
   );
+}
+
+const encodeItemToValue = (item: DataItem) => {
+  return `${item.transaction}:${item.project_id}`;
+};
+
+const decodeValueToItem = (value: string): DataItem => {
+  const lastIndex = value.lastIndexOf(':');
+
+  return {
+    project_id: parseInt(value.slice(lastIndex + 1), 10),
+    transaction: value.slice(0, lastIndex),
+  };
+};
+
+interface DataItem {
+  project_id: number;
+  transaction: string;
+  'count()'?: number;
 }
 
 const wrapQueryInWildcards = (query: string) => {
