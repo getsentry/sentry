@@ -24,7 +24,8 @@ import {
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import type {DataCategory, DateString, Organization, Project} from 'sentry/types';
+import type {DateString, Organization, Project} from 'sentry/types';
+import {DataCategory} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
