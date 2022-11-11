@@ -113,7 +113,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
       // array with two items in.
       match[2] = null;
       match[1] = 1;
-      nodes.push(<span key={idx++}>{sprintf.format([match], [null, arg])}</span>);
+      nodes.push(<Fragment key={idx++}>{sprintf.format([match], [null, arg])}</Fragment>);
     }
   });
 
