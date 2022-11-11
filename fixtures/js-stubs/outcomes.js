@@ -1,4 +1,4 @@
-import type {Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
 export function Outcomes() {
   return {

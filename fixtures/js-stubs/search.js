@@ -1,4 +1,4 @@
-import type {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 
 export function Search(params = {}) {
   return {
