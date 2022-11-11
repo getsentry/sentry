@@ -231,7 +231,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const eventIdATag = screen.getByText('id123').closest('a');
       const traceIdATag = screen.getByText('trace123').closest('a');
       expect(eventIdATag).toHaveAttribute(
@@ -261,7 +262,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
       expect(attachmentsRequest).not.toHaveBeenCalled();
@@ -278,7 +280,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
       expect(attachmentsRequest).toHaveBeenCalled();
@@ -295,7 +298,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const minidumpColumn = screen.queryByText('minidump');
       expect(minidumpColumn).not.toBeInTheDocument();
     });
@@ -330,7 +334,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       const minidumpColumn = screen.queryByText('minidump');
       expect(minidumpColumn).toBeInTheDocument();
     });
@@ -365,7 +369,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       const attachmentsColumn = screen.queryByText('attachments');
       const minidumpColumn = screen.queryByText('minidump');
       expect(attachmentsColumn).not.toBeInTheDocument();
@@ -461,7 +465,7 @@ describe('groupEvents', function () {
         {context: routerContext, organization}
       );
 
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
     });
