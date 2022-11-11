@@ -263,12 +263,15 @@ def _derive_mri_to_apply(project_ids, select, orderby):
         for orderby_field in orderby:
             if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
                 expr = metric_object_factory(orderby_field.field.op, orderby_field.field.metric_mri)
-                entities.add(expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE))
+                entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                if isinstance(entity, str):
+                    entities.add(entity)
 
         if len(entities) > 1:
             raise InvalidParams("The orderby cannot have fields with multiple entities.")
 
-        mri_to_apply = mri_dictionary[entities.pop()]
+        if len(entities) != 0:
+            mri_to_apply = mri_dictionary[entities.pop()]
 
     return mri_to_apply
 
