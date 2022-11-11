@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
-import type {Outcome, SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 import {findClosestNumber} from 'sentry/utils/findClosestNumber';
 
 import {quantityField} from '.';

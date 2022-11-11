@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
-import type {DataCategory, Organization, Outcome} from 'sentry/types';
+import type {DataCategory, Organization} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
 import {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';

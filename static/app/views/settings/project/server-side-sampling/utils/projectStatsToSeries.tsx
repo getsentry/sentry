@@ -2,7 +2,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import type {Outcome, SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
