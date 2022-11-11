@@ -35,7 +35,7 @@ def get_direct_hit_response(
     event_id = normalize_event_id(query)
     if event_id:
         if use_builder:
-            snuba_query = get_query_for_group(f"id:{event_id}", snuba_params, group)
+            snuba_query = get_query_builder_for_group(f"id:{event_id}", snuba_params, group)
             results = snuba_query.run_query(referrer=referrer)
             results = [
                 Event(
@@ -56,7 +56,9 @@ def get_direct_hit_response(
     return None
 
 
-def get_query_for_group(query: str, snuba_params: Mapping[str, Any], group: Group) -> QueryBuilder:
+def get_query_builder_for_group(
+    query: str, snuba_params: Mapping[str, Any], group: Group
+) -> QueryBuilder:
     dataset = Dataset.Events
     if group.issue_category == GroupCategory.PERFORMANCE:
         dataset = Dataset.Transactions

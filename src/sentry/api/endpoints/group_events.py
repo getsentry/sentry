@@ -16,7 +16,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import (
     get_direct_hit_response,
     get_filter_for_group,
-    get_query_for_group,
+    get_query_builder_for_group,
 )
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
@@ -105,7 +105,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
 
         try:
             if use_builder:
-                snuba_query = get_query_for_group(request.GET.get("query", ""), params, group)
+                snuba_query = get_query_builder_for_group(
+                    request.GET.get("query", ""), params, group
+                )
             else:
                 snuba_filter, dataset = get_filter_for_group(
                     request.GET.get("query", None), params, group
