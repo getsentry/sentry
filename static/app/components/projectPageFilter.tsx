@@ -216,19 +216,20 @@ function ProjectPageFilter({
 }
 
 const TitleContainer = styled('div')`
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   text-align: left;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DropdownTitle = styled('div')`
-  width: max-content;
   display: flex;
   align-items: center;
   flex: 1;
+  width: max-content;
+  min-width: 0;
 `;
 
 const StyledBadge = styled(Badge)`

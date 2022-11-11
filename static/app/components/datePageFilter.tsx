@@ -105,19 +105,18 @@ function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props
 }
 
 const TitleContainer = styled('div')`
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   text-align: left;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
-  width: 100%;
+  width: max-content;
+  min-width: 0;
 `;
 
 export default withRouter(DatePageFilter);
