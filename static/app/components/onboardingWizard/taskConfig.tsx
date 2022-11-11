@@ -142,7 +142,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.FIRST_EVENT,
       title: t('Capture your first error'),
       description: t(
-        "Time to test it out. Now that you've created a project, capture your first error. We've got an example you can fiddle with."
+        "Now that you've created a project, test it by capturing your first error. We've got an example you can fiddle with."
       ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -167,7 +167,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.INVITE_MEMBER,
       title: t('Invite your team'),
       description: t(
-        'Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.'
+        'Assign issues to the right people and comment back-and-forth on shared errors with coworkers.'
       ),
       skippable: true,
       requisites: [],
@@ -179,7 +179,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.FIRST_INTEGRATION,
       title: t('Install any of our 40+ integrations'),
       description: t(
-        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
+        'Get alerts in Slack, sync Sentry and Jira, notify Sentry of releases from GitHub, Vercel, or Netlify.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -191,7 +191,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
+        'Make it easy to quickly tell where errors are coming from by setting up separate Projects for your frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -289,7 +289,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        "Deminify Javascript source code to debug with context. Seeing code in it's original form will help you debunk the ghosts of errors past."
+        'Make Javascript source code human readable and debug with greater context and speed. Seeing code in its original form will help you debunk the ghosts of errors past.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -325,7 +325,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.ALERT_RULE,
       title: t('Configure an Issue Alert'),
       description: t(
-        'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
+        'Get real-time error notifications by setting up Issue Alerts for what matters to you.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
