@@ -1,12 +1,11 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {BarChart} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {SeriesDataUnit} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
@@ -42,20 +41,20 @@ const MonitorStats = ({monitor}: Props) => {
   });
 
   let emptyStats = true;
-  const success = {
+  const success: BarChartSeries = {
     seriesName: t('Successful'),
     yAxisIndex: 0,
-    data: [] as SeriesDataUnit[],
+    data: [],
   };
-  const failed = {
+  const failed: BarChartSeries = {
     seriesName: t('Failed'),
     yAxisIndex: 0,
-    data: [] as SeriesDataUnit[],
+    data: [],
   };
-  const missed = {
+  const missed: BarChartSeries = {
     seriesName: t('Missed'),
     yAxisIndex: 0,
-    data: [] as SeriesDataUnit[],
+    data: [],
   };
   const durationData = [] as [number, number][];
 
