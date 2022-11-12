@@ -19,7 +19,7 @@ const Panel = styled(
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.panelBorderRadius};
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};
   box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowLight)};
