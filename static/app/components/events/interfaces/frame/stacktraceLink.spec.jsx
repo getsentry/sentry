@@ -39,7 +39,7 @@ describe('StacktraceLink', function () {
       {context: TestStubs.routerContext()}
     );
     expect(
-      await screen.findByText('Link your stack trace to your source code.')
+      await screen.findByText('Fix code mapping to see suspect commits and more')
     ).toBeInTheDocument();
   });
 
@@ -59,11 +59,8 @@ describe('StacktraceLink', function () {
       />,
       {context: TestStubs.routerContext()}
     );
-    expect(screen.getByRole('link', {name: 'GitHub'})).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://something.io#L233');
+    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('renders file_not_found message', async function () {

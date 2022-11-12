@@ -5,20 +5,22 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {ResponseMeta} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
 import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Frame,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -30,7 +32,7 @@ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
-import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
+import {OpenInContainer, OpenInLink} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
 type Props = AsyncComponent['props'] & {
@@ -104,7 +106,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     });
   }
 
-  dismissPrompt() {
+  dismissPrompt = () => {
     const {organization} = this.props;
     promptsUpdate(this.api, {
       organizationId: organization.id,
@@ -120,7 +122,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     });
 
     this.setState({isDismissed: true});
-  }
+  };
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, frame, event} = this.props;
@@ -185,7 +187,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     };
   }
 
-  onOpenLink() {
+  onOpenLink = () => {
     const provider = this.state.match.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
@@ -199,9 +201,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         {startSession: true}
       );
     }
-  }
+  };
 
-  onReconfigureMapping() {
+  onReconfigureMapping = () => {
     const provider = this.state.match.config?.provider;
     const error = this.state.match.error;
     if (provider) {
@@ -217,7 +219,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         {startSession: true}
       );
     }
-  }
+  };
 
   handleSubmit = () => {
     this.reloadData();
@@ -230,54 +232,68 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   renderLoading() {
-    // TODO: Add loading
-    return null;
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        <Placeholder height="24px" width="60px" />
+      </CodeMappingButtonContainer>
+    );
   }
 
   renderNoMatch() {
-    const {organization} = this.props;
     const filename = this.props.frame.filename;
-    const platform = this.props.event.platform;
     const {integrations} = this.state.match;
-    if (this.project && integrations.length > 0 && filename) {
-      return (
-        <CodeMappingButtonContainer columnQuantity={2}>
-          {tct('[link:Link your stack trace to your source code.]', {
-            link: (
-              <a
-                onClick={() => {
-                  trackIntegrationAnalytics(
-                    'integrations.stacktrace_start_setup',
-                    {
-                      view: 'stacktrace_issue_details',
-                      platform,
-                      organization,
-                      ...getAnalyicsDataForEvent(this.props.event),
-                    },
-                    {startSession: true}
-                  );
-                  openModal(
-                    deps =>
-                      this.project && (
-                        <StacktraceLinkModal
-                          onSubmit={this.handleSubmit}
-                          filename={filename}
-                          project={this.project}
-                          organization={organization}
-                          integrations={integrations}
-                          {...deps}
-                        />
-                      )
-                  );
-                }}
-              />
-            ),
-          })}
-          <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
-        </CodeMappingButtonContainer>
-      );
+    if (!this.project || !integrations.length || !filename) {
+      return null;
     }
-    return null;
+
+    const {organization} = this.props;
+    const platform = this.props.event.platform;
+    const sourceCodeProviders = integrations.filter(integration =>
+      ['github', 'gitlab'].includes(integration.provider?.key)
+    );
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        <FixMappingButton
+          type="button"
+          priority="link"
+          icon={
+            sourceCodeProviders.length === 1
+              ? getIntegrationIcon(sourceCodeProviders[0].provider.key, 'sm')
+              : undefined
+          }
+          onClick={() => {
+            trackIntegrationAnalytics(
+              'integrations.stacktrace_start_setup',
+              {
+                view: 'stacktrace_issue_details',
+                platform,
+                organization,
+                ...getAnalyicsDataForEvent(this.props.event),
+              },
+              {startSession: true}
+            );
+            openModal(
+              deps =>
+                this.project && (
+                  <StacktraceLinkModal
+                    onSubmit={this.handleSubmit}
+                    filename={filename}
+                    project={this.project}
+                    organization={organization}
+                    integrations={integrations}
+                    {...deps}
+                  />
+                )
+            );
+          }}
+        >
+          {t('Fix code mapping to see suspect commits and more')}
+        </FixMappingButton>
+        <CloseButton type="button" priority="link" onClick={this.dismissPrompt}>
+          <IconClose size="xs" aria-label={t('Close')} />
+        </CloseButton>
+      </CodeMappingButtonContainer>
+    );
   }
 
   renderHovercard() {
@@ -323,12 +339,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         <ErrorInformation>
           {error && this.renderHovercard()}
           <ErrorText>{this.errorText}</ErrorText>
-          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
+          {tct('[link:Configure Stack Trace Linking] to fix this problem', {
             link: (
               <Link
-                onClick={() => {
-                  this.onReconfigureMapping();
-                }}
+                onClick={this.onReconfigureMapping}
                 to={{
                   pathname: `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/`,
                   query: {tab: 'codeMappings'},
@@ -345,10 +359,11 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
-        <div>{t('Open this line in')}</div>
-        <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
-          <OpenInName>{config.provider.name}</OpenInName>
+        <OpenInLink onClick={this.onOpenLink} href={url} openInNewTab>
+          <StyledIconWrapper>
+            {getIntegrationIcon(config.provider.key, 'sm')}
+          </StyledIconWrapper>
+          {t('Open this line in %s', config.provider.name)}
         </OpenInLink>
       </OpenInContainer>
     );
@@ -378,16 +393,20 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+  min-height: 28px;
+`;
+
+const FixMappingButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
+
+const CloseButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;
 
 const StyledIconWrapper = styled('span')`
   color: inherit;
   line-height: 0;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  margin: auto;
-  cursor: pointer;
 `;
 
 const StyledIconInfo = styled(IconInfo)`
