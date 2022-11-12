@@ -7,6 +7,7 @@ import {ResponseMeta} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo} from 'sentry/icons';
@@ -32,7 +33,7 @@ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
-import {OpenInContainer, OpenInLink} from './openInContextLine';
+import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
 type Props = AsyncComponent['props'] & {
@@ -435,6 +436,14 @@ const HovercardBody = styled('span')`
   flex-direction: column;
   gap: ${space(0.5)};
   line-height: 1.2;
+`;
+
+const OpenInLink = styled(ExternalLink)`
+  display: flex;
+  align-items: center;
+  grid-template-columns: max-content auto;
+  gap: ${space(0.75)};
+  color: ${p => p.theme.gray300};
 `;
 
 const ErrorInformation = styled('div')`
