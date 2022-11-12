@@ -339,7 +339,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         <ErrorInformation>
           {error && this.renderHovercard()}
           <ErrorText>{this.errorText}</ErrorText>
-          {tct('[link:Configure Stack Trace Linking] to fix this problem', {
+          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
             link: (
               <Link
                 onClick={this.onReconfigureMapping}
@@ -358,14 +358,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
-      <OpenInContainer columnQuantity={2}>
+      <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink onClick={this.onOpenLink} href={url} openInNewTab>
           <StyledIconWrapper>
             {getIntegrationIcon(config.provider.key, 'sm')}
           </StyledIconWrapper>
           {t('Open this line in %s', config.provider.name)}
         </OpenInLink>
-      </OpenInContainer>
+      </CodeMappingButtonContainer>
     );
   }
 
