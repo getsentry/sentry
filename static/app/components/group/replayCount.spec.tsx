@@ -1,6 +1,6 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupReplayCount from 'sentry/components/group/replayCount';
+import GroupReplayCount from 'sentry/components/group/issueReplayCount';
 
 describe('GroupReplayCount', function () {
   const groupId = '3363325111';

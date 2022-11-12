@@ -12,7 +12,10 @@ type Props = {
   groupId: string;
 };
 
-function ReplayCount({groupId}: Props) {
+/**
+ * Show the count of how many replays are associated to an issue.
+ */
+function IssueReplayCount({groupId}: Props) {
   const organization = useOrganization();
   const count = useReplaysCountContext()[groupId];
 
@@ -37,4 +40,4 @@ const ReplayCountLink = styled(Link)`
   gap: 0 ${space(0.5)};
 `;
 
-export default ReplayCount;
+export default IssueReplayCount;
