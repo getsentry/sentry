@@ -18,7 +18,9 @@ import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag'
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import useReplaysCounts from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
@@ -45,7 +47,6 @@ type Props = {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  replaysCount: number | undefined;
   event?: Event;
 };
 
@@ -80,11 +81,16 @@ function GroupHeader({
   group,
   groupReprocessingStatus,
   organization,
-  replaysCount,
   event,
   project,
 }: Props) {
   const location = useLocation();
+
+  const replaysCount = useReplaysCounts({
+    groupIds: group.id,
+    organization,
+    project,
+  })[group.id];
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(
@@ -243,8 +249,8 @@ function GroupHeader({
           hidden={!hasSessionReplay}
           to={`${baseUrl}replays/${location.search}`}
         >
-          {t('Replays')}{' '}
-          {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
+          {t('Replays')}
+          <ReplayCountBadge count={replaysCount} />
           <ReplaysFeatureBadge noTooltip />
         </Item>
       </StyledTabList>

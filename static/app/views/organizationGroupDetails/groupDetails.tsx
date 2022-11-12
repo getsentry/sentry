@@ -684,7 +684,6 @@ class GroupDetails extends Component<Props, State> {
           groupReprocessingStatus={groupReprocessingStatus}
           event={event}
           group={group}
-          replaysCount={replayIds?.length}
           baseUrl={baseUrl}
           project={project as Project}
         />

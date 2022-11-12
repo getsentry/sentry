@@ -12,6 +12,7 @@ import ReplayCount from 'sentry/components/group/replayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import {ReplayCountContextProvider} from 'sentry/components/replays/replayCountContext';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -56,65 +57,71 @@ function EventOrGroupExtraDetails({
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   return (
-    <GroupExtra>
-      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
-      {shortId && (
-        <InboxShortId
-          shortId={shortId}
-          avatar={
-            project && (
-              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-            )
-          }
-        />
-      )}
-      {isUnhandled && <UnhandledTag />}
-      {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="14px" width="100px" />
-      ) : (
-        <TimesTag
-          lastSeen={lifetime?.lastSeen || lastSeen}
-          firstSeen={lifetime?.firstSeen || firstSeen}
-        />
-      )}
-      {/* Always display comment count on inbox */}
-      {numComments > 0 && (
-        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-          <IconChat
-            size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+    <ReplayCountContextProvider
+      groupIds={id}
+      organization={organization}
+      project={project}
+    >
+      <GroupExtra>
+        {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
+        {shortId && (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+              )
+            }
           />
-          <span>{numComments}</span>
-        </CommentsLink>
-      )}
-      {showReplayCount && <ReplayCount groupId={id} orgId={params.orgId} />}
-      {logger && (
-        <LoggerAnnotation>
-          <GlobalSelectionLink
-            to={{
-              pathname: issuesPath,
-              query: {
-                query: `logger:${logger}`,
-              },
+        )}
+        {isUnhandled && <UnhandledTag />}
+        {!lifetime && !firstSeen && !lastSeen ? (
+          <Placeholder height="14px" width="100px" />
+        ) : (
+          <TimesTag
+            lastSeen={lifetime?.lastSeen || lastSeen}
+            firstSeen={lifetime?.firstSeen || firstSeen}
+          />
+        )}
+        {/* Always display comment count on inbox */}
+        {numComments > 0 && (
+          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+            <IconChat
+              size="xs"
+              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+            />
+            <span>{numComments}</span>
+          </CommentsLink>
+        )}
+        {showReplayCount && <ReplayCount groupId={id} />}
+        {logger && (
+          <LoggerAnnotation>
+            <GlobalSelectionLink
+              to={{
+                pathname: issuesPath,
+                query: {
+                  query: `logger:${logger}`,
+                },
+              }}
+            >
+              {logger}
+            </GlobalSelectionLink>
+          </LoggerAnnotation>
+        )}
+        {annotations?.map((annotation, key) => (
+          <AnnotationNoMargin
+            dangerouslySetInnerHTML={{
+              __html: annotation,
             }}
-          >
-            {logger}
-          </GlobalSelectionLink>
-        </LoggerAnnotation>
-      )}
-      {annotations?.map((annotation, key) => (
-        <AnnotationNoMargin
-          dangerouslySetInnerHTML={{
-            __html: annotation,
-          }}
-          key={key}
-        />
-      ))}
+            key={key}
+          />
+        ))}
 
-      {showAssignee && assignedTo && (
-        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-      )}
-    </GroupExtra>
+        {showAssignee && assignedTo && (
+          <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+        )}
+      </GroupExtra>
+    </ReplayCountContextProvider>
   );
 }
 

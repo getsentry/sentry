@@ -1,62 +1,32 @@
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import Placeholder from 'sentry/components/placeholder';
+import {useReplaysCountContext} from 'sentry/components/replays/replayCountContext';
 import Tooltip from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   groupId: string;
-  orgId: string;
 };
 
-function ReplayCount({orgId, groupId}: Props) {
-  const location = useLocation();
+function ReplayCount({groupId}: Props) {
+  const organization = useOrganization();
+  const count = useReplaysCountContext()[groupId];
 
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      id: '',
-      name: `Errors within replay`,
-      version: 2,
-      fields: ['replayId', 'count()'],
-      query: `issue.id:${groupId} !replayId:""`,
-      projects: [],
-    },
-    location
-  );
-
+  const countDisplay = count && count > 50 ? '50+' : count;
   return (
-    <DiscoverQuery eventView={eventView} orgSlug={orgId} location={location} useEvents>
-      {({isLoading, tableData}) => {
-        if (isLoading) {
-          return <Placeholder width="24px" height="14px" />;
-        }
-
-        const replayCount = tableData?.data?.length ?? 0;
-        if (replayCount > 0) {
-          return (
-            <Tooltip
-              title={t('This issue has %s replays available to view', replayCount)}
-            >
-              <ReplayCountLink
-                to={`/organizations/${orgId}/issues/${groupId}/replays/`}
-                data-test-id="replay-count"
-              >
-                <IconPlay size="xs" />
-                {replayCount}
-              </ReplayCountLink>
-            </Tooltip>
-          );
-        }
-
-        return null;
-      }}
-    </DiscoverQuery>
+    <Tooltip title={t('This issue has %s replays available to view', countDisplay)}>
+      <ReplayCountLink
+        to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
+        data-test-id="replay-count"
+      >
+        <IconPlay size="xs" />
+        {countDisplay}
+      </ReplayCountLink>
+    </Tooltip>
   );
 }
 
