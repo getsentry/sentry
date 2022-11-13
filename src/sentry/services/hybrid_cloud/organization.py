@@ -84,7 +84,8 @@ class ApiOrganization:
     # member: Optional[ApiOrganizationMember] = None
     name: str = ""
 
-    # Represents the full set of teams and projects associated with the org.
+    # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
+    # visibility, but you can apply a manual filter on the status attribute.
     teams: List[ApiTeam] = field(default_factory=list)
     projects: List[ApiProject] = field(default_factory=list)
 
@@ -100,7 +101,7 @@ class ApiUserOrganizationContext:
     transactional query.  Used by access, determine_active_organization, and others.
     """
 
-    user_id: Optional[int]
+    user_id: Optional[int] = None
     organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
     # Set iff the user_id in this object has a membership for the requested organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
