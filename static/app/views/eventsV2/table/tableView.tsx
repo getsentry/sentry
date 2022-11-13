@@ -52,6 +52,7 @@ import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
+import {ContextType, QuickContextHoverWrapper} from './quickContext';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
@@ -183,11 +184,18 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       });
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-          <StyledLink data-test-id="view-event" to={target}>
-            {value}
-          </StyledLink>
-        </Tooltip>,
+        <QuickContextHoverWrapper
+          key={`quickContextEventHover${rowIndex}`}
+          dataRow={dataRow}
+          contextType={ContextType.EVENT}
+          organization={organization}
+        >
+          <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+            <StyledLink data-test-id="view-event" to={target}>
+              {value}
+            </StyledLink>
+          </Tooltip>
+        </QuickContextHoverWrapper>,
       ];
     }
     return [];

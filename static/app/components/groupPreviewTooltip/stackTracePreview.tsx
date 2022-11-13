@@ -21,7 +21,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function getStacktrace(event: Event): StacktraceType | null {
+export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
       .find(e => e.type === EntryType.EXCEPTION)
@@ -52,7 +52,7 @@ function getStacktrace(event: Event): StacktraceType | null {
   return null;
 }
 
-function StackTracePreviewContent({
+export function StackTracePreviewContent({
   event,
   stacktrace,
   orgFeatures = [],
@@ -265,7 +265,7 @@ const Wrapper = styled('span')<{
     `}
 `;
 
-const StackTracePreviewWrapper = styled('div')`
+export const StackTracePreviewWrapper = styled('div')`
   width: 700px;
 
   .traceback {
