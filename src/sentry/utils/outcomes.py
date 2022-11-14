@@ -155,6 +155,7 @@ publishers = {}
 
 
 def _publish(cluster_name: str, topic_name: str, payload: str) -> Any:
+    """The publish operation used by `track_outcome`."""
     global publishers
 
     if cluster_name not in publishers:
