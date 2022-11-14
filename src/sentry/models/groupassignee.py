@@ -69,11 +69,11 @@ class GroupAssigneeManager(BaseManager):
             ).update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
         else:
             affected = True
+
+        if affected:
             issue_assigned.send_robust(
                 project=group.project, group=group, user=acting_user, sender=self.__class__
             )
-
-        if affected:
             data = {
                 "assignee": str(assigned_to.id),
                 "assigneeEmail": getattr(assigned_to, "email", None),

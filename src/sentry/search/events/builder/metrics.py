@@ -42,6 +42,9 @@ from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_quer
 
 
 class MetricsQueryBuilder(QueryBuilder):
+    requires_organization_condition = True
+    organization_column: str = "organization_id"
+
     def __init__(
         self,
         *args: Any,
@@ -240,11 +243,6 @@ class MetricsQueryBuilder(QueryBuilder):
             granularity = 60
         return Granularity(granularity)
 
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
-        return conditions
-
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -332,9 +330,6 @@ class MetricsQueryBuilder(QueryBuilder):
         return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if search_filter.value.is_wildcard():
-            raise IncompatibleMetricsQuery("wildcards not supported")
-
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -385,6 +380,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [lhs, f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
@@ -590,9 +592,7 @@ class MetricsQueryBuilder(QueryBuilder):
             if (
                 isinstance(orderby.exp, Column)
                 and orderby.exp.subscriptable in ["tags", "tags_raw"]
-            ) or (
-                isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
-            ):
+            ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

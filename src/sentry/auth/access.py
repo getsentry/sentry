@@ -5,7 +5,7 @@ __all__ = ["from_user", "from_member", "DEFAULT"]
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, Tuple, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -51,46 +51,51 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     return cast(FrozenSet[str], union)
 
 
-def _sso_params(member: OrganizationMember) -> Tuple[bool, bool]:
+@dataclass(frozen=True, eq=True)
+class SsoState:
+    is_required: bool
+    is_valid: bool
+
+
+_SSO_BYPASS = SsoState(False, True)
+
+
+def _sso_params(member: OrganizationMember) -> SsoState:
     """
-    Return a tuple of (requires_sso, sso_is_valid) for a given member.
+    Check whether SSO is required and valid for a given member.
     """
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     try:
         auth_provider = AuthProvider.objects.get(organization=member.organization_id)
     except AuthProvider.DoesNotExist:
-        sso_is_valid = True
-        requires_sso = False
-    else:
-        if auth_provider.flags.allow_unlinked:
-            requires_sso = False
-            sso_is_valid = True
+        return _SSO_BYPASS
+
+    if auth_provider.flags.allow_unlinked:
+        return _SSO_BYPASS
+
+    try:
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider, user=member.user_id)
+    except AuthIdentity.DoesNotExist:
+        # If an owner is trying to gain access, allow bypassing SSO if there are no
+        # other owners with SSO enabled.
+        if member.role == roles.get_top_dog().id:
+            requires_sso = AuthIdentity.objects.filter(
+                auth_provider=auth_provider,
+                user__in=OrganizationMember.objects.filter(
+                    organization=member.organization_id,
+                    role=roles.get_top_dog().id,
+                    user__is_active=True,
+                )
+                .exclude(id=member.id)
+                .values_list("user_id"),
+            ).exists()
         else:
             requires_sso = True
-            try:
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=auth_provider, user=member.user_id
-                )
-            except AuthIdentity.DoesNotExist:
-                sso_is_valid = False
-                # If an owner is trying to gain access,
-                # allow bypassing SSO if there are no other
-                # owners with SSO enabled.
-                if member.role == roles.get_top_dog().id:
-                    requires_sso = AuthIdentity.objects.filter(
-                        auth_provider=auth_provider,
-                        user__in=OrganizationMember.objects.filter(
-                            organization=member.organization_id,
-                            role=roles.get_top_dog().id,
-                            user__is_active=True,
-                        )
-                        .exclude(id=member.id)
-                        .values_list("user_id"),
-                    ).exists()
-            else:
-                sso_is_valid = auth_identity.is_valid(member)
-    return requires_sso, sso_is_valid
+        return SsoState(requires_sso, False)
+
+    sso_is_valid = auth_identity.is_valid(member)
+    return SsoState(True, sso_is_valid)
 
 
 @dataclass
@@ -99,8 +104,15 @@ class Access(abc.ABC):
     # would be based on the same scopes as API access so there's clarity in
     # what things mean
 
-    sso_is_valid: bool = False
-    requires_sso: bool = False
+    _sso_state: SsoState = SsoState(False, False)
+
+    @property
+    def sso_is_valid(self) -> bool:
+        return self._sso_state.is_valid
+
+    @property
+    def requires_sso(self) -> bool:
+        return self._sso_state.is_required
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -319,15 +331,13 @@ class OrganizationMemberAccess(Access):
     def __init__(
         self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
     ) -> None:
-        requires_sso, sso_is_valid = _sso_params(member)
         has_global_access = (
             bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
         )
 
         super().__init__(
             _member=member,
-            sso_is_valid=sso_is_valid,
-            requires_sso=requires_sso,
+            _sso_state=_sso_params(member),
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
@@ -443,7 +453,7 @@ class SystemAccess(Access):
 
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
-        super().__init__(sso_is_valid=True)
+        super().__init__(_sso_state=_SSO_BYPASS)
 
 
 DEFAULT = NoAccess()
@@ -476,16 +486,15 @@ class AccessFactory:
             try:
                 member = get_cached_organization_member(request.user.id, organization.id)
             except OrganizationMember.DoesNotExist:
-                requires_sso, sso_is_valid = False, True
+                sso_state = _SSO_BYPASS
             else:
-                requires_sso, sso_is_valid = _sso_params(member)
+                sso_state = _sso_params(member)
 
             return OrganizationGlobalAccess(
                 organization=organization,
                 _member=member,
                 scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
-                sso_is_valid=sso_is_valid,
-                requires_sso=requires_sso,
+                _sso_state=sso_state,
                 permissions=get_permissions_for_user(request.user.id),
             )
 
@@ -511,7 +520,9 @@ class AccessFactory:
         if not sentry_app.is_installed_on(organization):
             return NoAccess()
 
-        return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
+        return OrganizationGlobalMembership(
+            organization, sentry_app.scope_list, _sso_state=_SSO_BYPASS
+        )
 
     def from_user(
         self,
@@ -561,7 +572,7 @@ class AccessFactory:
             return SystemAccess()
         if auth.organization_id == organization.id:
             return OrganizationGlobalAccess(
-                auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
+                auth.organization, settings.SENTRY_SCOPES, _sso_state=_SSO_BYPASS
             )
         else:
             return DEFAULT
