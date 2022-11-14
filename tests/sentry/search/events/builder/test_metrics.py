@@ -911,7 +911,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
-                    "transaction",
+                    "title",
                     "project",
                     "p95(transaction.duration)",
                 ],
