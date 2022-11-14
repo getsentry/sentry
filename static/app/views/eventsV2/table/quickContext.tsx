@@ -479,7 +479,7 @@ const StatusText = styled('span')`
 const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  min-width: 300px;
+  width: 300px;
   padding: ${space(1.5)};
 `;
 

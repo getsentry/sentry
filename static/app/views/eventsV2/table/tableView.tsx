@@ -184,18 +184,26 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       });
 
       return [
-        <QuickContextHoverWrapper
-          key={`quickContextEventHover${rowIndex}`}
-          dataRow={dataRow}
-          contextType={ContextType.EVENT}
-          organization={organization}
-        >
+        organization.features.includes('discover-quick-context') ? (
+          <QuickContextHoverWrapper
+            key={`quickContextEventHover${rowIndex}`}
+            dataRow={dataRow}
+            contextType={ContextType.EVENT}
+            organization={organization}
+          >
+            <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+              <StyledLink data-test-id="view-event" to={target}>
+                {value}
+              </StyledLink>
+            </Tooltip>
+          </QuickContextHoverWrapper>
+        ) : (
           <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
             <StyledLink data-test-id="view-event" to={target}>
               {value}
             </StyledLink>
           </Tooltip>
-        </QuickContextHoverWrapper>,
+        ),
       ];
     }
     return [];
