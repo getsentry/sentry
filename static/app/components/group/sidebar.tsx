@@ -257,25 +257,19 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
-        <Feature
-          organization={organization}
-          features={['issue-details-tag-improvements']}
-        >
-          {isMobilePlatform(project.platform) && (
-            <TagFacets
-              environments={environments}
-              groupId={group.id}
-              tagKeys={MOBILE_TAGS}
-              event={event}
-              title={
-                <div>
-                  {t('Tag Summary')} <FeatureBadge type="alpha" />
-                </div>
-              }
-              tagFormatter={MOBILE_TAGS_FORMATTER}
-            />
-          )}
-        </Feature>
+        <TagFacets
+          environments={environments}
+          groupId={group.id}
+          tagKeys={MOBILE_TAGS}
+          event={event}
+          title={
+            <div>
+              {t('Tag Summary')} <FeatureBadge type="alpha" />
+            </div>
+          }
+          tagFormatter={MOBILE_TAGS_FORMATTER}
+          style="bars"
+        />
 
         <GroupReleaseStats
           organization={organization}
