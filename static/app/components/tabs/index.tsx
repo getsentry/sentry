@@ -3,19 +3,15 @@ import 'intersection-observer'; // polyfill
 import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {AriaTabListProps} from '@react-aria/tabs';
-import {Item} from '@react-stately/collections';
 import {TabListProps, TabListState} from '@react-stately/tabs';
-import {ItemProps, Orientation} from '@react-types/shared';
-import {LocationDescriptor} from 'history';
+import {Orientation} from '@react-types/shared';
 
+import {Item} from './item';
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
-const _Item = Item as (
-  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean; to?: LocationDescriptor}
-) => JSX.Element;
-export {_Item as Item, TabList, TabPanels};
+export {Item, TabList, TabPanels};
 
 export interface TabsProps<T>
   extends Omit<TabListProps<any>, 'children'>,
