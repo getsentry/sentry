@@ -20,11 +20,22 @@ def get_redis_client_for_ds() -> Any:
     return redis.redis_clusters.get(cluster_key)
 
 
-def generate_cache_key_for_observed_release(project_id: int, release_id: int) -> str:
+def generate_cache_key_for_observed_release(
+    project_id: int, release_id: int, environment: str
+) -> str:
     """
-    Generates a cache key for releases that had a transaction observed in the last 24 hours
+    Generates a cache key that uniquely identifies whether we observed a transaction of a given release with a given
+    environment in a given project.
+
+    The addition of the environment comes from the reasoning that we want to boost the latest release considering also
+    the environment tag.
+
+    For example some users might create the release "1.0" and send transactions with environment "dev" which we will
+    boost but if after some time they send a transaction with environment "prod" in release "1.0" they expect us to
+    boost also that. This requires a tuple for computing uniqueness of release, that is, the tuple (release,
+    environment).
     """
-    return f"ds::p:{project_id}:r:{release_id}"
+    return f"ds::p:{project_id}:r:{release_id}:e:{environment}"
 
 
 def generate_cache_key_for_boosted_release(project_id: int) -> str:
@@ -34,7 +45,7 @@ def generate_cache_key_for_boosted_release(project_id: int) -> str:
     return f"ds::p:{project_id}:boosted_releases"
 
 
-def observe_release(project_id: int, release_id: int) -> bool:
+def observe_release(project_id: int, release_id: int, environment: str) -> bool:
     """
     Checks if release was observed in the last 24 hours, and resets the cache timeout. If the release was observed,
     returns True otherwise returns False.
@@ -44,7 +55,7 @@ def observe_release(project_id: int, release_id: int) -> bool:
     if boosted_releases_count >= BOOSTED_RELEASES_LIMIT:
         raise TooManyBoostedReleasesException
 
-    cache_key = generate_cache_key_for_observed_release(project_id, release_id)
+    cache_key = generate_cache_key_for_observed_release(project_id, release_id, environment)
 
     # TODO(ahmed): Modify these two statements into one once we upgrade to a higher redis-py version as in newer
     #  versions these two operations can be done in a single call.
