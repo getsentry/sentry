@@ -23,7 +23,7 @@ from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
-from sentry.utils.outcomes import Outcome
+from sentry.utils.outcomes import Outcome, track_outcome_custom_publish
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ def get_metrics_billing_consumer(
     group_id: str,
     auto_offset_reset: str,
     force_topic: Union[str, None],
-    force_cluster: Union[str, None],
     max_batch_size: int,
     max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
-    bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
+    cluster = settings.KAFKA_TOPICS[topic]["cluster"]
+    bootstrap_servers = _get_bootstrap_servers(cluster)
 
     batch_time_secs = max_batch_time / 1000
     commit_policy = CommitPolicy(
@@ -59,9 +59,7 @@ def get_metrics_billing_consumer(
     )
 
 
-def _get_bootstrap_servers(topic: str, force_cluster: Optional[str]) -> Sequence[str]:
-    cluster = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
-
+def _get_bootstrap_servers(cluster) -> Sequence[str]:
     options = get_kafka_consumer_cluster_options(cluster)
     servers = options["bootstrap.servers"]
     if isinstance(servers, (list, tuple)):
@@ -115,19 +113,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._closed: bool = False
         self._commit = commit
 
-        self._billing_topic = Topic(settings.KAFKA_OUTCOMES_BILLING)
-        self._billing_producer = self._get_billing_producer()
+        self._producers = {}
         # Especially on incidents generating big backlogs, we must expect a lot
         # of removals from the beginning of a big FIFO. A dequeue provides O(1)
         # time on removing items from the beginning; while a regular list takes
         # O(n).
         self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
-
-    def _get_billing_producer(self) -> KafkaProducer:
-        servers = _get_bootstrap_servers(topic=self._billing_topic.name, force_cluster=None)
-        return KafkaProducer(
-            build_kafka_configuration(default_config={}, bootstrap_servers=servers)
-        )
 
     def poll(self) -> None:
         while self._ongoing_billing_outcomes:
@@ -209,19 +200,17 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # futures queue.
             future = None
         else:
-            value = json.dumps(
-                {
-                    "timestamp": datetime.now(),
-                    "org_id": bucket_payload["org_id"],
-                    "project_id": bucket_payload["project_id"],
-                    "outcome": Outcome.ACCEPTED.value,
-                    "category": DataCategory.TRANSACTION,
-                    "quantity": quantity,
-                },
-            ).encode("utf-8")
-            billing_payload = KafkaPayload(key=None, value=value, headers=[])
-            future = self._billing_producer.produce(
-                destination=self._billing_topic, payload=billing_payload
+            future = track_outcome_custom_publish(
+                self._produce,
+                org_id=bucket_payload["org_id"],
+                project_id=bucket_payload["org_id"],
+                key_id=None,
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=datetime.now(),
+                event_id=None,
+                category=DataCategory.TRANSACTION,
+                quantity=quantity,
             )
 
         self._ongoing_billing_outcomes.append(MetricsBucketBilling(future, message))
@@ -239,3 +228,19 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return 0
+
+    def _produce(self, cluster_name: str, topic_name: str, payload: str) -> Future:
+        if cluster_name not in self._producers:
+            self._producers[cluster_name] = self._get_billing_producer(cluster_name)
+
+        billing_payload = KafkaPayload(key=None, value=payload, headers=[])
+        return self._producers[cluster_name].produce(
+            destination=Topic(topic_name),
+            payload=billing_payload,
+        )
+
+    def _get_billing_producer(self, cluster_name) -> KafkaProducer:
+        servers = _get_bootstrap_servers(cluster_name)
+        return KafkaProducer(
+            build_kafka_configuration(default_config={}, bootstrap_servers=servers)
+        )

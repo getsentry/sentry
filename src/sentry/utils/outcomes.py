@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import IntEnum
-from typing import Optional
+from typing import Callable, Optional, TypeVar
 
 from django.conf import settings
 
@@ -35,6 +35,86 @@ class Outcome(IntEnum):
 outcomes_publisher = None
 billing_publisher = None
 
+T = TypeVar("T")
+
+
+def track_outcome_custom_publish(
+    publish: Callable[[str, str, str], T],
+    org_id: int,
+    project_id: int,
+    key_id: Optional[int],
+    outcome: Outcome,
+    reason: Optional[str] = None,
+    timestamp: Optional[datetime] = None,
+    event_id: Optional[str] = None,
+    category: Optional[DataCategory] = None,
+    quantity: Optional[int] = None,
+) -> T:
+    """Like `track_outcome`, but with a custom `publish` operation."""
+
+    if quantity is None:
+        quantity = 1
+
+    assert isinstance(org_id, int)
+    assert isinstance(project_id, int)
+    assert isinstance(key_id, (type(None), int))
+    assert isinstance(outcome, Outcome)
+    assert isinstance(timestamp, (type(None), datetime))
+    assert isinstance(category, (type(None), DataCategory))
+    assert isinstance(quantity, int)
+
+    outcomes_config = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
+    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
+    use_billing = billing_config is not None and outcome.is_billing()
+
+    # Create a second producer instance only if the cluster differs. Otherwise,
+    # reuse the same producer and just send to the other topic.
+    if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
+        cluster_name = billing_config["cluster"]
+    else:
+        cluster_name = outcomes_config["cluster"]
+
+    # Send billing outcomes to a dedicated topic if there is a separate
+    # configuration for it. Otherwise, fall back to the regular outcomes topic.
+    # This does NOT switch the producer, if both topics are on the same cluster.
+    #
+    # In Sentry, there is no significant difference between the classes of
+    # outcome. In Sentry SaaS, they have elevated stability requirements as they
+    # are used for spike protection and quota enforcement.
+    topic_name = settings.KAFKA_OUTCOMES_BILLING if use_billing else settings.KAFKA_OUTCOMES
+
+    timestamp = timestamp or to_datetime(time.time())
+
+    metrics.incr(
+        "events.outcomes",
+        skip_internal=True,
+        tags={
+            "outcome": outcome.name.lower(),
+            "reason": reason,
+            "category": category.api_name() if category is not None else "null",
+            "topic": topic_name,
+        },
+    )
+
+    # Send a snuba metrics payload.
+    return _publish(
+        cluster_name,
+        topic_name,
+        json.dumps(
+            {
+                "timestamp": timestamp,
+                "org_id": org_id,
+                "project_id": project_id,
+                "key_id": key_id,
+                "outcome": outcome.value,
+                "reason": reason,
+                "event_id": event_id,
+                "category": category,
+                "quantity": quantity,
+            }
+        ),
+    )
+
 
 def track_outcome(
     org_id: int,
@@ -57,78 +137,29 @@ def track_outcome(
     data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
     events.
     """
-    global outcomes_publisher
-    global billing_publisher
-
-    if quantity is None:
-        quantity = 1
-
-    assert isinstance(org_id, int)
-    assert isinstance(project_id, int)
-    assert isinstance(key_id, (type(None), int))
-    assert isinstance(outcome, Outcome)
-    assert isinstance(timestamp, (type(None), datetime))
-    assert isinstance(category, (type(None), DataCategory))
-    assert isinstance(quantity, int)
-
-    outcomes_config = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
-    use_billing = billing_config is not None and outcome.is_billing()
-
-    # Create a second producer instance only if the cluster differs. Otherwise,
-    # reuse the same producer and just send to the other topic.
-    if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
-        if billing_publisher is None:
-            cluster_name = billing_config["cluster"]
-            billing_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = billing_publisher
-
-    else:
-        if outcomes_publisher is None:
-            cluster_name = outcomes_config["cluster"]
-            outcomes_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = outcomes_publisher
-
-    timestamp = timestamp or to_datetime(time.time())
-
-    # Send billing outcomes to a dedicated topic if there is a separate
-    # configuration for it. Otherwise, fall back to the regular outcomes topic.
-    # This does NOT switch the producer, if both topics are on the same cluster.
-    #
-    # In Sentry, there is no significant difference between the classes of
-    # outcome. In Sentry SaaS, they have elevated stability requirements as they
-    # are used for spike protection and quota enforcement.
-    topic_name = settings.KAFKA_OUTCOMES_BILLING if use_billing else settings.KAFKA_OUTCOMES
-
-    # Send a snuba metrics payload.
-    publisher.publish(
-        topic_name,
-        json.dumps(
-            {
-                "timestamp": timestamp,
-                "org_id": org_id,
-                "project_id": project_id,
-                "key_id": key_id,
-                "outcome": outcome.value,
-                "reason": reason,
-                "event_id": event_id,
-                "category": category,
-                "quantity": quantity,
-            }
-        ),
+    return track_outcome_custom_publish(
+        _publish,
+        org_id,
+        project_id,
+        key_id,
+        outcome,
+        reason,
+        timestamp,
+        event_id,
+        category,
+        quantity,
     )
 
-    metrics.incr(
-        "events.outcomes",
-        skip_internal=True,
-        tags={
-            "outcome": outcome.name.lower(),
-            "reason": reason,
-            "category": category.api_name() if category is not None else "null",
-            "topic": topic_name,
-        },
-    )
+
+publishers = {}
+
+
+def _publish(cluster_name, topic_name, payload):
+    global publishers
+
+    if cluster_name not in publishers:
+        publishers[cluster_name] = KafkaPublisher(
+            kafka_config.get_kafka_producer_cluster_options(cluster_name)
+        )
+
+    return publishers[cluster_name].publish(topic_name, payload)
