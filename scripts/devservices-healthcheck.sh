@@ -51,7 +51,7 @@ health_check 3 5 "sentry_postgres" "pg_isready -U postgres"
 
 # Check the kafka cluster status
 if [ "$NEED_KAFKA" = "true" ]; then
-  health_check 3 5 "sentry_kafka" "kafka-topics --zookeeper sentry_zookeeper:2181 --list"
+  health_check 3 5 "sentry_kafka" "kafka-topics --zookeeper 127.0.0.1:2181 --list"
   [[ $? == 1 ]] && exit 1
 fi
 
