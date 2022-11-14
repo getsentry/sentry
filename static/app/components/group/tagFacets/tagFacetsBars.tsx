@@ -7,7 +7,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {TagWithTopValues} from 'sentry/types';
-import {formatPercentage, formatVersion} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,39 +15,6 @@ import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
 import {TagFacetsProps} from './tagFacetsTypes';
-
-export const MOBILE_TAGS = ['os', 'device', 'release'];
-
-export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
-  // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
-  const transformedTagsData = {};
-  Object.keys(tagsData).forEach(tagKey => {
-    if (tagKey === 'release') {
-      transformedTagsData[tagKey] = {
-        ...tagsData[tagKey],
-        topValues: tagsData[tagKey].topValues.map(topValue => {
-          return {
-            ...topValue,
-            name: formatVersion(topValue.name),
-          };
-        }),
-      };
-    } else if (tagKey === 'device') {
-      transformedTagsData[tagKey] = {
-        ...tagsData[tagKey],
-        topValues: tagsData[tagKey].topValues.map(topValue => {
-          return {
-            ...topValue,
-            name: topValue.readable ?? topValue.name,
-          };
-        }),
-      };
-    } else {
-      transformedTagsData[tagKey] = tagsData[tagKey];
-    }
-  });
-  return transformedTagsData;
-}
 
 type State = {
   loading: boolean;
