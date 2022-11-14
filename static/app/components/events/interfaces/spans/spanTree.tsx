@@ -45,6 +45,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   organization: Organization;
+  spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
@@ -520,20 +521,14 @@ class SpanTree extends Component<PropType> {
       >
         {({measure}) => {
           return (
-            <SpanContext.Consumer>
-              {spanContextProps => {
-                return (
-                  <div style={style}>
-                    {this.renderSpanNode(spanTree[index], {
-                      measure,
-                      listRef,
-                      cellMeasurerCache: cache,
-                      ...spanContextProps,
-                    })}
-                  </div>
-                );
-              }}
-            </SpanContext.Consumer>
+            <div style={style}>
+              {this.renderSpanNode(spanTree[index], {
+                measure,
+                listRef,
+                cellMeasurerCache: cache,
+                ...this.props.spanContextProps,
+              })}
+            </div>
           );
         }}
       </CellMeasurer>
