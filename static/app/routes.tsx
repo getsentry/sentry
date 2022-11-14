@@ -10,7 +10,7 @@ import {
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
@@ -142,8 +142,6 @@ function buildRoutes() {
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
-
-  const usingCustomerDomain = Boolean(window.__initialData.customerDomain);
 
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
@@ -956,57 +954,142 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const dashboardRoutes = (
+  const dashboardWidgetRoutes = (
     <Fragment>
       <Route
-        path="/organizations/:orgId/dashboards/"
-        component={make(() => import('sentry/views/dashboardsV2'))}
-      >
-        <IndexRoute component={make(() => import('sentry/views/dashboardsV2/manage'))} />
-      </Route>
+        path="widget/:widgetIndex/edit/"
+        component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+      />
       <Route
-        path="/organizations/:orgId/dashboards/new/"
-        component={make(() => import('sentry/views/dashboardsV2/create'))}
-      >
-        <Route
-          path="widget/:widgetIndex/edit/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-        <Route
-          path="widget/new/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-      </Route>
+        path="widget/new/"
+        component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+      />
       <Route
-        path="/organizations/:orgId/dashboards/new/:templateId"
-        component={make(() => import('sentry/views/dashboardsV2/create'))}
-      >
+        path="widget/:widgetId/"
+        component={make(() => import('sentry/views/dashboardsV2/view'))}
+      />
+    </Fragment>
+  );
+
+  const dashboardRoutes = (
+    <Fragment>
+      <Fragment>
+        {usingCustomerDomain ? (
+          <Route
+            path="/dashboards/"
+            component={withDomainRequired(
+              make(() => import('sentry/views/dashboardsV2'))
+            )}
+            key="orgless-dashboards-route"
+          >
+            <IndexRoute
+              component={make(() => import('sentry/views/dashboardsV2/manage'))}
+            />
+          </Route>
+        ) : null}
         <Route
-          path="widget/:widgetId/"
-          component={make(() => import('sentry/views/dashboardsV2/create'))}
-        />
-      </Route>
+          path="/organizations/:orgId/dashboards/"
+          component={withDomainRedirect(make(() => import('sentry/views/dashboardsV2')))}
+          key="org-dashboards"
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/dashboardsV2/manage'))}
+          />
+        </Route>
+      </Fragment>
+      <Fragment>
+        {usingCustomerDomain ? (
+          <Route
+            path="/dashboards/new/"
+            component={withDomainRequired(
+              make(() => import('sentry/views/dashboardsV2/create'))
+            )}
+            key="orgless-dashboards-new-route"
+          >
+            <Route
+              path="widget/:widgetIndex/edit/"
+              component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+            />
+            <Route
+              path="widget/new/"
+              component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+            />
+          </Route>
+        ) : null}
+        <Route
+          path="/organizations/:orgId/dashboards/new/"
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/create'))
+          )}
+          key="org-dashboards-new"
+        >
+          <Route
+            path="widget/:widgetIndex/edit/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+          <Route
+            path="widget/new/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+        </Route>
+      </Fragment>
+      <Fragment>
+        {usingCustomerDomain ? (
+          <Route
+            path="/dashboards/new/:templateId"
+            component={withDomainRequired(
+              make(() => import('sentry/views/dashboardsV2/create'))
+            )}
+            key="orgless-dashboards-new-template-route"
+          >
+            <Route
+              path="widget/:widgetId/"
+              component={make(() => import('sentry/views/dashboardsV2/create'))}
+            />
+          </Route>
+        ) : null}
+        <Route
+          path="/organizations/:orgId/dashboards/new/:templateId"
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/create'))
+          )}
+          key="org-dashboards-new-template"
+        >
+          <Route
+            path="widget/:widgetId/"
+            component={make(() => import('sentry/views/dashboardsV2/create'))}
+          />
+        </Route>
+      </Fragment>
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
-      <Route
-        path="/organizations/:orgId/dashboard/:dashboardId/"
-        component={make(() => import('sentry/views/dashboardsV2/view'))}
-      >
+      {usingCustomerDomain ? (
+        <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
+      ) : null}
+      <Fragment>
+        {usingCustomerDomain ? (
+          <Route
+            path="/dashboard/:dashboardId/"
+            component={withDomainRequired(
+              make(() => import('sentry/views/dashboardsV2/view'))
+            )}
+            key="orgless-dashboards-dashboard-id-route"
+          >
+            {dashboardWidgetRoutes}
+          </Route>
+        ) : null}
         <Route
-          path="widget/:widgetIndex/edit/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-        <Route
-          path="widget/new/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-        <Route
-          path="widget/:widgetId/"
-          component={make(() => import('sentry/views/dashboardsV2/view'))}
-        />
-      </Route>
+          path="/organizations/:orgId/dashboard/:dashboardId/"
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/view'))
+          )}
+          key="org-dashboards-dashboard-id"
+        >
+          {dashboardWidgetRoutes}
+        </Route>
+      </Fragment>
     </Fragment>
   );
 
