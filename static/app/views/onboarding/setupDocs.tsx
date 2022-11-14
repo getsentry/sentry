@@ -36,7 +36,7 @@ import {usePersistedOnboardingState} from './utils';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type PlatformDoc = {html: string; link: string; wizardSetup: string};
+type PlatformDoc = {html: string; link: string};
 
 type Props = {
   projects: Project[];
@@ -81,25 +81,13 @@ function ProjecDocs(props: {
     );
   };
 
-  const [interacted, setInteracted] = useState(false);
   const docs = props.platformDocs !== null && (
     <DocsWrapper key={props.platformDocs.html}>
-      <Content
-        dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
-        onMouseDown={() => {
-          !interacted &&
-            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
-              organization: props.organization,
-              project_id: props.project.id,
-              platform: props.platform || undefined,
-              wizard_instructions: false,
-            });
-          setInteracted(true);
-        }}
-      />
+      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
       {missingExampleWarning()}
     </DocsWrapper>
   );
+
   const loadingError = (
     <LoadingError
       message={t(
