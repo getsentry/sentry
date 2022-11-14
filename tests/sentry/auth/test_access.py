@@ -3,7 +3,7 @@ from unittest.mock import Mock
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
-from sentry.auth.access import Access, NoAccess
+from sentry.auth.access import Access, AccessFactory, NoAccess
 from sentry.models import (
     ApiKey,
     AuthIdentity,
@@ -14,6 +14,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
+from sentry.services.hybrid_cloud.organization import DatabaseBackedOrganizationService
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
@@ -21,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 
 class AccessFactoryTestCase(TestCase):
     def setUp(self) -> None:
-        self.factory = access.OrmAccessFactory()
+        self.factory = AccessFactory(DatabaseBackedOrganizationService())
 
 
 @control_silo_test

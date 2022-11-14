@@ -496,7 +496,7 @@ class AccessFactory:
 
     # only used internally
     def _from_sentry_app(
-        user: User | AnonymousUser, organization: Organization | None = None
+        self, user: User | AnonymousUser, organization: Organization | None = None
     ) -> Access:
         if not organization:
             return NoAccess()
