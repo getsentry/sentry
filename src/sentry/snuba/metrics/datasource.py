@@ -313,7 +313,6 @@ def _fetch_tags_or_values_per_ids(
     if metric_names is not None:
         metric_mris = [get_mri(metric_name) for metric_name in metric_names]
 
-        # ToDo(ahmed): Hack out private derived metrics logic
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
             get_derived_metrics(exclude_private=True).keys()
         )
