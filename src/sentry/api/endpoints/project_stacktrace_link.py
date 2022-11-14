@@ -94,17 +94,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         )
         with configure_scope() as scope:
             for config in configs:
-                result["config"] = serialize(config, request.user)
-                # use the provider key to be able to spilt up stacktrace
-                # link metrics by integration type
-                provider = result["config"]["provider"]["key"]
-                scope.set_tag("integration_provider", provider)
-                scope.set_tag("stacktrace_link.platform", platform)
-
                 if not filepath.startswith(config.stack_root) and not frame:
                     scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     result["error"] = "stack_root_mismatch"
                     continue
+
+                result["config"] = serialize(config, request.user)
+                # use the provider key to be able to split up stacktrace
+                # link metrics by integration type
+                provider = result["config"]["provider"]["key"]
+                scope.set_tag("integration_provider", provider)
+                scope.set_tag("stacktrace_link.platform", platform)
 
                 link, attempted_url, error = get_link(
                     config, filepath, config.default_branch, commit_id
