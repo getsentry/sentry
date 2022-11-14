@@ -459,6 +459,8 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    # Issues
+    url(r"^issues/", react_page_view, name="issues"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
     # Dashboards
