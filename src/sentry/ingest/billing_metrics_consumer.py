@@ -5,7 +5,7 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from datetime import datetime
-from typing import Any, Deque, Mapping, NamedTuple, Optional, Sequence, TypedDict, cast
+from typing import Any, Deque, Dict, Mapping, NamedTuple, Optional, Sequence, TypedDict, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
@@ -58,7 +58,7 @@ def get_metrics_billing_consumer(
     )
 
 
-def _get_bootstrap_servers(cluster) -> Sequence[str]:
+def _get_bootstrap_servers(cluster: str) -> Sequence[str]:
     options = get_kafka_consumer_cluster_options(cluster)
     servers = options["bootstrap.servers"]
     if isinstance(servers, (list, tuple)):
@@ -112,7 +112,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._closed: bool = False
         self._commit = commit
 
-        self._producers = {}
+        self._producers: Dict[str, KafkaProducer] = {}
         # Especially on incidents generating big backlogs, we must expect a lot
         # of removals from the beginning of a big FIFO. A dequeue provides O(1)
         # time on removing items from the beginning; while a regular list takes
@@ -169,7 +169,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
             self._process_metrics_billing_bucket(time_left, force=True)
 
-        self._billing_producer.close()
+        self._close_producers()
 
     def terminate(self) -> None:
         self.close()
@@ -181,7 +181,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             if ongoing_work:
                 ongoing_work.cancel()
 
-        self._billing_producer.close()
+        self._close_producers()
+
+    def _close_producers(self) -> None:
+        for producer in self._producers.values():
+            producer.close()
 
     def close(self) -> None:
         self._closed = True
@@ -228,17 +232,19 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # Unexpected value type for this metric ID, skip.
             return 0
 
-    def _produce(self, cluster_name: str, topic_name: str, payload: str) -> Future:
+    def _produce(
+        self, cluster_name: str, topic_name: str, payload: str
+    ) -> Future[Message[KafkaPayload]]:
         if cluster_name not in self._producers:
             self._producers[cluster_name] = self._get_billing_producer(cluster_name)
 
-        billing_payload = KafkaPayload(key=None, value=payload, headers=[])
+        billing_payload = KafkaPayload(key=None, value=payload.encode("utf-8"), headers=[])
         return self._producers[cluster_name].produce(
             destination=Topic(topic_name),
             payload=billing_payload,
         )
 
-    def _get_billing_producer(self, cluster_name) -> KafkaProducer:
+    def _get_billing_producer(self, cluster_name: str) -> KafkaProducer:
         servers = _get_bootstrap_servers(cluster_name)
         return KafkaProducer(
             build_kafka_configuration(default_config={}, bootstrap_servers=servers)

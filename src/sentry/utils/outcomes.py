@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import IntEnum
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from django.conf import settings
 
@@ -137,7 +137,7 @@ def track_outcome(
     data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
     events.
     """
-    return track_outcome_custom_publish(
+    track_outcome_custom_publish(
         _publish,
         org_id,
         project_id,
@@ -154,7 +154,7 @@ def track_outcome(
 publishers = {}
 
 
-def _publish(cluster_name, topic_name, payload):
+def _publish(cluster_name: str, topic_name: str, payload: str) -> Any:
     global publishers
 
     if cluster_name not in publishers:
