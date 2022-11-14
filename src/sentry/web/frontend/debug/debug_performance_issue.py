@@ -1,3 +1,5 @@
+import datetime
+
 import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
@@ -12,7 +14,6 @@ from sentry.notifications.utils import (
     get_transaction_data,
 )
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
 from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -35,7 +36,14 @@ class DebugPerformanceIssueEmailView(View):
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ):
-            perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+            # make this consistent for acceptance tests
+            perf_data = dict(
+                load_data(
+                    "transaction-n-plus-one",
+                    timestamp=datetime.datetime(2022, 11, 11, 21, 39, 23, 30723),
+                )
+            )
+            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
             perf_event_manager = EventManager(perf_data)
             perf_event_manager.normalize()
             perf_data = perf_event_manager.get_data()
