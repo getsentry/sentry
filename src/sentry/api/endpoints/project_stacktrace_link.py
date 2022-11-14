@@ -15,8 +15,9 @@ from sentry.utils.event_frames import munged_filename_and_frames
 
 
 def get_link(
-    config: RepositoryProjectPathConfig, filepath: str, default: str, version: Optional[str] = None
+    config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    default = config.default_branch
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
@@ -85,6 +86,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
+        latest_attempted_url = None
+        latest_error = None
+        found = False
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
         # the ordering is deterministic
@@ -94,6 +98,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         )
         with configure_scope() as scope:
             for config in configs:
+                if not filepath.startswith(config.stack_root) and not frame:
+                    latest_error = "stack_root_mismatch"
+                    continue
+
                 result["config"] = serialize(config, request.user)
                 # use the provider key to be able to spilt up stacktrace
                 # link metrics by integration type
@@ -101,14 +109,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 scope.set_tag("integration_provider", provider)
                 scope.set_tag("stacktrace_link.platform", platform)
 
-                if not filepath.startswith(config.stack_root) and not frame:
-                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    result["error"] = "stack_root_mismatch"
-                    continue
-
-                link, attempted_url, error = get_link(
-                    config, filepath, config.default_branch, commit_id
-                )
+                link, attempted_url, error = get_link(config, filepath, commit_id)
 
                 if not link and frame:
                     frame["filename"] = filepath
@@ -122,12 +123,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                             if not filepath.startswith(
                                 config.stack_root
                             ) and not munged_filename.startswith(config.stack_root):
-                                scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                                result["error"] = "stack_root_mismatch"
+                                latest_error = "stack_root_mismatch"
                                 continue
 
                             link, attempted_url, error = get_link(
-                                config, munged_filename, config.default_branch, commit_id
+                                config, munged_filename, commit_id
                             )
 
                 # it's possible for the link to be None, and in that
@@ -135,14 +135,27 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # configuration
                 result["sourceUrl"] = link
                 if not link:
-                    scope.set_tag("stacktrace_link.found", False)
-                    scope.set_tag("stacktrace_link.error", "file_not_found")
-                    result["error"] = error
-                    result["attemptedUrl"] = attempted_url
+                    latest_error = "file_not_found"
+                    # It seems that in some places of the UI we use this even though it makes
+                    # no sense since we may try multiple code mappings
+                    latest_attempted_url = attempted_url
                 else:
-                    scope.set_tag("stacktrace_link.found", True)
+                    found = True
                     # if we found a match, we can break
                     break
+
+            # Post-processing
+            scope.set_tag("stacktrace_link.found", found)
+            if latest_error == "stack_root_mismatch":
+                # This is the same as saying that no code mapping matched
+                scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                result["error"] = "stack_root_mismatch"
+            elif latest_error == "file_not_found":
+                scope.set_tag("stacktrace_link.error", "file_not_found")
+                result["error"] = "file_not_found"
+
+            if latest_attempted_url:
+                result["attemptedUrl"] = latest_attempted_url
 
         if result["config"]:
             analytics.record(
