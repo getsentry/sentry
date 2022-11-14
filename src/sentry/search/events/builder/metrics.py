@@ -592,9 +592,7 @@ class MetricsQueryBuilder(QueryBuilder):
             if (
                 isinstance(orderby.exp, Column)
                 and orderby.exp.subscriptable in ["tags", "tags_raw"]
-            ) or (
-                isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
-            ):
+            ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
