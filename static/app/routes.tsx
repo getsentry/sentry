@@ -1395,10 +1395,20 @@ function buildRoutes() {
   );
 
   const userFeedbackRoutes = (
-    <Route
-      path="/organizations/:orgId/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-    />
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/user-feedback/"
+          component={withDomainRequired(make(() => import('sentry/views/userFeedback')))}
+          key="orgless-user-feedback-route"
+        />
+      ) : null}
+      <Route
+        path="/organizations/:orgId/user-feedback/"
+        component={withDomainRedirect(make(() => import('sentry/views/userFeedback')))}
+        key="org-user-feedback"
+      />
+    </Fragment>
   );
 
   const issueListRoutes = (
