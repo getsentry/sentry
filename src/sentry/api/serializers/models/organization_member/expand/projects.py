@@ -1,6 +1,7 @@
+from collections import defaultdict
 from typing import Any, Mapping, MutableMapping, Sequence, cast
 
-from sentry.models import OrganizationMember, TeamStatus, User
+from sentry.models import OrganizationMember, ProjectTeam, TeamStatus, User
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithProjectsResponse
@@ -16,14 +17,25 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         """
         Note: For this to be efficient, call
-        `.prefetch_related(
-              'teams',
-              'teams__projectteam_set',
-              'teams__projectteam_set__project',
-        )` on your queryset before using this serializer
+        `.prefetch_related('teams')`
+        on your queryset before using this serializer
         """
 
         attrs = super().get_attrs(item_list, user)
+
+        team_ids = set()
+        for org_member in item_list:
+            for team in org_member.teams.all():
+                team_ids.add(team.id)
+
+        projects_by_team = defaultdict(list)
+
+        for project_team in ProjectTeam.objects.filter(
+            project_id__in=self.project_ids,
+            team_id__in=team_ids,
+        ).select_related("project"):
+            projects_by_team[project_team.team_id].append(project_team.project.slug)
+
         for org_member in item_list:
             projects = set()
             for team in org_member.teams.all():
@@ -31,12 +43,8 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
                 if team.status != TeamStatus.VISIBLE:
                     continue
 
-                for project_team in team.projectteam_set.all():
-                    if (
-                        project_team.project_id in self.project_ids
-                        and project_team.project.status == TeamStatus.VISIBLE
-                    ):
-                        projects.add(project_team.project.slug)
+                for project in projects_by_team[team.id]:
+                    projects.add(project)
 
             projects_list = list(projects)
             projects_list.sort()

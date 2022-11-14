@@ -37,11 +37,10 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     ).values_list("organizationmember_id", flat=True),
                 )
                 .select_related("user")
-                .prefetch_related(
-                    "teams", "teams__projectteam_set", "teams__projectteam_set__project"
-                )
+                .prefetch_related("teams")
                 .order_by("user__email")
             )
+
             organization_members = list(qs)
 
             span.set_data("Project Count", len(projects))
