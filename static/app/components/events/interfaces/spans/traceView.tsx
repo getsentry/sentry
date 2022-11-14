@@ -1,4 +1,4 @@
-import {createRef, PureComponent} from 'react';
+import {createRef} from 'react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -11,6 +11,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
+import * as SpanContext from './spanContext';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
@@ -21,24 +22,24 @@ type Props = {
   isEmbedded?: boolean;
 };
 
-class TraceView extends PureComponent<Props> {
-  traceViewRef = createRef<HTMLDivElement>();
-  virtualScrollBarContainerRef = createRef<HTMLDivElement>();
-  minimapInteractiveRef = createRef<HTMLDivElement>();
+function TraceView(props: Props) {
+  const traceViewRef = createRef<HTMLDivElement>();
+  const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
+  const minimapInteractiveRef = createRef<HTMLDivElement>();
 
-  renderHeader = (dragProps: DragManagerChildrenProps) => (
+  const renderHeader = (dragProps: DragManagerChildrenProps) => (
     <Observer>
       {() => {
-        const {waterfallModel} = this.props;
+        const {waterfallModel} = props;
 
         return (
           <TraceViewHeader
-            organization={this.props.organization}
-            minimapInteractiveRef={this.minimapInteractiveRef}
+            organization={props.organization}
+            minimapInteractiveRef={minimapInteractiveRef}
             dragProps={dragProps}
             trace={waterfallModel.parsedTrace}
             event={waterfallModel.event}
-            virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
+            virtualScrollBarContainerRef={virtualScrollBarContainerRef}
             operationNameFilters={waterfallModel.operationNameFilters}
             rootSpan={waterfallModel.rootSpan.span}
             spans={waterfallModel.getWaterfall({
@@ -55,71 +56,76 @@ class TraceView extends PureComponent<Props> {
     </Observer>
   );
 
-  render() {
-    const {organization, waterfallModel, isEmbedded} = this.props;
+  const {organization, waterfallModel, isEmbedded} = props;
 
-    if (!getTraceContext(waterfallModel.event)) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('There is no trace for this transaction')}</p>
-        </EmptyStateWarning>
-      );
-    }
-
+  if (!getTraceContext(waterfallModel.event)) {
     return (
-      <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
-        {(dragProps: DragManagerChildrenProps) => (
-          <Observer>
-            {() => {
-              const parsedTrace = waterfallModel.parsedTrace;
-              return (
-                <CursorGuideHandler.Provider
-                  interactiveLayerRef={this.minimapInteractiveRef}
-                  dragProps={dragProps}
-                  trace={parsedTrace}
-                >
-                  <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-                    <DividerHandlerManager.Consumer>
-                      {dividerHandlerChildrenProps => {
-                        return (
-                          <ScrollbarManager.Provider
-                            dividerPosition={dividerHandlerChildrenProps.dividerPosition}
-                            interactiveLayerRef={this.virtualScrollBarContainerRef}
-                            dragProps={dragProps}
-                            isEmbedded={isEmbedded}
-                          >
-                            {this.renderHeader(dragProps)}
-                            <Observer>
-                              {() => (
-                                <CustomerProfiler id="SpanTree">
-                                  <SpanTree
-                                    traceViewRef={this.traceViewRef}
-                                    dragProps={dragProps}
-                                    organization={organization}
-                                    waterfallModel={waterfallModel}
-                                    filterSpans={waterfallModel.filterSpans}
-                                    spans={waterfallModel.getWaterfall({
-                                      viewStart: dragProps.viewWindowStart,
-                                      viewEnd: dragProps.viewWindowEnd,
-                                    })}
-                                    focusedSpanIds={waterfallModel.focusedSpanIds}
-                                  />
-                                </CustomerProfiler>
-                              )}
-                            </Observer>
-                          </ScrollbarManager.Provider>
-                        );
-                      }}
-                    </DividerHandlerManager.Consumer>
-                  </DividerHandlerManager.Provider>
-                </CursorGuideHandler.Provider>
-              );
-            }}
-          </Observer>
-        )}
-      </DragManager>
+      <EmptyStateWarning>
+        <p>{t('There is no trace for this transaction')}</p>
+      </EmptyStateWarning>
     );
   }
+
+  return (
+    <SpanContext.Consumer>
+      {spanContextProps => (
+        <DragManager interactiveLayerRef={minimapInteractiveRef}>
+          {(dragProps: DragManagerChildrenProps) => (
+            <Observer>
+              {() => {
+                const parsedTrace = waterfallModel.parsedTrace;
+                return (
+                  <CursorGuideHandler.Provider
+                    interactiveLayerRef={minimapInteractiveRef}
+                    dragProps={dragProps}
+                    trace={parsedTrace}
+                  >
+                    <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
+                      <DividerHandlerManager.Consumer>
+                        {dividerHandlerChildrenProps => {
+                          return (
+                            <ScrollbarManager.Provider
+                              dividerPosition={
+                                dividerHandlerChildrenProps.dividerPosition
+                              }
+                              interactiveLayerRef={virtualScrollBarContainerRef}
+                              dragProps={dragProps}
+                              isEmbedded={isEmbedded}
+                            >
+                              {renderHeader(dragProps)}
+                              <Observer>
+                                {() => (
+                                  <CustomerProfiler id="SpanTree">
+                                    <SpanTree
+                                      traceViewRef={traceViewRef}
+                                      dragProps={dragProps}
+                                      organization={organization}
+                                      waterfallModel={waterfallModel}
+                                      filterSpans={waterfallModel.filterSpans}
+                                      spans={waterfallModel.getWaterfall({
+                                        viewStart: dragProps.viewWindowStart,
+                                        viewEnd: dragProps.viewWindowEnd,
+                                      })}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
+                                      spanContextProps={spanContextProps}
+                                    />
+                                  </CustomerProfiler>
+                                )}
+                              </Observer>
+                            </ScrollbarManager.Provider>
+                          );
+                        }}
+                      </DividerHandlerManager.Consumer>
+                    </DividerHandlerManager.Provider>
+                  </CursorGuideHandler.Provider>
+                );
+              }}
+            </Observer>
+          )}
+        </DragManager>
+      )}
+    </SpanContext.Consumer>
+  );
 }
 
 export default TraceView;
