@@ -11,11 +11,7 @@ describe('OrganizationAuthList', function () {
 
   it('renders', function () {
     const {container} = render(
-      <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
-        providerList={TestStubs.AuthProviders()}
-      />
+      <OrganizationAuthList providerList={TestStubs.AuthProviders()} />
     );
 
     expect(container).toSnapshot();
@@ -24,8 +20,6 @@ describe('OrganizationAuthList', function () {
   it('renders for members', function () {
     render(
       <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
         providerList={TestStubs.AuthProviders()}
         activeProvider={TestStubs.AuthProviders()[0]}
         organization={TestStubs.Organization({access: ['org:read']})}
@@ -43,8 +37,6 @@ describe('OrganizationAuthList', function () {
     it('displays warning with sso available', function () {
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
           organization={TestStubs.Organization({...require2fa, ...withSSO})}
         />
@@ -58,8 +50,6 @@ describe('OrganizationAuthList', function () {
     it('displays warning with saml available', function () {
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
           organization={TestStubs.Organization({...require2fa, ...withSAML})}
         />
@@ -73,8 +63,6 @@ describe('OrganizationAuthList', function () {
     it('does not display warning without sso available', function () {
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
           organization={TestStubs.Organization({...require2fa})}
         />
@@ -88,8 +76,6 @@ describe('OrganizationAuthList', function () {
     it('does not display warning with sso and require 2fa disabled', function () {
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
           organization={TestStubs.Organization({...withSSO})}
         />
@@ -103,8 +89,6 @@ describe('OrganizationAuthList', function () {
     it('does not render with saml and require 2fa disabled', function () {
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
           organization={TestStubs.Organization({...withSAML})}
         />
