@@ -31,11 +31,10 @@ logger = logging.getLogger(__name__)
 def get_metrics_billing_consumer(
     group_id: str,
     auto_offset_reset: str,
-    force_topic: Optional[str],
     max_batch_size: int,
     max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
+    topic = settings.KAFKA_SNUBA_GENERIC_METRICS
     cluster = settings.KAFKA_TOPICS[topic]["cluster"]
     bootstrap_servers = _get_bootstrap_servers(cluster)
 
