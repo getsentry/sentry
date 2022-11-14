@@ -125,7 +125,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug, projects} = this.props;
+    const {organization, location, eventSlug, route, router, projects} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -234,6 +234,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               showTagSummary={false}
                               location={location}
                               api={this.api}
+                              router={router}
+                              route={route}
                             />
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>

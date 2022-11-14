@@ -219,6 +219,7 @@ function IssueListActions({
           selection={selection}
           statsPeriod={statsPeriod}
           isReprocessingQuery={displayReprocessingActions}
+          isSavedSearchesOpen={isSavedSearchesOpen}
         />
       </StyledFlex>
       {!allResultsVisible && pageSelected && (
@@ -339,7 +340,7 @@ const StyledFlex = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
   border-top: none;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
   margin: 0 -1px -1px;
 `;
 

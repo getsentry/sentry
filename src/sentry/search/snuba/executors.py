@@ -33,17 +33,22 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.search import MergeableRow, SearchQueryPartial, search_strategies_for_categories
+from sentry.issues.search import (
+    SEARCH_FILTER_UPDATERS,
+    SEARCH_STRATEGIES,
+    IntermediateSearchQueryPartial,
+    MergeableRow,
+    SearchQueryPartial,
+    group_categories_from,
+)
 from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
-
-ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
 
 
 def get_search_filter(
@@ -139,88 +144,36 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
 
-    def snuba_search(
+    def _convert_search_filters(
         self,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[str]],
+        search_filters: Sequence[SearchFilter],
+    ) -> list[Optional[Any]]:
+        """Converts the SearchFilter format into snuba-compatible clauses"""
+        converted_filters: list[Optional[Sequence[Any]]] = []
+        for search_filter in search_filters or ():
+            converted_filters.append(
+                convert_search_filter_to_snuba_query(
+                    search_filter,
+                    params={
+                        "organization_id": organization_id,
+                        "project_id": project_ids,
+                        "environment": environments,
+                    },
+                )
+            )
+
+        return converted_filters
+
+    def _prepare_aggregations(
+        self,
+        sort_field: str,
         start: datetime,
         end: datetime,
-        project_ids: Sequence[int],
-        environment_ids: Optional[Sequence[int]],
-        sort_field: str,
-        organization_id: int,
-        cursor: Optional[Cursor] = None,
-        group_ids: Optional[Sequence[int]] = None,
-        limit: Optional[int] = None,
-        offset: int = 0,
-        get_sample: bool = False,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-    ) -> Tuple[List[Tuple[int, Any]], int]:
-        """
-        Returns a tuple of:
-        * a sorted list of (group_id, group_score) tuples sorted descending by score,
-        * the count of total results (rows) available for this query.
-        """
-        filters = {"project_id": project_ids}
-
-        environments = None
-        if environment_ids is not None:
-            filters["environment"] = environment_ids
-            environments = list(
-                Environment.objects.filter(
-                    organization_id=organization_id, id__in=environment_ids
-                ).values_list("name", flat=True)
-            )
-
-        if group_ids:
-            filters["group_id"] = sorted(group_ids)
-
-        conditions = []
-        having = []
-        group_categories: Set[GroupCategory] = set()
-        for search_filter in search_filters or ():
-            if search_filter.key.name in ("issue.category", "issue.type"):
-                if search_filter.is_negation:
-                    group_categories.update(
-                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
-                        for value in list(
-                            filter(
-                                lambda x: x not in ALL_ISSUE_TYPES,
-                                search_filter.value.raw_value,
-                            )
-                        )
-                    )
-                else:
-                    group_categories.update(
-                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
-                        for value in search_filter.value.raw_value
-                    )
-
-            if (
-                # Don't filter on postgres fields here, they're not available
-                search_filter.key.name in self.postgres_only_fields
-                or
-                # We special case date
-                search_filter.key.name == "date"
-            ):
-                continue
-
-            converted_filter = convert_search_filter_to_snuba_query(
-                search_filter,
-                params={
-                    "organization_id": organization_id,
-                    "project_id": project_ids,
-                    "environment": environments,
-                },
-            )
-            converted_filter = self._transform_converted_filter(
-                search_filter, converted_filter, project_ids, environment_ids
-            )
-            if converted_filter is not None:
-                # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
-                if search_filter.key.name in self.aggregation_defs and not search_filter.key.is_tag:
-                    having.append(converted_filter)
-                else:
-                    conditions.append(converted_filter)
-
+        having: Sequence[Sequence[Any]],
+    ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
         for h in having:
@@ -236,6 +189,43 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 aggregation = aggregation(start, end)
             aggregations.append(aggregation + [alias])
 
+        return aggregations
+
+    def _prepare_params_for_category(
+        self,
+        group_category: GroupCategory,
+        query_partial: IntermediateSearchQueryPartial,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[str]],
+        search_filters: Sequence[SearchFilter],
+        sort_field: str,
+        start: datetime,
+        end: datetime,
+        cursor: Optional[Cursor],
+        get_sample: bool,
+    ) -> SnubaQueryParams:
+        # remove filters not relevant to the group_category
+        search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
+
+        # convert search_filters to snuba format
+        converted_filters = self._convert_search_filters(
+            organization_id, project_ids, environments, search_filters
+        )
+
+        # categorize the clauses into having or condition clauses
+        having = []
+        conditions = []
+        for search_filter, converted_filter in zip(search_filters, converted_filters):
+            if converted_filter is not None:
+                # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
+                if search_filter.key.name in self.aggregation_defs and not search_filter.key.is_tag:
+                    having.append(converted_filter)
+                else:
+                    conditions.append(converted_filter)
+
+        aggregations = self._prepare_aggregations(sort_field, start, end, having)
+
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
 
@@ -243,28 +233,86 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
             selected_columns.append(["cityHash64", [f"'{query_hash}'", "group_id"], "sample"])
-            sort_field = "sample"
-            orderby = [sort_field]
-            referrer = "search_sample"
+            orderby = ["sample"]
         else:
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
-            referrer = "search"
 
-        query_partial: SearchQueryPartial = cast(
+        pinned_query_partial: SearchQueryPartial = cast(
             SearchQueryPartial,
+            functools.partial(
+                query_partial,
+                selected_columns=selected_columns,
+                groupby=["group_id"],
+                having=having,
+                orderby=orderby,
+            ),
+        )
+
+        return SEARCH_STRATEGIES[group_category](
+            pinned_query_partial,
+            aggregations,
+            organization_id,
+            project_ids,
+            environments,
+            conditions,
+        )
+
+    def snuba_search(
+        self,
+        start: datetime,
+        end: datetime,
+        project_ids: Sequence[int],
+        environment_ids: Optional[Sequence[int]],
+        sort_field: str,
+        organization_id: int,
+        cursor: Optional[Cursor] = None,
+        group_ids: Optional[Sequence[int]] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        get_sample: bool = False,
+        search_filters: Optional[Sequence[SearchFilter]] = None,
+    ) -> Tuple[List[Tuple[int, Any]], int]:
+        """Queries Snuba for events with associated Groups based on the input criteria.
+
+        Returns a tuple of:
+            * a sorted list of (group_id, group_score) tuples sorted descending by score,
+            * the count of total results (rows) available for this query.
+        """
+        filters = {"project_id": project_ids}
+
+        environments = None
+        if environment_ids is not None:
+            filters["environment"] = environment_ids
+            environments = list(
+                Environment.objects.filter(
+                    organization_id=organization_id, id__in=environment_ids
+                ).values_list("name", flat=True)
+            )
+
+        if group_ids:
+            filters["group_id"] = sorted(group_ids)
+
+        referrer = "search_sample" if get_sample else "search"
+
+        snuba_search_filters = [
+            sf
+            for sf in search_filters or ()
+            # remove any search_filters that are only available in postgres, we special case date
+            if not (sf.key.name in self.postgres_only_fields or sf.key.name == "date")
+        ]
+
+        # common pinned parameters that won't change based off datasource
+        query_partial: IntermediateSearchQueryPartial = cast(
+            IntermediateSearchQueryPartial,
             functools.partial(
                 aliased_query_params,
                 start=start,
                 end=end,
-                selected_columns=selected_columns,
-                groupby=["group_id"],
                 limit=limit,
                 offset=offset,
-                orderby=orderby,
                 referrer=referrer,
-                having=having,
                 filter_keys=filters,
                 totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
                 turbo=get_sample,  # Turn off FINAL when in sampling mode
@@ -272,23 +320,27 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        query_params_for_categories: Sequence[SnubaQueryParams] = list(
-            filter(
-                None,
-                [
-                    fn_query_params(
-                        group_categories,
-                        aggregations,
-                        query_partial,
-                        organization_id,
-                        project_ids,
-                        environments,
-                        conditions,
-                    )
-                    for fn_query_params in search_strategies_for_categories(group_categories)
-                ],
+        group_categories = group_categories_from(search_filters)
+        query_params_for_categories = [
+            self._prepare_params_for_category(
+                gc,
+                query_partial,
+                organization_id,
+                project_ids,
+                environments,
+                snuba_search_filters,
+                sort_field,
+                start,
+                end,
+                cursor,
+                get_sample,
             )
-        )
+            for gc in (SEARCH_STRATEGIES.keys() if not group_categories else group_categories)
+        ]
+
+        query_params_for_categories = [
+            query_params for query_params in query_params_for_categories if query_params is not None
+        ]
 
         bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
 
@@ -308,24 +360,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
+        if get_sample:
+            sort_field = "sample"
 
-    @staticmethod
-    def _transform_converted_filter(
-        search_filter: Sequence[SearchFilter],
-        converted_filter: Optional[Sequence[Any]],
-        project_ids: Sequence[int],
-        environment_ids: Optional[Sequence[int]] = None,
-    ) -> Optional[Sequence[Any]]:
-        """
-        This method serves as a hook - after we convert the search_filter into a
-        snuba compatible filter (which converts it in a general dataset
-        ambiguous method), we may want to transform the query - maybe change the
-        value (time formats, translate value into id (like turning Release
-        `version` into `id`) or vice versa), alias fields, etc. By default, no
-        transformation is done.
-        """
-        return converted_filter
+        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
 
     def has_sort_strategy(self, sort_by: str) -> bool:
         return sort_by in self.sort_strategies.keys()

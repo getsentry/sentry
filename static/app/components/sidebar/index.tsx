@@ -235,6 +235,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Monitors')}
         to={`/organizations/${organization.slug}/monitors/`}
         id="monitors"
+        isBeta
       />
     </Feature>
   );
