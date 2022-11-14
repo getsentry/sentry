@@ -1,6 +1,53 @@
 import {RouteComponent, RouteComponentProps} from 'react-router';
+import {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
+
+const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
+  // /organizations/slug/section
+  [/\/?organizations\/[^\/]+\/(.*)/, '/$1'],
+  // /settings/slug/section but not /settings/organization
+  [/\/?settings\/[^\/]+\/(.*)/, '/settings/$1'],
+];
+
+type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;
+
+/**
+ * Normalize a URL for customer domains based on the current route state
+ */
+export function normalizeUrl(path: LocationTarget, location: Location): LocationTarget {
+  if (window.__initialData.customerDomain === null) {
+    return path;
+  }
+
+  let resolved: LocationDescriptor;
+  if (typeof path === 'function') {
+    resolved = path(location);
+  } else {
+    resolved = path;
+  }
+
+  if (typeof resolved === 'string') {
+    for (const patternData of NORMALIZE_PATTERNS) {
+      resolved = resolved.replace(patternData[0], patternData[1]);
+      if (resolved !== path) {
+        return resolved;
+      }
+    }
+    return resolved;
+  }
+  if (!resolved.pathname) {
+    return resolved;
+  }
+  for (const patternData of NORMALIZE_PATTERNS) {
+    resolved.pathname = resolved.pathname.replace(patternData[0], patternData[1]);
+    if (resolved !== path) {
+      return resolved;
+    }
+  }
+
+  return resolved;
+}
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within

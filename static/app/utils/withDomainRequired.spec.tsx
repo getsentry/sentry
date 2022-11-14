@@ -1,9 +1,78 @@
 import {RouteComponentProps} from 'react-router';
+import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import withDomainRequired from 'sentry/utils/withDomainRequired';
+import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
+describe('normalizeUrl', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    } as any;
+  });
+
+  it('replaces paths in strings', function () {
+    const location = TestStubs.location();
+    let result = normalizeUrl('/settings/organization', location);
+    expect(result).toEqual('/settings/organization');
+
+    result = normalizeUrl('/settings/sentry/members', location);
+    expect(result).toEqual('/settings/members');
+
+    result = normalizeUrl('/organizations/albertos-apples/issues', location);
+    expect(result).toEqual('/issues');
+
+    result = normalizeUrl('/organizations/albertos-apples/issues?_q=all', location);
+    expect(result).toEqual('/issues?_q=all');
+  });
+
+  it('replaces pathname in objects', function () {
+    const location = TestStubs.location();
+    let result = normalizeUrl({pathname: '/settings/organization'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/organization');
+
+    result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/members');
+
+    result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/issues');
+
+    result = normalizeUrl(
+      {
+        pathname: '/organizations/albertos-apples/issues',
+        query: {q: 'all'},
+      },
+      location
+    );
+    // @ts-ignore
+    expect(result.pathname).toEqual('/issues');
+  });
+
+  it('replaces pathname in function callback', function () {
+    const location = TestStubs.location();
+    function objectCallback(_loc: Location): LocationDescriptorObject {
+      return {pathname: '/settings/organization'};
+    }
+    let result = normalizeUrl(objectCallback, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/organization');
+
+    function stringCallback(_loc: Location): LocationDescriptor {
+      return '/organizations/a-long-slug/discover/';
+    }
+    result = normalizeUrl(stringCallback, location);
+    expect(result).toEqual('/discover/');
+  });
+});
 
 describe('withDomainRequired', function () {
   type Props = RouteComponentProps<{orgId: string}, {}>;
