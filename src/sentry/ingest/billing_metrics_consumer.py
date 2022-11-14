@@ -206,7 +206,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             future = track_outcome_custom_publish(
                 self._produce,
                 org_id=bucket_payload["org_id"],
-                project_id=bucket_payload["org_id"],
+                project_id=bucket_payload["project_id"],
                 key_id=None,
                 outcome=Outcome.ACCEPTED,
                 reason=None,
