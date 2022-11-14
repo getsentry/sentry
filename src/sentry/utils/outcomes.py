@@ -97,7 +97,7 @@ def track_outcome_custom_publish(
     )
 
     # Send a snuba metrics payload.
-    return _publish(
+    return publish(
         cluster_name,
         topic_name,
         json.dumps(
