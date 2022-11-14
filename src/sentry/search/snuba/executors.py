@@ -235,6 +235,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
             selected_columns.append(["cityHash64", [f"'{query_hash}'", "group_id"], "sample"])
             orderby = ["sample"]
+        else:
+            # Get the top matching groups by score, i.e. the actual search results
+            # in the order that we want them.
+            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
 
         pinned_query_partial: SearchQueryPartial = cast(
             SearchQueryPartial,
@@ -243,6 +247,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 selected_columns=selected_columns,
                 groupby=["group_id"],
                 having=having,
+                orderby=orderby,
             ),
         )
 
