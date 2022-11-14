@@ -4,13 +4,12 @@ import math
 import operator
 import zlib
 from collections import defaultdict, namedtuple
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
 from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
-from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag, set_user
 from snuba_sdk import Request
@@ -22,9 +21,8 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features, tsdb
+from sentry import tsdb
 from sentry.api.serializers.snuba import zerofill
-from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
@@ -33,7 +31,6 @@ from sentry.models import (
     GroupHistoryStatus,
     GroupStatus,
     Organization,
-    OrganizationMember,
     OrganizationStatus,
     Project,
     Team,
@@ -49,7 +46,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
@@ -684,110 +680,6 @@ class RedisReportBackend(ReportBackend):
 redis_report_backend = RedisReportBackend(cluster=redis.clusters.get("default"), ttl=60 * 60 * 3)
 
 
-# This task triggers other Celery tasks, if you want it instrumented you need
-# to include the parent task in the list of SAMPLED_TASKS
-@instrumented_task(
-    name="sentry.tasks.reports.prepare_reports",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
-)
-def prepare_reports(dry_run=False, *args, **kwargs):
-    timestamp, duration = _fill_default_parameters(*args, **kwargs)
-
-    logger.info("reports.begin_prepare_report")
-
-    # Get org ids of all visible organizations
-    organizations = _get_organization_queryset()
-    for i, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
-    ):
-        if not features.has("organizations:weekly-email-refresh", organization):
-            # Create a celery task per organization
-            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
-        if i % 10000 == 0:
-            logger.info(
-                "reports.scheduled_prepare_organization_report",
-                extra={"organization_id": organization.id, "total_scheduled": i},
-            )
-
-    default_cache.set(prepare_reports_verify_key(), "1", int(timedelta(days=3).total_seconds()))
-    logger.info("reports.finish_prepare_report")
-
-
-def prepare_reports_verify_key():
-    today = date.today()
-    week = today - timedelta(days=today.weekday())
-    return f"prepare_reports_completed:{week.isoformat()}"
-
-
-@instrumented_task(
-    name="sentry.tasks.reports.verify_prepare_reports",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
-)
-def verify_prepare_reports(*args, **kwargs):
-    logger.info("reports.begin_verify_prepare_reports")
-    verify = default_cache.get(prepare_reports_verify_key())
-    if verify is None:
-        logger.error(
-            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
-            "Confirm whether this worked via logs"
-        )
-    logger.info("reports.end_verify_prepare_reports")
-
-
-@instrumented_task(
-    name="sentry.tasks.reports.prepare_organization_report",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
-)
-def prepare_organization_report(
-    timestamp, duration, organization_id, dry_run=False, user_id=None, email_override=None
-):
-    try:
-        organization = _get_organization_queryset().get(id=organization_id)
-        # This allows slicing the transactions by the org and we can determine if there are certain outliers
-        set_tag("org.slug", organization.slug)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "reports.organization.missing",
-            extra={
-                "timestamp": timestamp,
-                "duration": duration,
-                "organization_id": organization_id,
-            },
-        )
-        return
-
-    redis_report_backend.prepare(timestamp, duration, organization)
-
-    if email_override:
-        deliver_organization_user_report.delay(
-            timestamp,
-            duration,
-            organization_id,
-            user_id,
-            dry_run=dry_run,
-            email_override=email_override,
-        )
-        return
-    # If an OrganizationMember row doesn't have an associated user, this is
-    # actually a pending invitation, so no report should be delivered.
-    kwargs = dict(user_id__isnull=False, user__is_active=True)
-
-    member_set = organization.member_set.filter(**kwargs).exclude(
-        flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-    )
-
-    for user_id in member_set.values_list("user_id", flat=True):
-        deliver_organization_user_report.delay(
-            timestamp, duration, organization_id, user_id, dry_run=dry_run
-        )
-
-
 class Duration(NamedTuple):
     adjective: str  # e.g. "daily" or "weekly",
     noun: str  # relative to today, e.g. "yesterday" or "this week"
@@ -843,85 +735,6 @@ class Skipped:
 def has_valid_aggregates(interval, project__report):
     project, report = project__report
     return any(bool(value) for value in report.aggregates)
-
-
-@instrumented_task(
-    name="sentry.tasks.reports.deliver_organization_user_report",
-    queue="reports.deliver",
-    max_retries=5,
-    acks_late=True,
-)
-def deliver_organization_user_report(
-    timestamp, duration, organization_id, user_id, dry_run=False, email_override=None
-):
-    try:
-        organization = _get_organization_queryset().get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "reports.organization.missing",
-            extra={
-                "timestamp": timestamp,
-                "duration": duration,
-                "organization_id": organization_id,
-            },
-        )
-        return
-
-    user = User.objects.get(id=user_id) if user_id else None
-    # This helps slicing transactions based on user
-    if user:
-        set_user({"email": user.username})
-
-    if user and not user_subscribed_to_organization_reports(user, organization):
-        logger.debug(
-            f"Skipping report for {organization} to {user}, user is not subscribed to reports."
-        )
-        return Skipped.NotSubscribed
-
-    projects = set()
-    if user:
-        for team in Team.objects.get_for_user(organization, user):
-            projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
-    else:
-        projects.update(list(organization.project_set.all()))
-
-    if not projects:
-        logger.debug(
-            f"Skipping report for {organization} to {user}, user is not associated with any projects."
-        )
-        return Skipped.NoProjects
-
-    interval = _to_interval(timestamp, duration)
-    projects = list(projects)
-
-    inclusion_predicates = [
-        lambda interval, project__report: project__report[1] is not None,
-        has_valid_aggregates,
-    ]
-
-    reports = dict(
-        filter(
-            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, redis_report_backend.fetch(timestamp, duration, organization, projects)),
-        )
-    )
-
-    set_tag("report.available", not reports)
-    if not reports:
-        logger.debug(
-            f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
-        )
-        return Skipped.NoReports
-
-    message = build_message(timestamp, duration, organization, user, reports)
-
-    if not dry_run:
-        if email_override:
-            message.send(to=(email_override,))
-        else:
-            message.add_users((user.id,))
-            message.send()
-        set_tag("email_sent", True)
 
 
 # Series: An array of (timestamp, value) tuples
