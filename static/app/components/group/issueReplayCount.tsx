@@ -19,12 +19,17 @@ function IssueReplayCount({groupId}: Props) {
   const organization = useOrganization();
   const count = useReplaysCountContext()[groupId];
 
-  const countDisplay = count && count > 50 ? '50+' : count;
+  if (count === undefined) {
+    return null;
+  }
+
+  const countDisplay = count > 50 ? '50+' : count;
+
   return (
     <Tooltip title={t('This issue has %s replays available to view', countDisplay)}>
       <ReplayCountLink
         to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
-        data-test-id="replay-count"
+        aria-label="replay-count"
       >
         <IconPlay size="xs" />
         {countDisplay}
