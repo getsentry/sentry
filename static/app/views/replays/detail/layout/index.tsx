@@ -121,7 +121,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
       key={layout}
       top={{
         content: video,
-        default: '50%',
+        default: '65%',
         min: MIN_CONTENT_WIDTH,
       }}
       bottom={{

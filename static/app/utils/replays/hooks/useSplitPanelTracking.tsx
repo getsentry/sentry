@@ -5,7 +5,7 @@ import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type CSSValuePct = `${number}%`;
-type CSSValueFR = `${number}fr`;
+type CSSValueFR = '1fr';
 
 type Options = {
   slideDirection: 'updown' | 'leftright';
