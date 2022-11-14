@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,13 +5,11 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {ResponseMeta} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {
   Frame,
@@ -73,21 +70,6 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return projects.find(project => project.id === event.projectID);
   }
 
-  get errorText() {
-    const error = this.state.match.error;
-
-    switch (error) {
-      case 'stack_root_mismatch':
-        return t('Error matching your configuration.');
-      case 'file_not_found':
-        return t('Source file not found.');
-      case 'integration_link_forbidden':
-        return t('The repository integration was disconnected.');
-      default:
-        return t('There was an error encountered with the code mapping for this project');
-    }
-  }
-
   componentDidMount() {
     this.promptsCheck();
   }
@@ -131,6 +113,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     if (!project) {
       throw new Error('Unable to find project');
     }
+
     const commitId = event.release?.lastCommit?.id;
     const platform = event.platform;
     const sdkName = event.sdk?.name;
@@ -290,6 +273,18 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         >
           {t('Fix code mapping to see suspect commits and more')}
         </FixMappingButton>
+      </CodeMappingButtonContainer>
+    );
+  }
+
+  renderNoIntegrations() {
+    const {organization} = this.props;
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        <Link to={`/settings/${organization.slug}/integrations/`}>
+          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+          {t('Add an integration to see suspect commits and more')}
+        </Link>
         <CloseButton type="button" priority="link" onClick={this.dismissPrompt}>
           <IconClose size="xs" aria-label={t('Close')} />
         </CloseButton>
@@ -297,95 +292,41 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     );
   }
 
-  renderHovercard() {
-    const {frame} = this.props;
-    const {config, error, attemptedUrl} = this.state.match;
-    return (
-      <StyledHovercard
-        skipWrapper
-        header={
-          <HovercardHeader>
-            {error === 'stack_root_mismatch'
-              ? t('Mismatch between filename and stack root')
-              : t('Unable to find source code url')}
-          </HovercardHeader>
-        }
-        body={
-          <HovercardBody>
-            {error === 'stack_root_mismatch' ? (
-              <Fragment>
-                <div>
-                  filename: <code>{`${frame.filename}`}</code>
-                </div>
-                <div>
-                  stack root: <code>{`${config?.stackRoot}`}</code>
-                </div>
-              </Fragment>
-            ) : (
-              attemptedUrl
-            )}
-          </HovercardBody>
-        }
-      >
-        <StyledIconInfo size="xs" aria-label={t('More Info')} />
-      </StyledHovercard>
-    );
-  }
-
-  renderMatchNoUrl() {
-    const {config, error} = this.state.match;
-    const {organization} = this.props;
-    return (
-      <CodeMappingButtonContainer columnQuantity={2}>
-        <ErrorInformation>
-          {error && this.renderHovercard()}
-          <ErrorText>{this.errorText}</ErrorText>
-          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
-            link: (
-              <Link
-                onClick={this.onReconfigureMapping}
-                to={{
-                  pathname: `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/`,
-                  query: {tab: 'codeMappings'},
-                }}
-              />
-            ),
-          })}
-        </ErrorInformation>
-      </CodeMappingButtonContainer>
-    );
-  }
-
-  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
-    url = `${url}#L${this.props.frame.lineNo}`;
+  renderLink() {
+    const {config, sourceUrl} = this.state.match;
+    const url = `${sourceUrl}#L${this.props.frame.lineNo}`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink onClick={this.onOpenLink} href={url} openInNewTab>
           <StyledIconWrapper>
-            {getIntegrationIcon(config.provider.key, 'sm')}
+            {getIntegrationIcon(config!.provider.key, 'sm')}
           </StyledIconWrapper>
-          {t('Open this line in %s', config.provider.name)}
+          {t('Open this line in %s', config!.provider.name)}
         </OpenInLink>
       </CodeMappingButtonContainer>
     );
   }
 
   renderBody() {
-    const {config, sourceUrl} = this.state.match || {};
+    const {config, sourceUrl, integrations} = this.state.match || {};
     const {isDismissed, promptLoaded} = this.state;
 
+    // Success state
     if (config && sourceUrl) {
-      return this.renderMatchWithUrl(config, sourceUrl);
+      return this.renderLink();
     }
-    if (config) {
-      return this.renderMatchNoUrl();
+
+    // Code mapping does not match
+    // Has integration but no code mappings
+    if (config || (integrations && !config)) {
+      return this.renderNoMatch();
     }
 
     if (!promptLoaded || (promptLoaded && isDismissed)) {
       return null;
     }
 
-    return this.renderNoMatch();
+    return this.renderNoIntegrations();
   }
 }
 
@@ -410,46 +351,10 @@ const StyledIconWrapper = styled('span')`
   line-height: 0;
 `;
 
-const StyledIconInfo = styled(IconInfo)`
-  margin-right: ${space(0.5)};
-  margin-bottom: -2px;
-  cursor: pointer;
-  line-height: 0;
-`;
-
-const StyledHovercard = styled(Hovercard)`
-  font-weight: normal;
-  width: inherit;
-  line-height: 0;
-`;
-
-const HovercardHeader = styled('span')`
-  font-weight: strong;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-`;
-
-const HovercardBody = styled('span')`
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeSmall};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  line-height: 1.2;
-`;
-
 const OpenInLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   grid-template-columns: max-content auto;
   gap: ${space(0.75)};
   color: ${p => p.theme.gray300};
-`;
-
-const ErrorInformation = styled('div')`
-  padding-right: 5px;
-  margin-right: ${space(1)};
-`;
-const ErrorText = styled('span')`
-  margin-right: ${space(0.5)};
 `;
