@@ -106,4 +106,4 @@ register(
 )
 
 # Using simple bools instead of rates for disabling individual detectors
-register(key="sentry:performance_issue_enabled_n_plus_one_db", default=True)
+register(key="sentry:performance_issue_creation_enabled_n_plus_one_db", default=True)
