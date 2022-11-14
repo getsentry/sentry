@@ -273,6 +273,7 @@ class BaseGroupSidebar extends Component<Props, State> {
                 </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
+              style="bars"
             />
           )}
         </Feature>

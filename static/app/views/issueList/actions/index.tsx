@@ -219,6 +219,7 @@ function IssueListActions({
           selection={selection}
           statsPeriod={statsPeriod}
           isReprocessingQuery={displayReprocessingActions}
+          isSavedSearchesOpen={isSavedSearchesOpen}
         />
       </StyledFlex>
       {!allResultsVisible && pageSelected && (
