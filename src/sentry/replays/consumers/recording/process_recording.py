@@ -258,10 +258,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
     def close(self) -> None:
         self.__closed = True
+        self.__threadpool.shutdown(wait=False)
 
     def terminate(self) -> None:
         self.close()
-        self.__threadpool.shutdown(wait=False)
 
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()

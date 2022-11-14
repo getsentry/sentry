@@ -108,7 +108,6 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
         function="transform",
         parameters=[
             Column(resolve_tag_key(use_case_id, org_id, "transaction")),
-            # This will be removed once the removal of tags values as ints is merged.
             [""],
             [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
         ],
