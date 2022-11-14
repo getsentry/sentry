@@ -1,7 +1,9 @@
 {
   "get": {
-    "tags": ["Releases"],
-    "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.",
+    "tags": [
+      "Releases"
+    ],
+    "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.\n\nApart from the query parameters listed below, this endpoint also supports the usual [pagination parameters](https://docs.sentry.io/api/pagination/).",
     "operationId": "Retrieve Release Health Session Statistics",
     "parameters": [
       {
@@ -30,7 +32,7 @@
       {
         "name": "field",
         "in": "query",
-        "description": "The list of fields to query.\n\nThe available fields are `sum(session)`, `count_unique(user)`, and the following functions applied to the `session.duration` metric: `avg`, `p50`, `p75`, `p90`, `p95`, `p99` and `max`.\n\nFor example, `p99(session.duration)`.",
+        "description": "The list of fields to query.\n\nThe available fields are\n  - `sum(session)`\n  - `count_unique(user)`\n  - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For example, `p99(session.duration)`\n  - `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, `crash_free_rate(user)`",
         "required": true,
         "schema": {
           "type": "array",
@@ -58,7 +60,7 @@
       {
         "name": "groupBy",
         "in": "query",
-        "description": "The list of properties to group by.\n\nThe available groupBy conditions are `project`, `release`, `environment` and `session.status`.",
+        "description": "The list of properties to group by.\n\nThe available groupBy conditions are `project`, `release`, `environment` and `session.status`.\n\nGrouping by `session.status` does not work when `crash_rate` or `crash_free_rate` are queried.",
         "required": false,
         "schema": {
           "type": "array",
@@ -68,6 +70,15 @@
         },
         "style": "form",
         "explode": true
+      },
+      {
+        "name": "orderBy",
+        "in": "query",
+        "description": "An optional field to order by, which must be one of the fields provided in `field`. Use `-` for descending order, for example `-sum(session)`. \n\nThis alters the order of the `groups` returned, so it only makes sense in combination with `groupBy`. \n\nOrdering by more than one field is currently not supported.",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
       },
       {
         "name": "query",
