@@ -340,6 +340,27 @@ class TestIssueAssigned(APITestCase):
             },
         )
 
+    def test_after_issue_reassigned(self, delay):
+        GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
+
+        new_assignee = self.create_user(name="Berry", email="berry@example.com")
+        GroupAssignee.objects.assign(self.issue, new_assignee, self.user)
+
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="assigned",
+            user_id=self.user.id,
+            data={
+                "assignee": {
+                    "type": "user",
+                    "name": new_assignee.name,
+                    "email": new_assignee.email,
+                    "id": new_assignee.id,
+                }
+            },
+        )
+
     def test_after_issue_assigned_with_enhanced_privacy(self, delay):
         org = self.issue.project.organization
         org.flags.enhanced_privacy = True
