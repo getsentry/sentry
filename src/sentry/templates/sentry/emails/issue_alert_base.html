@@ -121,19 +121,14 @@
                       {% endif %}
                     </h3>
                   </div>
-                {% elif type == "transaction" %}
-                  <div class="event-type transaction">
-                    <h3>
-                      <a href="{% absolute_uri link %}">{{ issue_type|truncatechars:40 }}</a><br />
-                        <span class="event-subtitle">{{ subtitle|truncatechars:40 }}</span>
-                    </h3>
-                  </div>
                 {% else %}
                   <div class="event-type default">
                     <h3>
-                      <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a><br />
+                      <a href="{% absolute_uri link %}">{{ issue_type|truncatechars:40 }}</a><br />
                       {% if transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
+                      {% else %}
+                        <span class="event-subtitle">{{ subtitle|truncatechars:40 }}</span>
                       {% endif %}
                     </h3>
                   </div>
@@ -176,7 +171,7 @@
       </div>
       {% endif %}
 
-      {% block performance %}{% endblock %}
+      {% block table %}{% endblock %}
 
       {% block stacktrace %}{% endblock %}
 

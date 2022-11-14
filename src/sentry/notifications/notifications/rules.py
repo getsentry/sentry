@@ -11,6 +11,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
+    get_default_data,
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
@@ -101,6 +102,8 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
+            "subtitle": self.event.title,
+            "default_issue_data": [("Issue Data", get_default_data(self.event)), None],
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -115,7 +118,6 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
-
         return context
 
     def get_notification_title(

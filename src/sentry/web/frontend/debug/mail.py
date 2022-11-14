@@ -45,6 +45,7 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import override_options
+from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -395,6 +396,8 @@ def alert(request):
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
+            "subtitle": event.title,
+            "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
         },
     ).render(request)
 
