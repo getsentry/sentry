@@ -363,7 +363,34 @@ const EventEntries = ({
             location={location}
             isShare={isShare}
             hasContext={hasContext}
-            attachments={attachments}
+            attachments={[
+              {
+                id: '4009002458',
+                name: 'screenshot.png',
+                headers: {
+                  'Content-Type': 'image/png',
+                },
+                mimetype: 'image/png',
+                size: 79187,
+                sha1: '5c6f977fed6cb2b125628f902406f45685f872b9',
+                dateCreated: '2022-11-14T17:46:42.930740Z',
+                type: 'event.attachment',
+                event_id: 'cdbd21104526440fae8366cebfb968e4',
+              },
+              {
+                id: '4009188375',
+                name: 'screenshot.png',
+                headers: {
+                  'Content-Type': 'image/png',
+                },
+                mimetype: 'image/png',
+                size: 76162,
+                sha1: 'dca9753c1ec6d26e4ef478d3030b196cc3d2ebc3',
+                dateCreated: '2022-11-14T19:04:41.850722Z',
+                type: 'event.attachment',
+                event_id: 'cdbd21104526440fae8366cebfb968e4',
+              },
+            ]}
             onDeleteScreenshot={handleDeleteAttachment}
           />
         ) : (

@@ -54,7 +54,7 @@ function EventTagsAndScreenshots({
 
   const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
 
-  const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
+  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
@@ -137,9 +137,7 @@ function EventTagsAndScreenshots({
               data-test-id="screenshot-data-section"
               title={
                 screenshots.length > 1
-                  ? tct('[current] of [total] [link:screenshots]', {
-                      current: screenshotInFocus + 1,
-                      total: screenshots.length,
+                  ? tct('[link:Screenshots]', {
                       link: screenshotLink,
                     })
                   : tct('[link:Screenshot]', {
@@ -156,26 +154,13 @@ function EventTagsAndScreenshots({
                 projectSlug={projectSlug}
                 screenshot={screenshot}
                 onDelete={onDeleteScreenshot}
+                onSetScreenshotInFocus={index => setScreenshotInFocus(index)}
+                screenshotInFocus={screenshotInFocus}
+                totalScreenshots={screenshots.length}
                 openVisualizationModal={handleOpenVisualizationModal}
               />
             </ScreenshotDataSection>
           </ScreenshotWrapper>
-          {screenshots.length > 1 && (
-            <Container>
-              {screenshots.map((s, index) => {
-                return (
-                  <IconEllipse
-                    key={`${index}-${s.name}`}
-                    role="button"
-                    aria-label={tct('View [screenshotName]', {screenshotName: s.name})}
-                    data-test-id={`screenshot-icon-${index}`}
-                    inFocus={screenshotInFocus === index}
-                    onClick={() => setScreenshotInFoucs(index)}
-                  />
-                );
-              })}
-            </Container>
-          )}
         </div>
       )}
     </Wrapper>
@@ -227,22 +212,4 @@ const TagsHighlightWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0 ${space(4)};
   }
-`;
-
-const IconEllipse = styled('div')<{
-  inFocus: boolean;
-}>`
-  width: 6px;
-  height: 6px;
-  cursor: pointer;
-
-  border-radius: 5px;
-  background-color: ${p => (p.inFocus ? p.theme.gray300 : p.theme.gray100)};
-`;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
 `;

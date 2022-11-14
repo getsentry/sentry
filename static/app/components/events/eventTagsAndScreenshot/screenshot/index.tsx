@@ -7,8 +7,8 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
-import {IconEllipsis} from 'sentry/icons';
+import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
+import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
@@ -19,10 +19,13 @@ import ImageVisualization from './imageVisualization';
 type Props = {
   eventId: Event['id'];
   onDelete: (attachmentId: EventAttachment['id']) => void;
+  onSetScreenshotInFocus: (index: number) => void;
   openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
+  screenshotInFocus: number;
+  totalScreenshots: number;
   onlyRenderScreenshot?: boolean;
 };
 
@@ -30,6 +33,9 @@ function Screenshot({
   eventId,
   organization,
   screenshot,
+  screenshotInFocus,
+  onSetScreenshotInFocus,
+  totalScreenshots,
   projectSlug,
   onlyRenderScreenshot,
   onDelete,
@@ -50,11 +56,31 @@ function Screenshot({
 
     return (
       <Fragment>
-        <StyledPanelBody
-          onClick={() =>
-            openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
-          }
-        >
+        {totalScreenshots > 1 && (
+          <StyledPanelHeader lightText>
+            <Button
+              disabled={screenshotInFocus === 0}
+              aria-label={t('Previous Screenshot')}
+              onClick={() => onSetScreenshotInFocus(screenshotInFocus - 1)}
+              icon={<IconChevron direction="left" size="xs" />}
+              size="xs"
+            />
+            {screenshotInFocus + 1} of {totalScreenshots}
+            <Button
+              disabled={screenshotInFocus + 1 === totalScreenshots}
+              aria-label={t('Next Screenshot')}
+              onClick={() => onSetScreenshotInFocus(screenshotInFocus + 1)}
+              icon={<IconChevron direction="right" size="xs" />}
+              size="xs"
+            />
+          </StyledPanelHeader>
+        )}
+        <StyledPanelBody hasHeader={totalScreenshots > 1}>
+          {loadingImage && (
+            <StyledLoadingIndicator>
+              <LoadingIndicator mini />
+            </StyledLoadingIndicator>
+          )}
           <StyledImageVisualization
             attachment={screenshotAttachment}
             orgId={orgSlug}
@@ -62,12 +88,10 @@ function Screenshot({
             eventId={eventId}
             onLoad={() => setLoadingImage(false)}
             onError={() => setLoadingImage(false)}
+            onClick={() =>
+              openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
+            }
           />
-          {loadingImage && (
-            <StyledLoadingIndicator>
-              <LoadingIndicator mini />
-            </StyledLoadingIndicator>
-          )}
         </StyledPanelBody>
         {!onlyRenderScreenshot && (
           <StyledPanelFooter>
@@ -156,19 +180,37 @@ const StyledPanel = styled(Panel)`
   }
 `;
 
-const StyledPanelBody = styled(PanelBody)`
+const StyledPanelHeader = styled(PanelHeader)`
+  padding: ${space(1)};
+  width: 100%;
   border: 1px solid ${p => p.theme.border};
+  border-bottom: 0;
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  justify-content: space-between;
+  text-transform: none;
+  background: ${p => p.theme.background};
+`;
+
+const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
+  border: 1px solid ${p => p.theme.border};
   width: 100%;
   min-height: 48px;
   overflow: hidden;
-  cursor: pointer;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
+
+  ${p =>
+    !p.hasHeader &&
+    `
+  border-top-left-radius: ${p.theme.borderRadius};
+  border-top-right-radius: ${p.theme.borderRadius};
+  `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
