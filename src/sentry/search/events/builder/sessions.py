@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Sequence
 
-from snuba_sdk import Column, Condition, Entity, Flags, Granularity, Op, Query, Request
+from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -9,15 +9,14 @@ from sentry.search.events.types import SelectType, WhereType
 
 
 class SessionsQueryBuilder(QueryBuilder):
-    # ToDo(ahmed): Rename this to AlertsSessionsQueryBuilder as it is exclusively used for crash rate alerts
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
-        return conditions
+    requires_organization_condition = True
+    organization_column: str = "org_id"
 
 
 class SessionsV2QueryBuilder(QueryBuilder):
     filter_allowlist_fields = {"project", "project_id", "environment", "release"}
+    requires_organization_condition = True
+    organization_column: str = "org_id"
 
     def __init__(
         self,
@@ -29,11 +28,6 @@ class SessionsV2QueryBuilder(QueryBuilder):
         self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
-
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
-        return conditions
 
     def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
         """
