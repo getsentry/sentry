@@ -10,7 +10,8 @@ import {DataCategory, OrgRole, PermissionResource, Scope} from 'sentry/types';
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
 
-export const usingCustomerDomain = Boolean(window.__initialData?.customerDomain);
+export const usingCustomerDomain =
+  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
 
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
