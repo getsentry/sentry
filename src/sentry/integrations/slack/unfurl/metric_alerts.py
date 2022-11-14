@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import html
 import re
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -30,8 +32,8 @@ map_incident_args = make_type_coercer(
 def unfurl_metric_alerts(
     request: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional["User"] = None,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
     alert_filter_query = Q()
     incident_filter_query = Q()
@@ -75,7 +77,7 @@ def unfurl_metric_alerts(
             )
         }
 
-    orgs_by_slug: Dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
+    orgs_by_slug: dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
 
     result = {}
     for link in links:
@@ -112,7 +114,7 @@ def unfurl_metric_alerts(
     return result
 
 
-def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+def map_metric_alert_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """Extracts selected incident id and some query parameters"""
 
     # Slack uses HTML escaped ampersands in its Event Links, when need
@@ -125,9 +127,8 @@ def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[st
     start = params.get("start", None)
     end = params.get("end", None)
 
-    return map_incident_args(
-        url, {**args, "incident_id": incident_id, "period": period, "start": start, "end": end}
-    )
+    data = {**args, "incident_id": incident_id, "period": period, "start": start, "end": end}
+    return map_incident_args(url, data)
 
 
 handler: Handler = Handler(

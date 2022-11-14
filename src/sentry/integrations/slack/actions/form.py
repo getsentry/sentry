@@ -68,13 +68,14 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
         cleaned_data: dict[str, Any] = super().clean()
+        assert cleaned_data is not None
 
-        workspace: int | None = cleaned_data.get("workspace")
+        workspace = cleaned_data.get("workspace")
 
         if channel_id:
             try:
                 validate_channel_id(
-                    self.data.get("channel"),
+                    self.data["channel"],
                     integration_id=workspace,
                     input_channel_id=channel_id,
                 )
