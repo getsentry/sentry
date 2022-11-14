@@ -20,17 +20,20 @@ delay=5
 
 sleep "$start"
 while (( $try <= $to )); do
+    HEALTHY=1
     echo "Checking health of postgres (try ${try} of ${to})..."
-    if docker exec sentry_postgres pg_isready -U postgres; then
-        pg_status=1
+    if ! docker exec sentry_postgres pg_isready -U postgres; then
+        HEALTHY=0
     fi
 
-    echo "Checking health of kafka (try ${try} of ${to})..."
-    if docker exec sentry_kafka kafka-topics --zookeeper sentry_zookeeper:2181 --list; then
-      kafka_status=1
+    if [ "$NEED_KAFKA" = "true" ]; then
+      echo "Checking health of kafka (try ${try} of ${to})..."
+      if ! docker exec sentry_kafka kafka-topics --zookeeper sentry_zookeeper:2181 --list; then
+        HEALTHY=0
+      fi
     fi
 
-    if [[ $pg_status -eq 1 && $kafka_status -eq 1 ]]; then
+    if [[ $HEALTHY == 1 ]]; then
       break
     fi
 
