@@ -23,6 +23,7 @@ class ApiMemberSsoState:
 
 
 _SSO_BYPASS = ApiMemberSsoState(False, True)
+_SSO_NONMEMBER = ApiMemberSsoState(False, False)
 
 
 @dataclass
@@ -36,7 +37,7 @@ class ApiAuthState:
 def query_sso_state(
     organization_id: int | None,
     is_super_user: bool,
-    member: ApiOrganizationMember | OrganizationMember | None,
+    member: ApiOrganizationMember | OrganizationMember,
     org_member_class: Any = OrganizationMember,
 ) -> ApiMemberSsoState:
     """
@@ -46,10 +47,15 @@ def query_sso_state(
     :param org_member_class:
     :return:
     """
+    if organization_id is None:
+        return _SSO_NONMEMBER
+
     # we special case superuser so that if they're a member of the org they must still follow SSO checks
     # or put another way, super users who are not members of orgs bypass SSO.
-    if organization_id is not None and is_super_user and member is None:
-        return _SSO_BYPASS
+    if member is None:
+        if is_super_user:
+            return _SSO_BYPASS
+        return _SSO_NONMEMBER
 
     try:
         auth_provider = AuthProvider.objects.get(organization=member.organization_id)
@@ -98,10 +104,6 @@ class AuthService(InterfaceWithLifecycle):
     ) -> ApiAuthState:
         pass
 
-    @abc.abstractmethod
-    def get_permissions(self, *, user_id: int) -> List[str]:
-        pass
-
 
 class DatabaseBackedAuthService(AuthService):
     # Monolith implementation that uses OrganizationMember and User tables freely, but in silo world
@@ -122,60 +124,25 @@ class DatabaseBackedAuthService(AuthService):
             member=org_member,
             org_member_class=OrganizationMember,
         )
+        permissions = list()
+        if is_superuser:
+            permissions.extend(get_permissions_for_user(user_id))
 
         return ApiAuthState(
             sso_state=sso_state,
-            permissions=list(get_permissions_for_user(user_id)),
+            permissions=permissions,
         )
-
-    def get_permissions(self, *, user_id: int) -> List[str]:
-        from sentry.auth.access import get_permissions_for_user
-
-        return list(get_permissions_for_user(user_id))
 
     def close(self) -> None:
         pass
 
 
-class MemberMappingBackedAuthService(AuthService):
-    # TODO: Replace this with the control silo OrgMemberMapping Table!
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiAuthState:
-        from sentry.auth.access import get_permissions_for_user
-
-        sso_state = query_sso_state(
-            organization_id=organization_id,
-            is_super_user=is_superuser,
-            member=org_member,
-            org_member_class=OrganizationMember,
-        )
-
-        return ApiAuthState(
-            sso_state=sso_state,
-            permissions=list(get_permissions_for_user(user_id)),
-        )
-
-    def get_permissions(self, *, user_id: int) -> List[str]:
-        from sentry.auth.access import get_permissions_for_user
-
-        return list(get_permissions_for_user(user_id))
-
-    def close(self) -> None:
-        pass
-
-
-StubAuthService = CreateStubFromBase(MemberMappingBackedAuthService)
+StubAuthService = CreateStubFromBase(DatabaseBackedAuthService)
 
 auth_service: AuthService = silo_mode_delegation(
     {
         SiloMode.MONOLITH: DatabaseBackedAuthService,
-        SiloMode.CONTROL: MemberMappingBackedAuthService,
-        SiloMode.REGION: StubAuthService,
+        SiloMode.CONTROL: StubAuthService,  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
+        SiloMode.REGION: StubAuthService,  # this must eventually be purely RPC
     }
 )

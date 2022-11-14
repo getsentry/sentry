@@ -661,21 +661,13 @@ class ApiOrganizationGlobalMembership(ApiOrganizationGlobalAccess):
         return self.has_project_access(project)
 
 
+@dataclass
 class OrganizationlessAccess(Access):
-    _permissions: FrozenSet[str]
-    sso_state: ApiMemberSsoState
+    auth_state: ApiAuthState
 
-    def __init__(
-        self,
-        permissions: Iterable[str],
-        sso_state: ApiMemberSsoState,
-    ):
-        self.sso_state = sso_state
-        self._permissions = frozenset(permissions)
-
-    @property
+    @cached_property
     def permissions(self) -> FrozenSet[str]:
-        return self._permissions
+        return frozenset(self.auth_state.permissions)
 
     def has_team_access(self, team: Team) -> bool:
         return False
@@ -685,11 +677,11 @@ class OrganizationlessAccess(Access):
 
     @property
     def sso_is_valid(self) -> bool:
-        return self.sso_state.is_valid
+        return self.auth_state.sso_state.is_valid
 
     @property
     def requires_sso(self) -> bool:
-        return self.sso_state.is_required
+        return self.auth_state.sso_state.is_required
 
     @property
     def has_global_access(self) -> bool:
@@ -731,7 +723,12 @@ class OrganizationlessAccess(Access):
 
 class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
-        super().__init__(permissions=(), sso_state=ApiMemberSsoState(False, False))
+        super().__init__(
+            auth_state=ApiAuthState(
+                sso_state=ApiMemberSsoState(False, False),
+                permissions=[],
+            ),
+        )
 
     def has_global_access(self) -> bool:
         return True
@@ -764,7 +761,10 @@ class SystemAccess(OrganizationlessAccess):
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
-            permissions=(), sso_state=ApiMemberSsoState(is_required=False, is_valid=True)
+            auth_state=ApiAuthState(
+                sso_state=ApiMemberSsoState(is_required=False, is_valid=True),
+                permissions=[],
+            ),
         )
 
 
@@ -814,8 +814,12 @@ def from_request_org_and_scopes(
 
 def organizationless_access(user: User | APIUser, is_superuser: bool):
     return OrganizationlessAccess(
-        permissions=auth_service.get_permissions(user_id=user.id) if is_superuser else frozenset(),
-        sso_state=ApiMemberSsoState(False, False),
+        auth_state=auth_service.get_user_auth_state(
+            user_id=user.id,
+            is_superuser=is_superuser,
+            organization_id=None,
+            org_member=None,
+        )
     )
 
 

@@ -11,6 +11,7 @@ from sentry.models import (
     ObjectStatus,
     Organization,
     TeamStatus,
+    User,
     UserPermission,
     UserRole,
 )
@@ -61,6 +62,18 @@ class AccessFactoryTestCase(TestCase):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return access.from_request(*args, **kwds)
         return silo_from_request(*args, **kwds)
+
+    @exempt_from_silo_limits()
+    def create_api_key(self, organization: Organization, **kwds):
+        return ApiKey.objects.create(organization=organization, **kwds)
+
+    @exempt_from_silo_limits()
+    def create_auth_provider(self, organization: Organization, **kwds):
+        return AuthProvider.objects.create(organization=organization, **kwds)
+
+    @exempt_from_silo_limits()
+    def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
+        return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
 
 @all_silo_test(stable=True)
@@ -275,8 +288,8 @@ class FromUserTest(AccessFactoryTestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
-        ap = AuthProvider.objects.create(organization=organization, provider="dummy")
-        AuthIdentity.objects.create(auth_provider=ap, user=user)
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        self.create_auth_identity(auth_provider=ap, user=user)
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
 
@@ -288,7 +301,7 @@ class FromUserTest(AccessFactoryTestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
-        AuthProvider.objects.create(organization=organization, provider="dummy")
+        self.create_auth_provider(organization=organization, provider="dummy")
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
 
@@ -300,10 +313,9 @@ class FromUserTest(AccessFactoryTestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
-        with exempt_from_silo_limits():
-            AuthProvider.objects.create(
-                organization=organization, provider="dummy", flags=AuthProvider.flags.allow_unlinked
-            )
+        self.create_auth_provider(
+            organization=organization, provider="dummy", flags=AuthProvider.flags.allow_unlinked
+        )
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
 
@@ -411,7 +423,8 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
-        self.org.update(flags=0)
+        with exempt_from_silo_limits():
+            self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.org, role="member", teams=[self.team1]
@@ -434,8 +447,9 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self):
-        self.org.flags.allow_joinleave = True
-        self.org.save()
+        with exempt_from_silo_limits():
+            self.org.flags.allow_joinleave = True
+            self.org.save()
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.org, role="member", teams=[self.team1]
@@ -468,7 +482,7 @@ class FromRequestTest(AccessFactoryTestCase):
         self.create_member(user=user, organization=organization, role="admin", teams=[member_team])
 
         request = self.make_request()
-        request.auth = ApiKey.objects.create(organization=organization, allowed_origins="*")
+        request.auth = self.create_api_key(organization=organization, allowed_origins="*")
         result = self.from_request(request, organization)
 
         assert result.team_ids_with_membership == frozenset({})
@@ -491,7 +505,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
         request = self.make_request()
         # Using an API key for another org should be invalid
-        request.auth = ApiKey.objects.create(organization=other_organization, allowed_origins="*")
+        request.auth = self.create_api_key(organization=other_organization, allowed_origins="*")
         result = self.from_request(request, organization)
 
         assert result == NoAccess()
@@ -610,7 +624,8 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
     def test_has_app_scopes(self):
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
-        app_with_scopes.update(scope_list=["team:read", "team:write"])
+        with exempt_from_silo_limits():
+            app_with_scopes.update(scope_list=["team:read", "team:write"])
         self.create_sentry_app_installation(
             organization=self.org, slug=app_with_scopes.slug, user=self.user
         )
