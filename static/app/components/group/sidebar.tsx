@@ -274,6 +274,7 @@ class BaseGroupSidebar extends Component<Props, State> {
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
               style="bars"
+              project={project}
             />
           )}
         </Feature>
