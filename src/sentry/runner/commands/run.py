@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -676,6 +677,13 @@ def metrics_parallel_consumer(**options):
 @configuration
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    unsupported_options = ["force_cluster", "force_topic"]
+    logger = logging.getLogger("billing-metrics-consumer")
+    for opt in unsupported_options:
+        if opt in options:
+            logger.info(f"Overriding {opt} not supported, it's automatically handled.")
+            options.pop(opt)
 
     consumer = get_metrics_billing_consumer(**options)
     consumer.run()
