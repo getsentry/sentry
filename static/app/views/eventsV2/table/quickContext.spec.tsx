@@ -10,6 +10,7 @@ import {
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
+import {Event, EventOrGroupType} from 'sentry/types/event';
 import {EventData} from 'sentry/utils/discover/eventView';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';
@@ -106,6 +107,15 @@ const renderQuickContextContent = (
     </QueryClientProvider>,
     {organization}
   );
+};
+
+const makeEvent = (event: Partial<Event> = {}): Event => {
+  const evt: Event = {
+    ...TestStubs.Event(),
+    ...event,
+  };
+
+  return evt;
 };
 
 describe('Quick Context', function () {
@@ -435,6 +445,39 @@ describe('Quick Context', function () {
       expect(screen.getByText(/other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Quick Context Content: Event ID Column', function () {
+    it('Renders NO context message for events that are not errors', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(
+        await screen.findByText(/There is no context available./i)
+      ).toBeInTheDocument();
+    });
+
+    it('Renders NO stack trace message for error events without stackTraces', async () => {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(
+        await screen.findByText(/There is no stack trace available for this event./i)
+      ).toBeInTheDocument();
     });
   });
 });

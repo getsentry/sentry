@@ -23,7 +23,14 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Event, Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
+import {
+  Event,
+  Group,
+  Organization,
+  ReleaseWithHealth,
+  StacktraceType,
+  User,
+} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -305,6 +312,7 @@ function ReleaseContext(props: BaseContextProps) {
 }
 
 function EventContext(props: BaseContextProps) {
+  let stackTrace: StacktraceType | null = null;
   const {isLoading, isError, data} = useQuery<Event>(
     [
       `/organizations/${props.organization.slug}/events/${props.dataRow['project.name']}:${props.dataRow.id}/`,
@@ -320,11 +328,15 @@ function EventContext(props: BaseContextProps) {
     return <NoContext isLoading={isLoading} />;
   }
 
-  const stackTrace = getStacktrace(data);
+  if (data?.type === 'error') {
+    stackTrace = getStacktrace(data);
+  }
 
   return data && data.type === 'error' ? (
     stackTrace ? (
-      <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+      <StackTraceWrapper>
+        <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+      </StackTraceWrapper>
     ) : (
       <NoContextWrapper>
         {t('There is no stack trace available for this event.')}
@@ -357,6 +369,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
     <HoverWrapper>
       {props.children}
       <StyledHovercard
+        isEventContext={isEventContext(props.contextType)}
         skipWrapper
         delay={HOVER_DELAY}
         body={
@@ -393,19 +406,11 @@ const ContextContainer = styled('div')`
   flex-direction: column;
 `;
 
-const StyledHovercard = styled(Hovercard)`
+const StyledHovercard = styled(Hovercard)<{isEventContext: boolean}>`
   ${Body} {
     padding: 0;
-    overflow: hidden;
-    max-height: 300px;
-    overflow-y: auto;
-    .traceback {
-      margin-bottom: 0;
-      border: 0;
-      box-shadow: none;
-    }
   }
-  min-width: 500px;
+  min-width: max-content;
 `;
 
 const StyledIconInfo = styled(IconInfo)`
@@ -525,4 +530,16 @@ const ReleaseAuthorsBody = styled(ContextBody)`
 
 const ReleaseStatusBody = styled('h4')`
   margin-bottom: 0;
+`;
+
+const StackTraceWrapper = styled('div')`
+  overflow: hidden;
+  max-height: 300px;
+  width: 500px;
+  overflow-y: auto;
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+    box-shadow: none;
+  }
 `;

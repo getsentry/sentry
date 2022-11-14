@@ -265,7 +265,7 @@ const Wrapper = styled('span')<{
     `}
 `;
 
-export const StackTracePreviewWrapper = styled('div')`
+const StackTracePreviewWrapper = styled('div')`
   width: 700px;
 
   .traceback {
