@@ -79,13 +79,11 @@ def random_group_id():
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize("run", range(10))  # FIXME: Remove before merging
 @pytest.mark.parametrize(
     "executor",
     [pytest.param(None, id="synchronous"), pytest.param(ThreadPoolExecutor(), id="asynchronous")],
 )
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    run,
     executor,
     task_runner,
     kafka_producer,
