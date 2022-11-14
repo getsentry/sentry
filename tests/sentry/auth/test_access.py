@@ -1,8 +1,6 @@
-from typing import Callable
 from unittest.mock import Mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpRequest
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
@@ -13,29 +11,56 @@ from sentry.models import (
     ObjectStatus,
     Organization,
     TeamStatus,
-    User,
     UserPermission,
     UserRole,
 )
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import all_silo_test, no_silo_test
 
-FromUser = Callable[[User, Organization], Access]
-FromRequest = Callable[[HttpRequest, Organization], Access]
+
+def silo_from_user(
+    user,
+    organization=None,
+    scopes=None,
+    is_superuser=False,
+) -> Access:
+    api_user_org_context = None
+    if organization:
+        api_user_org_context = organization_service.get_organization_by_id(
+            id=organization.id, user_id=user.id
+        )
+    return access.from_user_and_api_user_org_context(
+        user=user,
+        api_user_org_context=api_user_org_context,
+        is_superuser=is_superuser,
+        scopes=scopes,
+    )
+
+
+def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
+    api_user_org_context = None
+    if organization:
+        api_user_org_context = organization_service.get_organization_by_id(
+            id=organization.id, user_id=request.user.id
+        )
+    return access.from_request_org_and_scopes(
+        request=request, api_user_org_context=api_user_org_context, scopes=scopes
+    )
 
 
 class AccessFactoryTestCase(TestCase):
-    from_user: FromUser
-    from_request: FromRequest
-
-    def setUp(self):
+    def from_user(self, *args, **kwds):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            self.from_user = access.from_user
-            self.from_request = access.from_request
-        else:
-            pass
+            return access.from_user(*args, **kwds)
+        return silo_from_user(*args, **kwds)
+
+    def from_request(self, *args, **kwds):
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return access.from_request(*args, **kwds)
+        return silo_from_request(*args, **kwds)
 
 
 @all_silo_test(stable=True)

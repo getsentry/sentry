@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-__all__ = ["from_user", "from_member", "DEFAULT"]
+__all__ = [
+    "from_user",
+    "from_member",
+    "DEFAULT",
+    "from_user_and_api_user_org_context",
+    "from_api_member",
+]
 
 import abc
 from dataclasses import dataclass
@@ -31,7 +37,7 @@ from sentry.models import (
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.auth import ApiMemberSsoState, auth_service
+from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils import metrics
@@ -332,16 +338,20 @@ class DbAccess(Access, abc.ABC):
 @dataclass
 class ApiAccess(Access):
     api_user_organization_context: ApiUserOrganizationContext
-    sso_state: ApiMemberSsoState
-    permissions: FrozenSet[str] = frozenset()
+    additional_scopes: Iterable[str]
+    auth_state: ApiAuthState
+
+    @cached_property
+    def permissions(self) -> FrozenSet[str]:
+        return frozenset(self.auth_state.permissions)
 
     @property
     def sso_is_valid(self) -> bool:
-        return self.sso_state.is_valid
+        return self.auth_state.sso_state.is_valid
 
     @property
     def requires_sso(self) -> bool:
-        return self.sso_state.is_required
+        return self.auth_state.sso_state.is_required
 
     @property
     def has_global_access(self) -> bool:
@@ -359,8 +369,10 @@ class ApiAccess(Access):
     @cached_property
     def scopes(self) -> FrozenSet[str]:
         if self.api_user_organization_context.member is None:
-            return frozenset()
-        return frozenset(self.api_user_organization_context.member.scopes)
+            return frozenset(self.additional_scopes)
+        return frozenset(self.api_user_organization_context.member.scopes) & frozenset(
+            self.additional_scopes
+        )
 
     @property
     def role(self) -> str | None:
@@ -481,9 +493,13 @@ class OrganizationMemberAccess(DbAccess):
     def __init__(
         self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
     ) -> None:
-        sso_state = auth_service.check_sso_state(
-            organization_id=member.organization_id, is_super_user=False, org_member=member
+        auth_state = auth_service.get_user_auth_state(
+            organization_id=member.organization_id,
+            is_superuser=False,
+            org_member=member,
+            user_id=member.user_id,
         )
+        sso_state = auth_state.sso_state
         has_global_access = (
             bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
         )
@@ -559,19 +575,18 @@ class ApiOrganizationGlobalAccess(ApiAccess):
         self,
         *,
         api_user_organization_context: ApiUserOrganizationContext,
-        sso_state: ApiMemberSsoState,
+        auth_state: ApiAuthState,
         scopes: Iterable[str],
     ):
-        self._override_scopes = frozenset(scopes)
         super().__init__(
             api_user_organization_context=api_user_organization_context,
-            sso_state=sso_state,
-            has_global_access=True,
+            auth_state=auth_state,
+            additional_scopes=scopes,
         )
 
-    @property
+    @cached_property
     def scopes(self) -> FrozenSet[str]:
-        return self._override_scopes
+        return frozenset(self.additional_scopes)
 
     @property
     def has_global_access(self) -> bool:
@@ -643,8 +658,8 @@ class ApiOrganizationGlobalMembership(ApiOrganizationGlobalAccess):
 
 
 class OrganizationlessAccess(Access):
+    _permissions: FrozenSet[str]
     sso_state: ApiMemberSsoState
-    permissions: FrozenSet[str]
 
     def __init__(
         self,
@@ -652,7 +667,11 @@ class OrganizationlessAccess(Access):
         sso_state: ApiMemberSsoState,
     ):
         self.sso_state = sso_state
-        self.permissions = frozenset(permissions)
+        self._permissions = frozenset(permissions)
+
+    @property
+    def permissions(self) -> FrozenSet[str]:
+        return self._permissions
 
     def has_team_access(self, team: Team) -> bool:
         return False
@@ -763,10 +782,35 @@ def from_request_org_and_scopes(
     if getattr(request.user, "is_sentry_app", False):
         return _from_api_sentry_app(api_user_org_context)
 
+    if is_superuser:
+        member = api_user_org_context.member
+        auth_state = auth_service.get_user_auth_state(
+            user_id=request.user.id,
+            organization_id=api_user_org_context.organization.id,
+            is_superuser=is_superuser,
+            org_member=member,
+        )
+
+        return ApiOrganizationGlobalAccess(
+            api_user_organization_context=api_user_org_context,
+            auth_state=auth_state,
+            scopes=(scopes if scopes is not None else settings.SENTRY_SCOPES) or (),
+        )
+
+    if hasattr(request, "auth") and not request.user.is_authenticated:
+        return from_api_auth(request.auth, api_user_org_context)
+
+    return from_user_and_api_user_org_context(
+        user=request.user,
+        api_user_org_context=api_user_org_context,
+        is_superuser=False,
+        scopes=scopes,
+    )
+
 
 def organizationless_access(user: User | APIUser, is_superuser: bool):
     return OrganizationlessAccess(
-        permissions=get_permissions_for_user(user.id) if is_superuser else frozenset(),
+        permissions=auth_service.get_permissions(user_id=user.id) if is_superuser else frozenset(),
         sso_state=ApiMemberSsoState(False, False),
     )
 
@@ -780,9 +824,10 @@ def check_invalid_user_access(user: User | APIUser | None) -> Access | None:
 def from_user_and_api_user_org_context(
     *,
     user: User | APIUser | None,
-    api_user_org_context: ApiUserOrganizationContext | None,
-    is_superuser: bool,
+    api_user_org_context: ApiUserOrganizationContext | None = None,
+    is_superuser: bool = False,
     scopes: Iterable[str] | None = None,
+    auth_state: ApiAuthState | None = None,
 ) -> Access:
     if access := check_invalid_user_access(user):
         return access
@@ -790,8 +835,12 @@ def from_user_and_api_user_org_context(
     if not api_user_org_context or not api_user_org_context.member:
         return organizationless_access(user, is_superuser)
 
-    # TODO!!!!!
-    return from_member(1, scopes=scopes, is_superuser=is_superuser)
+    return from_api_member(
+        api_user_organization_context=api_user_org_context,
+        scopes=scopes,
+        is_superuser=is_superuser,
+        auth_state=auth_state,
+    )
 
 
 def from_request(
@@ -813,9 +862,12 @@ def from_request(
             member = get_cached_organization_member(request.user.id, organization.id)
         except OrganizationMember.DoesNotExist:
             pass
-        sso_state = auth_service.check_sso_state(
-            organization_id=organization.id, is_super_user=is_superuser, org_member=member
-        )
+        sso_state = auth_service.get_user_auth_state(
+            user_id=request.user.id,
+            organization_id=organization.id,
+            is_superuser=is_superuser,
+            org_member=member,
+        ).sso_state
 
         return OrganizationGlobalAccess(
             organization=organization,
@@ -864,9 +916,12 @@ def _from_api_sentry_app(context: ApiUserOrganizationContext | None = None) -> A
 
     return ApiOrganizationGlobalMembership(
         api_user_organization_context=context,
-        sso_state=ApiMemberSsoState(
-            is_valid=True,
-            is_required=False,
+        auth_state=ApiAuthState(
+            sso_state=ApiMemberSsoState(
+                is_valid=True,
+                is_required=False,
+            ),
+            permissions=[],
         ),
         scopes=installation.sentry_app.scope_list,
     )
@@ -910,12 +965,52 @@ def from_member(
     return OrganizationMemberAccess(member, scope_intersection, permissions)
 
 
+def from_api_member(
+    api_user_organization_context: ApiUserOrganizationContext,
+    scopes: Iterable[str] | None = None,
+    is_superuser: bool = False,
+    auth_state: ApiAuthState | None = None,
+) -> Access:
+    return ApiAccess(
+        api_user_organization_context=api_user_organization_context,
+        additional_scopes=scopes or (),
+        auth_state=auth_state
+        or auth_service.get_user_auth_state(
+            user_id=api_user_organization_context.user_id,
+            organization_id=api_user_organization_context.organization.id,
+            is_superuser=is_superuser,
+            org_member=api_user_organization_context.member,
+        ),
+    )
+
+
 def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
             auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
+        )
+    else:
+        return DEFAULT
+
+
+def from_api_auth(
+    auth: ApiKey | SystemToken, api_user_org_context: ApiUserOrganizationContext
+) -> Access:
+    if is_system_auth(auth):
+        return SystemAccess()
+    if auth.organization_id == api_user_org_context.organization.id:
+        return ApiOrganizationGlobalAccess(
+            api_user_organization_context=api_user_org_context,
+            auth_state=ApiAuthState(
+                permissions=[],
+                sso_state=ApiMemberSsoState(
+                    is_valid=True,
+                    is_required=False,
+                ),
+            ),
+            scopes=settings.SENTRY_SCOPES or (),
         )
     else:
         return DEFAULT

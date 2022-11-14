@@ -95,19 +95,23 @@ class ApiOrganization:
 @dataclass
 class ApiUserOrganizationContext:
     """
-    This object wraps an organization result inside of its membership context in terms of an (optional) use id.
+    This object wraps an organization result inside of its membership context in terms of an (optional) user id.
     This is due to the large number of callsites that require an organization and a user's membership at the
     same time and in a consistency state.  This object allows a nice envelop for both of these ideas from a single
     transactional query.  Used by access, determine_active_organization, and others.
     """
 
+    # user_id is None iff the get_organization_by_id call is not provided a user_id context.
     user_id: Optional[int] = None
+    # The organization is always non-null because the null wrapping is around this object instead.
+    # A None organization => a None ApiUserOrganizationContext
     organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
-    # Set iff the user_id in this object has a membership for the requested organization.
+    # member can be None when the given user_id does not have membership with the given organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[ApiOrganizationMember] = None
 
     def __post_init__(self) -> None:
+        # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
 

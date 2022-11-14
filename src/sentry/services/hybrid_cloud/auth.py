@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
+from typing import List
 
 from sentry import roles
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
@@ -22,6 +23,12 @@ class ApiMemberSsoState:
 
 
 _SSO_BYPASS = ApiMemberSsoState(False, True)
+
+
+@dataclass
+class ApiAuthState:
+    sso_state: ApiMemberSsoState
+    permissions: List[str]
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
@@ -81,49 +88,83 @@ def query_sso_state(
 
 class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
-    def check_sso_state(
+    def get_user_auth_state(
         self,
         *,
+        user_id: int,
+        is_superuser: bool,
         organization_id: int | None,
-        is_super_user: bool,
         org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiMemberSsoState:
+    ) -> ApiAuthState:
+        pass
+
+    @abc.abstractmethod
+    def get_permissions(self, *, user_id: int) -> List[str]:
         pass
 
 
 class DatabaseBackedAuthService(AuthService):
-    def check_sso_state(
+    # Monolith implementation that uses OrganizationMember and User tables freely, but in silo world
+    # this won't be possible.
+    def get_user_auth_state(
         self,
         *,
+        user_id: int,
+        is_superuser: bool,
         organization_id: int | None,
-        is_super_user: bool,
         org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiMemberSsoState:
-        return query_sso_state(
+    ) -> ApiAuthState:
+        from sentry.auth.access import get_permissions_for_user
+
+        sso_state = query_sso_state(
             organization_id=organization_id,
-            is_super_user=is_super_user,
+            is_super_user=is_superuser,
             member=org_member,
             org_member_class=OrganizationMember,
         )
+
+        return ApiAuthState(
+            sso_state=sso_state,
+            permissions=list(get_permissions_for_user(user_id)),
+        )
+
+    def get_permissions(self, *, user_id: int) -> List[str]:
+        from sentry.auth.access import get_permissions_for_user
+
+        return list(get_permissions_for_user(user_id))
 
     def close(self) -> None:
         pass
 
 
 class MemberMappingBackedAuthService(AuthService):
-    def check_sso_state(
+    # TODO: Replace this with the control silo OrgMemberMapping Table!
+    def get_user_auth_state(
         self,
         *,
+        user_id: int,
+        is_superuser: bool,
         organization_id: int | None,
-        is_super_user: bool,
         org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiMemberSsoState:
-        return query_sso_state(
+    ) -> ApiAuthState:
+        from sentry.auth.access import get_permissions_for_user
+
+        sso_state = query_sso_state(
             organization_id=organization_id,
-            is_super_user=is_super_user,
+            is_super_user=is_superuser,
             member=org_member,
             org_member_class=OrganizationMember,
         )
+
+        return ApiAuthState(
+            sso_state=sso_state,
+            permissions=list(get_permissions_for_user(user_id)),
+        )
+
+    def get_permissions(self, *, user_id: int) -> List[str]:
+        from sentry.auth.access import get_permissions_for_user
+
+        return list(get_permissions_for_user(user_id))
 
     def close(self) -> None:
         pass
