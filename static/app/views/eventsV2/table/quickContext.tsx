@@ -369,7 +369,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
     <HoverWrapper>
       {props.children}
       <StyledHovercard
-        isEventContext={isEventContext(props.contextType)}
         skipWrapper
         delay={HOVER_DELAY}
         body={
@@ -406,7 +405,7 @@ const ContextContainer = styled('div')`
   flex-direction: column;
 `;
 
-const StyledHovercard = styled(Hovercard)<{isEventContext: boolean}>`
+const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0;
   }
