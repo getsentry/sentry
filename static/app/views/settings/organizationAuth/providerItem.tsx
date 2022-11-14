@@ -133,7 +133,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
 
           <div>
             {active ? (
-              <ActiveIndicator />
+              <ActiveIndicator data-test-id="provider-active-indicator" />
             ) : (
               (renderInstallButton ?? defaultRenderInstallButton)({provider, hasFeature})
             )}

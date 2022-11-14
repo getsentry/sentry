@@ -1,16 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    const wrapper = mountWithTheme(<OrganizationAuthList providerList={[]} />);
+    const {container} = render(<OrganizationAuthList providerList={[]} />);
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
@@ -18,25 +18,21 @@ describe('OrganizationAuthList', function () {
       />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders for members', function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
         providerList={TestStubs.AuthProviders()}
         activeProvider={TestStubs.AuthProviders()[0]}
-      />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({access: ['org:read']}),
-        },
-      ])
+        organization={TestStubs.Organization({access: ['org:read']})}
+      />
     );
 
-    expect(wrapper.find('ProviderItem ActiveIndicator')).toHaveLength(1);
+    expect(screen.getByTestId('provider-active-indicator')).toBeInTheDocument();
   });
 
   describe('with 2fa warning', function () {
@@ -44,89 +40,79 @@ describe('OrganizationAuthList', function () {
     const withSSO = {features: ['sso-basic']};
     const withSAML = {features: ['sso-saml2']};
 
-    it('renders', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSSO})},
-      ]);
-
-      const wrapper = mountWithTheme(
+    it('displays warning with sso available', function () {
+      render(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
-        />,
-        context
+          organization={TestStubs.Organization({...require2fa, ...withSSO})}
+        />
       );
 
-      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(true);
+      expect(
+        screen.getByText('Require 2FA will be disabled if you enable SSO.')
+      ).toBeInTheDocument();
     });
 
-    it('renders with saml available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSAML})},
-      ]);
-
-      const wrapper = mountWithTheme(
+    it('displays warning with saml available', function () {
+      render(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
-        />,
-        context
+          organization={TestStubs.Organization({...require2fa, ...withSAML})}
+        />
       );
 
-      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(true);
+      expect(
+        screen.getByText('Require 2FA will be disabled if you enable SSO.')
+      ).toBeInTheDocument();
     });
 
-    it('does not render without sso available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa})},
-      ]);
-
-      const wrapper = mountWithTheme(
+    it('does not display warning without sso available', function () {
+      render(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
-        />,
-        context
+          organization={TestStubs.Organization({...require2fa})}
+        />
       );
 
-      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(false);
+      expect(
+        screen.queryByText('Require 2FA will be disabled if you enable SSO.')
+      ).not.toBeInTheDocument();
     });
 
-    it('does not render with sso and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSSO})},
-      ]);
-
-      const wrapper = mountWithTheme(
+    it('does not display warning with sso and require 2fa disabled', function () {
+      render(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
-        />,
-        context
+          organization={TestStubs.Organization({...withSSO})}
+        />
       );
 
-      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(false);
+      expect(
+        screen.queryByText('Require 2FA will be disabled if you enable SSO.')
+      ).not.toBeInTheDocument();
     });
 
     it('does not render with saml and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSAML})},
-      ]);
-
-      const wrapper = mountWithTheme(
+      render(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
           providerList={TestStubs.AuthProviders()}
-        />,
-        context
+          organization={TestStubs.Organization({...withSAML})}
+        />
       );
 
-      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(false);
+      expect(
+        screen.queryByText('Require 2FA will be disabled if you enable SSO.')
+      ).not.toBeInTheDocument();
     });
   });
 });
