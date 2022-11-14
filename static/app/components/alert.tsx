@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import PanelProvider from 'sentry/utils/panelProvider';
 import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -87,28 +88,30 @@ function Alert({
       {...hoverProps}
       {...props}
     >
-      {showIcon && <IconWrapper onClick={handleClick}>{icon ?? getIcon()}</IconWrapper>}
-      <Message>{children}</Message>
-      {showTrailingItems && (
-        <TrailingItems showIcon={showIcon} onClick={e => e.stopPropagation()}>
-          {trailingItems}
-        </TrailingItems>
-      )}
-      {showExpand && (
-        <ExpandIconWrap>
-          <IconChevron direction={isExpanded ? 'up' : 'down'} />
-        </ExpandIconWrap>
-      )}
-      {isExpanded && (
-        <ExpandContainer
-          ref={expandRef}
-          showIcon={showIcon}
-          showTrailingItems={showTrailingItems}
-          {...expandHoverProps}
-        >
-          {Array.isArray(expand) ? expand.map(item => item) : expand}
-        </ExpandContainer>
-      )}
+      <PanelProvider>
+        {showIcon && <IconWrapper onClick={handleClick}>{icon ?? getIcon()}</IconWrapper>}
+        <Message>{children}</Message>
+        {showTrailingItems && (
+          <TrailingItems showIcon={showIcon} onClick={e => e.stopPropagation()}>
+            {trailingItems}
+          </TrailingItems>
+        )}
+        {showExpand && (
+          <ExpandIconWrap>
+            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+          </ExpandIconWrap>
+        )}
+        {isExpanded && (
+          <ExpandContainer
+            ref={expandRef}
+            showIcon={showIcon}
+            showTrailingItems={showTrailingItems}
+            {...expandHoverProps}
+          >
+            {Array.isArray(expand) ? expand.map(item => item) : expand}
+          </ExpandContainer>
+        )}
+      </PanelProvider>
     </Wrap>
   );
 }

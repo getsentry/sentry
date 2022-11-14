@@ -418,6 +418,7 @@ export default Menu;
 const StyledInput = styled(Input)`
   flex: 1;
   border: 1px solid transparent;
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
   &,
   &:focus,
   &:active,
@@ -472,7 +473,8 @@ const DropdownMainContent = styled('div')<{minWidth: number}>`
 const InputWrapper = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  border-radius: ${p =>
+    `calc(${p.theme.panelBorderRadius} - 1px) calc(${p.theme.panelBorderRadius} - 1px) 0 0`};
   align-items: center;
 `;
 

@@ -114,8 +114,7 @@ const PillName = styled('span')`
 
 const PillValue = styled(PillName)`
   border-left: 1px solid ${p => p.theme.border};
-  border-radius: ${p =>
-    `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
+  border-radius: ${p => `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
   max-width: 100%;
   display: flex;
   align-items: center;
@@ -144,7 +143,7 @@ const StyledPill = styled('li')<{type?: PillType}>`
   white-space: nowrap;
   margin: 0 ${space(1)} ${space(1)} 0;
   display: flex;
-  border-radius: ${p => p.theme.button.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
   line-height: 1.2;
   max-width: 100%;

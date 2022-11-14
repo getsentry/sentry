@@ -2,6 +2,7 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -272,8 +273,9 @@ class Content extends Component<Props, State> {
 
 export default withOrganization(Content);
 
-const Wrapper = styled('div')`
+const Wrapper = styled(Panel)`
   position: relative;
+  border-top-left-radius: 0;
 `;
 
 const StyledList = styled('ul')`
