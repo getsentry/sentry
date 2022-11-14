@@ -22,8 +22,18 @@ sleep "$start"
 while (( $try <= $to )); do
     echo "Checking health of postgres (try ${try} of ${to})..."
     if docker exec sentry_postgres pg_isready -U postgres; then
-        break
+        pg_status=1
     fi
+
+    echo "Checking health of kafka (try ${try} of ${to})..."
+    if docker exec sentry_kafka kafka-topics --zookeeper sentry_zookeeper:2181 --list; then
+      kafka_status=1
+    fi
+
+    if [[ $pg_status -eq 1 && $kafka_status -eq 1 ]]; then
+      break
+    fi
+
     if (( $try == $to )); then
         echo "Exceeded retries."
         exit 1
