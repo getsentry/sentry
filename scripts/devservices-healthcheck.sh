@@ -38,21 +38,19 @@ function health_check {
 
       if (( $try == $to )); then
           echo "Exceeded retries for '$service'"
-          return 1
+          exit 1
       fi
       try=$(($try + 1))
       sleep "$delay"
   done
 }
 
-# Check the postgres statu
+# Check the postgres status
 health_check 3 5 "sentry_postgres" "pg_isready -U postgres"
-[[ $? == 1 ]] && exit 1
 
 # Check the kafka cluster status
 if [ "$NEED_KAFKA" = "true" ]; then
   health_check 3 5 "sentry_kafka" "kafka-topics --zookeeper 127.0.0.1:2181 --list"
-  [[ $? == 1 ]] && exit 1
 fi
 
 # Make sure to exit with success if all previous checks are done
