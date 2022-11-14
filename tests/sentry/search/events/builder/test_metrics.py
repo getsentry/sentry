@@ -905,6 +905,22 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     # TODO: multiple groupby with counter
 
+    def test_run_query_with_tag_orderby(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                ],
+                orderby="title",
+            )
+            query.run_query("test_query")
+
+    # TODO: multiple groupby with counter
+
     def test_run_query_with_events_per_aggregates(self):
         for i in range(5):
             self.store_transaction_metric(
