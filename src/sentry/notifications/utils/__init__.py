@@ -406,6 +406,27 @@ def get_transaction_data(event: Event) -> Any:
     return perf_to_email_html(spans, matched_problem)
 
 
+def get_default_data(event: Event) -> Any:
+    """Get data about a non-specific issue type to populate alert emails."""
+
+    # do some stuff here to parse the event data you want
+    # this is a guess at the data format and may be incorrect
+    default_evidence = [
+        ["Row 1 Name", "Row 1 Value"],
+        ["Row 2 Name", "Row 2 Value"],
+        ["Row 3 Name", "Row 3 Value"],
+    ]
+    context = {}
+    for row in default_evidence:
+        context[row[0]] = row[1]
+
+    return default_email_html(context)
+
+
+def default_email_html(context: Any) -> Any:
+    return render_to_string("sentry/emails/default_table.html", {"data": context})
+
+
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
     spans, matched_problem = get_span_and_problem(event)
