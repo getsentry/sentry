@@ -2,7 +2,6 @@ import uuid
 from unittest import mock
 
 import pytest
-import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Hub, push_scope
 
@@ -20,12 +19,13 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     settings.SENTRY_PROJECT = 1
 
     configure_sdk()
+    hub = Hub.current  # XXX: Hub.current gets reset, this is a workaround
 
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
     def inner(*args, **kwargs):
-        event_id = sentry_sdk.capture_event(*args, **kwargs)
-        Hub.current.client.flush()
+        event_id = hub.capture_event(*args, **kwargs)
+        hub.client.flush()
 
         with push_scope():
             return wait_for_ingest_consumer(

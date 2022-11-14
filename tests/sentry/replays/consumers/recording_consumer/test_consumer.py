@@ -4,13 +4,13 @@ import uuid
 import zlib
 from datetime import datetime
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import msgpack
 from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 
-from sentry.models import File
+from sentry.models import File, OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
@@ -25,8 +25,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    def test_basic_flow_compressed(self, mock_record):
+    def test_basic_flow_compressed(self, mock_record, mock_onboarding_task):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
         consumer_messages = [
@@ -87,6 +88,13 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
 
         mock_record.assert_called_with(
             "first_replay.sent",
@@ -150,7 +158,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
 
         assert recording
         assert recording.checksum == sha1(b"testfoobar").hexdigest()
-        assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+        segment = ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+        assert segment.size == len(b"testfoobar")
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays

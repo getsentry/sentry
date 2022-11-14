@@ -226,13 +226,23 @@ def record_first_profile(project, **kwargs):
 @first_replay_received.connect(weak=False)
 def record_first_replay(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
-    analytics.record(
-        "first_replay.sent",
-        user_id=project.organization.default_owner_id,
+
+    success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        task=OnboardingTask.SESSION_REPLAY,
+        status=OnboardingTaskStatus.COMPLETE,
+        date_completed=timezone.now(),
     )
+
+    if success:
+        analytics.record(
+            "first_replay.sent",
+            user_id=project.organization.default_owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @member_invited.connect(weak=False)

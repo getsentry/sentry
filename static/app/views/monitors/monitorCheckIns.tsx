@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useApiRequests from 'sentry/utils/useApiRequests';
-import {Monitor} from 'sentry/views/monitors/types';
+import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 
@@ -13,7 +15,7 @@ type CheckIn = {
   dateCreated: string;
   duration: number;
   id: string;
-  status: 'ok' | 'error';
+  status: CheckInStatus;
 };
 
 type Props = {
@@ -36,7 +38,13 @@ const MonitorCheckIns = ({monitor}: Props) => {
       {data.checkInList?.map(checkIn => (
         <PanelItem key={checkIn.id}>
           <CheckInIconWrapper>
-            <CheckInIcon status={checkIn.status} size={16} />
+            <Tooltip
+              title={tct('Check In Status: [status]', {
+                status: checkIn.status,
+              })}
+            >
+              <CheckInIcon status={checkIn.status} size={16} />
+            </Tooltip>
           </CheckInIconWrapper>
           <TimeSinceWrapper>
             <TimeSince date={checkIn.dateCreated} />

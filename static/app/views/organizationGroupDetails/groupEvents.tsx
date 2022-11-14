@@ -145,7 +145,8 @@ class GroupEvents extends Component<Props, State> {
         isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
-        projectId={this.props.group.project.slug}
+        projectId={this.props.group.project.id}
+        projectSlug={this.props.group.project.slug}
         totalEventCount={this.props.group.count}
         excludedTags={excludedTags}
       />
