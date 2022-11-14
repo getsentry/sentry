@@ -32,9 +32,6 @@ class Outcome(IntEnum):
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-outcomes_publisher = None
-billing_publisher = None
-
 T = TypeVar("T")
 
 
