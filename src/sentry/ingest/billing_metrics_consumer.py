@@ -5,7 +5,7 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from datetime import datetime
-from typing import Any, Deque, Mapping, NamedTuple, Optional, Sequence, TypedDict, Union, cast
+from typing import Any, Deque, Mapping, NamedTuple, Optional, Sequence, TypedDict, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 def get_metrics_billing_consumer(
     group_id: str,
     auto_offset_reset: str,
-    force_topic: Union[str, None],
+    force_topic: Optional[str],
     max_batch_size: int,
     max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
