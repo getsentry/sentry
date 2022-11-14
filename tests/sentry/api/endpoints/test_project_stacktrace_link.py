@@ -116,7 +116,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": "wrong/file/path"}
         )
-        assert response.data["config"] == self.expected_configurations()
+        assert response.data["config"] is None
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
