@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from django.conf import settings
 
@@ -154,7 +154,7 @@ def track_outcome(
 publishers = {}
 
 
-def _publish(cluster_name: str, topic_name: str, payload: str) -> Any:
+def _publish(cluster_name: str, topic_name: str, payload: str) -> None:
     """The publish operation used by `track_outcome`."""
     global publishers
 
@@ -163,4 +163,4 @@ def _publish(cluster_name: str, topic_name: str, payload: str) -> Any:
             kafka_config.get_kafka_producer_cluster_options(cluster_name)
         )
 
-    return publishers[cluster_name].publish(topic_name, payload)
+    publishers[cluster_name].publish(topic_name, payload)
