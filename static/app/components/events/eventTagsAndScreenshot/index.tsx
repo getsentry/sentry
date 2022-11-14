@@ -115,6 +115,21 @@ function EventTagsAndScreenshots({
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
+      <TagWrapper hasEventContext={hasEventContext}>
+        {hasEventContext && (
+          <TagsHighlightWrapper>
+            <TagsHighlight event={event} />
+          </TagsHighlightWrapper>
+        )}
+        {showTags && (
+          <Tags
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            location={location}
+          />
+        )}
+      </TagWrapper>
       {showScreenshot && (
         <div>
           <ScreenshotWrapper>
@@ -163,22 +178,6 @@ function EventTagsAndScreenshots({
           )}
         </div>
       )}
-      {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
-      <TagWrapper hasEventContext={hasEventContext}>
-        {hasEventContext && (
-          <TagsHighlightWrapper>
-            <TagsHighlight event={event} />
-          </TagsHighlightWrapper>
-        )}
-        {showTags && (
-          <Tags
-            organization={organization}
-            event={event}
-            projectSlug={projectSlug}
-            location={location}
-          />
-        )}
-      </TagWrapper>
     </Wrapper>
   );
 }
@@ -201,18 +200,7 @@ const Wrapper = styled(DataSection)<{
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>
-      p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
-  }
-`;
-
-const VerticalDivider = styled('div')`
-  background: ${p => p.theme.innerBorder};
-  height: 1px;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    height: 100%;
-    width: 1px;
+      p.showScreenshot && p.showTags ? 'auto max-content' : '1fr'};
   }
 `;
 
