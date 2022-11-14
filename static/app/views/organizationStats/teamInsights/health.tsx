@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,8 +8,8 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {TeamWithProjects} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTeams from 'sentry/utils/useTeams';
 
@@ -29,6 +29,8 @@ function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
+  useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
+
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -42,12 +44,6 @@ function TeamStatsHealth({location, router}: Props) {
     | TeamWithProjects
     | undefined;
   const projects = currentTeam?.projects ?? [];
-
-  useEffect(() => {
-    trackAdvancedAnalyticsEvent('team_insights.viewed', {
-      organization,
-    });
-  }, [organization]);
 
   const {period, start, end, utc} = dataDatetime(query);
 
