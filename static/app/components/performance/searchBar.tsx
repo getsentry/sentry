@@ -49,12 +49,6 @@ function SearchBar(props: SearchBarProps) {
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
 
-  const prepareQuery = (query: string) => {
-    const prependedChar = query[0] === '*' ? '' : '*';
-    const appendedChar = query[query.length - 1] === '*' ? '' : '*';
-    return `${prependedChar}${query}${appendedChar}`;
-  };
-
   const handleSearchChange = query => {
     setSearchString(query);
 
@@ -119,13 +113,13 @@ function SearchBar(props: SearchBarProps) {
 
     if (key === 'Enter') {
       event.preventDefault();
-      const currentItem = searchResults[0].children[highlightedItemIndex];
-      if (!currentItem?.value) {
-        return;
-      }
+      const currentItem = searchResults[0]?.children[highlightedItemIndex];
 
-      handleSearch(currentItem.value);
-      return;
+      if (currentItem?.value) {
+        handleChooseItem(currentItem.value);
+      } else {
+        handleSearch(searchString);
+      }
     }
   };
 
@@ -136,7 +130,7 @@ function SearchBar(props: SearchBarProps) {
         try {
           setLoading(true);
           const conditions = new MutableSearch('');
-          conditions.addFilterValues('transaction', [prepareQuery(query)], false);
+          conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
           conditions.addFilterValues('event.type', ['transaction']);
 
           // clear any active requests
@@ -145,7 +139,7 @@ function SearchBar(props: SearchBarProps) {
           }
 
           const [results] = await doDiscoverQuery<{
-            data: Array<{'count()': number; project_id: number; transaction: string}>;
+            data: DataItem[];
           }>(api, url, {
             field: ['transaction', 'project_id', 'count()'],
             project: projectIdStrings,
@@ -158,7 +152,7 @@ function SearchBar(props: SearchBarProps) {
           const parsedResults = results.data.reduce(
             (searchGroup: SearchGroup, item) => {
               searchGroup.children.push({
-                value: `${item.transaction}:${item.project_id}`,
+                value: encodeItemToValue(item),
                 title: item.transaction,
                 type: ItemType.LINK,
                 desc: '',
@@ -188,28 +182,36 @@ function SearchBar(props: SearchBarProps) {
     [api, url, eventView.statsPeriod, projectIdStrings.join(',')]
   );
 
+  const handleChooseItem = (value: string) => {
+    const item = decodeValueToItem(value);
+    handleSearch(item.transaction);
+  };
+
+  const handleClickItemIcon = (value: string) => {
+    const item = decodeValueToItem(value);
+    navigateToItemTransactionSummary(item);
+  };
+
   const handleSearch = (query: string) => {
-    const lastIndex = query.lastIndexOf(':');
-    const transactionName = query.slice(0, lastIndex);
     setSearchResults([]);
-    setSearchString(transactionName);
-    onSearch(`transaction:${transactionName}`);
+    setSearchString(query);
+    onSearch(`transaction:${query}`);
     closeDropdown();
   };
 
-  const navigateToTransactionSummary = (name: string) => {
-    const lastIndex = name.lastIndexOf(':');
-    const transactionName = name.slice(0, lastIndex);
-    const projectId = name.slice(lastIndex + 1);
+  const navigateToItemTransactionSummary = (item: DataItem) => {
+    const {transaction, project_id} = item;
+
     const query = eventView.generateQueryStringObject();
     setSearchResults([]);
 
     const next = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
-      transaction: String(transactionName),
-      projectID: projectId,
+      transaction,
+      projectID: String(project_id),
       query,
     });
+
     browserHistory.push(next);
   };
 
@@ -227,13 +229,44 @@ function SearchBar(props: SearchBarProps) {
           searchSubstring={searchString}
           loading={loading}
           items={searchResults}
-          onClick={handleSearch}
-          onIconClick={navigateToTransactionSummary}
+          onClick={handleChooseItem}
+          onIconClick={handleClickItemIcon}
         />
       )}
     </Container>
   );
 }
+
+const encodeItemToValue = (item: DataItem) => {
+  return `${item.transaction}:${item.project_id}`;
+};
+
+const decodeValueToItem = (value: string): DataItem => {
+  const lastIndex = value.lastIndexOf(':');
+
+  return {
+    project_id: parseInt(value.slice(lastIndex + 1), 10),
+    transaction: value.slice(0, lastIndex),
+  };
+};
+
+interface DataItem {
+  project_id: number;
+  transaction: string;
+  'count()'?: number;
+}
+
+const wrapQueryInWildcards = (query: string) => {
+  if (!query.startsWith('* ')) {
+    query = '*' + query;
+  }
+
+  if (!query.endsWith('*')) {
+    query = query + '*';
+  }
+
+  return query;
+};
 
 const Container = styled('div')`
   position: relative;
