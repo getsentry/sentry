@@ -163,7 +163,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           }}
           right={{
             content: focusArea,
-            default: '50%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
         />

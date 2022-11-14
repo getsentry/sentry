@@ -14,7 +14,8 @@ const MOUSE_RELEASE_TIMEOUT_MS = 750;
 
 type CSSValuePX = `${number}px`;
 type CSSValuePct = `${number}%`;
-type CSSValue = CSSValuePX | CSSValuePct;
+type CSSValueFR = `${number}fr`;
+type CSSValue = CSSValuePX | CSSValuePct | CSSValueFR;
 type LimitValue =
   | {
       /**
@@ -31,7 +32,7 @@ type LimitValue =
 
 type Side = {
   content: ReactNode;
-  default?: CSSValuePct;
+  default?: CSSValuePct | CSSValueFR;
   max?: LimitValue;
   min?: LimitValue;
 };
@@ -106,7 +107,7 @@ function getMinMax(side: Side): {
 function SplitPanel(props: Props) {
   const [isMousedown, setIsMousedown] = useState(false);
   const [sizeCSS, setSizeCSS] = useState(getSplitDefault(props));
-  const sizeCSSRef = useRef<undefined | CSSValuePct>();
+  const sizeCSSRef = useRef<undefined | CSSValuePct | CSSValueFR>();
   sizeCSSRef.current = sizeCSS.a;
 
   const {setStartPosition, logEndPosition} = useSplitPanelTracking({
