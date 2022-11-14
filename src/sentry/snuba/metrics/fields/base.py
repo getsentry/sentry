@@ -62,7 +62,7 @@ from sentry.snuba.metrics.fields.snql import (
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_mri_private
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_private_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
@@ -1645,7 +1645,7 @@ def get_derived_metrics(exclude_private: bool = True) -> Mapping[str, DerivedMet
         {
             mri: expression
             for (mri, expression) in DERIVED_METRICS.items()
-            if not is_mri_private(mri)
+            if not is_private_mri(mri)
         }
         if exclude_private
         else DERIVED_METRICS
