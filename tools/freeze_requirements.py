@@ -14,10 +14,7 @@ def worker(args: tuple[str, ...]) -> None:
     env = os.environ.copy()
     env["CUSTOM_COMPILE_COMMAND"] = "make freeze-requirements"
 
-    try:
-        run(args, check=True, capture_output=True, env=env)
-    except CalledProcessError as e:
-        raise e
+    run(args, check=True, capture_output=True, env=env)
 
 
 def check_futures(futures: list[Future[None]]) -> int:
