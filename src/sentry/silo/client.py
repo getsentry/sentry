@@ -6,7 +6,9 @@ from django.conf import settings
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_region_by_name
+from sentry.types.region import Region, get_region_by_id
+
+INVALID_PROXY_HEADERS = ["Host", "Content-Type", "Content-Length"]
 
 
 class SiloClientError(Exception):
@@ -23,13 +25,8 @@ class BaseSiloClient(BaseApiClient):
         """
         raise NotImplementedError
 
-    def create_base_url(self, address: str) -> str:
-        # We're intentionally not exposing API Versioning as an interface just yet
-        # This may be revisited once deployment drift prevention in Hybrid Cloud is pinned down.
-        api_prefix = "/api/0"
-        return f"{address}{api_prefix}"
-
     def __init__(self) -> None:
+        super().__init__()
         if SiloMode.get_current_mode() not in self.access_modes:
             access_mode_str = ", ".join(str(m) for m in self.access_modes)
             raise SiloClientError(
@@ -37,13 +34,31 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-    def request(self, *args: Iterable[Any], **kwargs: Mapping[str, Any]) -> BaseApiResponseX:
+    def request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, Any] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
+    ) -> BaseApiResponseX:
         # TODO: Establish a scheme to authorize requests across silos
         # (e.g. signing secrets, JWTs)
-        response = super()._request(*args, kwargs)  # type: ignore
+        modified_headers = {**headers}
+        for invalid_header in INVALID_PROXY_HEADERS:
+            modified_headers.pop(invalid_header)
+        client_response = super()._request(
+            method,
+            path,
+            headers=modified_headers,
+            data=data,
+            params=params,
+            json=True,
+            allow_text=True,
+        )
         # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
         # optionally raising an error to alert developers of version drift
-        return response
+        return client_response.to_http_response()
 
 
 class RegionSiloClient(BaseSiloClient):
@@ -53,10 +68,14 @@ class RegionSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
-    def __init__(self, region_name: str) -> None:
+    def __init__(self, region: Region) -> None:
         super().__init__()
-        self.region = get_region_by_name(region_name)
-        self.base_url = self.create_base_url(self.region.address)
+        if not isinstance(region, Region):
+            raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
+
+        # Ensure the region is registered
+        self.region = get_region_by_id(region.id)
+        self.base_url = self.region.address
 
 
 class ControlSiloClient(BaseSiloClient):
@@ -68,4 +87,4 @@ class ControlSiloClient(BaseSiloClient):
 
     def __init__(self) -> None:
         super().__init__()
-        self.base_url = self.create_base_url(settings.SENTRY_CONTROL_ADDRESS)
+        self.base_url = settings.SENTRY_CONTROL_ADDRESS
