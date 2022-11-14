@@ -138,16 +138,16 @@ def track_outcome(
     events.
     """
     track_outcome_custom_publish(
-        _publish,
-        org_id,
-        project_id,
-        key_id,
-        outcome,
-        reason,
-        timestamp,
-        event_id,
-        category,
-        quantity,
+        publish=_publish,
+        org_id=org_id,
+        project_id=project_id,
+        key_id=key_id,
+        outcome=outcome,
+        reason=reason,
+        timestamp=timestamp,
+        event_id=event_id,
+        category=category,
+        quantity=quantity,
     )
 
 
