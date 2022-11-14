@@ -74,7 +74,7 @@
       {
         "name": "orderBy",
         "in": "query",
-        "description": "An optional field to order by, which must be one of the fields provided in `field`\n\nThis alters the order of the `groups` returned, so it only makes sense in combination with `groupBy`. \n\nOrdering by more than one field is currently not supported.",
+        "description": "An optional field to order by, which must be one of the fields provided in `field`. Use `-` for descending order, for example `-sum(session)`. \n\nThis alters the order of the `groups` returned, so it only makes sense in combination with `groupBy`. \n\nOrdering by more than one field is currently not supported.",
         "required": false,
         "schema": {
           "type": "string"
@@ -94,42 +94,56 @@
         "in": "query",
         "description": "This defines the range of the time series, relative to now.\n\nThe range is given in a `\"<number><unit>\"` format.\n\nFor example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks.\n\nIt defaults to `90d`.",
         "required": false,
-        "schema": {"type": "string"}
+        "schema": {
+          "type": "string"
+        }
       },
       {
         "name": "interval",
         "in": "query",
         "description": "This is the resolution of the time series, given in the same format as `statsPeriod`.\n\nThe default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well.\n\nIntervals larger than `1d` are not supported, and the interval has to cleanly divide one day.",
         "required": false,
-        "schema": {"type": "string"}
+        "schema": {
+          "type": "string"
+        }
       },
       {
         "name": "statsPeriodStart",
         "in": "query",
         "description": "This defines the start of the time series range, in the same format as the `interval`, relative to now.",
         "required": false,
-        "schema": {"type": "string"}
+        "schema": {
+          "type": "string"
+        }
       },
       {
         "name": "statsPeriodEnd",
         "in": "query",
         "description": "This defines the end of the time series range, in the same format as the `interval`, relative to now.",
         "required": false,
-        "schema": {"type": "string"}
+        "schema": {
+          "type": "string"
+        }
       },
       {
         "name": "start",
         "in": "query",
         "description": "This defines the start of the time series range as an explicit datetime.",
         "required": false,
-        "schema": {"type": "string", "format": "date-time"}
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
       },
       {
         "name": "end",
         "in": "query",
         "description": "This defines the inclusive end of the time series range as an explicit datetime.",
         "required": false,
-        "schema": {"type": "string", "format": "date-time"}
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     ],
     "responses": {
@@ -150,24 +164,64 @@
               ],
               "groups": [
                 {
-                  "by": {"session.status": "healthy"},
-                  "totals": {"sum(session)": 1715553},
-                  "series": {"sum(session)": [683772, 677788, 353993]}
+                  "by": {
+                    "session.status": "healthy"
+                  },
+                  "totals": {
+                    "sum(session)": 1715553
+                  },
+                  "series": {
+                    "sum(session)": [
+                      683772,
+                      677788,
+                      353993
+                    ]
+                  }
                 },
                 {
-                  "by": {"session.status": "abnormal"},
-                  "totals": {"sum(session)": 0},
-                  "series": {"sum(session)": [0, 0, 0]}
+                  "by": {
+                    "session.status": "abnormal"
+                  },
+                  "totals": {
+                    "sum(session)": 0
+                  },
+                  "series": {
+                    "sum(session)": [
+                      0,
+                      0,
+                      0
+                    ]
+                  }
                 },
                 {
-                  "by": {"session.status": "crashed"},
-                  "totals": {"sum(session)": 383},
-                  "series": {"sum(session)": [33, 26, 324]}
+                  "by": {
+                    "session.status": "crashed"
+                  },
+                  "totals": {
+                    "sum(session)": 383
+                  },
+                  "series": {
+                    "sum(session)": [
+                      33,
+                      26,
+                      324
+                    ]
+                  }
                 },
                 {
-                  "by": {"session.status": "errored"},
-                  "totals": {"sum(session)": 1565},
-                  "series": {"sum(session)": [163, 201, 1201]}
+                  "by": {
+                    "session.status": "errored"
+                  },
+                  "totals": {
+                    "sum(session)": 1565
+                  },
+                  "series": {
+                    "sum(session)": [
+                      163,
+                      201,
+                      1201
+                    ]
+                  }
                 }
               ]
             }
@@ -193,7 +247,9 @@
     },
     "security": [
       {
-        "auth_token": ["org: read"]
+        "auth_token": [
+          "org: read"
+        ]
       }
     ]
   }
