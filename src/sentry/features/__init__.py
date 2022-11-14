@@ -136,6 +136,7 @@ default_manager.add("organizations:performance-vitals-inp", OrganizationFeature,
 default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature)
+default_manager.add("organizations:profiling-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
