@@ -35,8 +35,12 @@ class TestDerivedCodeMappings(TestCase):
         )
 
         self.expected_code_mappings = [
-            CodeMapping(self.foo_repo, "sentry", "src/sentry"),
-            CodeMapping(self.foo_repo, "sentry_plugins", "src/sentry_plugins"),
+            CodeMapping(repo=self.foo_repo, stacktrace_root="sentry/", source_path="src/sentry/"),
+            CodeMapping(
+                repo=self.foo_repo,
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
+            ),
         ]
 
     def test_frame_filename_package_and_more_than_one_level(self):
@@ -120,8 +124,8 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == [
             CodeMapping(
                 repo=self.foo_repo,
-                stacktrace_root="sentry_plugins",
-                source_path="src/sentry_plugins",
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
             )
         ]
 

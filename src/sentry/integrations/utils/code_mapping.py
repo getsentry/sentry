@@ -130,7 +130,8 @@ class CodeMappingTreesHelper:
         e.g. ssl.py -> raise NotImplementedError
         """
         if frame_filename.dir_path != "":
-            return src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            return f"{source_path}/"
         else:
             raise NotImplementedError("We do not support top level files.")
 
@@ -150,7 +151,7 @@ class CodeMappingTreesHelper:
             [
                 CodeMapping(
                     repo=repo_tree.repo,
-                    stacktrace_root=frame_filename.root,  # sentry
+                    stacktrace_root=f"{frame_filename.root}/",  # sentry
                     source_path=self._get_code_mapping_source_path(
                         matched_files[0], frame_filename
                     ),
