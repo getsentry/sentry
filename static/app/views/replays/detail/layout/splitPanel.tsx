@@ -14,7 +14,7 @@ const MOUSE_RELEASE_TIMEOUT_MS = 750;
 
 type CSSValuePX = `${number}px`;
 type CSSValuePct = `${number}%`;
-type CSSValueFR = `${number}fr`;
+type CSSValueFR = '1fr';
 type CSSValue = CSSValuePX | CSSValuePct | CSSValueFR;
 type LimitValue =
   | {
