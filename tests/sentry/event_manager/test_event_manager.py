@@ -2813,8 +2813,12 @@ class DSLatestReleaseBoostTest(TestCase):
     def make_release_transaction(
         self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
     ):
-        transaction = self.make_transaction_event(
-            release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
+        transaction = (
+            self.make_transaction_event(
+                release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
+            )
+            if environment_name is not None
+            else self.make_transaction_event(release=release_version, event_id=uuid.uuid1().hex)
         )
         transaction.update(kwargs)
         manager = EventManager(transaction)
@@ -2911,6 +2915,24 @@ class DSLatestReleaseBoostTest(TestCase):
                         f"ds::p:{self.project.id}:r:{self.release.id}:e:{self.environment2.name}"
                     )
                     == "1"
+                )
+                assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
+                    str(self.release.id): str(time()),
+                }
+
+            # We also test the case in which no environment is set, which can be the case as per
+            # https://docs.sentry.io/platforms/javascript/configuration/options/#environment.
+            with freeze_time("2022-11-03 11:00:00"):
+                self.make_release_transaction(
+                    release_version=self.release.version,
+                    environment_name=None,
+                    project_id=self.project.id,
+                    checksum="b" * 32,
+                    timestamp=self.timestamp,
+                )
+
+                assert (
+                    self.redis_client.get(f"ds::p:{self.project.id}:r:{self.release.id}:e:") == "1"
                 )
                 assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
                     str(self.release.id): str(time()),
@@ -3036,7 +3058,12 @@ class DSLatestReleaseBoostTest(TestCase):
                 str(self.release.id): str(time()),
                 str(release_2.id): str(time()),
             }
-            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{release_3.id}") is None
+            assert (
+                self.redis_client.get(
+                    f"ds::p:{self.project.id}:r:{release_3.id}::e{self.environment1.name}"
+                )
+                is None
+            )
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):

@@ -896,7 +896,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     ) as metrics_tags:
                         try:
                             release_observed_in_last_24h = observe_release(
-                                project_id, release.id, data.get("environment")
+                                project_id, release.id, data.get("environment", "")
                             )
                             if not release_observed_in_last_24h:
                                 span.set_tag(
