@@ -2,12 +2,16 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {TagWithTopValues} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -32,6 +36,7 @@ export default function TagFacetsBars({
   event,
   tagFormatter,
   title,
+  project,
 }: TagFacetsProps) {
   const [state, setState] = useState<State>({
     tagsData: {},
@@ -106,6 +111,16 @@ export default function TagFacetsBars({
                   key={tagKey}
                   barId={tagKey}
                   onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'issue_group_details.tags.switcher.clicked',
+                      {
+                        tag: tagKey,
+                        previous_tag: state.selectedTag,
+                        platform: project?.platform,
+                        is_mobile: isMobilePlatform(project?.platform),
+                        organization,
+                      }
+                    );
                     setState({...state, selectedTag: tagKey, showMore: false});
                   }}
                 >
@@ -115,7 +130,21 @@ export default function TagFacetsBars({
             })}
           </StyledButtonBar>
           <BreakdownBars data={points} maxItems={MAX_ITEMS} />
-          <Button size="xs" to={getTagUrl(organization.slug, groupId)}>
+          <Button
+            size="xs"
+            to={getTagUrl(organization.slug, groupId)}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent(
+                'issue_group_details.tags.show_all_tags.clicked',
+                {
+                  tag: state.selectedTag,
+                  platform: project?.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                }
+              );
+            }}
+          >
             {t('Show All Tags')}
           </Button>
         </TagFacetsContainer>
@@ -128,9 +157,6 @@ export default function TagFacetsBars({
 function getTagUrl(orgSlug: string, groupId: string) {
   return `/organizations/${orgSlug}/issues/${groupId}/tags/`;
 }
-
-import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
 
 type Point = {
   label: string;
