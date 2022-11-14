@@ -14,8 +14,7 @@ def setup(monkeypatch, settings):
     monkeypatch.setattr(outcomes, "KafkaPublisher", Mock())
 
     # Reset internals of the outcomes module
-    monkeypatch.setattr(outcomes, "outcomes_publisher", None)
-    monkeypatch.setattr(outcomes, "billing_publisher", None)
+    monkeypatch.setattr(outcomes, "publishers", {})
 
     # Settings fixture does not restore nested mutable attributes
     settings.KAFKA_TOPICS = copy.deepcopy(settings.KAFKA_TOPICS)
@@ -79,8 +78,8 @@ def test_track_outcome_default(settings):
     cluster_args, _ = kafka_config.get_kafka_producer_cluster_options.call_args
     assert cluster_args == (settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["cluster"],)
 
-    assert outcomes.outcomes_publisher
-    (topic_name, payload), _ = outcomes.outcomes_publisher.publish.call_args
+    assert len(outcomes.publishers) == 1
+    (topic_name, payload), _ = outcomes.publishers["default"].publish.call_args
     assert topic_name == settings.KAFKA_OUTCOMES
 
     data = json.loads(payload)
@@ -95,8 +94,6 @@ def test_track_outcome_default(settings):
         "category": None,
         "quantity": 1,
     }
-
-    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing(settings):
@@ -115,11 +112,9 @@ def test_track_outcome_billing(settings):
     cluster_args, _ = kafka_config.get_kafka_producer_cluster_options.call_args
     assert cluster_args == (settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["cluster"],)
 
-    assert outcomes.outcomes_publisher
-    (topic_name, _), _ = outcomes.outcomes_publisher.publish.call_args
+    assert len(outcomes.publishers) == 1
+    (topic_name, _), _ = outcomes.publishers["default"].publish.call_args
     assert topic_name == settings.KAFKA_OUTCOMES
-
-    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing_topic(settings):
@@ -142,11 +137,9 @@ def test_track_outcome_billing_topic(settings):
     cluster_args, _ = kafka_config.get_kafka_producer_cluster_options.call_args
     assert cluster_args == (settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["cluster"],)
 
-    assert outcomes.outcomes_publisher
-    (topic_name, _), _ = outcomes.outcomes_publisher.publish.call_args
+    assert len(outcomes.publishers) == 1
+    (topic_name, _), _ = outcomes.publishers["default"].publish.call_args
     assert topic_name == settings.KAFKA_OUTCOMES_BILLING
-
-    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing_cluster(settings):
@@ -166,8 +159,6 @@ def test_track_outcome_billing_cluster(settings):
     cluster_args, _ = kafka_config.get_kafka_producer_cluster_options.call_args
     assert cluster_args == ("different",)
 
-    assert outcomes.billing_publisher
-    (topic_name, _), _ = outcomes.billing_publisher.publish.call_args
+    assert len(outcomes.publishers) == 1
+    (topic_name, _), _ = outcomes.publishers["different"].publish.call_args
     assert topic_name == settings.KAFKA_OUTCOMES_BILLING
-
-    assert outcomes.outcomes_publisher is None
