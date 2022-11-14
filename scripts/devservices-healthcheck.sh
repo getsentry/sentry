@@ -13,34 +13,47 @@
 #       specify distinct retries and other parameters.
 #       would also be nice to have a single ^C work.
 
-try=1
-to=3
-start=0
-delay=5
 
-sleep "$start"
-while (( $try <= $to )); do
-    HEALTHY=1
-    echo "Checking health of postgres (try ${try} of ${to})..."
-    if ! docker exec sentry_postgres pg_isready -U postgres; then
-        HEALTHY=0
-    fi
+# Accepts following positional arguments:
+# $1 - how many times to try
+# $2 - delay between tries
+# $3 - the service (docker container) name
+# $4 - command to run inside the docker container
+function health_check {
+  local try=1
+  local to=$1
+  local start=0
+  local delay=$2
+  local service="$3"
+  local cmd="$4"
 
-    if [ "$NEED_KAFKA" = "true" ]; then
-      echo "Checking health of kafka (try ${try} of ${to})..."
-      if ! docker exec sentry_kafka kafka-topics --zookeeper sentry_zookeeper:2181 --list; then
-        HEALTHY=0
+
+  sleep "$start"
+  echo "Running '$cmd' in '$service'"
+  while (( $try <= $to )); do
+      echo "Checking '$service' (try ${try} of ${to})..."
+      if docker exec $service $cmd; then
+          return 0
       fi
-    fi
 
-    if [[ $HEALTHY == 1 ]]; then
-      break
-    fi
+      if (( $try == $to )); then
+          echo "Exceeded retries for '$service'"
+          return 1
+      fi
+      try=$(($try + 1))
+      sleep "$delay"
+  done
+}
 
-    if (( $try == $to )); then
-        echo "Exceeded retries."
-        exit 1
-    fi
-    try=$(($try + 1))
-    sleep "$delay"
-done
+# Check the postgres statu
+health_check 3 5 "sentry_postgres" "pg_isready -U postgres"
+[[ $? == 1 ]] && exit 1
+
+# Check the kafka cluster status
+if [ "$NEED_KAFKA" = "true" ]; then
+  health_check 3 5 "sentry_kafka" "kafka-topics --zookeeper sentry_zookeeper:2181 --list"
+  [[ $? == 1 ]] && exit 1
+fi
+
+# Make sure to exit with success if all previous checks are done
+exit 0
