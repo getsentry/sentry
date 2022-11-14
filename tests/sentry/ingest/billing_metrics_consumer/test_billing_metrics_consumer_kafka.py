@@ -15,15 +15,11 @@ from sentry.utils import json
 
 
 @freeze_time("1985-10-26 21:00:00")
-@mock.patch(
-    "sentry.ingest.billing_metrics_consumer.BillingTxCountMetricConsumerStrategy._get_billing_producer"
-)
-def test_outcomes_consumed(_gbp):
+def test_outcomes_consumed():
     # Based on test_ingest_consumer_kafka.py
 
     time = datetime(1985, 10, 26, 21, 00, 00)
     metrics_topic = Topic("snuba-generic-metrics")
-    billing_topic = Topic("outcomes-billing")
 
     buckets = [
         {  # Counter metric with wrong ID will not generate an outcome
@@ -73,6 +69,7 @@ def test_outcomes_consumed(_gbp):
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
     )
+    strategy._produce = mock.MagicMock()
     assert not fake_commit.mock_calls
 
     def generate_kafka_message(bucket: MetricsBucket) -> Message[KafkaPayload]:
@@ -98,25 +95,21 @@ def test_outcomes_consumed(_gbp):
         strategy.poll()
         strategy.submit(generate_kafka_message(bucket))
 
-    assert strategy._billing_producer.produce.call_count == 1
-    called_payload = KafkaPayload(
-        key=None,
-        value=json.dumps(
-            {
-                "timestamp": time,
-                "org_id": 1,
-                "project_id": 2,
-                "outcome": 0,
-                "category": 2,
-                "quantity": 3,
-            }
-        ).encode("utf-8"),
-        headers=[],
+    assert strategy._produce.call_count == 1
+    expected_payload = json.dumps(
+        {
+            "timestamp": time,
+            "org_id": 1,
+            "project_id": 2,
+            "key_id": None,
+            "outcome": 0,
+            "reason": None,
+            "event_id": None,
+            "category": 2,
+            "quantity": 3,
+        }
     )
-    assert strategy._billing_producer.produce.mock_calls[0] == mock.call(
-        destination=billing_topic,
-        payload=called_payload,
-    )
+    assert strategy._produce.mock_calls[0] == mock.call("default", "outcomes", expected_payload)
 
     assert fake_commit.mock_calls == [
         mock.call(
