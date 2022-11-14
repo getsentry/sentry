@@ -70,7 +70,7 @@ class BaseRequestParser(abc.ABC):
             region_client = RegionSiloClient(region)
             region_response = region_client.request(*request_args)
 
-        # If the response is sent to multiple regions, return the latest response to the requestor
+        # If the response is sent to multiple regions, return the last response to the requestor
         return region_response
 
     def get_response(self):
