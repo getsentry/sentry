@@ -65,6 +65,13 @@ class ApiOrganizationMember:
 
 
 @dataclass
+class ApiOrganizationMemberFlags:
+    sso__linked: bool = False
+    sso__invalid: bool = False
+    member_limit__restricted: bool = False
+
+
+@dataclass
 class ApiOrganizationFlags:
     allow_joinleave: bool = False
     enhanced_privacy: bool = False

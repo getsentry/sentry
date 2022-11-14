@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import all_silo_test, no_silo_test
+from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits, no_silo_test
 
 
 def silo_from_user(
@@ -300,9 +300,10 @@ class FromUserTest(AccessFactoryTestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
-        AuthProvider.objects.create(
-            organization=organization, provider="dummy", flags=AuthProvider.flags.allow_unlinked
-        )
+        with exempt_from_silo_limits():
+            AuthProvider.objects.create(
+                organization=organization, provider="dummy", flags=AuthProvider.flags.allow_unlinked
+            )
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
 
@@ -329,7 +330,8 @@ class FromUserTest(AccessFactoryTestCase):
 
     def test_superuser_permissions(self):
         user = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=user, permission="test.permission")
+        with exempt_from_silo_limits():
+            UserPermission.objects.create(user=user, permission="test.permission")
 
         result = self.from_user(user)
         assert not result.has_permission("test.permission")

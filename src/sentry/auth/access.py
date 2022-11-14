@@ -338,7 +338,7 @@ class DbAccess(Access, abc.ABC):
 @dataclass
 class ApiAccess(Access):
     api_user_organization_context: ApiUserOrganizationContext
-    additional_scopes: Iterable[str]
+    requested_scopes: Iterable[str] | None
     auth_state: ApiAuthState
 
     @cached_property
@@ -369,9 +369,13 @@ class ApiAccess(Access):
     @cached_property
     def scopes(self) -> FrozenSet[str]:
         if self.api_user_organization_context.member is None:
-            return frozenset(self.additional_scopes)
+            return frozenset(self.requested_scopes or [])
+
+        if self.requested_scopes is None:
+            return frozenset(self.api_user_organization_context.member.scopes)
+
         return frozenset(self.api_user_organization_context.member.scopes) & frozenset(
-            self.additional_scopes
+            self.requested_scopes
         )
 
     @property
@@ -581,12 +585,12 @@ class ApiOrganizationGlobalAccess(ApiAccess):
         super().__init__(
             api_user_organization_context=api_user_organization_context,
             auth_state=auth_state,
-            additional_scopes=scopes,
+            requested_scopes=scopes,
         )
 
     @cached_property
     def scopes(self) -> FrozenSet[str]:
-        return frozenset(self.additional_scopes)
+        return frozenset(self.requested_scopes)
 
     @property
     def has_global_access(self) -> bool:
@@ -973,7 +977,7 @@ def from_api_member(
 ) -> Access:
     return ApiAccess(
         api_user_organization_context=api_user_organization_context,
-        additional_scopes=scopes or (),
+        requested_scopes=scopes,
         auth_state=auth_state
         or auth_service.get_user_auth_state(
             user_id=api_user_organization_context.user_id,
