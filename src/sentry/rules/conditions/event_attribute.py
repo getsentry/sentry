@@ -196,7 +196,7 @@ class EventAttributeCondition(EventCondition):
         match = self.get_option("match")
         value = self.get_option("value")
 
-        if not (match and (value or match in (MatchType.IS_SET, MatchType.NOT_SET))):
+        if not ((match and value) or (match in (MatchType.IS_SET, MatchType.NOT_SET))):
             return False
 
         value = value.lower()
