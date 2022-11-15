@@ -71,6 +71,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
 # Detector and the corresponding project options for more granular control of issue creation on a per-project basis, modifiable by users in their UI.
 DETECTOR_TYPE_ISSUE_CREATION_TO_PROJECT_OPTION_BOOLEANS = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "sentry:performance_issue_creation_enabled_n_plus_one_db",
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "sentry:performance_issue_creation_enabled_n_plus_one_db",
 }
 
 
@@ -203,40 +204,13 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(project_id: Optional[str] = None):
-    default_project_settings = (
-        projectoptions.get_well_known_default(
-            "sentry:performance_issue_settings",
-            project=project_id,
-        )
-        if project_id
-        else {}
-    )
-
-    project_settings = (
-        ProjectOption.objects.get_value(
-            project_id, "sentry:performance_issue_settings", default_project_settings
-        )
-        if project_id
-        else {}
-    )
-
-    use_project_option_settings = default_project_settings != project_settings
-    merged_project_settings = {
-        **default_project_settings,
-        **project_settings,
-    }  # Merge saved project settings into default so updating the default to add new settings works in the future.
-
-    # Use project settings if they've been adjusted at all, to allow customization, otherwise fetch settings from system-wide options.
-    settings = (
-        merged_project_settings
-        if use_project_option_settings
-        else {
-            "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
-            "n_plus_one_db_duration_threshold": options.get(
-                "performance.issues.n_plus_one_db.duration_threshold"
-            ),
-        }
-    )
+    # Fetch default settings from system-wide options.
+    system_performance_issue_settings = {
+        "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
+        "n_plus_one_db_duration_threshold": options.get(
+            "performance.issues.n_plus_one_db.duration_threshold"
+        ),
+    }
 
     return {
         DetectorType.DUPLICATE_SPANS: [
@@ -290,12 +264,16 @@ def get_detection_settings(project_id: Optional[str] = None):
             }
         ],
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "count": system_performance_issue_settings["n_plus_one_db_count"],
+            "duration_threshold": system_performance_issue_settings[
+                "n_plus_one_db_duration_threshold"
+            ],  # ms
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "count": system_performance_issue_settings["n_plus_one_db_count"],
+            "duration_threshold": system_performance_issue_settings[
+                "n_plus_one_db_duration_threshold"
+            ],  # ms
         },
     }
 
@@ -382,8 +360,10 @@ def get_allowed_issue_creation_detectors(project_id: str):
         if rate and rate > random.random():
             allowed_detectors.add(detector_type)
 
-    for detector_type in allowed_detectors:
-        project_option_key = DETECTOR_TYPE_ISSUE_CREATION_TO_PROJECT_OPTION_BOOLEANS.get(detector_type, None)
+    for detector_type in list(allowed_detectors):
+        project_option_key = DETECTOR_TYPE_ISSUE_CREATION_TO_PROJECT_OPTION_BOOLEANS.get(
+            detector_type, None
+        )
         if not project_option_key:
             allowed_detectors.remove(detector_type)
         else:
