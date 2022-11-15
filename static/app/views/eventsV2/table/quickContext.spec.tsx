@@ -10,6 +10,15 @@ import {
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
+import {
+  EntryType,
+  Event,
+  EventError,
+  EventOrGroupType,
+  ExceptionType,
+  ExceptionValue,
+  Frame,
+} from 'sentry/types/event';
 import {EventData} from 'sentry/utils/discover/eventView';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';
@@ -106,6 +115,15 @@ const renderQuickContextContent = (
     </QueryClientProvider>,
     {organization}
   );
+};
+
+const makeEvent = (event: Partial<Event> = {}): Event => {
+  const evt: Event = {
+    ...TestStubs.Event(),
+    ...event,
+  };
+
+  return evt;
 };
 
 describe('Quick Context', function () {
@@ -435,6 +453,104 @@ describe('Quick Context', function () {
       expect(screen.getByText(/other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Quick Context Content: Event ID Column', function () {
+    it('Renders NO context message for events that are not errors', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(
+        await screen.findByText(/There is no context available./i)
+      ).toBeInTheDocument();
+    });
+
+    it('Renders NO stack trace message for error events without stackTraces', async () => {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(
+        await screen.findByText(/There is no stack trace available for this event./i)
+      ).toBeInTheDocument();
+    });
+
+    it('Renders stack trace as context', async () => {
+      const frame: Frame = {
+        colNo: 0,
+        filename: 'file.js',
+        function: 'throwError',
+        lineNo: 0,
+        absPath: null,
+        context: [],
+        errors: null,
+        inApp: false,
+        instructionAddr: null,
+        module: null,
+        package: null,
+        platform: null,
+        rawFunction: null,
+        symbol: null,
+        symbolAddr: null,
+        trust: undefined,
+        vars: null,
+      };
+
+      const thread: ExceptionValue = {
+        stacktrace: {
+          hasSystemFrames: false,
+          registers: {},
+          framesOmitted: 0,
+          frames: [frame],
+        },
+        mechanism: null,
+        module: null,
+        rawStacktrace: null,
+        threadId: null,
+        type: '',
+        value: '',
+      };
+
+      const exceptionValue: ExceptionType = {
+        values: [thread],
+        excOmitted: undefined,
+        hasSystemFrames: false,
+      };
+
+      const errorEvent: Event = {
+        id: '6b43e285de834ec5b5fe30d62d549b20',
+        type: EventOrGroupType.ERROR,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: exceptionValue,
+          },
+        ],
+      } as EventError;
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent(errorEvent),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
     });
   });
 });
