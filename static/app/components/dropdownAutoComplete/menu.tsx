@@ -1,13 +1,18 @@
 import {useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
+import {isNil} from 'lodash';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
-import DropdownBubble from 'sentry/components/dropdownBubble';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import mergeRefs from 'sentry/utils/mergeRefs';
+import useOverlay from 'sentry/utils/useOverlay';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
@@ -246,6 +251,8 @@ function Menu({
   'data-test-id': dataTestId,
   ...props
 }: Props) {
+  const theme = useTheme();
+
   // Can't search if there are no items
   const hasItems = !!items?.length;
 
@@ -266,6 +273,18 @@ function Menu({
   // Memoize the filterValueOrInput to the stableItemFilter so that we get the
   // same list every time when the filter value doesn't change.
   const getFilteredItems = memoize(stableItemFilter);
+
+  const {
+    state,
+    triggerRef,
+    triggerProps: overlayTriggerProps,
+    overlayProps,
+    isOpen: useOverlayIsOpen,
+  } = useOverlay({
+    offset: detached ? 8 : 0,
+    position: 'bottom-start',
+    isOpen: props.isOpen,
+  });
 
   return (
     <AutoComplete
@@ -333,78 +352,88 @@ function Menu({
           >
             {children({
               getInputProps,
-              getActorProps,
+              getActorProps: () => {
+                return {
+                  ...getActorProps(),
+                  ...overlayTriggerProps,
+                  ref: mergeRefs([overlayTriggerProps.ref, getActorProps().ref]),
+                };
+              },
               actions,
               isOpen,
               selectedItem,
             })}
             {isOpen && (
-              <StyledDropdownBubble
-                className={className}
-                {...getMenuProps(menuProps)}
-                {...{style, css, blendCorner, detached, alignMenu, minWidth}}
-              >
-                <DropdownMainContent minWidth={minWidth}>
-                  {itemsLoading && <LoadingIndicator mini />}
-                  {showInput && (
-                    <InputWrapper>
-                      <StyledInput
-                        autoFocus
-                        placeholder={searchPlaceholder}
-                        {...getInputProps({...inputProps, onChange})}
-                      />
-                      <InputLoadingWrapper>
-                        {(busy || busyItemsStillVisible) && (
-                          <LoadingIndicator size={16} mini />
+              <FocusScope restoreFocus autoFocus>
+                <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+                  <StyledDropdownBubble
+                    className={className}
+                    {...getMenuProps(menuProps)}
+                    {...{minWidth}}
+                  >
+                    <DropdownMainContent minWidth={minWidth}>
+                      {itemsLoading && <LoadingIndicator mini />}
+                      {showInput && (
+                        <InputWrapper>
+                          <StyledInput
+                            autoFocus
+                            placeholder={searchPlaceholder}
+                            {...getInputProps({...inputProps, onChange})}
+                          />
+                          <InputLoadingWrapper>
+                            {(busy || busyItemsStillVisible) && (
+                              <LoadingIndicator size={16} mini />
+                            )}
+                          </InputLoadingWrapper>
+                          {inputActions}
+                        </InputWrapper>
+                      )}
+                      <div>
+                        {menuHeader && (
+                          <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                            {menuHeader}
+                          </LabelWithPadding>
                         )}
-                      </InputLoadingWrapper>
-                      {inputActions}
-                    </InputWrapper>
-                  )}
-                  <div>
-                    {menuHeader && (
-                      <LabelWithPadding disableLabelPadding={disableLabelPadding}>
-                        {menuHeader}
-                      </LabelWithPadding>
-                    )}
-                    <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
-                      {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
-                      {showNoResultsMessage && (
-                        <EmptyMessage>
-                          {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
-                        </EmptyMessage>
-                      )}
-                      {busy && (
-                        <BusyMessage>
-                          <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
-                        </BusyMessage>
-                      )}
-                      {!busy && (
-                        <List
-                          items={autoCompleteResults}
-                          {...{
-                            maxHeight,
-                            highlightedIndex,
-                            inputValue,
-                            onScroll,
-                            getItemProps,
-                            registerVisibleItem,
-                            virtualizedLabelHeight,
-                            virtualizedHeight,
-                            itemSize,
-                          }}
-                        />
-                      )}
-                    </ItemList>
-                    {renderedFooter && (
-                      <LabelWithPadding disableLabelPadding={disableLabelPadding}>
-                        {renderedFooter}
-                      </LabelWithPadding>
-                    )}
-                  </div>
-                </DropdownMainContent>
-                {subPanel}
-              </StyledDropdownBubble>
+                        <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
+                          {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                          {showNoResultsMessage && (
+                            <EmptyMessage>
+                              {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
+                            </EmptyMessage>
+                          )}
+                          {busy && (
+                            <BusyMessage>
+                              <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                            </BusyMessage>
+                          )}
+                          {!busy && (
+                            <List
+                              items={autoCompleteResults}
+                              {...{
+                                maxHeight,
+                                highlightedIndex,
+                                inputValue,
+                                onScroll,
+                                getItemProps,
+                                registerVisibleItem,
+                                virtualizedLabelHeight,
+                                virtualizedHeight,
+                                itemSize,
+                              }}
+                            />
+                          )}
+                        </ItemList>
+                        {renderedFooter && (
+                          <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                            {renderedFooter}
+                          </LabelWithPadding>
+                        )}
+                      </div>
+                    </DropdownMainContent>
+                    {subPanel}
+                  </StyledDropdownBubble>
+                </PositionWrapper>
+              </FocusScope>
             )}
           </AutoCompleteRoot>
         );
@@ -457,12 +486,8 @@ export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   ${p => p.disabled && 'pointer-events: none;'}
 `;
 
-const StyledDropdownBubble = styled(DropdownBubble)<{minWidth: number}>`
-  display: flex;
-  min-width: ${p => p.minWidth}px;
-
-  ${p => p.detached && p.alignMenu === 'left' && 'right: auto;'}
-  ${p => p.detached && p.alignMenu === 'right' && 'left: auto;'}
+const StyledDropdownBubble = styled(Overlay)<{minWidth: number}>`
+  /* min-width: ${p => p.minWidth}px; */
 `;
 
 const DropdownMainContent = styled('div')<{minWidth: number}>`

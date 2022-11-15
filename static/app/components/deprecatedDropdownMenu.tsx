@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, RefObject} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -31,6 +31,7 @@ type ActorProps<E extends Element> = {
   onKeyDown: (e: React.KeyboardEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
+  ref: (el: HTMLElement) => void;
 };
 
 type MenuProps<E extends Element> = {
