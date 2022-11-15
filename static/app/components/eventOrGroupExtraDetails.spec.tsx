@@ -64,7 +64,6 @@ describe('EventOrGroupExtraDetails', function () {
       <EventOrGroupExtraDetails
         data={
           {
-            project: {id: 'projectId'},
             id: 'groupId',
             lastSeen: '2017-07-25T22:56:12Z',
             firstSeen: '2017-07-01T02:06:02Z',
@@ -90,7 +89,6 @@ describe('EventOrGroupExtraDetails', function () {
       <EventOrGroupExtraDetails
         data={
           {
-            project: {id: 'projectId'},
             id: 'groupId',
             lastSeen: '2017-07-25T22:56:12Z',
             firstSeen: '2017-07-01T02:06:02Z',
@@ -102,7 +100,6 @@ describe('EventOrGroupExtraDetails', function () {
               name: 'Assignee Name',
             },
             status: 'resolved',
-            // showStatus: true,
           } as Group
         }
         showAssignee
@@ -118,7 +115,6 @@ describe('EventOrGroupExtraDetails', function () {
       <EventOrGroupExtraDetails
         data={
           {
-            project: {id: 'projectId'},
             id: 'groupId',
             lastSeen: '2017-07-25T22:56:12Z',
             firstSeen: '2017-07-01T02:06:02Z',
