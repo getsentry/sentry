@@ -1639,11 +1639,8 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsRoutes = (
-    <Route
-      path="/organizations/:orgId/issues/:groupId/"
-      component={make(() => import('sentry/views/organizationGroupDetails'))}
-    >
+  const issueDetailsChildRoutes = (
+    <Fragment>
       <IndexRoute
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventDetails')
@@ -1770,7 +1767,31 @@ function buildRoutes() {
           component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
         />
       </Route>
-    </Route>
+    </Fragment>
+  );
+  const issueDetailsRoutes = (
+    <Fragment>
+      <Route
+        path="/organizations/:orgId/issues/:groupId/"
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationGroupDetails'))
+        )}
+        key="org-issues-group-id"
+      >
+        {issueDetailsChildRoutes}
+      </Route>
+      {usingCustomerDomain ? (
+        <Route
+          path="/issues/:groupId/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/organizationGroupDetails'))
+          )}
+          key="orgless-issues-group-id-route"
+        >
+          {issueDetailsChildRoutes}
+        </Route>
+      ) : null}
+    </Fragment>
   );
 
   // These are the "manage" pages. For sentry.io, these are _different_ from
