@@ -107,6 +107,14 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     );
   }
 
+  trackDocsClick = () => {
+    trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
+  };
+
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
     const {organization} = this.props;
     const endpoint = `/organizations/${organization.slug}/code-mappings/${pathConfig.id}/`;
@@ -194,6 +202,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const pathConfigs = this.pathConfigs;
     const {integration} = this.props;
     const {pathConfigsPageLinks} = this.state;
+    const docsLink = `https://docs.sentry.io/product/integrations/source-code-mgmt/${integration.provider.key}/#stack-trace-linking`;
 
     return (
       <Fragment>
@@ -201,9 +210,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           {tct(
             `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/gitlab/#stack-trace-linking" />
-              ),
+              link: <ExternalLink href={docsLink} onClick={this.trackDocsClick} />,
             }
           )}
         </TextBlock>
@@ -232,21 +239,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                 icon={getIntegrationIcon(integration.provider.key, 'lg')}
                 action={
                   <Button
-                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
+                    href={docsLink}
                     size="sm"
-                    onClick={() => {
-                      trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
-                        view: 'integration_configuration_detail',
-                        provider: this.props.integration.provider.key,
-                        organization: this.props.organization,
-                      });
-                    }}
+                    external
+                    onClick={this.trackDocsClick}
                   >
-                    View Documentation
+                    {t('View Documentation')}
                   </Button>
                 }
               >
-                Set up stack trace linking by adding a code mapping.
+                {t('Set up stack trace linking by adding a code mapping.')}
               </EmptyMessage>
             )}
             {pathConfigs
