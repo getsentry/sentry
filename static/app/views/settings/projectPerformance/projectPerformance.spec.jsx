@@ -4,7 +4,7 @@ import ProjectPerformance from 'sentry/views/settings/projectPerformance/project
 
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({
-    features: ['performance-view', 'performance-issues-dev'],
+    features: ['performance-view', 'performance-issues', 'performance-issues-dev'],
   });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -114,14 +114,10 @@ describe('projectPerformance', function () {
   });
 
   it('updates the performance issue settings when changing a boolean field', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues'],
-    });
-
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
-        organization={orgWithoutPerfIssues}
+        organization={org}
         project={project}
       />
     );
@@ -157,14 +153,10 @@ describe('projectPerformance', function () {
   });
 
   it('gets performance issues settings with the feature flag', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues'],
-    });
-
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
-        organization={orgWithoutPerfIssues}
+        organization={org}
         project={project}
       />
     );
