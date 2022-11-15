@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -266,10 +267,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
-        <Link to={`/settings/${organization.slug}/integrations/`}>
+        <StyledLink to={`/settings/${organization.slug}/integrations/`}>
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
           {t('Add an integration to see suspect commits and more')}
-        </Link>
+        </StyledLink>
         <CloseButton type="button" priority="link" onClick={this.dismissPrompt}>
           <IconClose size="xs" aria-label={t('Close')} />
         </CloseButton>
@@ -303,7 +304,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     // Code mapping does not match
     // Has integration but no code mappings
-    if (config || (integrations && !config)) {
+    if (config || (integrations.length > 0 && !config)) {
       return this.renderNoMatch();
     }
 
@@ -336,10 +337,18 @@ const StyledIconWrapper = styled('span')`
   line-height: 0;
 `;
 
-const OpenInLink = styled(ExternalLink)`
+const LinkStyles = css`
   display: flex;
   align-items: center;
-  grid-template-columns: max-content auto;
   gap: ${space(0.75)};
+`;
+
+const OpenInLink = styled(ExternalLink)`
+  ${LinkStyles}
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledLink = styled(Link)`
+  ${LinkStyles}
   color: ${p => p.theme.gray300};
 `;
