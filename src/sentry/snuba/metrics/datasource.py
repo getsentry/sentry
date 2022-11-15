@@ -689,7 +689,16 @@ def get_series(
         # one group which is basically identical to eliminating the orderBy altogether
         metrics_query = replace(metrics_query, orderby=None)
 
-    # We check whether the order by contains only str fields, which will not require any special logic.
+    # We check whether the order by has only str fields because in that case we can just make the query without the
+    # typical order by logic. If we wouldn't do this, the select with the order by fields will be empty because
+    # we don't allow the selection of project_id, thus causing an exception to be raised.
+    #
+    # The problem with this implementation is that it requires the user to have the same str fields in both group by
+    # and order by but this needs further testing.
+    #
+    # In case we have a mix of str and MetricField in the order by, we will perform the custom logic, and it will work
+    # out because the validate_orderby has been modified to not check for str in the superset calculation, as a result
+    # we will not need to add an equivalent MetricField to represent the str.
     orderby_contains_only_str_fields = True
     if metrics_query.orderby is not None:
         for orderby in metrics_query.orderby:
@@ -712,6 +721,8 @@ def get_series(
         # performance table.
         original_select = copy(metrics_query.select)
 
+        # This logic is in place because we don't want to put the project_id in the select, as it would require
+        # a DerivedOp, therefore
         orderby_fields = []
         for select_field in metrics_query.select:
             for orderby in metrics_query.orderby:
