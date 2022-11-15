@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {ComponentProps, Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -115,48 +115,48 @@ function Modal({
     links?.next?.results === false &&
     currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1;
 
+  // Pagination behaviour is different between the attachments tab with page links
+  // vs the issue details page where we have all of the screenshots fetched already
+  const paginationProps: ComponentProps<typeof ScreenshotPagination> | null = links
+    ? {
+        previousDisabled,
+        nextDisabled,
+        onPrevious: () => {
+          handleCursor(links.previous?.cursor, path, query, -1);
+        },
+        onNext: () => {
+          handleCursor(links.next?.cursor, path, query, 1);
+        },
+      }
+    : memoizedAttachments && memoizedAttachments.length && defined(currentAttachmentIndex)
+    ? {
+        previousDisabled: currentAttachmentIndex === 0,
+        nextDisabled: currentAttachmentIndex === memoizedAttachments.length - 1,
+        onPrevious: () => {
+          setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
+          setCurrentAttachmentIndex(currentAttachmentIndex - 1);
+        },
+        onNext: () => {
+          setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
+          setCurrentAttachmentIndex(currentAttachmentIndex + 1);
+        },
+        headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
+          currentScreenshotIndex: currentAttachmentIndex + 1,
+          totalScreenshotCount: memoizedAttachments.length,
+        }),
+      }
+    : null;
+
   return (
     <Fragment>
-      <Header closeButton>{t('Screenshot')}</Header>
-      {links ? (
-        <Header>
-          <ScreenshotPagination
-            onCursor={handleCursor}
-            previousDisabled={previousDisabled}
-            nextDisabled={nextDisabled}
-            onPrevious={() => {
-              handleCursor(links.previous?.cursor, path, query, -1);
-            }}
-            onNext={() => {
-              handleCursor(links.next?.cursor, path, query, 1);
-            }}
-          />
-        </Header>
-      ) : (
-        memoizedAttachments &&
-        memoizedAttachments.length &&
-        defined(currentAttachmentIndex) && (
+      <StyledHeaderWrapper>
+        <Header closeButton>{t('Screenshot')}</Header>
+        {paginationProps && (
           <Header>
-            <ScreenshotPagination
-              onCursor={handleCursor}
-              previousDisabled={currentAttachmentIndex === 0}
-              nextDisabled={currentAttachmentIndex === memoizedAttachments.length - 1}
-              onPrevious={() => {
-                setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
-                setCurrentAttachmentIndex(currentAttachmentIndex - 1);
-              }}
-              onNext={() => {
-                setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
-                setCurrentAttachmentIndex(currentAttachmentIndex + 1);
-              }}
-              headerText={tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
-                currentScreenshotIndex: currentAttachmentIndex + 1,
-                totalScreenshotCount: memoizedAttachments.length,
-              })}
-            />
+            <ScreenshotPagination {...paginationProps} />
           </Header>
-        )
-      )}
+        )}
+      </StyledHeaderWrapper>
       <Body>
         <StyledImageVisualization
           attachment={currentEventAttachment}
@@ -230,6 +230,17 @@ function Modal({
 }
 
 export default Modal;
+
+const StyledHeaderWrapper = styled('div')`
+  header {
+    margin-bottom: 0;
+  }
+
+  header:last-of-type {
+    margin-top: 0;
+    margin-bottom: ${space(3)};
+  }
+`;
 
 const GeneralInfo = styled('div')`
   display: grid;

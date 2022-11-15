@@ -3,25 +3,18 @@ import {ReactEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import {CursorHandler} from 'sentry/components/pagination';
 import {PanelHeader} from 'sentry/components/panels';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
   nextDisabled: boolean;
-  onCursor: CursorHandler;
   onNext: ReactEventHandler;
   onPrevious: ReactEventHandler;
   previousDisabled: boolean;
   headerText?: string;
 };
 
-/*
-  HACK: Slight variation of the Pagination
-  component that allows the parent to control
-  enabling/disabling the pagination buttons.
-*/
 const ScreenshotPagination = ({
   previousDisabled,
   nextDisabled,
