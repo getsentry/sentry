@@ -2325,7 +2325,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
                 "type": "transaction",
-                "transaction": "N + 1 Query",
+                "transaction": "/api/0/events",
             },
             project_id=self.project.id,
         )
@@ -2336,7 +2336,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             data={
                 "fingerprint": ["another-random-group"],
                 "event_id": "d" * 32,
-                "message": "Uncaught exception when querying for groups",
+                "message": "Uncaught exception on api /api/0/events",
                 "environment": "production",
                 "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
                 "timestamp": iso_format(self.base_datetime),
@@ -2350,12 +2350,12 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert error_issue != perf_issue
 
         with self.feature("organizations:performance-issues"):
-            assert set(self.make_query(search_filter_query="is:unresolved query")) == {
+            assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
                 perf_issue,
                 error_issue,
             }
 
-        assert set(self.make_query(search_filter_query="query")) == {error_issue}
+        assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
