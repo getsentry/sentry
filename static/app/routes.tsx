@@ -193,13 +193,38 @@ function buildRoutes() {
         path="/organizations/:orgId/disabled-member/"
         component={make(() => import('sentry/views/disabledMember'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/join-request/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/organizationJoinRequest'))
+          )}
+          key="orgless-join-request"
+        />
+      ) : null}
       <Route
         path="/join-request/:orgId/"
-        component={make(() => import('sentry/views/organizationJoinRequest'))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationJoinRequest'))
+        )}
+        key="org-join-request"
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/onboarding/"
+          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
+          key="orgless-onboarding"
+        >
+          <Route
+            path=":step/"
+            component={make(() => import('sentry/views/onboarding/onboarding'))}
+          />
+        </Route>
+      ) : null}
       <Route
         path="/onboarding/:orgId/"
-        component={errorHandler(OrganizationContextContainer)}
+        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
+        key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
         <Route
@@ -878,8 +903,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const projectsRoutes = (
-    <Route path="/organizations/:orgId/projects/">
+  const projectsChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
       <Route
         path="new/"
@@ -907,7 +932,28 @@ function buildRoutes() {
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
       />
-    </Route>
+    </Fragment>
+  );
+
+  const projectsRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/projects/"
+          component={withDomainRequired(NoOp)}
+          key="orgless-projects-route"
+        >
+          {projectsChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/projects/"
+        component={withDomainRedirect(NoOp)}
+        key="org-projects"
+      >
+        {projectsChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const dashboardRoutes = (
@@ -1841,3 +1887,7 @@ function buildRoutes() {
 // We load routes both when initlaizing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
+
+function NoOp(props) {
+  return <Fragment>{props.children}</Fragment>;
+}
