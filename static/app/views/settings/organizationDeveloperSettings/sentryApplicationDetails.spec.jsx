@@ -1,9 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function () {
@@ -11,12 +10,9 @@ describe('Sentry Application Details', function () {
   let orgId;
   let sentryApp;
   let token;
-  let wrapper;
   let createAppRequest;
   let editAppRequest;
 
-  const verifyInstallToggle = 'Switch[name="verifyInstall"]';
-  const redirectUrlInput = 'input[name="redirectUrl"]';
   const maskedValue = '*'.repeat(64);
 
   beforeEach(() => {
@@ -27,68 +23,77 @@ describe('Sentry Application Details', function () {
   });
 
   describe('Creating a new public Sentry App', () => {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
+        {context: TestStubs.routerContext([{organization: org}])}
+      );
+    }
+
     beforeEach(() => {
       createAppRequest = Client.addMockResponse({
         url: '/sentry-apps/',
         method: 'POST',
         body: [],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('has inputs for redirectUrl and verifyInstall', () => {
-      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
-      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
+      renderComponent();
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Verify Installation'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
     it('shows empty scopes and no credentials', function () {
+      renderComponent();
+
+      expect(screen.getByText('Permissions')).toBeInTheDocument();
+
       // new app starts off with no scopes selected
-      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
-      expect(
-        wrapper.find('PanelHeader').findWhere(h => h.text() === 'Permissions')
-      ).toBeDefined();
+      expect(screen.getByRole('checkbox', {name: 'issue'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'error'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'comment'})).not.toBeChecked();
     });
 
     it('does not show logo upload fields', function () {
-      expect(wrapper.find('PanelHeader').at(1).text()).not.toContain('Logo');
-      expect(wrapper.find('PanelHeader').at(2).text()).not.toContain('Small Icon');
-      expect(wrapper.exists('AvatarChooser')).toBe(false);
+      renderComponent();
+
+      expect(screen.queryByText('Logo')).not.toBeInTheDocument();
+      expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
     });
 
-    it('saves', function () {
-      wrapper
-        .find('input[name="name"]')
-        .simulate('change', {target: {value: 'Test App'}});
+    it('saves', async function () {
+      renderComponent();
 
-      wrapper
-        .find('input[name="author"]')
-        .simulate('change', {target: {value: 'Sentry'}});
+      userEvent.paste(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      userEvent.paste(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
 
-      wrapper
-        .find('input[name="webhookUrl"]')
-        .simulate('change', {target: {value: 'https://webhook.com'}});
+      userEvent.paste(
+        screen.getByRole('textbox', {name: 'Webhook URL'}),
+        'https://webhook.com'
+      );
 
-      wrapper
-        .find(redirectUrlInput)
-        .simulate('change', {target: {value: 'https://webhook.com/setup'}});
+      userEvent.paste(
+        screen.getByRole('textbox', {name: 'Redirect URL'}),
+        'https://webhook.com/setup'
+      );
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
 
-      wrapper.find('Switch[name="isAlertable"]').simulate('click');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        'Admin'
+      );
 
-      selectByValue(wrapper, 'admin', {name: 'Member--permission'});
-      selectByValue(wrapper, 'admin', {name: 'Event--permission'});
+      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      wrapper
-        .find('Checkbox')
-        .first()
-        .simulate('change', {target: {checked: true}});
-
-      wrapper.find('form').simulate('submit');
+      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       const data = {
         name: 'Test App',
@@ -121,26 +126,43 @@ describe('Sentry Application Details', function () {
   });
 
   describe('Creating a new internal Sentry App', () => {
-    beforeEach(() => {
-      wrapper = mountWithTheme(
+    function renderComponent() {
+      return render(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
-    });
+    }
 
     it('does not show logo upload fields', function () {
-      expect(wrapper.find('PanelHeader').at(1).text()).not.toContain('Logo');
-      expect(wrapper.find('PanelHeader').at(2).text()).not.toContain('Small Icon');
-      expect(wrapper.exists('AvatarChooser')).toBe(false);
+      renderComponent();
+
+      expect(screen.queryByText('Logo')).not.toBeInTheDocument();
+      expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
     });
 
     it('no inputs for redirectUrl and verifyInstall', () => {
-      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
-      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
+      renderComponent();
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Verify Installation'})
+      ).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByRole('textbox', {name: 'Redirect URL'})
+      ).not.toBeInTheDocument();
     });
   });
 
   describe('Renders public app', function () {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -154,38 +176,50 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('shows logo upload fields', function () {
-      expect(wrapper.find('PanelHeader').at(1).text()).toContain('Logo');
-      expect(wrapper.find('PanelHeader').at(2).text()).toContain('Small Icon');
-      expect(wrapper.find('AvatarChooser')).toHaveLength(2);
+      renderComponent();
+
+      expect(screen.getByText('Logo')).toBeInTheDocument();
+      expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
     it('has inputs for redirectUrl and verifyInstall', () => {
-      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
-      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
+      renderComponent();
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Verify Installation'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
     it('shows application data', function () {
-      // data should be filled out
-      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
-        'project:read',
-      ]);
+      renderComponent();
+
+      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
     it('renders clientId and clientSecret for public apps', function () {
-      expect(wrapper.find('#clientId').exists()).toBe(true);
-      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+      renderComponent();
+
+      expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
   });
 
   describe('Renders for internal apps', () => {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
@@ -202,36 +236,54 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('no inputs for redirectUrl and verifyInstall', () => {
-      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
-      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
+      renderComponent();
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Verify Installation'})
+      ).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByRole('textbox', {name: 'Redirect URL'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows logo upload fields', function () {
-      expect(wrapper.find('PanelHeader').at(1).text()).toContain('Logo');
-      expect(wrapper.find('PanelHeader').at(2).text()).toContain('Small Icon');
-      expect(wrapper.find('AvatarChooser')).toHaveLength(2);
+      renderComponent();
+
+      expect(screen.getByText('Logo')).toBeInTheDocument();
+      expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
     it('shows tokens', function () {
-      expect(wrapper.find('PanelHeader').at(5).text()).toContain('Tokens');
-      expect(wrapper.find('TokenItem').exists()).toBe(true);
+      renderComponent();
+
+      expect(screen.getByText('Tokens')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Token value'})).toHaveValue(
+        '123456123456123456123456-token'
+      );
     });
 
     it('shows just clientSecret', function () {
-      expect(wrapper.find('#clientSecret').exists()).toBe(true);
-      expect(wrapper.find('#clientId').exists()).toBe(false);
+      renderComponent();
+
+      expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
   });
 
   describe('Renders masked values', () => {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
@@ -249,23 +301,31 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('shows masked tokens', function () {
-      expect(wrapper.find('TextCopyInput input').first().prop('value')).toBe(maskedValue);
+      renderComponent();
+      expect(screen.getByRole('textbox', {name: 'Token value'})).toHaveValue(maskedValue);
     });
 
     it('shows masked clientSecret', function () {
-      expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
+      renderComponent();
+      expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
+        maskedValue
+      );
     });
   });
 
   describe('Editing internal app tokens', () => {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
@@ -283,12 +343,8 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
+
     it('adding token to list', async function () {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
@@ -300,12 +356,13 @@ describe('Sentry Application Details', function () {
           }),
         ],
       });
-      wrapper.find('Button[data-test-id="token-add"]').simulate('click');
-      await tick();
-      wrapper.update();
 
-      const tokenItems = wrapper.find('TokenItem');
-      expect(tokenItems).toHaveLength(2);
+      renderComponent();
+      userEvent.click(screen.getByRole('button', {name: 'New Token'}));
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('textbox', {name: 'Token value'})).toHaveLength(2);
+      });
     });
 
     it('removing token from list', async function () {
@@ -314,29 +371,35 @@ describe('Sentry Application Details', function () {
         method: 'DELETE',
         body: {},
       });
-      wrapper.find('Button[data-test-id="token-delete"]').simulate('click');
-      await tick();
-      wrapper.update();
 
-      expect(wrapper.find('EmptyMessage').exists()).toBe(true);
+      renderComponent();
+      userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
+      expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', () => {
-      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(false);
-      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(true);
-      wrapper.find('input[name="webhookUrl"]').simulate('change', {target: {value: ''}});
-      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(false);
-      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(true);
-      expect(wrapper.find(JsonForm).prop('additionalFieldProps')).toEqual({
-        webhookDisabled: true,
-      });
+      renderComponent();
+
+      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
+      userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}), '');
+      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
     });
   });
 
   describe('Editing an existing public Sentry App', () => {
+    function renderComponent() {
+      return render(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
+      sentryApp.scopes = ['project:read', 'event:read'];
 
       editAppRequest = Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
@@ -353,26 +416,22 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('updates app with correct data', function () {
-      wrapper
-        .find(redirectUrlInput)
-        .simulate('change', {target: {value: 'https://hello.com/'}});
+      renderComponent();
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
+      userEvent.paste(
+        screen.getByRole('textbox', {name: 'Redirect URL'}),
+        'https://hello.com/'
+      );
 
-      wrapper
-        .find('Checkbox')
-        .first()
-        .simulate('change', {target: {checked: false}});
+      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
 
-      wrapper.find('form').simulate('submit');
+      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+
+      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
@@ -386,17 +445,19 @@ describe('Sentry Application Details', function () {
       );
     });
 
-    it('submits with no-access for event subscription when permission is revoked', () => {
-      wrapper
-        .find('Checkbox')
-        .first()
-        .simulate('change', {target: {checked: true}});
+    it('submits with no-access for event subscription when permission is revoked', async () => {
+      renderComponent();
 
-      wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
+      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      selectByValue(wrapper, 'no-access', {name: 'Event--permission'});
+      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
 
-      wrapper.find('form').simulate('submit');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        'No Access'
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
@@ -411,6 +472,12 @@ describe('Sentry Application Details', function () {
   });
 
   describe('Editing an existing public Sentry App with a scope error', () => {
+    function renderComponent() {
+      render(<SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+    }
+
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
 
@@ -435,22 +502,18 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });
-
-      wrapper = mountWithTheme(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
-      );
     });
 
     it('renders the error', async () => {
-      wrapper.find('form').simulate('submit');
-      await tick();
-      wrapper.update();
+      renderComponent();
 
-      // Error message is displayed in a tooltip
-      expect(wrapper.find('TooltipContent').text()).toEqual(
-        "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
-      );
+      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(
+        await screen.findByText(
+          "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
+        )
+      ).toBeInTheDocument();
     });
   });
 });
