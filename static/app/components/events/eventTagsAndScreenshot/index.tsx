@@ -98,6 +98,8 @@ function EventTagsAndScreenshots({
               }
             )
           }
+          attachments={screenshots}
+          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}

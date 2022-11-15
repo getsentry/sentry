@@ -11,7 +11,7 @@ import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/cont
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {CursorHandler} from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -19,6 +19,7 @@ import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
@@ -57,6 +58,7 @@ function Modal({
   groupId,
 }: Props) {
   const api = useApi();
+  const location = useLocation();
 
   const [currentEventAttachment, setCurrentAttachment] =
     useState<EventAttachment>(eventAttachment);
@@ -103,6 +105,8 @@ function Modal({
     }
   };
 
+  const path = location.pathname;
+  const query = location.query;
   const {dateCreated, size, mimetype} = currentEventAttachment;
   const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
   const previousDisabled =
@@ -114,6 +118,45 @@ function Modal({
   return (
     <Fragment>
       <Header closeButton>{t('Screenshot')}</Header>
+      {links ? (
+        <Header>
+          <ScreenshotPagination
+            onCursor={handleCursor}
+            previousDisabled={previousDisabled}
+            nextDisabled={nextDisabled}
+            onPrevious={() => {
+              handleCursor(links.previous?.cursor, path, query, -1);
+            }}
+            onNext={() => {
+              handleCursor(links.next?.cursor, path, query, 1);
+            }}
+          />
+        </Header>
+      ) : (
+        memoizedAttachments &&
+        memoizedAttachments.length &&
+        defined(currentAttachmentIndex) && (
+          <Header>
+            <ScreenshotPagination
+              onCursor={handleCursor}
+              previousDisabled={currentAttachmentIndex === 0}
+              nextDisabled={currentAttachmentIndex === memoizedAttachments.length - 1}
+              onPrevious={() => {
+                setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
+                setCurrentAttachmentIndex(currentAttachmentIndex - 1);
+              }}
+              onNext={() => {
+                setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
+                setCurrentAttachmentIndex(currentAttachmentIndex + 1);
+              }}
+              headerText={tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
+                currentScreenshotIndex: currentAttachmentIndex + 1,
+                totalScreenshotCount: memoizedAttachments.length,
+              })}
+            />
+          </Header>
+        )
+      )}
       <Body>
         <StyledImageVisualization
           attachment={currentEventAttachment}
@@ -180,14 +223,6 @@ function Modal({
           <Button onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </Button>
-          {enablePagination && (
-            <ScreenshotPagination
-              onCursor={handleCursor}
-              pageLinks={pageLinks}
-              previousDisabled={previousDisabled}
-              nextDisabled={nextDisabled}
-            />
-          )}
         </Buttonbar>
       </Footer>
     </Fragment>
