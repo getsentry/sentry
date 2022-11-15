@@ -148,6 +148,19 @@ export type SentryAppSchemaStacktraceLink = {
   params?: Array<string>;
 };
 
+export type StacktraceLinkResult = {
+  integrations: Integration[];
+  attemptedUrl?: string;
+  config?: RepositoryProjectPathConfigWithIntegration;
+  error?: StacktraceErrorMessage;
+  sourceUrl?: string;
+};
+
+export type StacktraceErrorMessage =
+  | 'file_not_found'
+  | 'stack_root_mismatch'
+  | 'integration_link_forbidden';
+
 export type SentryAppSchemaElement =
   | SentryAppSchemaIssueLink
   | SentryAppSchemaStacktraceLink;

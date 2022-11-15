@@ -1,4 +1,4 @@
-import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import type {StacktraceErrorMessage} from 'sentry/types';
 import {PlatformType} from 'sentry/types';
 import {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
