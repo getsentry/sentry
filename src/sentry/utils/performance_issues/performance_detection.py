@@ -68,6 +68,11 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
 
+# Detector and the corresponding project options for more granular control of issue creation on a per-project basis, modifiable by users in their UI.
+DETECTOR_TYPE_ISSUE_CREATION_TO_PROJECT_OPTION_BOOLEANS = {
+    DetectorType.N_PLUS_ONE_DB_QUERIES: "sentry:performance_issue_creation_enabled_n_plus_one_db",
+}
+
 
 @dataclass
 class PerformanceProblem:
@@ -376,6 +381,21 @@ def get_allowed_issue_creation_detectors(project_id: str):
         rate = options.get(system_option)
         if rate and rate > random.random():
             allowed_detectors.add(detector_type)
+
+    for detector_type in allowed_detectors:
+        project_option_key = DETECTOR_TYPE_ISSUE_CREATION_TO_PROJECT_OPTION_BOOLEANS.get(detector_type, None)
+        if not project_option_key:
+            allowed_detectors.remove(detector_type)
+        else:
+            default_project_option = projectoptions.get_well_known_default(
+                project_option_key,
+                project=project_id,
+            )
+            allowed_on_project = ProjectOption.objects.get_value(
+                project_id, project_option_key, default_project_option
+            )
+            if not allowed_on_project:
+                allowed_detectors.remove(detector_type)
 
     return allowed_detectors
 
