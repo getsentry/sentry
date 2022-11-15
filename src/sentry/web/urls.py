@@ -459,6 +459,8 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    # Issues
+    url(r"^issues/", react_page_view, name="issues"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
     # Dashboards
@@ -468,6 +470,8 @@ urlpatterns += [
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
     url(r"^join-request/", react_page_view, name="join-request"),
+    # User Feedback
+    url(r"^user-feedback/", react_page_view, name="user-feedback"),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(
