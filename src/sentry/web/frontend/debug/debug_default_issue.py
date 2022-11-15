@@ -32,6 +32,7 @@ class DebugDefaultIssueEmailView(View):
             ("level", "error"),
             ("device", "Other"),
         ]
+        data["transaction"] = "sentry.tasks.process"
 
         event_manager = EventManager(data)
         event_manager.normalize()
