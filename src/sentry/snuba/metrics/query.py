@@ -77,6 +77,10 @@ class MetricField:
 @dataclass(frozen=True)
 class MetricActionByField:
     field: Union[str, MetricField]
+
+
+@dataclass(frozen=True)
+class MetricGroupByField(MetricActionByField):
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -88,9 +92,6 @@ class MetricActionByField:
                 alias = self.field.alias
             object.__setattr__(self, "alias", alias)
 
-
-@dataclass(frozen=True)
-class MetricGroupByField(MetricActionByField):
     @property
     def name(self) -> str:
         if isinstance(self.field, str):
@@ -219,29 +220,30 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if not self.orderby:
             return
 
-        # We filter all the fields that are strings because we don't require them for the order by validation.
-        orderby = list(filter(lambda x: isinstance(x.field, MetricField), self.orderby))
-
-        for metric_order_by_field in orderby:
-            self._validate_field(metric_order_by_field.field)
+        for metric_order_by_field in self.orderby:
+            # We filter all the fields that are strings because we don't require them for the order by validation and
+            # if they contain invalid strings, they will be catched during the snql generation.
+            if isinstance(metric_order_by_field.field, MetricField):
+                self._validate_field(metric_order_by_field.field)
 
         orderby_fields: Set[MetricField] = set()
         metric_entities: Set[MetricField] = set()
-        for metric_order_by_field in orderby:
-            orderby_fields.add(metric_order_by_field.field)
+        for metric_order_by_field in self.orderby:
+            if isinstance(metric_order_by_field.field, MetricField):
+                orderby_fields.add(metric_order_by_field.field)
 
-            # Construct a metrics expression
-            metric_field_obj = metric_object_factory(
-                metric_order_by_field.field.op, metric_order_by_field.field.metric_mri
-            )
+                # Construct a metrics expression
+                metric_field_obj = metric_object_factory(
+                    metric_order_by_field.field.op, metric_order_by_field.field.metric_mri
+                )
 
-            use_case_id = self._use_case_id(metric_order_by_field.field.metric_mri)
-            entity = metric_field_obj.get_entity(self.projects, use_case_id)
+                use_case_id = self._use_case_id(metric_order_by_field.field.metric_mri)
+                entity = metric_field_obj.get_entity(self.projects, use_case_id)
 
-            if isinstance(entity, Mapping):
-                metric_entities.update(entity.keys())
-            else:
-                metric_entities.add(entity)
+                if isinstance(entity, Mapping):
+                    metric_entities.update(entity.keys())
+                else:
+                    metric_entities.add(entity)
 
         # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:

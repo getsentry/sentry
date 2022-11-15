@@ -567,7 +567,7 @@ class SnubaQueryBuilder:
                     exp=Column(name=column_name),
                     alias=metric_action_by_field.alias,
                 )
-                if not is_column
+                if is_group_by and not is_column
                 else Column(name=column_name)
             )
 
@@ -593,7 +593,7 @@ class SnubaQueryBuilder:
                 elif is_order_by:
                     return metric_expression.generate_orderby_clause(
                         use_case_id=use_case_id,
-                        alias=metric_action_by_field.alias,
+                        alias=metric_action_by_field.field.alias,
                         params=metric_action_by_field.field.params,
                         projects=projects,
                         direction=metric_action_by_field.direction,

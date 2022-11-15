@@ -534,7 +534,7 @@ def run_sessions_query(
             # We only return the top-N groups, based on the first field that is being
             # queried, assuming that those are the most relevant to the user.
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
-            orderby = MetricOrderByField(primary_metric_field, Direction.DESC)
+            orderby = MetricOrderByField(field=primary_metric_field, direction=Direction.DESC)
 
     orderby_sequence = None
     if orderby is not None:
