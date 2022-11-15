@@ -338,6 +338,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "unit": None,
                 },
                 {
+                    "name": "transaction.failure_count",
+                    "operations": [],
+                    "type": "numeric",
+                    "unit": "transactions",
+                },
+                {
                     "name": "transaction.failure_rate",
                     "type": "numeric",
                     "operations": [],

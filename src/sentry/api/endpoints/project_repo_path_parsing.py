@@ -51,7 +51,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
     def org_id(self):
         return self.context["organization_id"]
 
-    def validate_source_url(self, source_url):
+    def validate_source_url(self, source_url: str):
         # first check to see if we are even looking at the same file
         stack_path = self.initial_data["stack_path"]
         stack_file = stack_path.split("/")[-1]
@@ -62,11 +62,11 @@ class PathMappingSerializer(CamelSnakeSerializer):
                 "Source code URL points to a different file than the stack trace"
             )
 
-        def integration_match(integration):
+        def integration_match(integration: Integration):
             return source_url.startswith("https://{}".format(integration.metadata["domain_name"]))
 
-        def repo_match(repo):
-            return source_url.startswith(repo.url)
+        def repo_match(repo: Repository):
+            return repo.url is not None and source_url.startswith(repo.url)
 
         # now find the matching integration
         integrations = Integration.objects.filter(
@@ -80,7 +80,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
         self.integration = matching_integrations[0]
 
         # now find the matching repo
-        repos = Repository.objects.filter(integration_id=self.integration.id)
+        repos = Repository.objects.filter(
+            organization_id=self.org_id, integration_id=self.integration.id, url__isnull=False
+        )
         matching_repos = list(filter(repo_match, repos))
         if not matching_repos:
             raise serializers.ValidationError("Could not find repo")
