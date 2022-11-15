@@ -115,7 +115,14 @@ function Modal({
     <Fragment>
       <Header closeButton>{t('Screenshot')}</Header>
       <Body>
-        <GeralInfo>
+        <StyledImageVisualization
+          attachment={currentEventAttachment}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          eventId={currentEventAttachment.event_id}
+        />
+
+        <GeneralInfo>
           {groupId && enablePagination && (
             <Fragment>
               <Label>{t('Event ID')}</Label>
@@ -155,14 +162,7 @@ function Modal({
 
           <Label coloredBg>{t('MIME Type')}</Label>
           <Value coloredBg>{mimetype ?? <NotAvailable />}</Value>
-        </GeralInfo>
-
-        <StyledImageVisualization
-          attachment={currentEventAttachment}
-          orgId={orgSlug}
-          projectId={projectSlug}
-          eventId={currentEventAttachment.event_id}
-        />
+        </GeneralInfo>
       </Body>
       <Footer>
         <Buttonbar gap={1}>
@@ -196,7 +196,7 @@ function Modal({
 
 export default Modal;
 
-const GeralInfo = styled('div')`
+const GeneralInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(3)};
