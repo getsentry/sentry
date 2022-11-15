@@ -8,7 +8,7 @@ describe('projectPerformance', function () {
   });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock, performanceIssuesMock;
+  let getMock, postMock, deleteMock, issuesPutMock, performanceIssuesMock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -46,6 +46,14 @@ describe('projectPerformance', function () {
     performanceIssuesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
+      body: {
+        performance_issue_creation_enabled_n_plus_one_db: true,
+      },
+      statusCode: 200,
+    });
+    issuesPutMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'PUT',
       body: {},
       statusCode: 200,
     });
@@ -105,6 +113,33 @@ describe('projectPerformance', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
+  it('updates the performance issue settings when changing a boolean field', function () {
+    const orgWithoutPerfIssues = TestStubs.Organization({
+      features: ['performance-view', 'performance-issues'],
+    });
+
+    render(
+      <ProjectPerformance
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={orgWithoutPerfIssues}
+        project={project}
+      />
+    );
+
+    const button = screen.getByRole('checkbox', {
+      name: 'Allow N+1 (db) performance issues',
+    });
+
+    userEvent.click(button);
+
+    expect(issuesPutMock).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/performance-issues/configure/',
+      expect.objectContaining({
+        data: {performance_issue_creation_enabled_n_plus_one_db: false},
+      })
+    );
+  });
+
   it('does not get performance issues settings without the feature flag', function () {
     const orgWithoutPerfIssues = TestStubs.Organization({
       features: ['performance-view'],
@@ -119,5 +154,21 @@ describe('projectPerformance', function () {
     );
 
     expect(performanceIssuesMock).not.toHaveBeenCalled();
+  });
+
+  it('gets performance issues settings with the feature flag', function () {
+    const orgWithoutPerfIssues = TestStubs.Organization({
+      features: ['performance-view', 'performance-issues'],
+    });
+
+    render(
+      <ProjectPerformance
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={orgWithoutPerfIssues}
+        project={project}
+      />
+    );
+
+    expect(performanceIssuesMock).toHaveBeenCalled();
   });
 });
