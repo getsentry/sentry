@@ -183,6 +183,14 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         isHomepage,
       });
 
+      const eventIdLink = (
+        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {value}
+          </StyledLink>
+        </Tooltip>
+      );
+
       return [
         organization.features.includes('discover-quick-context') ? (
           <QuickContextHoverWrapper
@@ -191,18 +199,10 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
             contextType={ContextType.EVENT}
             organization={organization}
           >
-            <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-              <StyledLink data-test-id="view-event" to={target}>
-                {value}
-              </StyledLink>
-            </Tooltip>
+            {eventIdLink}
           </QuickContextHoverWrapper>
         ) : (
-          <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-            <StyledLink data-test-id="view-event" to={target}>
-              {value}
-            </StyledLink>
-          </Tooltip>
+          eventIdLink
         ),
       ];
     }
