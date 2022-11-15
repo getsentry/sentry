@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -255,8 +256,9 @@ function Content({
 
 export default Content;
 
-const Wrapper = styled('div')`
+const Wrapper = styled(Panel)`
   position: relative;
+  border-top-left-radius: 0;
 `;
 
 const StyledList = styled(List)`

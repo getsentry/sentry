@@ -1,5 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -7,10 +6,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
 
-async function clickTeamKeyTransactionDropdown(wrapper) {
-  wrapper.find('Button').simulate('click');
-  await tick();
-  wrapper.update();
+async function clickTeamKeyTransactionDropdown() {
+  await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
+  userEvent.click(screen.getByRole('button'));
 }
 
 describe('TeamKeyTransactionButton', function () {
@@ -39,7 +37,7 @@ describe('TeamKeyTransactionButton', function () {
     act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
-  it('fetches key transactions with project param', async function () {
+  it('fetches key transactions with project param', function () {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -51,15 +49,13 @@ describe('TeamKeyTransactionButton', function () {
       match: [MockApiClient.matchQuery({project: [project.id], team: ['myteams']})],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
@@ -75,32 +71,22 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
     // header should show the checked state
-    expect(wrapper.find('TitleButton').exists()).toBeTruthy();
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
+    expect(screen.getByRole('checkbox', {name: 'My Teams with Access'})).toBeChecked();
 
     // all teams should be checked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    });
+    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
   });
 
   it('renders with some teams checked', async function () {
@@ -117,7 +103,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -125,25 +111,16 @@ describe('TeamKeyTransactionButton', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
     // header should show the indeterminate state
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox', {name: 'My Teams with Access'})
+    ).toBePartiallyChecked();
 
     // only team 1 should be checked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-    });
-    expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
-    expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
+    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
   });
 
   it('renders with no teams checked', async function () {
@@ -157,31 +134,24 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
     // header should show the unchecked state
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
+    expect(
+      screen.getByRole('checkbox', {name: 'My Teams with Access'})
+    ).not.toBeChecked();
 
     // all teams should be unchecked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    });
+    expect(screen.getByRole('checkbox', {name: teams[0].slug})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
   });
 
   it('should be able to check one team', async function () {
@@ -205,24 +175,17 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-    await tick();
-    wrapper.update();
-
-    const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
-    expect(checkbox.props().isChecked).toBeTruthy();
+    userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -247,24 +210,17 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-    await tick();
-    wrapper.update();
-
-    const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
-    expect(checkbox.props().isChecked).toBeFalsy();
+    userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -292,32 +248,24 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-    await tick();
-    wrapper.update();
-
-    // header should be checked now
-    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-    expect(headerCheckbox.props().isChecked).toBeTruthy();
-    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+    userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
 
     // all teams should be checked now
-    const entries = wrapper.find('DropdownMenuItem');
-    entries.forEach(entry => {
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
     });
+
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -345,31 +293,22 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-    await tick();
-    wrapper.update();
-
-    // header should be unchecked now
-    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-    expect(headerCheckbox.props().isChecked).toBeFalsy();
-    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+    userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
 
     // all teams should be unchecked now
-    const entries = wrapper.find('DropdownMenuItem');
-    entries.forEach(entry => {
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', {name: teams[0].slug})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
     });
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
@@ -389,24 +328,27 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.props().disabled).toBeTruthy();
-      expect(entry.text()).toEqual(`${teams[i].slug}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
-    });
+    expect(
+      screen.getByRole('button', {
+        name: `${teams[0].slug} Max ${MAX_TEAM_KEY_TRANSACTIONS}`,
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {
+        name: `${teams[1].slug} Max ${MAX_TEAM_KEY_TRANSACTIONS}`,
+      })
+    ).toBeInTheDocument();
   });
 
   it('renders keyed as checked even if count is maxed', async function () {
@@ -426,24 +368,17 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
       />
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await clickTeamKeyTransactionDropdown();
 
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.props().disabled).toBeFalsy();
-      expect(entry.text()).toEqual(teams[i].slug);
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    });
+    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
   });
 });
