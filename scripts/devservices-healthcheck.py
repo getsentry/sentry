@@ -75,7 +75,10 @@ async def main():
         # Postgres check runs always
         run_cmd(postgres_healthcheck),
         # Kafka check is run only if the kafka needed
-        run_cmd(kafka_healthcheck, run=True if os.getenv("NEED_KAFKA") else False),
+        run_cmd(
+            kafka_healthcheck,
+            run=True if os.getenv("NEED_KAFKA") and os.getenv("NEED_KAFKA") == "true" else False,
+        ),
     )
 
     failed = [c for (r, c) in filter(lambda r: r[0] != 0, results)]
