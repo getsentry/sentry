@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -39,6 +40,7 @@ type Props = {
     transform?: ChartDataTransform;
   }) => void;
   organization: Organization;
+  projectIds: number[];
   chartTransform?: string;
 } & AsyncComponent['props'];
 
@@ -48,14 +50,15 @@ type State = {
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime} = prevProps;
-    const {dataDatetime: currDateTime} = this.props;
+    const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
+    const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
-      prevDateTime.utc !== currDateTime.utc
+      prevDateTime.utc !== currDateTime.utc ||
+      !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }
@@ -71,7 +74,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime} = this.props;
+    const {dataDatetime, projectIds} = this.props;
 
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
@@ -88,6 +91,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
+      project: projectIds,
       field: ['sum(quantity)'],
     };
   }
@@ -399,7 +403,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     const hasError = error || !!dataError;
     const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
-
     return (
       <UsageChart
         isLoading={loading}
