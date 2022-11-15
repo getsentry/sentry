@@ -2285,7 +2285,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         created_group = tx.groups[0]
 
         find_group = Group.objects.filter(
-            Q(type=GroupType.PERFORMANCE_SLOW_SPAN.value) & Q(message__icontains="tea")
+            Q(type=GroupType.PERFORMANCE_SLOW_SPAN.value, message__icontains="tea")
         ).first()
 
         assert created_group == find_group
