@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
-
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import useLazyLoad from 'sentry/components/useLazyLoad';
 import {t} from 'sentry/locale';
 
 interface ProfilingOnboardingPanelProps {
@@ -11,8 +10,13 @@ interface ProfilingOnboardingPanelProps {
 }
 
 export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
+  const src = useLazyLoad({
+    loader: async () =>
+      (await import('sentry-images/spot/performance-empty-state.svg')).default,
+  });
+
   return (
-    <OnboardingPanel image={<AlertsImage src={emptyStateImg} />}>
+    <OnboardingPanel image={<AlertsImage src={src} />}>
       <h3>{t('Function level insights')}</h3>
       <p>
         {t(

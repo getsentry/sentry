@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
-
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import useLazyLoad from 'sentry/components/useLazyLoad';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -11,8 +10,13 @@ type Props = {
 };
 
 function Onboarding({actions}: Props) {
+  const src = useLazyLoad({
+    loader: async () =>
+      (await import('sentry-images/spot/alerts-empty-state.svg')).default,
+  });
+
   return (
-    <OnboardingPanel image={<AlertsImage src={emptyStateImg} />}>
+    <OnboardingPanel image={<AlertsImage src={src} />}>
       <h3>{t('More signal, less noise')}</h3>
       <p>
         {t(

@@ -2,12 +2,11 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
-
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import useLazyLoad from 'sentry/components/useLazyLoad';
 import {t} from 'sentry/locale';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,6 +20,11 @@ export function UserFeedbackEmpty({projectIds}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
+
+  const emptyStateImg = useLazyLoad({
+    loader: async () =>
+      (await import('sentry-images/spot/feedback-empty-state.svg')).default,
+  });
 
   const selectedProjects =
     projectIds && projectIds.length

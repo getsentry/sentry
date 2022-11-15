@@ -4,8 +4,6 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
 import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -18,6 +16,7 @@ import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
+import useLazyLoad from 'sentry/components/useLazyLoad';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -150,21 +149,32 @@ class Monitors extends AsyncView<Props, State> {
                 )}
               </Fragment>
             ) : (
-              <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Monitor your recurring jobs')}</h3>
-                <p>
-                  {t(
-                    'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
-                  )}
-                </p>
-                <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
-              </OnboardingPanel>
+              <MonitorsOnboardingPanel />
             )}
           </Layout.Main>
         </Layout.Body>
       </Fragment>
     );
   }
+}
+
+function MonitorsOnboardingPanel() {
+  const src = useLazyLoad({
+    loader: async () =>
+      (await import('sentry-images/spot/onboarding-preview.svg')).default,
+  });
+
+  return (
+    <OnboardingPanel image={<img src={src} />}>
+      <h3>{t('Monitor your recurring jobs')}</h3>
+      <p>
+        {t(
+          'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
+        )}
+      </p>
+      <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
+    </OnboardingPanel>
+  );
 }
 
 const HeaderTitle = styled(Layout.Title)`

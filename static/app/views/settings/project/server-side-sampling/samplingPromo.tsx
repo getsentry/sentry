@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
-import onboardingServerSideSampling from 'sentry-images/spot/onboarding-server-side-sampling.svg';
-
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import useLazyLoad from 'sentry/components/useLazyLoad';
 import {t} from 'sentry/locale';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
@@ -16,8 +15,13 @@ type Props = {
 };
 
 export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
+  const src = useLazyLoad({
+    loader: async () =>
+      (await import('sentry-images/spot/onboarding-server-side-sampling.svg')).default,
+  });
+
   return (
-    <OnboardingPanel image={<img src={onboardingServerSideSampling} />}>
+    <OnboardingPanel image={<img src={src} />}>
       <h3>{t('Sample for relevancy')}</h3>
       <Paragraph>
         {t(
