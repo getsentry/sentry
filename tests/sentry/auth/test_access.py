@@ -653,6 +653,22 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
+@all_silo_test(stable=True)
+class SystemAccessTest(TestCase):
+    def test_system_access(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team])
+        result = access.SystemAccess()
+        assert not result.sso_is_valid
+        assert not result.requires_sso
+        assert result.has_project_access(project)
+        assert result.has_any_project_scope(project, "project:read")
+        assert not result.has_team_membership(team)
+        assert result.has_scope("project:read")
+        assert result.has_team_access(team)
+
+
 @no_silo_test(stable=True)
 class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):

@@ -720,7 +720,10 @@ class OrganizationlessAccess(Access):
         return None
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
-        return False
+        if not self.has_project_access(project):
+            return False
+
+        return any(self.has_scope(scope) for scope in scopes)
 
 
 class SystemAccess(OrganizationlessAccess):
@@ -750,7 +753,6 @@ class SystemAccess(OrganizationlessAccess):
     # The semantically correct behavior for accessible_(team|project)_ids would be to
     # query for all teams or projects in the system, which we don't want to attempt.
     # Code paths that may have SystemAccess must avoid looking at these properties.
-
     @property
     def accessible_team_ids(self) -> FrozenSet[int]:
         return frozenset()
