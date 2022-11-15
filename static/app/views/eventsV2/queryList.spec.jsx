@@ -1,7 +1,6 @@
 import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
-import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
