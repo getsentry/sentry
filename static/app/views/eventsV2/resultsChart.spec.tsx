@@ -1,10 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
 import ResultsChart from 'sentry/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
@@ -14,26 +12,28 @@ describe('EventsV2 > ResultsChart', function () {
     pathname: '/',
   });
 
-  let organization, eventView, initialData;
+  const organization = TestStubs.Organization({
+    features,
+    projects: [TestStubs.Project()],
+  });
+
+  const initialData = initializeOrg({
+    organization,
+    router: {
+      location,
+    },
+    project: 1,
+    projects: [],
+  });
+
+  const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
-      features,
-      projects: [TestStubs.Project()],
-    });
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location,
-      },
-      project: 1,
-      projects: [],
-    });
-    eventView = EventView.fromSavedQueryOrLocation(undefined, location);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -41,7 +41,7 @@ describe('EventsV2 > ResultsChart', function () {
   });
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ResultsChart
         router={TestStubs.router()}
         disableProcessedBaselineToggle
@@ -58,25 +58,27 @@ describe('EventsV2 > ResultsChart', function () {
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    const displayOptions = wrapper.find('ChartFooter').props().displayOptions;
-    displayOptions.forEach(({value, disabled}) => {
+
+    userEvent.click(screen.getByText(/Display/));
+
+    DISPLAY_MODE_OPTIONS.forEach(({value, label}) => {
       if (
-        ![
+        [
           DisplayModes.DEFAULT,
           DisplayModes.DAILY,
           DisplayModes.PREVIOUS,
           DisplayModes.BAR,
-        ].includes(value)
+        ].includes(value as DisplayModes)
       ) {
-        expect(disabled).toBe(true);
+        expect(screen.getByRole('menuitemradio', {name: String(label)})).toBeEnabled();
       }
     });
   });
 
   it('does not display a chart if no y axis is selected', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ResultsChart
         router={TestStubs.router()}
         disableProcessedBaselineToggle
@@ -93,11 +95,10 @@ describe('EventsV2 > ResultsChart', function () {
         yAxis={[]}
         onTopEventsChange={() => {}}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    expect(wrapper.find('NoChartContainer').children().children().html()).toEqual(
-      t('No Y-Axis selected.')
-    );
+
+    expect(screen.getByText(/No Y-Axis selected/)).toBeInTheDocument();
   });
 
   it('disables equation y-axis options when in World Map display mode', async function () {
@@ -113,7 +114,7 @@ describe('EventsV2 > ResultsChart', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ResultsChart
         router={TestStubs.router()}
         disableProcessedBaselineToggle
@@ -130,14 +131,16 @@ describe('EventsV2 > ResultsChart', function () {
         yAxis={['count()']}
         onTopEventsChange={() => {}}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
-    expect(yAxisOptions.length).toEqual(2);
-    expect(yAxisOptions[0].value).toEqual('count()');
-    expect(yAxisOptions[1].value).toEqual('count_unique(user)');
 
-    // Wait for event geo request results to preopgate to update
-    await act(tick);
+    userEvent.click(await screen.findByText(/Y-Axis/));
+
+    expect(screen.getAllByRole('menuitemcheckbox')).toHaveLength(2);
+
+    expect(screen.getByRole('menuitemcheckbox', {name: 'count()'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemcheckbox', {name: 'count_unique(user)'})
+    ).toBeEnabled();
   });
 });
