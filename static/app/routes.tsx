@@ -187,9 +187,19 @@ function buildRoutes() {
         path="/organizations/:orgId/data-export/:dataExportId"
         component={make(() => import('sentry/views/dataExport/dataDownload'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/disabled-member/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/disabledMember'))
+          )}
+          key="orgless-disabled-member-route"
+        />
+      ) : null}
       <Route
         path="/organizations/:orgId/disabled-member/"
-        component={make(() => import('sentry/views/disabledMember'))}
+        component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
+        key="org-disabled-member"
       />
       {usingCustomerDomain ? (
         <Route
@@ -609,12 +619,23 @@ function buildRoutes() {
       )}
     >
       {hook('routes:organization')}
-      <IndexRoute
-        name={t('General')}
-        component={make(
-          () => import('sentry/views/settings/organizationGeneralSettings')
-        )}
-      />
+      {usingCustomerDomain ? null : (
+        <IndexRoute
+          name={t('General')}
+          component={make(
+            () => import('sentry/views/settings/organizationGeneralSettings')
+          )}
+        />
+      )}
+      {usingCustomerDomain ? (
+        <Route
+          path="/settings/organization/"
+          name={t('General')}
+          component={make(
+            () => import('sentry/views/settings/organizationGeneralSettings')
+          )}
+        />
+      ) : null}
       <Route
         path="projects/"
         name={t('Projects')}
@@ -893,11 +914,37 @@ function buildRoutes() {
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
-      <Route path=":orgId/" name={t('Organization')}>
-        {orgSettingsRoutes}
-        {projectSettingsRoutes}
-        {legacySettingsRedirects}
-      </Route>
+      <Fragment>
+        {usingCustomerDomain ? (
+          <Route
+            name={t('Organization')}
+            component={withDomainRequired(NoOp)}
+            key="orgless-settings-route"
+          >
+            {orgSettingsRoutes}
+            {projectSettingsRoutes}
+          </Route>
+        ) : null}
+        <Route
+          path=":orgId/"
+          name={t('Organization')}
+          component={withDomainRedirect(NoOp, {
+            redirect: [
+              {
+                // If /settings/:orgId/ is encountered, then redirect to /settings/organization/ rather than redirecting
+                // to /settings/.
+                from: '/settings/:orgId/',
+                to: '/settings/organization/',
+              },
+            ],
+          })}
+          key="org-settings"
+        >
+          {orgSettingsRoutes}
+          {projectSettingsRoutes}
+          {legacySettingsRedirects}
+        </Route>
+      </Fragment>
     </Route>
   );
 
