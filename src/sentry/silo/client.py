@@ -88,3 +88,8 @@ class ControlSiloClient(BaseSiloClient):
     def __init__(self) -> None:
         super().__init__()
         self.base_url = settings.SENTRY_CONTROL_ADDRESS
+
+
+def is_valid_cross_silo_request(request):
+    # TODO: Actually validate API Requests made across the silo through shared secrets or something
+    return SiloMode.get_current_mode() in [SiloMode.CONTROL, SiloMode.REGION]

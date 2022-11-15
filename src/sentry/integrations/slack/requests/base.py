@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.models import Identity, IdentityProvider, Integration, User
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo.client import is_valid_cross_silo_request
 
 from ..utils import check_signing_secret, logger
 
@@ -150,6 +151,10 @@ class SlackRequest:
             if self._check_signing_secret(signing_secret):
                 return
         elif verification_token and self._check_verification_token(verification_token):
+            return
+
+        # If Slack verification fails, check Sentry verification
+        if is_valid_cross_silo_request(self.request):
             return
 
         # unfortunately, we can't know which auth was supposed to succeed
