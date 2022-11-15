@@ -4,10 +4,12 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
-  // /organizations/slug/section
-  [/\/?organizations\/[^\/]+\/(.*)/, '/$1'],
+  // /organizations/slug/section, but not /organizations/new
+  [/\/?organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // /settings/slug/section but not /settings/organization
   [/\/?settings\/[^\/]+\/(.*)/, '/settings/$1'],
+  [/\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
+  [/\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
 ];
 
 type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;

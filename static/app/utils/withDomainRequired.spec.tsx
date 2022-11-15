@@ -7,6 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 describe('normalizeUrl', function () {
+  let result;
   beforeEach(function () {
     window.__initialData = {
       customerDomain: {
@@ -19,22 +20,28 @@ describe('normalizeUrl', function () {
 
   it('replaces paths in strings', function () {
     const location = TestStubs.location();
-    let result = normalizeUrl('/settings/organization', location);
-    expect(result).toEqual('/settings/organization');
-
-    result = normalizeUrl('/settings/sentry/members', location);
-    expect(result).toEqual('/settings/members');
-
-    result = normalizeUrl('/organizations/albertos-apples/issues', location);
-    expect(result).toEqual('/issues');
-
-    result = normalizeUrl('/organizations/albertos-apples/issues?_q=all', location);
-    expect(result).toEqual('/issues?_q=all');
+    const cases = [
+      // input, expected
+      ['/settings/organization', '/settings/organization'],
+      ['/organizations/new', '/organizations/new'],
+      ['/organizations/new/', '/organizations/new/'],
+      ['/join-request/acme', '/join-request/'],
+      ['/join-request/acme/', '/join-request/'],
+      ['/onboarding/acme/', '/onboarding/'],
+      ['/onboarding/acme/project/', '/onboarding/project/'],
+      ['/settings/sentry/members/', '/settings/members/'],
+      ['/organizations/albertos-apples/issues/', '/issues/'],
+      ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
+    ];
+    for (const scenario of cases) {
+      result = normalizeUrl(scenario[0], location);
+      expect(result).toEqual(scenario[1]);
+    }
   });
 
   it('replaces pathname in objects', function () {
     const location = TestStubs.location();
-    let result = normalizeUrl({pathname: '/settings/organization'}, location);
+    result = normalizeUrl({pathname: '/settings/organization'}, location);
     // @ts-ignore
     expect(result.pathname).toEqual('/settings/organization');
 
@@ -62,7 +69,7 @@ describe('normalizeUrl', function () {
     function objectCallback(_loc: Location): LocationDescriptorObject {
       return {pathname: '/settings/organization'};
     }
-    let result = normalizeUrl(objectCallback, location);
+    result = normalizeUrl(objectCallback, location);
     // @ts-ignore
     expect(result.pathname).toEqual('/settings/organization');
 
