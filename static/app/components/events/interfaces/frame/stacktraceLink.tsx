@@ -12,13 +12,12 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {
+  Event,
   Frame,
-  Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfigWithIntegration,
+  StacktraceLinkResult,
 } from 'sentry/types';
-import type {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -41,23 +40,9 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 };
 
-export type StacktraceErrorMessage =
-  | 'file_not_found'
-  | 'stack_root_mismatch'
-  | 'integration_link_forbidden';
-
-// format of the ProjectStacktraceLinkEndpoint response
-type StacktraceResultItem = {
-  integrations: Integration[];
-  attemptedUrl?: string;
-  config?: RepositoryProjectPathConfigWithIntegration;
-  error?: StacktraceErrorMessage;
-  sourceUrl?: string;
-};
-
 type State = AsyncComponent['state'] & {
   isDismissed: boolean;
-  match: StacktraceResultItem;
+  match: StacktraceLinkResult;
   promptLoaded: boolean;
 };
 
@@ -136,7 +121,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
-  onRequestSuccess(resp: {data: StacktraceResultItem; stateKey: 'match'}) {
+  onRequestSuccess(resp: {data: StacktraceLinkResult; stateKey: 'match'}) {
     const {config, sourceUrl} = resp.data;
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
