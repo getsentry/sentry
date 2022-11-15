@@ -2772,6 +2772,29 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     "backoff_timer": 5 * 60,
 }
 
+# Tunable knobs for automatic LPQ eligibility.
+# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
+# This sampling rate needs to be considered when tuning any of the cutoff rates.
+SENTRY_LPQ_OPTIONS = {
+    # The period that is considered for "recent events".
+    # Has to be a multiple of `counter_bucket_size` above.
+    "recent_event_period": 60,
+    # The minimum rate of events *per second* a project needs to have
+    # in the `recent_event_period` to be eligible for the LPQ.
+    "min_recent_event_rate": 50,
+    # A project is considered for the LPQ if the recent event rate
+    # (as defined in `recent_event_period`) is a multiple of the average event
+    # rate (as defined in `counter_time_window` above).
+    "recent_event_multiple": 5,
+    # The minimum rate of events *per minute* a project needs to have
+    # in the `duration_time_window` to be eligible for the LPQ.
+    "min_events_per_minute": 15,
+    # A project is considered for the LPQ if the p75 event processing time
+    # exceeds configured value.
+    # This consideres events that *finished* during the last `duration_time_window`.
+    "min_p75_duration": 6 * 60,
+}
+
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
