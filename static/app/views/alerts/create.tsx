@@ -73,10 +73,9 @@ class Create extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
 
     this.props.setRouteAnalyticsParams({
-      organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
