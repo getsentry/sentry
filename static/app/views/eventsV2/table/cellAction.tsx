@@ -452,6 +452,7 @@ class CellAction extends Component<Props, State> {
       <Container
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
+        data-test-id="cell-action-container"
       >
         {children}
         {isHovering && this.renderMenu()}
