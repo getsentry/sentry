@@ -5,11 +5,11 @@ from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 
 from sentry.conf.server import (
+    KAFKA_CLUSTERS,
     KAFKA_SNUBA_GENERIC_METRICS,
     SENTRY_SLICING_CONFIG,
     SENTRY_SLICING_LOGICAL_PARTITION_COUNT,
-    SLICED_KAFKA_BROKER_CONFIG,
-    SLICED_KAFKA_TOPIC_MAP,
+    SLICED_KAFKA_TOPICS,
 )
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.consumers.indexer.slicing_router import (
@@ -40,22 +40,26 @@ def metrics_message(org_id: int) -> Message[RoutingPayload]:
 @pytest.fixture
 def setup_slicing(monkeypatch) -> None:
     monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "generic_metrics_sets", {(0, 128): 0, (128, 256): 1}  # type: ignore
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 0), "sliced_topic_0"  # type: ignore
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 1), "sliced_topic_1"  # type: ignore
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_BROKER_CONFIG,  # type: ignore
+        SLICED_KAFKA_TOPICS,  # type: ignore
         (KAFKA_SNUBA_GENERIC_METRICS, 0),
+        {"topic": "sliced_topic_0", "cluster": "sliceable_0"},
+    )
+    monkeypatch.setitem(
+        SLICED_KAFKA_TOPICS,  # type: ignore
+        (KAFKA_SNUBA_GENERIC_METRICS, 1),
+        {"topic": "sliced_topic_1", "cluster": "sliceable_1"},
+    )
+    monkeypatch.setitem(
+        KAFKA_CLUSTERS,
+        "sliceable_0",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_BROKER_CONFIG,  # type: ignore
-        (KAFKA_SNUBA_GENERIC_METRICS, 1),
+        KAFKA_CLUSTERS,
+        "sliceable_1",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
 
@@ -67,7 +71,7 @@ def test_with_slicing(metrics_message, setup_slicing) -> None:
     based on the org_id header.
     """
     org_id = metrics_message.payload.routing_header.get("org_id")
-    router = SlicingRouter("generic_metrics_sets")
+    router = SlicingRouter("sliceable")
     route = router.get_route_for_message(metrics_message)
     if int(org_id) % SENTRY_SLICING_LOGICAL_PARTITION_COUNT < 128:
         assert route.topic.name == "sliced_topic_0"
@@ -97,7 +101,7 @@ def test_with_no_org_in_routing_header(setup_slicing) -> None:
         timestamp=datetime.now(),
     )
     assert message.payload.routing_header.get("org_id") is None
-    router = SlicingRouter("generic_metrics_sets")
+    router = SlicingRouter("sliceable")
     with pytest.raises(MissingOrgInRoutingHeader):
         _ = router.get_route_for_message(message)
 
@@ -111,14 +115,18 @@ def test_with_misconfiguration(metrics_message, monkeypatch):
     messages should be routed to the logical topic.
     """
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 0), "sliced_topic_0"  # type: ignore
+        SLICED_KAFKA_TOPICS,  # type: ignore
+        (KAFKA_SNUBA_GENERIC_METRICS, 0),
+        {"topic": "sliced_topic_0"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 1), "sliced_topic_1"  # type: ignore
+        SLICED_KAFKA_TOPICS,  # type: ignore
+        (KAFKA_SNUBA_GENERIC_METRICS, 1),
+        {"topic": "sliced_topic_1"},
     )
 
     with pytest.raises(SlicingConfigurationException):
-        _ = SlicingRouter("generic_metrics_sets")
+        _ = SlicingRouter("sliceable")
 
 
 def test_validate_slicing_consumer_config(monkeypatch) -> None:
@@ -128,33 +136,41 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
     with pytest.raises(
         SlicingConfigurationException, match=r"not defined in settings.SENTRY_SLICING_CONFIG"
     ):
-        _validate_slicing_consumer_config("generic_metrics_sets")
+        _validate_slicing_consumer_config("sliceable")
 
+    # Let the check for slicing config pass
     monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "generic_metrics_sets", {(0, 128): 0, (128, 256): 1}  # type: ignore
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
     )
 
+    # Create the sliced kafka topics but omit defining the broker config in
+    # KAFKA_CLUSTERS
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 0), "sliced_topic_0"  # type: ignore
+        SLICED_KAFKA_TOPICS,  # type: ignore
+        ("sliceable", 0),
+        {"topic": "sliced_topic_0", "cluster": "sliceable_0"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 1), "sliced_topic_1"  # type: ignore
+        SLICED_KAFKA_TOPICS,  # type: ignore
+        ("sliceable", 1),
+        {"topic": "sliced_topic_1", "cluster": "sliceable_1"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_BROKER_CONFIG,  # type: ignore
-        (KAFKA_SNUBA_GENERIC_METRICS, 0),
+        KAFKA_CLUSTERS,  # type: ignore
+        "sliceable_0",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
-    with pytest.raises(SlicingConfigurationException, match=r"missing topic definition"):
-        _validate_slicing_consumer_config("generic_metrics_sets")
+    with pytest.raises(SlicingConfigurationException, match=r"Broker configuration missing"):
+        _validate_slicing_consumer_config("sliceable")
 
+    # Now add the broker config for the second slice
     monkeypatch.setitem(
-        SLICED_KAFKA_BROKER_CONFIG,  # type: ignore
-        (KAFKA_SNUBA_GENERIC_METRICS, 1),
+        KAFKA_CLUSTERS,  # type: ignore
+        "sliceable_1",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
 
     try:
-        _validate_slicing_consumer_config("generic_metrics_sets")
+        _validate_slicing_consumer_config("sliceable")
     except SlicingConfigurationException as e:
         assert False, f"Should not raise exception: {e}"

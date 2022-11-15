@@ -15,6 +15,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRouter,
     RoutingPayload,
 )
+from sentry.utils import kafka_config
 
 
 class SlicingConfigurationException(Exception):
@@ -35,13 +36,25 @@ def _validate_slicing_consumer_config(sliceable: Sliceable) -> None:
     """
     if not is_sliced(sliceable):
         raise SlicingConfigurationException(
-            f"{sliceable} is not " f"defined in settings.SENTRY_SLICING_CONFIG"
+            f"{sliceable} is not defined in settings.SENTRY_SLICING_CONFIG"
         )
 
-    for topic_tuple in settings.SLICED_KAFKA_TOPIC_MAP.keys():
-        if topic_tuple not in settings.SLICED_KAFKA_BROKER_CONFIG.keys():
+    for (current_sliceable, slice_id), configuration in settings.SLICED_KAFKA_TOPICS.items():
+        if current_sliceable != sliceable:
+            continue
+
+        if "topic" not in configuration:
             raise SlicingConfigurationException(
-                f"missing topic definition " f"{topic_tuple} in settings.SLICED_KAFKA_BROKER_CONFIG"
+                f"({current_sliceable}, {slice_id}) is missing a topic name."
+            )
+        if "cluster" not in configuration:
+            raise SlicingConfigurationException(
+                f"({current_sliceable}, {slice_id}) is missing a cluster name."
+            )
+        cluster = configuration["cluster"]
+        if cluster not in settings.KAFKA_CLUSTERS:
+            raise SlicingConfigurationException(
+                f"Broker configuration missing for {cluster} in settings.KAFKA_CLUSTERS"
             )
 
 
@@ -61,12 +74,12 @@ class SlicingRouter(MessageRouter):
         for (
             current_sliceable,
             current_slice_id,
-        ), topic_name in settings.SLICED_KAFKA_TOPIC_MAP.items():
+        ), configuration in settings.SLICED_KAFKA_TOPICS.items():
             self.__slice_to_producer[current_slice_id] = MessageRoute(
                 producer=Producer(
-                    settings.SLICED_KAFKA_BROKER_CONFIG[(current_sliceable, current_slice_id)]
+                    kafka_config.get_kafka_producer_cluster_options(configuration["cluster"])
                 ),
-                topic=Topic(topic_name),
+                topic=Topic(configuration["topic"]),
             )
         assert len(self.__slice_to_producer) == len(
             settings.SENTRY_SLICING_CONFIG[sliceable].keys()
