@@ -146,15 +146,10 @@ def test_is_custom_measurement(parsed_mri, expected):
     assert is_custom_measurement(parsed_mri) == expected
 
 
-def test_is_private_mri():
+@pytest.mark.parametrize("mri", (list(TransactionMRI) + list(SessionMRI)))
+def test_is_private_mri(mri):
     create_name_mapping_layers()
 
-    all_mris = list(TransactionMRI) + list(SessionMRI)
     public_mris = set(MRI_TO_NAME.keys())
-
-    for mri in all_mris:
-        expected_private = True
-        if mri.value in public_mris:
-            expected_private = False
-
-        assert is_private_mri(mri) == expected_private
+    expected_private = False if mri.value in public_mris else True
+    assert is_private_mri(mri) == expected_private
