@@ -2775,6 +2775,19 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 # Tunable knobs for automatic LPQ eligibility.
 # The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
 # This sampling rate needs to be considered when tuning any of the cutoff rates.
+#
+# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
+# event processing times.
+#
+# A project is eligible for the LPQ based on event rate if
+# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
+# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
+# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+#
+# A project is eligible for the LPQ based on processing duration if it averages more than
+# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
+# of event processing durations in that window exceeds `min_p75_duration` seconds. See
+# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
 SENTRY_LPQ_OPTIONS = {
     # The period that is considered for "recent events".
     # Has to be a multiple of `counter_bucket_size` above.
@@ -2782,16 +2795,15 @@ SENTRY_LPQ_OPTIONS = {
     # The minimum rate of events *per second* a project needs to have
     # in the `recent_event_period` to be eligible for the LPQ.
     "min_recent_event_rate": 50,
-    # A project is considered for the LPQ if the recent event rate
-    # (as defined in `recent_event_period`) is a multiple of the average event
-    # rate (as defined in `counter_time_window` above).
+    # The ratio of recent event rate over average event rate above which a project is eligible
+    # for the LPQ.
     "recent_event_multiple": 5,
     # The minimum rate of events *per minute* a project needs to have
     # in the `duration_time_window` to be eligible for the LPQ.
     "min_events_per_minute": 15,
     # A project is considered for the LPQ if the p75 event processing time
     # exceeds configured value.
-    # This consideres events that *finished* during the last `duration_time_window`.
+    # This considers events that *finished* during the last `duration_time_window`.
     "min_p75_duration": 6 * 60,
 }
 
