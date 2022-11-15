@@ -458,6 +458,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project2.id,
                 replay1_id,
+                error_ids=[uuid.uuid4().hex, uuid.uuid4().hex],
                 platform="b",
                 dist="b",
                 user_id="b",
@@ -508,6 +509,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay2_id,
+                error_ids=[uuid.uuid4().hex],
                 platform="a",
                 dist="a",
                 user_id="a",
@@ -569,6 +571,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.id",
                 "user.name",
                 "user.email",
+                "activity",
             ]
 
             for key in queries:
