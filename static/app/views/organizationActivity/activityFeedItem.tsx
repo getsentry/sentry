@@ -79,7 +79,6 @@ class ActivityItem extends Component<Props, State> {
 
     const issueLink = issue ? (
       <IssueLink
-        orgId={orgId}
         issue={issue}
         to={`${basePath}${issue.id}/?referrer=activity-feed-issue-link`}
         card
@@ -97,7 +96,6 @@ class ActivityItem extends Component<Props, State> {
           issue: (
             <IssueLink
               card
-              orgId={orgId}
               issue={issue}
               to={`${basePath}${issue.id}/activity/?referrer=activity-comment#event_${item.id}`}
             >
