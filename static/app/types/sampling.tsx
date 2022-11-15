@@ -147,6 +147,7 @@ export type UniformModalsSubmit = (props: {
 export enum DynamicSamplingBiasType {
   BOOST_ENVIRONMENTS = 'boostEnvironments',
   BOOST_LATEST_RELEASES = 'boostLatestRelease',
+  BOOST_KEY_TRANSACTION = 'boostKeyTransaction',
   IGNORE_HEALTH_CHECKS = 'ignoreHealthChecks',
 }
 

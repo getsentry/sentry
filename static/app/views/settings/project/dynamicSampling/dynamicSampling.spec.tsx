@@ -15,6 +15,7 @@ const ORG_FEATURES = [
 const dynamicSamplingBiases = [
   {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
   {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+  {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTION, active: true},
   {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
 ];
 
@@ -52,7 +53,7 @@ describe('Dynamic Sampling', function () {
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
 
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
 
     expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
 
@@ -69,6 +70,13 @@ describe('Dynamic Sampling', function () {
 
     expect(prioritizeDevEnvironments).toBeEnabled();
     expect(prioritizeDevEnvironments).toBeChecked();
+
+    const prioritizeKeyTransactions = screen.getByRole('checkbox', {
+      name: 'Prioritize key transactions',
+    });
+
+    expect(prioritizeKeyTransactions).toBeEnabled();
+    expect(prioritizeKeyTransactions).toBeChecked();
 
     const ignoreHealthChecks = screen.getByRole('checkbox', {
       name: 'Ignore health checks',
@@ -121,6 +129,13 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeDevEnvironments).toBeDisabled();
     expect(prioritizeDevEnvironments).toBeChecked();
 
+    const prioritizeKeyTransactions = screen.getByRole('checkbox', {
+      name: 'Prioritize key transactions',
+    });
+
+    expect(prioritizeKeyTransactions).toBeDisabled();
+    expect(prioritizeKeyTransactions).toBeChecked();
+
     const ignoreHealthChecks = screen.getByRole('checkbox', {
       name: 'Ignore health checks',
     });
@@ -156,6 +171,7 @@ describe('Dynamic Sampling', function () {
           dynamicSamplingBiases: [
             {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTION, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
           ],
         },

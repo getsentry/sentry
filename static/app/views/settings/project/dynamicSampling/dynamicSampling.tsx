@@ -42,6 +42,10 @@ const knowBiases = {
     label: t('Prioritize dev environments'),
     help: t('Captures more traces from environments that contain “dev” and “test”'),
   },
+  [DynamicSamplingBiasType.BOOST_KEY_TRANSACTION]: {
+    label: t('Prioritize key transactions'),
+    help: t('Captures your most important transactions'),
+  },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
     label: t('Ignore health checks'),
     help: t('Discards your health checks transactions'),
