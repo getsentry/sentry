@@ -7,9 +7,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
@@ -30,12 +32,13 @@ type RouteParams = {
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  hasMetricAlerts: boolean;
-  members: Member[] | undefined;
-  organization: Organization;
-  project: Project;
-};
+type Props = RouteComponentProps<RouteParams, {}> &
+  WithRouteAnalyticsProps & {
+    hasMetricAlerts: boolean;
+    members: Member[] | undefined;
+    organization: Organization;
+    project: Project;
+  };
 
 type State = {
   alertType: AlertRuleType;
@@ -70,16 +73,16 @@ class Create extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
 
-    trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
-      organization,
+    this.props.setRouteAnalyticsParams({
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
       duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
       wizard_v3: 'true',
     });
+    this.props.setEventNames('new_alert_rule.viewed', 'New Alert Rule: Viewed');
   }
 
   /** Used to track analytics within one visit to the creation page */
@@ -199,4 +202,4 @@ const Body = styled(Layout.Body)`
   }
 `;
 
-export default Create;
+export default withRouteAnalytics(Create);
