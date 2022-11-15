@@ -24,6 +24,7 @@ class ApiSentryApp:
     name: str = ""
     slug: str = ""
     uuid: str = ""
+    events: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -41,6 +42,14 @@ class AppService(InterfaceWithLifecycle):
     ) -> ApiSentryAppInstallation | None:
         pass
 
+    @abc.abstractmethod
+    def get_installed_for_organization(
+        self,
+        *,
+        organization_id: int,
+    ) -> List[ApiSentryAppInstallation]:
+        pass
+
     def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
         return ApiSentryApp(
             id=app.id,
@@ -51,6 +60,7 @@ class AppService(InterfaceWithLifecycle):
             name=app.name,
             slug=app.slug,
             uuid=app.uuid,
+            events=app.events,
         )
 
     def serialize_sentry_app_installation(
@@ -68,6 +78,14 @@ class AppService(InterfaceWithLifecycle):
 
 
 class DatabaseBackedAppService(AppService):
+    def get_installed_for_organization(
+        self, *, organization_id: int
+    ) -> List[ApiSentryAppInstallation]:
+        installations = SentryAppInstallation.objects.get_installed_for_organization(
+            organization_id
+        ).select_related("sentry_app")
+        return [self.serialize_sentry_app_installation(i, i.sentry_app) for i in installations]
+
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
     ) -> ApiSentryAppInstallation | None:
@@ -93,8 +111,8 @@ StubAppService = CreateStubFromBase(DatabaseBackedAppService)
 
 app_service: AppService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: DatabaseBackedAppService,
-        SiloMode.CONTROL: DatabaseBackedAppService,
-        SiloMode.REGION: StubAppService,
+        SiloMode.MONOLITH: lambda: DatabaseBackedAppService(),
+        SiloMode.CONTROL: lambda: DatabaseBackedAppService(),
+        SiloMode.REGION: lambda: StubAppService(),
     }
 )

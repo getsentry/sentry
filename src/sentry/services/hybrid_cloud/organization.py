@@ -70,10 +70,10 @@ class ApiOrganizationMemberFlags:
 
     def __getattr__(self, item: str) -> bool:
         item = escape_flag_name(item)
-        return getattr(self, item)
+        return bool(getattr(self, item))
 
     def __getitem__(self, item: str) -> bool:
-        return getattr(self, item)
+        return bool(getattr(self, item))
 
 
 @dataclass

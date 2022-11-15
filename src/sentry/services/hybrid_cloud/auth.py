@@ -4,6 +4,8 @@ import abc
 from dataclasses import dataclass
 from typing import List
 
+from django.db.models import F
+
 from sentry import roles
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.services.hybrid_cloud import (
@@ -51,7 +53,7 @@ def query_sso_state(
         return _SSO_NONMEMBER
 
     # we special case superuser so that if they're a member of the org they must still follow SSO checks
-    # or put another way, super users who are not members of orgs bypass SSO.
+    # or put another way, superusers who are not members of orgs bypass SSO.
     if member is None:
         if is_super_user:
             return _SSO_BYPASS
@@ -104,6 +106,18 @@ class AuthService(InterfaceWithLifecycle):
     ) -> ApiAuthState:
         pass
 
+    # TODO: Denormalize this scim enabled flag onto organizations?
+    # This is potentially a large list
+    @abc.abstractmethod
+    def get_org_ids_with_scim(
+        self,
+    ) -> List[int]:
+        """
+        This method returns a list of org ids that have scim enabled
+        :return:
+        """
+        pass
+
 
 class DatabaseBackedAuthService(AuthService):
     # Monolith implementation that uses OrganizationMember and User tables freely, but in silo world
@@ -124,7 +138,7 @@ class DatabaseBackedAuthService(AuthService):
             member=org_member,
             org_member_class=OrganizationMember,
         )
-        permissions = list()
+        permissions: List[str] = list()
         if is_superuser:
             permissions.extend(get_permissions_for_user(user_id))
 
@@ -136,13 +150,22 @@ class DatabaseBackedAuthService(AuthService):
     def close(self) -> None:
         pass
 
+    def get_org_ids_with_scim(
+        self,
+    ) -> List[int]:
+        return list(
+            AuthProvider.objects.filter(
+                flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
+            ).values_list("organization_id", flat=True)
+        )
+
 
 StubAuthService = CreateStubFromBase(DatabaseBackedAuthService)
 
 auth_service: AuthService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: DatabaseBackedAuthService,
-        SiloMode.CONTROL: StubAuthService,  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
-        SiloMode.REGION: StubAuthService,  # this must eventually be purely RPC
+        SiloMode.MONOLITH: lambda: DatabaseBackedAuthService(),
+        SiloMode.CONTROL: lambda: StubAuthService(),  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
+        SiloMode.REGION: lambda: StubAuthService(),  # this must eventually be purely RPC
     }
 )

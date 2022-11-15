@@ -120,7 +120,9 @@ class Access(abc.ABC):
         return scope in self.scopes
 
     def get_organization_role(self) -> OrganizationRole | None:
-        return self.role and organization_roles.get(self.role)
+        if self.role is not None:
+            return cast(OrganizationRole, organization_roles.get(self.role))
+        return None
 
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
@@ -436,10 +438,10 @@ class ApiAccess(Access):
 
         team_membership = self._get_team_membership(team.id)
 
-        if scope in team_membership.scopes:
+        if team_membership and scope in team_membership.scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
-                tags={"team_role": team_membership.role, "scope": scope},
+                tags={"team_role": f"{team_membership.role}", "scope": scope},
             )
             return True
 
@@ -486,7 +488,7 @@ class ApiAccess(Access):
                     if scope in team_scopes:
                         metrics.incr(
                             "team_roles.pass_by_project_scope",
-                            tags={"team_role": membership.role, "scope": scope},
+                            tags={"team_role": f"{membership.role}", "scope": scope},
                         )
                         return True
 
@@ -590,20 +592,20 @@ class ApiOrganizationGlobalAccess(ApiAccess):
 
     @cached_property
     def scopes(self) -> FrozenSet[str]:
-        return frozenset(self.requested_scopes)
+        return frozenset(self.requested_scopes or [])
 
     @property
     def has_global_access(self) -> bool:
         return True
 
     def has_team_access(self, team: Team) -> bool:
-        return (
+        return bool(
             team.organization_id == self.api_user_organization_context.organization.id
             and team.status == TeamStatus.VISIBLE
         )
 
     def has_project_access(self, project: Project) -> bool:
-        return (
+        return bool(
             project.organization_id == self.api_user_organization_context.organization.id
             and project.status == ProjectStatus.VISIBLE
         )
@@ -812,7 +814,7 @@ def from_request_org_and_scopes(
     )
 
 
-def organizationless_access(user: User | APIUser, is_superuser: bool):
+def organizationless_access(user: User | APIUser | AnonymousUser, is_superuser: bool) -> Access:
     return OrganizationlessAccess(
         auth_state=auth_service.get_user_auth_state(
             user_id=user.id,
@@ -823,10 +825,10 @@ def organizationless_access(user: User | APIUser, is_superuser: bool):
     )
 
 
-def check_invalid_user_access(user: User | APIUser | None) -> Access | None:
+def normalize_valid_user(user: User | APIUser | AnonymousUser | None) -> User | APIUser | None:
     if not user or user.is_anonymous or not user.is_active:
-        return DEFAULT
-    return None
+        return None
+    return user
 
 
 def from_user_and_api_user_org_context(
@@ -837,8 +839,8 @@ def from_user_and_api_user_org_context(
     scopes: Iterable[str] | None = None,
     auth_state: ApiAuthState | None = None,
 ) -> Access:
-    if access := check_invalid_user_access(user):
-        return access
+    if (user := normalize_valid_user(user)) is None:
+        return DEFAULT
 
     if not api_user_org_context or not api_user_org_context.member:
         return organizationless_access(user, is_superuser)
@@ -913,7 +915,7 @@ def _from_sentry_app(
 
 
 def _from_api_sentry_app(context: ApiUserOrganizationContext | None = None) -> Access:
-    if not context:
+    if not context or context.user_id is None:
         return NoAccess()
 
     installation = app_service.find_installation_by_proxy_user(
@@ -941,8 +943,8 @@ def from_user(
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
 ) -> Access:
-    if access := check_invalid_user_access(user):
-        return access
+    if (user := normalize_valid_user(user)) is None:
+        return DEFAULT
 
     if not organization:
         return organizationless_access(user, is_superuser)
@@ -979,6 +981,9 @@ def from_api_member(
     is_superuser: bool = False,
     auth_state: ApiAuthState | None = None,
 ) -> Access:
+    if api_user_organization_context.user_id is None:
+        return DEFAULT
+
     return ApiAccess(
         api_user_organization_context=api_user_organization_context,
         requested_scopes=scopes,
