@@ -16,7 +16,7 @@ describe('Sentry Application Details', function () {
   let editAppRequest;
 
   const verifyInstallToggle = 'Switch[name="verifyInstall"]';
-  const redirectUrlInput = 'Input[name="redirectUrl"]';
+  const redirectUrlInput = 'input[name="redirectUrl"]';
   const maskedValue = '*'.repeat(64);
 
   beforeEach(() => {
@@ -61,15 +61,15 @@ describe('Sentry Application Details', function () {
 
     it('saves', function () {
       wrapper
-        .find('Input[name="name"]')
+        .find('input[name="name"]')
         .simulate('change', {target: {value: 'Test App'}});
 
       wrapper
-        .find('Input[name="author"]')
+        .find('input[name="author"]')
         .simulate('change', {target: {value: 'Sentry'}});
 
       wrapper
-        .find('Input[name="webhookUrl"]')
+        .find('input[name="webhookUrl"]')
         .simulate('change', {target: {value: 'https://webhook.com'}});
 
       wrapper
@@ -324,7 +324,7 @@ describe('Sentry Application Details', function () {
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', () => {
       expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(false);
       expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(true);
-      wrapper.find('Input[name="webhookUrl"]').simulate('change', {target: {value: ''}});
+      wrapper.find('input[name="webhookUrl"]').simulate('change', {target: {value: ''}});
       expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(false);
       expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(true);
       expect(wrapper.find(JsonForm).prop('additionalFieldProps')).toEqual({
@@ -447,7 +447,8 @@ describe('Sentry Application Details', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('div FieldErrorReason').text()).toEqual(
+      // Error message is displayed in a tooltip
+      expect(wrapper.find('TooltipContent').text()).toEqual(
         "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });

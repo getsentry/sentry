@@ -22,6 +22,7 @@ export type PerformanceEventParameters = {
   'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
     operation: string;
+    project_platform: string;
   };
   'performance_views.event_details.search_query': {};
   'performance_views.filter_dropdown.selection': {
@@ -52,6 +53,11 @@ export type PerformanceEventParameters = {
     from_default?: boolean;
     from_widget?: string;
     to_widget?: string;
+  };
+  'performance_views.mep.metrics_outcome': {
+    fallback_from_null: boolean;
+    fallback_from_unparam: boolean;
+    is_on_metrics: boolean;
   };
   'performance_views.overview.cellaction': {action?: string};
   'performance_views.overview.navigate.summary': {
@@ -224,4 +230,5 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
   'performance_views.relative_breakdown.selection':
     'Performance Views: Select Relative Breakdown',
+  'performance_views.mep.metrics_outcome': 'Performance Views: Metrics Outcome',
 };

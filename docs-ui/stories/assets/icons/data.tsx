@@ -675,4 +675,9 @@ export const icons: IconData[] = [
     groups: ['action'],
     keywords: ['rewind'],
   },
+  {
+    id: 'profiling',
+    groups: ['chart'],
+    keywords: ['performance', 'span', 'flame', 'icicle'],
+  },
 ];

@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
@@ -136,10 +136,14 @@ export function makeSaveSearchAction({
   disabled,
 }: SaveSearchActionOpts): ActionBarItem {
   const makeAction = ({query, organization}: ActionProps) => {
-    const onSaveSearch = () =>
+    const onSaveSearch = () => {
+      trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+        organization,
+      });
       openModal(deps => (
         <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
       ));
+    };
 
     const title = disabled
       ? t('You do not have permission to create a saved search')

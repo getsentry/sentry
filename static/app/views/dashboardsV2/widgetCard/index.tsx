@@ -44,9 +44,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  currentWidgetDragging: boolean;
   isEditing: boolean;
-  isSorting: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -409,7 +407,7 @@ const ToolbarPanel = styled('div')`
   align-items: flex-start;
 
   background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
 `;
 
 const IconContainer = styled('div')`

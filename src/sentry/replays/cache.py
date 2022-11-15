@@ -1,19 +1,23 @@
 """Recording segment part cache manager."""
-from typing import Generator
+from typing import Any, Dict, Generator
+
+from django.conf import settings
 
 from sentry.cache import default_cache
+from sentry.cache.base import BaseCache
 from sentry.utils import metrics
+from sentry.utils.imports import import_string
 
 TIMEOUT = 3600
 
 
-class RecordingSegmentPart:
+class RecordingSegmentCache:
     def __init__(self, prefix: str) -> None:
         self.prefix = prefix
 
     @metrics.wraps("replays.cache.get_recording_segment")
     def __getitem__(self, index: int) -> bytes:
-        result = default_cache.get(self.__key(index), raw=True)
+        result = replay_cache.get(self.__key(index), raw=True)
         if result is None:
             raise ValueError(f"Missing data for chunk with id {self.__key(index)}.")
         else:
@@ -21,11 +25,11 @@ class RecordingSegmentPart:
 
     @metrics.wraps("replays.cache.set_recording_segment")
     def __setitem__(self, index: int, value: bytes) -> None:
-        return default_cache.set(self.__key(index), value, timeout=TIMEOUT, raw=True)
+        return replay_cache.set(self.__key(index), value, timeout=TIMEOUT, raw=True)
 
     @metrics.wraps("replays.cache.del_recording_segment")
     def __delitem__(self, index: int) -> None:
-        default_cache.delete(self.__key(index))
+        replay_cache.delete(self.__key(index))
 
     def __key(self, index: int) -> str:
         """Return an prefixed recording-segment-part key."""
@@ -39,12 +43,20 @@ class RecordingSegmentParts:
 
     def __iter__(self) -> Generator[bytes, None, None]:
         """Iterate over each recording segment part."""
-        part = RecordingSegmentPart(self.prefix)
+        part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
-            yield part[i]
+            yield part[i].encode("utf-8") if type(part[i]) is str else part[i]
 
     def drop(self):
         """Delete all the parts associated with the recording segment."""
-        part = RecordingSegmentPart(self.prefix)
+        part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
             del part[i]
+
+
+def default(**options: Dict[str, Any]) -> BaseCache:
+    """The default path for non-configured instances."""
+    return default_cache
+
+
+replay_cache = import_string(settings.SENTRY_REPLAYS_CACHE)(**settings.SENTRY_REPLAYS_CACHE_OPTIONS)

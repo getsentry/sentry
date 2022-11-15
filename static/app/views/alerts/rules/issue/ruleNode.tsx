@@ -125,9 +125,6 @@ function MailActionFields({
         {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
-        ...(organization.features?.includes('alert-release-notification-workflow')
-          ? [{value: MailActionTargetType.ReleaseMembers, label: t('Release Members')}]
-          : []),
       ]}
       memberValue={MailActionTargetType.Member}
       teamValue={MailActionTargetType.Team}
@@ -456,7 +453,7 @@ function RuleNode({
     return (
       <MarginlessAlert type="error" showIcon>
         {t(
-          'This condition conflicts with other condition(s) above. Please select a different condition'
+          'This condition conflicts with other condition(s) above. Please select a different condition.'
         )}
       </MarginlessAlert>
     );

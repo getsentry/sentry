@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import html
 import re
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
@@ -100,8 +102,8 @@ def is_aggregate(field: str) -> bool:
 def unfurl_discover(
     data: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional["User"],
+    links: list[UnfurlableUrl],
+    user: User | None,
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
@@ -272,7 +274,7 @@ def unfurl_discover(
     return unfurls
 
 
-def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+def map_discover_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts discover arguments from the discover link's query string
     """

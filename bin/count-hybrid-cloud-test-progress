@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+import os
+import pathlib
+from collections import defaultdict
+
+from sentry.runner import configure
+
+configure()
+from sentry.testutils.modelmanifest import ModelManifest
+
+_manifest_files_env = {
+    "SENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__).absolute().parent.parent,
+    "GETSENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__)
+    .absolute()
+    .parent.parent.parent.joinpath("getsentry"),
+}
+
+
+for manifest_file_env_name, root_path in _manifest_files_env.items():
+    manifest_path = os.environ[manifest_file_env_name]
+    print(f"For {manifest_path}:")  # noqa
+    manifest = ModelManifest.open(file_path=manifest_path)
+
+    all_stable = set()
+    by_model_counts = defaultdict(lambda: [0, 0])
+    totals = [0, 0]
+
+    for test_id, test_visitor in manifest.each_hybrid_cloud_test(root_path):
+        test_visitor.load()
+        if test_visitor.decorator_was_stable:
+            totals[0] += 1
+        totals[1] += 1
+
+        for model_id in manifest.connections[test_id]:
+            model_name = manifest.reverse_lookup[model_id]
+            if test_visitor.decorator_was_stable:
+                by_model_counts[model_name][0] += 1
+            by_model_counts[model_name][1] += 1
+
+    for model_name, counts in by_model_counts.items():
+        print(f"\t{model_name}: {counts[0]}/{counts[1]}")  # noqa
+
+    print(f"Total: {totals[0]}/{totals[1]}")  # noqa

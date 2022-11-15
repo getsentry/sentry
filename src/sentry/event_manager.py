@@ -120,14 +120,13 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -154,6 +153,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
+GROUPHASH_IGNORE_LIMIT = 3
 
 
 @dataclass
@@ -1751,7 +1751,9 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
     if is_regression:
         Activity.objects.create_group_activity(
-            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
+            group,
+            ActivityType.SET_REGRESSION,
+            data={"version": release.version if release else "", "event_id": event.event_id},
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
@@ -1767,7 +1769,11 @@ def _process_existing_aggregate(
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
-    if event.search_message and event.search_message != group.message:
+    if (
+        event.search_message
+        and event.search_message != group.message
+        and event.get_event_type() != TransactionEvent.key
+    ):
         extra["message"] = event.search_message
     if group.level != data["level"]:
         extra["level"] = data["level"]
@@ -2155,14 +2161,6 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
         # as the feature is under development.
         try:
             event = job["event"]
-            project = projects[job["project_id"]]
-
-            if not features.has(
-                "projects:performance-suspect-spans-ingestion",
-                project=project,
-            ):
-                continue
-
             with metrics.timer("event_manager.save.get_span_groupings.default"):
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
@@ -2173,23 +2171,6 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
                 tags={"platform": job["platform"] or "unknown"},
-            )
-
-            # Try the new hashing config that more aggresively parametrizes DB
-            # spans, and record the difference with the default hashing config.
-            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
-                experimental_groupings = event.get_span_groupings(
-                    {"id": INCOMING_DEFAULT_CONFIG_ID}
-                )
-
-            unique_incoming_hashes = set(experimental_groupings.results.values())
-            metrics.incr(
-                "save_event.transaction.span_group_count.incoming",
-                amount=len(unique_incoming_hashes),
-            )
-            metrics.incr(
-                "save_event.transaction.span_group_count.difference",
-                amount=len(unique_default_hashes ^ unique_incoming_hashes),
             )
         except Exception:
             sentry_sdk.capture_exception()
@@ -2276,9 +2257,24 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             ).select_related("group")
 
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
-            new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
+                # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
+                if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
+                    groups_to_ignore = set()
+                    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
+                        "cluster", "default"
+                    )
+                    client = redis.redis_clusters.get(cluster_key)
+
+                    for new_grouphash in new_grouphashes:
+                        if not should_create_group(client, new_grouphash):
+                            groups_to_ignore.add(new_grouphash)
+
+                    new_grouphashes = new_grouphashes - groups_to_ignore
+
+                new_grouphashes_count = len(new_grouphashes)
+
                 with metrics.timer("performance.performance_issue.check_write_limits"):
                     granted_quota = issue_rate_limiter.check_and_use_quotas(
                         [
@@ -2313,6 +2309,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
                         )
+                        if group_kwargs["data"]["metadata"].get("title"):
+                            group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
 
                         group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
@@ -2356,6 +2354,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                         group_kwargs["data"]["metadata"], problem
                     )
+                    if group_kwargs["data"]["metadata"].get("title"):
+                        group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=group_kwargs, release=job["release"]
@@ -2370,6 +2370,22 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             job["event"].data["hashes"] = hashes
             for problem_hash in hashes:
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
+
+
+@metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
+def should_create_group(client: Any, grouphash: str) -> bool:
+    times_seen = client.incr(f"grouphash:{grouphash}")
+    metrics.incr(
+        "performance.performance_issue.grouphash_counted",
+        tags={"times_seen": times_seen},
+        sample_rate=1.0,
+    )
+    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+        client.delete(grouphash)
+        return True
+    else:
+        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")

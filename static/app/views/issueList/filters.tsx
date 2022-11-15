@@ -35,40 +35,54 @@ function IssueListFilters({
 
   return (
     <SearchContainer>
-      <PageFilterBar>
+      <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
-      </PageFilterBar>
-      <IssueListSearchBar
+      </StyledPageFilterBar>
+      <StyledIssueListSearchBar
         searchSource="main_search"
         organization={organization}
         query={query || ''}
         onSearch={onSearch}
         excludedTags={['environment']}
-        actionBarItems={[
-          ...(!organization.features.includes('issue-list-saved-searches-v2')
-            ? [makePinSearchAction({sort, pinnedSearch, location})]
-            : []),
-          makeSaveSearchAction({
-            sort,
-            disabled: !organization.access.includes('org:write'),
-          }),
-        ]}
+        actionBarItems={
+          organization.features.includes('issue-list-saved-searches-v2')
+            ? []
+            : [
+                makePinSearchAction({sort, pinnedSearch, location}),
+                makeSaveSearchAction({
+                  sort,
+                  disabled: !organization.access.includes('org:write'),
+                }),
+              ]
+        }
       />
     </SearchContainer>
   );
 }
 
 const SearchContainer = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
   width: 100%;
   margin-bottom: ${space(2)};
-  grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr);
+const StyledPageFilterBar = styled(PageFilterBar)`
+  flex: 0 1 0;
+  width: 100%;
+  max-width: 30rem;
+`;
+
+const StyledIssueListSearchBar = styled(IssueListSearchBar)`
+  flex: 1;
+  width: 100%;
+  min-width: 20rem;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    min-width: 25rem;
   }
 `;
 
