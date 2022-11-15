@@ -11,9 +11,9 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
-from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField, MetricsQuery
-from sentry.snuba.metrics import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField
+from sentry.snuba.metrics import MetricOrderByField as MetricsOrderBy
+from sentry.snuba.metrics import MetricsQuery, TransactionMRI
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
     transform_mqb_query_to_metrics_query,
@@ -1309,6 +1309,113 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 )
             ],
             groupby=None,
+            include_series=False,
+            include_totals=True,
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+        ),
+        id="has operator query test case",
+    ),
+    pytest.param(
+        Query(
+            match=Entity("generic_metrics_distributions"),
+            select=[
+                Function(
+                    function="count",
+                    parameters=[
+                        Column("d:transactions/duration@millisecond"),
+                    ],
+                    alias="duration_count",
+                ),
+            ],
+            groupby=[],
+            array_join=None,
+            where=[
+                Condition(
+                    lhs=Column(
+                        name="timestamp",
+                    ),
+                    op=Op.GTE,
+                    rhs=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
+                ),
+                Condition(
+                    lhs=Column(
+                        name="timestamp",
+                    ),
+                    op=Op.LT,
+                    rhs=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
+                ),
+                Condition(
+                    lhs=Column(
+                        name="project_id",
+                    ),
+                    op=Op.IN,
+                    rhs=[3],
+                ),
+                Condition(
+                    lhs=Column(
+                        name="org_id",
+                    ),
+                    op=Op.EQ,
+                    rhs=3,
+                ),
+                Condition(
+                    lhs=Function(
+                        function="has",
+                        parameters=[
+                            Column(
+                                name="tags.key",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            ],
+            having=[],
+            orderby=[
+                OrderBy(
+                    Column("project_id"),
+                    Direction.ASC,
+                )
+            ],
+            limitby=None,
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            granularity=Granularity(granularity=3600),
+            totals=None,
+        ),
+        MetricsQuery(
+            org_id=3,
+            project_ids=[3],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri="d:transactions/duration@millisecond",
+                    alias="duration_count",
+                ),
+            ],
+            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
+            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
+            granularity=Granularity(3600),
+            where=[
+                Condition(
+                    lhs=Function(
+                        function="has",
+                        parameters=[
+                            Column(
+                                name="tags.key",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            groupby=None,
+            orderby=[],
             include_series=False,
             include_totals=True,
             limit=Limit(limit=50),

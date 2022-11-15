@@ -13,14 +13,10 @@ from sentry.snuba.metrics import (
     TransactionMRI,
 )
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
-from sentry.snuba.metrics.query import (
-    MetricConditionField,
-    MetricField,
-    MetricGroupByField,
-    MetricsQuery,
-)
-from sentry.snuba.metrics.query import OrderBy
-from sentry.snuba.metrics.query import OrderBy as MetricOrderBy
+from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
+from sentry.snuba.metrics.query import MetricOrderByField
+from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 
 TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
@@ -370,7 +366,7 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
 
     def _orderby_predicate(orderby_field):
         if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
-            return OrderBy(
+            return MetricOrderByField(
                 field=MetricField(
                     op=orderby_field.field.op,
                     metric_mri=mri_to_apply,

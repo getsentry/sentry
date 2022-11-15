@@ -75,7 +75,7 @@ class MetricField:
 
 
 @dataclass(frozen=True)
-class MetricGroupByField:
+class MetricActionByField:
     field: Union[str, MetricField]
     alias: Optional[str] = None
 
@@ -88,6 +88,9 @@ class MetricGroupByField:
                 alias = self.field.alias
             object.__setattr__(self, "alias", alias)
 
+
+@dataclass(frozen=True)
+class MetricGroupByField(MetricActionByField):
     @property
     def name(self) -> str:
         if isinstance(self.field, str):
@@ -96,6 +99,11 @@ class MetricGroupByField:
             assert self.field.alias is not None
             return self.field.alias
         raise InvalidParams(f"Invalid groupBy field type: {self.field}")
+
+
+@dataclass(frozen=True)
+class MetricOrderByField(MetricActionByField):
+    direction: Direction = Direction.ASC
 
 
 @dataclass(frozen=True)
@@ -111,12 +119,6 @@ class MetricConditionField:
 
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
-
-
-@dataclass(frozen=True)
-class OrderBy:
-    field: MetricField
-    direction: Direction
 
 
 class MetricsQueryValidationRunner:
@@ -147,7 +149,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     #  instances of MetricConditionField
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
-    orderby: Optional[Sequence[OrderBy]] = None
+    orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
@@ -218,23 +220,26 @@ class MetricsQuery(MetricsQueryValidationRunner):
             return
 
         for orderby in self.orderby:
-            self._validate_field(orderby.field)
+            if isinstance(orderby.field, MetricField):
+                self._validate_field(orderby.field)
 
         orderby_fields: Set[MetricField] = set()
         metric_entities: Set[MetricField] = set()
-        for f in self.orderby:
-            orderby_fields.add(f.field)
+        for orderby in self.orderby:
+            if isinstance(orderby.field, MetricField):
+                orderby_fields.add(orderby.field)
 
-            # Construct a metrics expression
-            metric_field_obj = metric_object_factory(f.field.op, f.field.metric_mri)
+                # Construct a metrics expression
+                metric_field_obj = metric_object_factory(orderby.field.op, orderby.field.metric_mri)
 
-            use_case_id = self._use_case_id(f.field.metric_mri)
-            entity = metric_field_obj.get_entity(self.projects, use_case_id)
+                use_case_id = self._use_case_id(orderby.field.metric_mri)
+                entity = metric_field_obj.get_entity(self.projects, use_case_id)
 
-            if isinstance(entity, Mapping):
-                metric_entities.update(entity.keys())
-            else:
-                metric_entities.add(entity)
+                if isinstance(entity, Mapping):
+                    metric_entities.update(entity.keys())
+                else:
+                    metric_entities.add(entity)
+
         # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
             raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")

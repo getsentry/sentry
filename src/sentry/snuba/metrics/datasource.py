@@ -33,7 +33,7 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
-from sentry.snuba.metrics.query import Groupable, MetricsQuery
+from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -547,8 +547,8 @@ def _get_group_limit_filters(
     for metric_groupby_obj in metrics_query.groupby:
         key_to_condition_dict[
             metric_groupby_obj.name
-        ] = SnubaQueryBuilder.generate_snql_for_groupby_field(
-            metric_groupby_obj=metric_groupby_obj,
+        ] = SnubaQueryBuilder.generate_snql_for_action_by_fields(
+            metric_action_by_field=metric_groupby_obj,
             use_case_id=use_case_id,
             org_id=metrics_query.org_id,
             projects=Project.objects.get_many_from_cache(metrics_query.project_ids),
@@ -689,7 +689,15 @@ def get_series(
         # one group which is basically identical to eliminating the orderBy altogether
         metrics_query = replace(metrics_query, orderby=None)
 
+    # We check whether the order by contains only str fields, which will not require any special logic.
+    orderby_contains_only_str_fields = True
     if metrics_query.orderby is not None:
+        for orderby in metrics_query.orderby:
+            if isinstance(orderby.field, MetricField):
+                orderby_contains_only_str_fields = False
+                break
+
+    if metrics_query.orderby is not None and not orderby_contains_only_str_fields:
         # ToDo(ahmed): Now that we have conditional aggregates as select statements, we might be
         #  able to shave off a query here. we only need the other queries for fields spanning other
         #  entities otherwise if all the fields belong to one entity then there is no need
