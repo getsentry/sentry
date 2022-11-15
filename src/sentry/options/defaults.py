@@ -535,3 +535,6 @@ register("dynamic-sampling:boost-latest-release", default=False)
 
 # Controls whether we should attempt to derive code mappings for projects during post processing.
 register("post_process.derive-code-mappings", default=True)
+# Allows adjusting the percentage of orgs we test under the dry run mode
+register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
+register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
