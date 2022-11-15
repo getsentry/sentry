@@ -526,6 +526,12 @@ class SnubaQueryBuilder:
         projects: Sequence[Project],
         is_column: bool = False,
     ) -> Union[List[OrderBy], Column, AliasedExpression, Function]:
+        """
+        Generates the necessary snql for any action by field which in our case will be group by and order by. This
+        function has been designed to share as much logic as possible, however, it should be refactored in case
+        the snql generation starts to diverge significantly.
+        """
+
         is_group_by = isinstance(metric_action_by_field, MetricGroupByField)
         is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
         if not is_group_by and not is_order_by:
@@ -539,8 +545,8 @@ class SnubaQueryBuilder:
                     use_case_id, org_id, metric_action_by_field.alias
                 )
 
-            # Handles the case when we are trying to group by `project` for example, but we want
-            # to translate it to `project_id` as that is what the metrics dataset understands
+            # Handles the case when we are trying to group or order by `project` for example, but we want
+            # to translate it to `project_id` as that is what the metrics dataset understands.
             if metric_action_by_field.field in FIELD_ALIAS_MAPPINGS:
                 column_name = FIELD_ALIAS_MAPPINGS[metric_action_by_field.field]
             elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():

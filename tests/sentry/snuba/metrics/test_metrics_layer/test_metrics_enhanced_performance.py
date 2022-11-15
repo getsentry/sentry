@@ -539,7 +539,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 groupby=[MetricGroupByField(field="project_id")],
                 orderby=[
                     MetricOrderByField(
-                        field="tags[transaction]",
+                        field="transaction",
                         direction=Direction.DESC,
                     ),
                 ],

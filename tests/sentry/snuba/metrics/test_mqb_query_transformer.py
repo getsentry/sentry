@@ -11,9 +11,14 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
-from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField
-from sentry.snuba.metrics import MetricOrderByField as MetricsOrderBy
-from sentry.snuba.metrics import MetricsQuery, TransactionMRI
+from sentry.snuba.metrics import (
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
+    TransactionMRI,
+)
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
     transform_mqb_query_to_metrics_query,
@@ -357,7 +362,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 MetricGroupByField("project_id"),
             ],
             orderby=[
-                MetricsOrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="p95",
                         metric_mri="d:transactions/duration@millisecond",
@@ -365,7 +370,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ),
                     direction=Direction.ASC,
                 ),
-                MetricsOrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri="d:transactions/duration@millisecond",
@@ -522,7 +527,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
             ],
             orderby=[
-                MetricsOrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri="d:transactions/duration@millisecond",
@@ -531,7 +536,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ),
                     direction=Direction.ASC,
                 ),
-                MetricsOrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="p95",
                         metric_mri="d:transactions/duration@millisecond",
@@ -678,7 +683,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
             ],
             orderby=[
-                MetricsOrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri="s:transactions/user@none",
@@ -1387,7 +1392,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             groupby=None,
-            orderby=[MetricsOrderBy(field="project_id", direction=Direction.ASC)],
+            orderby=[MetricOrderByField(field="project_id", direction=Direction.ASC)],
             include_series=False,
             include_totals=True,
             limit=Limit(limit=50),

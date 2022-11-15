@@ -1576,6 +1576,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_environment_query(self):
+        self.features["organizations:use-metrics-layer"] = True
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
             1,
@@ -1730,6 +1731,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["apdex()"] == "number"
 
     def test_apdex_project_threshold(self):
+        self.features["organizations:use-metrics-layer"] = True
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,

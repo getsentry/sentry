@@ -226,12 +226,17 @@ def _transform_orderby(query_orderby):
     for orderby_field in query_orderby:
         orderby_exp = orderby_field.exp
 
-        if isinstance(orderby_exp, Column):
+        # We want to use the string field only when a column with a valid field is passed. For example:
+        # Column(name="project_id").
+        if (
+            isinstance(orderby_exp, Column)
+            and orderby_exp.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values()
+        ):
             metric_order_by = MetricOrderByField(
                 field=orderby_exp.name,
                 direction=orderby_field.direction,
             )
-        elif isinstance(orderby_exp, Function):
+        else:
             transformed_field = _transform_select([orderby_exp]).pop()
             metric_exp = metric_object_factory(
                 op=transformed_field.op, metric_mri=transformed_field.metric_mri
@@ -243,10 +248,6 @@ def _transform_orderby(query_orderby):
 
             metric_order_by = MetricOrderBy(
                 field=transformed_field, direction=orderby_field.direction
-            )
-        else:
-            raise MQBQueryTransformationException(
-                f"Unsupported expression {orderby_exp} in order by"
             )
 
         mq_orderby.append(metric_order_by)
