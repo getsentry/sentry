@@ -70,7 +70,6 @@ function IssueContext(props: IssueContextProps) {
         },
       },
     ],
-    undefined,
     {
       onSuccess: group => {
         GroupStore.add([group]);
@@ -167,7 +166,6 @@ type BaseContextProps = {
 function ReleaseContext(props: BaseContextProps) {
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
     [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
-    undefined,
     {
       staleTime: fiveMinutesInMs,
       retry: false,
