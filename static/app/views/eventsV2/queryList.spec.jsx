@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -29,6 +30,8 @@ describe('EventsV2 > QueryList', function () {
     queryChangeMock,
     updateHomepageMock,
     wrapper;
+
+  const {router, routerContext} = initializeOrg();
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -172,22 +175,22 @@ describe('EventsV2 > QueryList', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('returns short url location for saved query', function () {
-    wrapper = mountWithTheme(
+  it('redirects to Discover on card click', function () {
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('QueryCard').last();
-    const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(link.query).toEqual({
-      id: '2',
-      statsPeriod: '14d',
+
+    userEvent.click(screen.getAllByTestId(/card-*/).at(0));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: {id: '1', statsPeriod: '14d'},
     });
   });
 
