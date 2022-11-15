@@ -17,10 +17,12 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -127,6 +129,13 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
+    const profilingOnboardingChecklistEnabled = organization.features?.includes(
+      'profiling-onboarding-checklist'
+    );
+    if (profilingOnboardingChecklistEnabled) {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+      return;
+    }
     openModal(props => {
       return <ProfilingOnboardingModal {...props} organization={organization} />;
     });
