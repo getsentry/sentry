@@ -1359,19 +1359,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     op=Op.EQ,
                     rhs=3,
                 ),
-                Condition(
-                    lhs=Function(
-                        function="has",
-                        parameters=[
-                            Column(
-                                name="tags.key",
-                            ),
-                            "transaction",
-                        ],
-                    ),
-                    op=Op.EQ,
-                    rhs=1,
-                ),
             ],
             having=[],
             orderby=[
@@ -1399,29 +1386,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
-            where=[
-                Condition(
-                    lhs=Function(
-                        function="has",
-                        parameters=[
-                            Column(
-                                name="tags.key",
-                            ),
-                            "transaction",
-                        ],
-                    ),
-                    op=Op.EQ,
-                    rhs=1,
-                )
-            ],
             groupby=None,
-            orderby=[],
+            orderby=[MetricsOrderBy(field="project_id", direction=Direction.ASC)],
             include_series=False,
             include_totals=True,
             limit=Limit(limit=50),
             offset=Offset(offset=0),
         ),
-        id="has operator query test case",
+        id="order by project id column",
     ),
 ]
 

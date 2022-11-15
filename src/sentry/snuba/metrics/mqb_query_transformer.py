@@ -224,15 +224,33 @@ def _get_mq_dict_params_from_where(query_where):
 def _transform_orderby(query_orderby):
     mq_orderby = []
     for orderby_field in query_orderby:
-        transformed_field = _transform_select([orderby_field.exp]).pop()
-        metric_exp = metric_object_factory(
-            op=transformed_field.op, metric_mri=transformed_field.metric_mri
-        )
-        try:
-            metric_exp.validate_can_orderby()
-        except DerivedMetricException as e:
-            raise MQBQueryTransformationException(e)
-        mq_orderby.append(MetricOrderBy(field=transformed_field, direction=orderby_field.direction))
+        orderby_exp = orderby_field.exp
+
+        if isinstance(orderby_exp, Column):
+            metric_order_by = MetricOrderByField(
+                field=orderby_exp.name,
+                direction=orderby_field.direction,
+            )
+        elif isinstance(orderby_exp, Function):
+            transformed_field = _transform_select([orderby_exp]).pop()
+            metric_exp = metric_object_factory(
+                op=transformed_field.op, metric_mri=transformed_field.metric_mri
+            )
+            try:
+                metric_exp.validate_can_orderby()
+            except DerivedMetricException as e:
+                raise MQBQueryTransformationException(e)
+
+            metric_order_by = MetricOrderBy(
+                field=transformed_field, direction=orderby_field.direction
+            )
+        else:
+            raise MQBQueryTransformationException(
+                f"Unsupported expression {orderby_exp} in order by"
+            )
+
+        mq_orderby.append(metric_order_by)
+
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
@@ -248,9 +266,10 @@ def _derive_mri_to_apply(project_ids, select, orderby):
     has_order_by_team_key_transaction = False
     if orderby is not None:
         for orderby_field in orderby:
-            if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
-                has_order_by_team_key_transaction = True
-                break
+            if isinstance(orderby_field.field, MetricField):
+                if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+                    has_order_by_team_key_transaction = True
+                    break
 
     if has_order_by_team_key_transaction:
         entities = set()
@@ -275,13 +294,14 @@ def _derive_mri_to_apply(project_ids, select, orderby):
             # from that one entity. If, on the other hand, there are multiple entities, then we throw an error because
             # an order by across multiple entities is not supported.
             for orderby_field in orderby:
-                if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
-                    expr = metric_object_factory(
-                        orderby_field.field.op, orderby_field.field.metric_mri
-                    )
-                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
-                    if isinstance(entity, str):
-                        entities.add(entity)
+                if isinstance(orderby_field.field, MetricField):
+                    if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
+                        expr = metric_object_factory(
+                            orderby_field.field.op, orderby_field.field.metric_mri
+                        )
+                        entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                        if isinstance(entity, str):
+                            entities.add(entity)
 
             if len(entities) > 1:
                 raise InvalidParams("The orderby cannot have fields with multiple entities.")
@@ -365,16 +385,17 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
         return orderby
 
     def _orderby_predicate(orderby_field):
-        if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
-            return MetricOrderByField(
-                field=MetricField(
-                    op=orderby_field.field.op,
-                    metric_mri=mri_to_apply,
-                    params=orderby_field.field.params,
-                    alias=orderby_field.field.alias,
-                ),
-                direction=orderby_field.direction,
-            )
+        if isinstance(orderby_field.field, MetricField):
+            if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+                return MetricOrderByField(
+                    field=MetricField(
+                        op=orderby_field.field.op,
+                        metric_mri=mri_to_apply,
+                        params=orderby_field.field.params,
+                        alias=orderby_field.field.alias,
+                    ),
+                    direction=orderby_field.direction,
+                )
 
         return orderby_field
 

@@ -445,7 +445,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
-    def test_query_with_order_by_project_id(self):
+    def test_query_with_order_by_valid_str_field(self):
         project_2 = self.create_project()
         project_3 = self.create_project()
 
@@ -517,6 +517,42 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             key=lambda elem: elem["name"],
         )
+
+    def test_query_with_order_by_invalid_str_field(self):
+        for value in (0, 1, 2):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={},
+                value=value,
+            )
+
+        with pytest.raises(NotImplementedError):
+            metrics_query = self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
+                select=[
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                    ),
+                ],
+                groupby=[MetricGroupByField(field="project_id")],
+                orderby=[
+                    MetricOrderByField(
+                        field="tags[transaction]",
+                        direction=Direction.DESC,
+                    ),
+                ],
+                limit=Limit(limit=3),
+                offset=Offset(offset=0),
+                include_series=False,
+            )
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
     def test_query_with_tuple_condition(self):
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):

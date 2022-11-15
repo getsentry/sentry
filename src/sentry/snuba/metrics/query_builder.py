@@ -340,7 +340,7 @@ class QueryDefinition:
                 direction = Direction.DESC
 
             field = parse_field(orderby)
-            orderby_list.append(MetricsOrderBy(field, direction))
+            orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
 
@@ -532,7 +532,9 @@ class SnubaQueryBuilder:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
-            if metric_action_by_field.field == "transaction":
+            # This transformation is currently supported only for group by because OrderBy doesn't support the Function
+            # type.
+            if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
                     use_case_id, org_id, metric_action_by_field.alias
                 )
@@ -544,9 +546,15 @@ class SnubaQueryBuilder:
             elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_action_by_field.field
             else:
-                # TODO: check whether order by supports any field or we should restrict it to project_id.
-                assert isinstance(metric_action_by_field.field, Tag)
-                column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                # The support for tags in the order by is disabled for now because there is no need to have it. If the
+                # need arise, we will implement it.
+                if is_group_by:
+                    assert isinstance(metric_action_by_field.field, Tag)
+                    column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported string field: {metric_action_by_field.field}"
+                    )
 
             exp = (
                 AliasedExpression(
@@ -584,10 +592,23 @@ class SnubaQueryBuilder:
                         projects=projects,
                         direction=metric_action_by_field.direction,
                     )
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported metric field: {metric_action_by_field.field}"
+                    )
+
             except IndexError:
                 raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
-            raise NotImplementedError(f"Unsupported field: {metric_action_by_field.field}")
+            action_by_name = None
+            if is_group_by:
+                action_by_name = "group by"
+            elif is_order_by:
+                action_by_name = "order by"
+
+            raise NotImplementedError(
+                f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
+            )
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [

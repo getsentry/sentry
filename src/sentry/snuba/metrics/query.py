@@ -219,26 +219,29 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if not self.orderby:
             return
 
-        for orderby in self.orderby:
-            if isinstance(orderby.field, MetricField):
-                self._validate_field(orderby.field)
+        # We filter all the fields that are strings because we don't require them for the order by validation.
+        orderby = list(filter(lambda x: isinstance(x.field, MetricField), self.orderby))
+
+        for metric_order_by_field in orderby:
+            self._validate_field(metric_order_by_field.field)
 
         orderby_fields: Set[MetricField] = set()
         metric_entities: Set[MetricField] = set()
-        for orderby in self.orderby:
-            if isinstance(orderby.field, MetricField):
-                orderby_fields.add(orderby.field)
+        for metric_order_by_field in orderby:
+            orderby_fields.add(metric_order_by_field.field)
 
-                # Construct a metrics expression
-                metric_field_obj = metric_object_factory(orderby.field.op, orderby.field.metric_mri)
+            # Construct a metrics expression
+            metric_field_obj = metric_object_factory(
+                metric_order_by_field.field.op, metric_order_by_field.field.metric_mri
+            )
 
-                use_case_id = self._use_case_id(orderby.field.metric_mri)
-                entity = metric_field_obj.get_entity(self.projects, use_case_id)
+            use_case_id = self._use_case_id(metric_order_by_field.field.metric_mri)
+            entity = metric_field_obj.get_entity(self.projects, use_case_id)
 
-                if isinstance(entity, Mapping):
-                    metric_entities.update(entity.keys())
-                else:
-                    metric_entities.add(entity)
+            if isinstance(entity, Mapping):
+                metric_entities.update(entity.keys())
+            else:
+                metric_entities.add(entity)
 
         # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
