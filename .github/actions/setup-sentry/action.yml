@@ -199,4 +199,4 @@ runs:
 
         docker ps -a
 
-        ./$WORKDIR/scripts/devservices-healthcheck.sh
+        ./$WORKDIR/scripts/devservices-healthcheck.py
