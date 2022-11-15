@@ -25,14 +25,8 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         # to avoid having to fetch the team model as well.
         member_teams = OrganizationMemberTeam.objects.filter(
             organizationmember_id__in=[om.id for om in item_list],
-            team_id__in=ProjectTeam.objects.filter(
-                project_id__in=self.project_ids,
-                # make sure to filter only for teams that are visible
-                team__status=TeamStatus.VISIBLE,
-            )
-            .values_list("team_id", flat=True)
-            .distinct(),
-        )
+            team__status=TeamStatus.VISIBLE,
+        ).values_list("team_id", "organizationmember_id", named=True)
 
         # The set of team ids, this will be used to filter down the `ProjectTeam` below
         team_ids = set()
@@ -60,7 +54,7 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         for project_team in ProjectTeam.objects.filter(
             project_id__in=self.project_ids,
             team_id__in=team_ids,
-        ):
+        ).values_list("team_id", "project_id", named=True):
             projects_by_team_id[project_team.team_id].append(self.projects[project_team.project_id])
 
         for org_member in item_list:
