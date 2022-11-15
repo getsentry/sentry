@@ -2214,6 +2214,13 @@ def _save_grouphash_and_group(
     return group, created
 
 
+def _message_from_metadata(meta: Mapping[str, str]) -> str:
+    title = meta.get("title", "")
+    location = meta.get("location", "")
+    seperator = ": " if title and location else ""
+    return f"{title}{seperator}{location}"
+
+
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
 
@@ -2309,8 +2316,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
                         )
-                        if group_kwargs["data"]["metadata"].get("title"):
-                            group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
+
+                        if group_kwargs["data"]["metadata"]:
+                            group_kwargs["message"] = _message_from_metadata(
+                                group_kwargs["data"]["metadata"]
+                            )
 
                         group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
@@ -2355,7 +2365,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"], problem
                     )
                     if group_kwargs["data"]["metadata"].get("title"):
-                        group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
+                        group_kwargs["message"] = _message_from_metadata(
+                            group_kwargs["data"]["metadata"]
+                        )
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=group_kwargs, release=job["release"]
