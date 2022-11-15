@@ -149,7 +149,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can delete and trigger change callback', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -158,17 +158,18 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'delete',
+    const card = screen.getAllByTestId(/card-*/).at(1);
+    const withinCard = within(card);
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Delete Query'));
+
+    await waitFor(() => {
+      expect(queryChangeMock).toHaveBeenCalled();
     });
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(queryChangeMock).toHaveBeenCalled();
   });
 
   it('returns short url location for saved query', function () {
