@@ -447,8 +447,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def test_query_with_order_by_project_id(self):
         project_2 = self.create_project()
+        project_3 = self.create_project()
 
-        for project_id, value in ((self.project.id, 0), (project_2.id, 1)):
+        for project_id, value in (
+            (self.project.id, 0),
+            (self.project.id, 1),
+            (project_2.id, 2),
+            (project_3.id, 3),
+        ):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
                 project_id=project_id,
@@ -465,13 +471,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            project_ids=[project_2.id],
+            project_ids=[project_2.id, project_3.id],
             groupby=[MetricGroupByField(field="project_id")],
             orderby=[
-                MetricOrderByField(
-                    field="project_id",
-                    direction=Direction.DESC,
-                ),
                 MetricOrderByField(
                     MetricField(
                         op="count",
@@ -479,8 +481,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     ),
                     direction=Direction.DESC,
                 ),
+                MetricOrderByField(
+                    field="project_id",
+                    direction=Direction.DESC,
+                ),
             ],
-            limit=Limit(limit=2),
+            limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
         )
@@ -492,10 +498,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
         groups = data["groups"]
-        assert len(groups) == 2
+        assert len(groups) == 3
 
         for index, (expected_project, expected_count) in enumerate(
-            ((self.project.id, 1), (project_2.id, 1))
+            sorted(
+                [(self.project.id, 2), (project_3.id, 1), (project_2.id, 1)],
+                key=lambda elem: elem[0],
+                reverse=True,
+            )
         ):
             assert groups[index]["by"]["project_id"] == expected_project
             assert groups[index]["totals"]["count(transaction.duration)"] == expected_count

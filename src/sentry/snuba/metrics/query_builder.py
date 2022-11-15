@@ -544,6 +544,7 @@ class SnubaQueryBuilder:
             elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_action_by_field.field
             else:
+                # TODO: check whether order by supports any field or we should restrict it to project_id.
                 assert isinstance(metric_action_by_field.field, Tag)
                 column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
 
