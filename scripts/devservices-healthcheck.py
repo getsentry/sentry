@@ -10,7 +10,6 @@ async def run_cmd(
     cmd: str,
     retries=3,
     timeout=5,
-    run=True,
     with_cmd_stdout=False,
     with_cmd_stderr=False,
 ):
@@ -27,37 +26,32 @@ async def run_cmd(
         the number of tries the command will be run before giving up
     timeout: int, optional
         the number of seconds to wait between the retries
-    run: boolean, optional
-        if the command should be actually run
     with_stdout: boolean, optional
         if True it will print the stdout of the executed command
     with_stderr: boolean, optional
         if True it will print the stderr of the executed command
     """
-    if run:
-        proc = await asyncio.subprocess.create_subprocess_shell(
-            cmd=cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
+    proc = await asyncio.subprocess.create_subprocess_shell(
+        cmd=cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await proc.communicate()
 
-        if with_cmd_stdout and stdout:
-            logging.info(f"[stdout]\n{stdout.decode()}")
+    if with_cmd_stdout and stdout:
+        logging.info(f"[stdout]\n{stdout.decode()}")
 
-        if proc.returncode != 0:
-            if with_cmd_stderr and stderr:
-                logging.info(f"[stderr]\n{stderr.decode()}")
+    if proc.returncode != 0:
+        if with_cmd_stderr and stderr:
+            logging.info(f"[stderr]\n{stderr.decode()}")
 
-            # Run command again if there are some retries left
-            if retries > 0:
-                logging.info(f"Trying {cmd!r} {retries} more time(s)...")
-                await asyncio.sleep(timeout)
-                return await run_cmd(cmd, retries=retries - 1)
-        else:
-            logging.info(f"{cmd!r}\t[OK]")
-
-        return (proc.returncode, cmd)
+        # Run command again if there are some retries left
+        if retries > 0:
+            logging.info(f"Trying {cmd!r} {retries} more time(s)...")
+            await asyncio.sleep(timeout)
+            return await run_cmd(cmd, retries=retries - 1)
     else:
-        return (0, None)
+        logging.info(f"{cmd!r}\t[OK]")
+
+    return (proc.returncode, cmd)
 
 
 async def main():
@@ -71,18 +65,13 @@ async def main():
     postgres_healthcheck = "docker exec sentry_postgres pg_isready -U postgres"
     kafka_healthcheck = "docker exec sentry_kafka kafka-topics --zookeeper 127.0.0.1:2181 --list"
 
-    results = await asyncio.gather(
-        # Postgres check runs always
-        run_cmd(postgres_healthcheck),
-        # Kafka check is run only if the kafka needed
-        run_cmd(
-            kafka_healthcheck,
-            run=True if os.getenv("NEED_KAFKA") and os.getenv("NEED_KAFKA") == "true" else False,
-        ),
-    )
+    healthchecks = {run_cmd(postgres_healthcheck)}
+    if os.getenv("NEED_KAFKA") == "true":
+        healthchecks.add(run_cmd(kafka_healthcheck))
 
-    failed = [c for (r, c) in filter(lambda r: r[0] != 0, results)]
+    results = await asyncio.gather(*healthchecks)
 
+    failed = [c for (r, c) in results if r != 0]
     if failed:
         # Print the status
         for fail in failed:
