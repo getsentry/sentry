@@ -48,6 +48,14 @@ interface FlameGraphOptionsContextMenuProps {
   profileGroup: ProfileGroup | null;
 }
 
+function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
+  if (platform === undefined) {
+    return false;
+  }
+
+  return /node|python/.test(platform);
+}
+
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
   const api = useApi();
   const {projects} = useProjects();
@@ -65,6 +73,10 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
       return setGithubLinkState({type: 'initial'});
     }
 
+    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
+      return undefined;
+    }
+
     const project = projects.find(
       p => p.id === String(props.profileGroup?.metadata?.projectID)
     );
@@ -74,7 +86,7 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
     }
 
     const metadata = props.profileGroup.metadata;
-    const commitId = metadata.release.lastCommit.id;
+    const commitId = metadata.release?.lastCommit?.id;
     const platform = metadata.platform;
 
     const frame = props.hoveredNode.frame;
@@ -146,7 +158,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
                 !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
               }
               tooltip={
-                githubLink.type === 'resolved' && !githubLink.data.sourceUrl
+                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? t('Open in GitHub is not yet supported for this platform')
+                  : githubLink.type === 'resolved' && !githubLink.data.sourceUrl
                   ? t('Could not find source code location in GitHub')
                   : undefined
               }
