@@ -1,8 +1,6 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry import projectoptions
-from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -35,7 +33,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["performance_issue_creation_enabled_n_plus_one_db"] == True
+        assert response.data["performance_issue_creation_enabled_n_plus_one_db"]
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
@@ -52,13 +50,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["performance_issue_creation_enabled_n_plus_one_db"] == False
+        assert not response.data["performance_issue_creation_enabled_n_plus_one_db"]
 
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             get_response = self.client.get(self.url, format="json")
 
         assert get_response.status_code == 200, response.content
-        assert get_response.data["performance_issue_creation_enabled_n_plus_one_db"] == False
+        assert not get_response.data["performance_issue_creation_enabled_n_plus_one_db"]
 
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
