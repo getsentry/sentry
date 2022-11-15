@@ -47,6 +47,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    CONSECUTIVE_DB_OP = "consecutive_db"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -60,6 +61,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -292,6 +294,7 @@ def get_detection_settings(project_id: Optional[str] = None):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.CONSECUTIVE_DB_OP: {"duration_threshold": 100},
     }
 
 
@@ -301,6 +304,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     detection_settings = get_detection_settings(project_id)
     detectors = {
+        # DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
@@ -854,6 +858,34 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 self.stored_problems[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, self.spans_involved[fingerprint]
                 )
+
+
+class ConsecutiveDBSpanDetector(PerformanceDetector):
+
+    __slots__ = "stored_problems"
+
+    settings_key = DetectorType.CONSECUTIVE_DB_OP
+
+    def init(self):
+        self.stored_problems = {}
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        span_duration = get_span_duration(span)
+        fingerprint = fingerprint_span(span)
+        if not span_id or not op:
+            return
+
+        if not self._is_db_op(op):
+            return
+
+        if span_duration > timedelta(seconds=50):
+            span_id = span.get("span_id", None)
+            self.stored_problems[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
+
+    def _is_db_op(self, op: str) -> bool:
+        return op.startswith("db") and not op.startswith("db.redis")
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):

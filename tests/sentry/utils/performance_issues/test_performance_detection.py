@@ -922,6 +922,21 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_consecutive_db_span(self):
+        SECOND = 1000
+        consecutive_db_event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "spans": [
+                create_span("db", duration=50 * SECOND),
+            ],
+        }
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 1
+
 
 class PrepareProblemForGroupingTest(unittest.TestCase):
     def test(self):
