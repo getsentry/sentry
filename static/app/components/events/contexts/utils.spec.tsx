@@ -16,8 +16,8 @@ describe('contexts utils', function () {
       const unknownData = getUnknownData({allData, knownKeys});
 
       expect(unknownData).toEqual([
-        {key: 'username', value: 'a', subject: 'Username', meta: undefined},
-        {key: 'count', value: 1000, subject: 'Count', meta: undefined},
+        {key: 'username', value: 'a', subject: 'username', meta: undefined},
+        {key: 'count', value: 1000, subject: 'count', meta: undefined},
       ]);
     });
   });

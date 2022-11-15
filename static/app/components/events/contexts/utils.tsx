@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import ContextData from 'sentry/components/contextData';
@@ -183,7 +182,7 @@ export function getUnknownData({
     .map(([key, value]) => ({
       key,
       value,
-      subject: startCase(key),
+      subject: key,
       meta: meta?.[key]?.[''],
     }));
 }
