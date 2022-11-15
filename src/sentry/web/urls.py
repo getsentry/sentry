@@ -531,6 +531,8 @@ urlpatterns += [
     ),
     # Issues
     url(r"^issues/", react_page_view, name="issues"),
+    # Performance
+    url(r"^performance/", react_page_view, name="performance"),
     # Profiling
     url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
@@ -544,6 +546,10 @@ urlpatterns += [
     url(r"^join-request/", react_page_view, name="join-request"),
     # Activity
     url(r"^activity/", react_page_view, name="activity"),
+    # Stats
+    url(r"^stats/", react_page_view, name="stats"),
+    # Replays
+    url(r"^replays/", react_page_view, name="replays"),
     # Monitors
     url(r"^monitors/", react_page_view, name="monitors"),
     # Releases
