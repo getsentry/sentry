@@ -18,10 +18,11 @@ type Props = {
   card: boolean;
   children: React.ReactNode;
   issue: Group;
+  orgId: string;
   to: string;
 };
 
-const IssueLink = ({children, issue, to, card = true}: Props) => {
+const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
   if (!card) {
     return <Link to={to}>{children}</Link>;
   }
@@ -33,6 +34,8 @@ const IssueLink = ({children, issue, to, card = true}: Props) => {
     hasSeen: issue.hasSeen,
     isResolved: issue.status === 'resolved',
   });
+
+  const streamPath = `/organizations/${orgId}/issues/`;
 
   const hovercardBody = (
     <div className={className}>
@@ -47,6 +50,18 @@ const IssueLink = ({children, issue, to, card = true}: Props) => {
           message={message}
           annotations={
             <Fragment>
+              {issue.logger && (
+                <EventAnnotation>
+                  <Link
+                    to={{
+                      pathname: streamPath,
+                      query: {query: `logger:${issue.logger}`, referrer: 'issue-link'},
+                    }}
+                  >
+                    {issue.logger}
+                  </Link>
+                </EventAnnotation>
+              )}
               {issue.annotations.map((annotation, i) => (
                 <EventAnnotation key={i} dangerouslySetInnerHTML={{__html: annotation}} />
               ))}
