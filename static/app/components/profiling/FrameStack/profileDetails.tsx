@@ -282,7 +282,6 @@ const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('platform')]: 'platform',
   [t('release')]: 'release',
   [t('environment')]: 'environment',
-  [t('version')]: 'version',
   [t('duration')]: 'durationNS',
   [t('threads')]: 'threads',
 };

@@ -170,7 +170,6 @@ declare namespace Profiling {
       transactionID: string;
       release: Release | null;
       transactionName: string;
-      version: string;
     };
   };
 }
