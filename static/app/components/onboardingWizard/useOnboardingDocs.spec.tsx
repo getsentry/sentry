@@ -6,6 +6,7 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
+import {PlatformIntegration} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useOnboardingDocs', function () {
@@ -39,7 +40,13 @@ describe('useOnboardingDocs', function () {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
-      initialProps: {project, generateDocKeys, isPlatformSupported},
+      initialProps: {
+        project,
+        docKeys,
+        isPlatformSupported: isPlatformSupported({
+          id: project.platform,
+        } as PlatformIntegration),
+      },
       wrapper,
     });
     await waitForNextUpdate();
@@ -87,7 +94,13 @@ describe('useOnboardingDocs', function () {
     });
 
     const {result} = reactHooks.renderHook(useOnboardingDocs, {
-      initialProps: {project, generateDocKeys, isPlatformSupported},
+      initialProps: {
+        project,
+        docKeys,
+        isPlatformSupported: isPlatformSupported({
+          id: project.platform,
+        } as PlatformIntegration),
+      },
       wrapper,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
@@ -130,7 +143,13 @@ describe('useOnboardingDocs', function () {
     });
 
     const {result} = reactHooks.renderHook(useOnboardingDocs, {
-      initialProps: {project, generateDocKeys, isPlatformSupported},
+      initialProps: {
+        project,
+        docKeys,
+        isPlatformSupported: isPlatformSupported({
+          id: project.platform,
+        } as PlatformIntegration),
+      },
       wrapper,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
