@@ -260,7 +260,7 @@ class EventAttributeCondition(EventCondition):
         raise RuntimeError("Invalid Match")
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        attr = self.get_option("attribute")
+        attr = self.get_option("attribute", "")
         try:
             attribute_values = self._get_attribute_values(event, attr.lower())
         except KeyError:
