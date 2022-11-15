@@ -8,15 +8,21 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 
 MAX_VALUE = 2147483647
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
+ISSUE_PROJECT_OPTION_KEYS = ["performance_issue_creation_enabled_n_plus_one_db"]
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
-    n_plus_one_db_detection_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    n_plus_one_db_issue_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    n_plus_one_db_count = serializers.IntegerField(required=False, min_value=0, max_value=MAX_VALUE)
-    n_plus_one_db_duration_threshold = serializers.IntegerField(
-        required=False, min_value=0, max_value=MAX_VALUE
+    performance_issue_creation_enabled_n_plus_one_db = serializers.BooleanField(required=False)
+
+
+# We can move this into the project options manager if this sticks around.
+def get_project_option_with_default(project: str, option_key: str) -> bool:
+    prefixed_key = f"sentry:{option_key}"
+    setting_default = projectoptions.get_well_known_default(
+        prefixed_key,
+        project=project,
     )
+    return project.get_option(prefixed_key, default=setting_default)
 
 
 @region_silo_endpoint
@@ -47,14 +53,10 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        performance_issue_settings_default = projectoptions.get_well_known_default(
-            SETTINGS_PROJECT_OPTION_KEY,
-            project=project,
-        )
-        performance_issue_settings = project.get_option(
-            SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
-        )
-        return Response({**performance_issue_settings_default, **performance_issue_settings})
+        performance_issue_settings = {
+            k: get_project_option_with_default(project, k) for k in ISSUE_PROJECT_OPTION_KEYS
+        }
+        return Response(performance_issue_settings)
 
     def put(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
@@ -65,20 +67,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        performance_issue_settings = projectoptions.get_well_known_default(
-            SETTINGS_PROJECT_OPTION_KEY,
-            project=project,
-        )
-
         data = serializer.validated_data
-
-        project.update_option(SETTINGS_PROJECT_OPTION_KEY, {**performance_issue_settings, **data})
+        for k, v in data.items():
+            prefixed_key = f"sentry:{k}"
+            project.update_option(prefixed_key, v)
 
         return Response(data)
-
-    def delete(self, request: Request, project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
-        project.delete_option(SETTINGS_PROJECT_OPTION_KEY)
-        return Response(status=status.HTTP_204_NO_CONTENT)
