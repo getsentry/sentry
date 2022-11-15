@@ -154,7 +154,8 @@ function EventTagsAndScreenshots({
                 projectSlug={projectSlug}
                 screenshot={screenshot}
                 onDelete={onDeleteScreenshot}
-                onSetScreenshotInFocus={index => setScreenshotInFocus(index)}
+                onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
+                onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
                 screenshotInFocus={screenshotInFocus}
                 totalScreenshots={screenshots.length}
                 openVisualizationModal={handleOpenVisualizationModal}

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, ReactEventHandler, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
@@ -9,7 +9,7 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -19,13 +19,14 @@ import ImageVisualization from './imageVisualization';
 type Props = {
   eventId: Event['id'];
   onDelete: (attachmentId: EventAttachment['id']) => void;
-  onSetScreenshotInFocus: (index: number) => void;
   openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
   screenshotInFocus: number;
   totalScreenshots: number;
+  onNext?: ReactEventHandler;
+  onPrevious?: ReactEventHandler;
   onlyRenderScreenshot?: boolean;
 };
 
@@ -34,7 +35,8 @@ function Screenshot({
   organization,
   screenshot,
   screenshotInFocus,
-  onSetScreenshotInFocus,
+  onNext,
+  onPrevious,
   totalScreenshots,
   projectSlug,
   onlyRenderScreenshot,
@@ -61,15 +63,18 @@ function Screenshot({
             <Button
               disabled={screenshotInFocus === 0}
               aria-label={t('Previous Screenshot')}
-              onClick={() => onSetScreenshotInFocus(screenshotInFocus - 1)}
+              onClick={onPrevious}
               icon={<IconChevron direction="left" size="xs" />}
               size="xs"
             />
-            {screenshotInFocus + 1} of {totalScreenshots}
+            {tct('[currentScreenshot] of [totalScreenshots]', {
+              currentScreenshot: screenshotInFocus + 1,
+              totalScreenshots,
+            })}
             <Button
               disabled={screenshotInFocus + 1 === totalScreenshots}
               aria-label={t('Next Screenshot')}
-              onClick={() => onSetScreenshotInFocus(screenshotInFocus + 1)}
+              onClick={onNext}
               icon={<IconChevron direction="right" size="xs" />}
               size="xs"
             />
