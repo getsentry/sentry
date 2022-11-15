@@ -8,6 +8,7 @@ from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403
 from .comment_webhooks import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
+from .first_profile_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403
 from .first_replay_sent import *  # noqa: F401,F403
 from .first_sourcemaps_sent import *  # noqa: F401,F403
