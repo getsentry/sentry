@@ -167,7 +167,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.INVITE_MEMBER,
       title: t('Invite your team'),
       description: t(
-        'Assign issues to the right people and comment back-and-forth on shared errors with coworkers.'
+        'Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.'
       ),
       skippable: true,
       requisites: [],
@@ -289,7 +289,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        'Make Javascript source code human readable and debug with greater context and speed. Seeing code in its original form will help you debunk the ghosts of errors past.'
+        'Unminify JavaScript source code and debug with context. Seeing code in its original form will help you debunk the ghosts of errors past.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
