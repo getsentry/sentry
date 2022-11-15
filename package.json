@@ -188,6 +188,7 @@
     "babel-jest": "^29.2.1",
     "babel-plugin-dynamic-import-node": "^2.2.0",
     "benchmark": "^2.1.4",
+    "copy-webpack-plugin": "^11.0.0",
     "eslint": "8.25.0",
     "eslint-config-sentry-app": "^1.104.0",
     "html-webpack-plugin": "^5.5.0",
