@@ -213,13 +213,6 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     markSpanOutOfView(span.span_id);
-
-    // TODO: Call measure in spanContextManager instead of doing it here.
-    // Then, you will need to remove them from spanContextManager whenever a tree branch or autogroup is collapsed
-    // if (!isSpanExpanded) {
-    //   cellMeasurerCache.clear(spanNumber - 1, 0);
-    //   listRef.current?.recomputeRowHeights(spanNumber - 1);
-    // }
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();

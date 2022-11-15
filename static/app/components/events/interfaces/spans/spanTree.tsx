@@ -8,6 +8,7 @@ import {
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
+import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
@@ -36,6 +37,7 @@ import {
 import {
   getSpanID,
   getSpanOperation,
+  isGapSpan,
   setSpansOnTransaction,
   spanTargetHash,
 } from './utils';
@@ -108,13 +110,125 @@ class SpanTree extends Component<PropType> {
   }
 
   componentDidUpdate(prevProps: PropType) {
+    // If the filters or minimap drag props have changed, we can't pinpoint the exact
+    // spans that we need to recalculate the heights for, so recompute them all
     if (
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
-      !isEqual(prevProps.spans, this.props.spans)
+      !isEqual(prevProps.dragProps, this.props.dragProps)
     ) {
-      // Update horizontal scroll states after a search has been performed or if
-      // if the spans has changed
-      this.props.updateScrollState();
+      cache.clearAll();
+      listRef.current?.recomputeRowHeights();
+      return;
+    }
+
+    // When the spans change, we can be more efficient with recomputing heights.
+    // Measuring cells is an expensive operation, so efficiency here is key.
+    // We will look specifically at the cells that need to have their heights recalculated, and clear
+    // their respective slots in the cache.
+    if (!isEqual(prevProps.spans, this.props.spans)) {
+      // When the structure of the span tree is changed in an update, this can be due to the following reasons:
+      // - A subtree was collapsed or expanded
+      // - An autogroup was collapsed or expanded
+      // - An embedded transaction was collapsed or expanded
+
+      // Notice how in each case, there are two subcases: collapsing and expanding
+      // In the collapse case, spans are *removed* from the tree, whereas expansion *adds* spans to the tree
+      // We will have to determine which of these cases occurred, and then use that info to determine which specific cells
+      // need to be recomputed.
+
+      const comparator = (
+        span1: EnhancedProcessedSpanType,
+        span2: EnhancedProcessedSpanType
+      ) => {
+        if (isGapSpan(span1.span) || isGapSpan(span2.span)) {
+          return false;
+        }
+
+        return span1.span.span_id === span2.span.span_id;
+      };
+
+      // Case 1: Spans were removed due to a subtree or group collapsing
+      if (prevProps.spans.length > this.props.spans.length) {
+        // diffLeft will tell us all spans that have been removed in this update.
+        const diffLeft = new Set(
+          differenceWith(prevProps.spans, this.props.spans, comparator)
+        );
+
+        prevProps.spans.forEach((span, index) => {
+          if (isGapSpan(span.span)) {
+            cache.clear(index, 0);
+            return;
+          }
+
+          // We only want to clear the cache for spans that are expanded.
+          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+            cache.clear(index, 0);
+          }
+        });
+
+        // This loop will ensure that any expanded spans after the spans which were removed
+        // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
+        this.props.spans.forEach((span, index) => {
+          if (isGapSpan(span.span)) {
+            cache.clear(index, 0);
+            return;
+          }
+
+          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+            // Since spans were removed, the index in the new state is offset by the num of spans removed
+            cache.clear(index + diffLeft.size, 0);
+          }
+        });
+      }
+      // Case 2: Spans were added due to a subtree or group expanding
+      else {
+        // diffRight will tell us all spans that have been added in this update.
+        const diffRight = new Set(
+          differenceWith(this.props.spans, prevProps.spans, comparator)
+        );
+
+        prevProps.spans.forEach((span, index) => {
+          if (isGapSpan(span.span)) {
+            cache.clear(index, 0);
+            return;
+          }
+
+          // We only want to clear the cache for spans that are added.
+          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+            cache.clear(index, 0);
+          }
+        });
+
+        this.props.spans.forEach((span, index) => {
+          if (isGapSpan(span.span)) {
+            cache.clear(index, 0);
+            return;
+          }
+
+          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+            cache.clear(index, 0);
+          }
+        });
+
+        // This loop will ensure that any expanded spans after the spans which were removed
+        // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
+        prevProps.spans.forEach((span, index) => {
+          if (isGapSpan(span.span)) {
+            cache.clear(index, 0);
+            return;
+          }
+
+          if (
+            !diffRight.has(span) &&
+            this.props.spanContextProps.isSpanExpanded(span.span.span_id)
+          ) {
+            // Since spans were removed, the index in the new state is offset by the num of spans removed
+            cache.clear(index + diffRight.size, 0);
+          }
+        });
+      }
+
+      listRef.current?.forceUpdateGrid();
     }
   }
 
@@ -246,7 +360,7 @@ class SpanTree extends Component<PropType> {
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
-    this.clearCacheSlotsBySpanId(spanID);
+    // this.clearCacheSlotsBySpanId(spanID);
   };
 
   // TODO: Clean this up so spanTree contains objects instead of React nodes
