@@ -1,6 +1,8 @@
-import {Fragment, useContext} from 'react';
+import {useContext} from 'react';
 import {Location} from 'history';
 
+import ReplayNode from 'sentry/components/quickTrace/replayNode';
+import {ReplayOnlyTrace} from 'sentry/components/quickTrace/styles';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -20,19 +22,26 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
 
-  return (
-    <Fragment>
-      {hasPerformanceView && hasTraceContext && (
-        <IssueQuickTrace
-          organization={organization}
-          event={event}
-          location={location}
-          isPerformanceIssue={isPerformanceIssue}
-          quickTrace={quickTrace!}
-        />
-      )}
-    </Fragment>
-  );
+  const hasSessionReplay = organization.features.includes('session-replay-ui');
+  const showQuickTrace = hasPerformanceView && hasTraceContext;
+
+  if (showQuickTrace) {
+    return (
+      <IssueQuickTrace
+        organization={organization}
+        event={event}
+        location={location}
+        isPerformanceIssue={isPerformanceIssue}
+        quickTrace={quickTrace!}
+      />
+    );
+  }
+
+  return hasSessionReplay ? (
+    <ReplayOnlyTrace>
+      <ReplayNode event={event} />
+    </ReplayOnlyTrace>
+  ) : null;
 }
 
 export default QuickTrace;

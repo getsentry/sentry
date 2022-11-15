@@ -179,3 +179,7 @@ export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
     </div>
   );
 }
+
+export const ReplayOnlyTrace = styled('div')`
+  margin-top: ${space(0.25)};
+`;

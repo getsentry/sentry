@@ -10,13 +10,11 @@ import {
   DropdownMenuHeader,
   ErrorNodeContent,
   EventNode,
-  EventNodeReplay,
   ExternalDropdownLink,
   QuickTraceContainer,
   QuickTraceValue,
   SectionSubtext,
   SingleEventHoverText,
-  StyledIconPlay,
   TraceConnector,
 } from 'sentry/components/quickTrace/styles';
 import {
@@ -46,6 +44,8 @@ import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {Theme} from 'sentry/utils/theme';
+
+import ReplayNode from './replayNode';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
@@ -88,10 +88,6 @@ export default function QuickTrace({
   const traceLength = quickTrace.trace && quickTrace.trace.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
-  const hasReplay =
-    event.entries?.some(({type}) => type === 'breadcrumbs') &&
-    event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
-
   const nodes: React.ReactNode[] = [];
 
   if (organization.features.includes('session-replay-ui')) {
@@ -106,25 +102,7 @@ export default function QuickTrace({
             return null;
           }
 
-          return (
-            <EventNodeReplay
-              data-test-id="replay-node"
-              to={{
-                ...location,
-                hash: '#breadcrumbs',
-              }}
-              onClick={
-                hasReplay
-                  ? () => document.getElementById('breadcrumbs')?.scrollIntoView()
-                  : undefined
-              }
-              type={hasReplay ? 'black' : 'white'}
-              icon={hasReplay && <StyledIconPlay size="xs" />}
-              tooltipText={hasReplay ? '' : t('Replay cannot be found')}
-            >
-              {hasReplay ? t('Replay') : '???'}
-            </EventNodeReplay>
-          );
+          return <ReplayNode event={event} />;
         }}
       </Projects>
     );
