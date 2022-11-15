@@ -99,7 +99,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders pre-built queries and saved ones', function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -110,9 +110,7 @@ describe('EventsV2 > QueryList', function () {
       />
     );
 
-    const content = wrapper.find('QueryCard');
-    // pre built + saved queries
-    expect(content).toHaveLength(5);
+    expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
   });
 
   it('can duplicate and trigger change callback', async function () {
