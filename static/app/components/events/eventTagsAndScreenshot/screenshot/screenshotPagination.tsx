@@ -31,7 +31,7 @@ const ScreenshotPagination = ({
         disabled={previousDisabled}
         onClick={onPrevious}
       />
-      {headerText}
+      <span data-test-id="pagination-header-text">{headerText}</span>
       <Button
         icon={<IconChevron direction="right" size="xs" />}
         aria-label={t('Next')}
