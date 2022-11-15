@@ -187,9 +187,19 @@ function buildRoutes() {
         path="/organizations/:orgId/data-export/:dataExportId"
         component={make(() => import('sentry/views/dataExport/dataDownload'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/disabled-member/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/disabledMember'))
+          )}
+          key="orgless-disabled-member-route"
+        />
+      ) : null}
       <Route
         path="/organizations/:orgId/disabled-member/"
-        component={make(() => import('sentry/views/disabledMember'))}
+        component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
+        key="org-disabled-member"
       />
       {usingCustomerDomain ? (
         <Route
