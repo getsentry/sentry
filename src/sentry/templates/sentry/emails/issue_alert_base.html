@@ -124,12 +124,12 @@
                 {% else %}
                   <div class="event-type default">
                     <h3>
-                      <a href="{% absolute_uri link %}">{{ issue_type|truncatechars:40 }}</a><br />
+                      <a href="{% absolute_uri link %}">{{ issue_type|truncatechars:40 }}</a>
                       {% if transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
-                      {% else %}
-                        <span class="event-subtitle">{{ subtitle|truncatechars:40 }}</span>
                       {% endif %}
+                      <br />
+                      <small>{{ event.title|truncatechars:40|soft_break:40 }}</small>
                     </h3>
                   </div>
                 {% endif %}
