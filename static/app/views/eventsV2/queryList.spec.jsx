@@ -3,7 +3,13 @@ import {browserHistory} from 'react-router';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -114,7 +120,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can duplicate and trigger change callback', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -123,13 +129,19 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'duplicate',
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
+    expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Duplicate Query'));
+
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: location.pathname,
+        query: {},
+      });
     });
 
     expect(duplicateMock).toHaveBeenCalled();
