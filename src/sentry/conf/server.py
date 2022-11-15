@@ -1222,7 +1222,7 @@ SENTRY_FEATURES = {
     # Enable org member role provisioning through scim
     "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
-    "organizations: scim-team-roles": False,
+    "organizations:scim-team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
