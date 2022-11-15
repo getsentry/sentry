@@ -78,7 +78,7 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 
   const options =
     queryOptions ??
-    (!isQueryFn(queryFnOrQueryOptions) ? queryFnOrQueryOptions : undefined);
+    (isQueryFn(queryFnOrQueryOptions) ? undefined : queryFnOrQueryOptions);
 
   return reactQuery.useQuery(queryKey, queryFn, options);
 }
