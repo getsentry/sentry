@@ -51,38 +51,64 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.repo.provider = "example"
         self.repo.save()
 
-        self.config = self.create_code_mapping(
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="sentry/",
+            source_root="src/sentry/",
+            automatically_generated=True,  # Created by the automation
+        )
+        self.code_mapping2 = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
             stack_root="usr/src/getsentry/",
             source_root="",
         )
+        self.code_mapping3 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+        )
+        self.code_mapping4 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="sentry/integrations/",
+            source_root="src/sentry/integrations/",
+            automatically_generated=True,  # Created by the automation
+        )
 
         self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         self.login_as(self.user)
 
+    # You can use this if you're expecting the test to match the user generated code mapping
     def expected_configurations(self) -> Mapping[str, Any]:
         return {
             "defaultBranch": "master",
-            "id": str(self.config.id),
+            "id": str(self.code_mapping2.id),
             "integrationId": str(self.integration.id),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
             "provider": serialized_provider(),
             "repoId": str(self.repo.id),
             "repoName": self.repo.name,
-            "sourceRoot": self.config.source_root,
-            "stackRoot": self.config.stack_root,
+            "sourceRoot": self.code_mapping2.source_root,
+            "stackRoot": self.code_mapping2.stack_root,
         }
 
     def test_no_filepath(self):
+        """The file query search is missing"""
         response = self.get_error_response(
             self.organization.slug, self.project.slug, status_code=400
         )
         assert response.data == {"detail": "Filepath is required"}
 
     def test_no_configs(self):
+        """No code mappings have been set for this project"""
         # new project that has no configurations set up for it
         project = self.create_project(
             name="bloop",
@@ -100,19 +126,23 @@ class ProjectStacktraceLinkTest(APITestCase):
         }
 
     def test_file_not_found_error(self):
+        """File matches code mapping but it cannot be found in the source repository."""
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
         )
-        assert response.data["config"] == self.expected_configurations()
+        assert response.data["config"] is None
         assert not response.data["sourceUrl"]
-        assert response.data["error"] == "file_not_found"
+        # XXX: This depends on what was the last attempted code mapping
+        assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
+        # XXX: This depends on what was the last attempted code mapping
         assert (
             response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+            == f"https://example.com/{self.repo.name}/blob/master/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         )
 
     def test_stack_root_mismatch_error(self):
+        """Looking for a stacktrace file path that will not match any code mappings"""
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": "wrong/file/path"}
         )
@@ -122,6 +152,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     def test_config_and_source_url(self):
+        """Having a different source url should also work"""
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
@@ -133,10 +164,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
-    @mock.patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-    )
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
         mock_integration.return_value = None
         mock_munger.return_value = None
@@ -152,13 +180,15 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
         )
 
-        assert response.data["config"] == self.expected_configurations()
+        assert response.data["config"] is None
         assert not response.data["sourceUrl"]
+        # XXX: This depends on what was the last attempted code mapping
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
+        # XXX: This depends on what was the last attempted code mapping
         assert (
             response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+            == f"https://example.com/{self.repo.name}/blob/master/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         )
 
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
@@ -209,8 +239,8 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "package": "any",
             },
         )
-        assert mock_integration.call_count == 1
-        assert response.data["config"] == self.expected_configurations()
+        assert mock_integration.call_count == 5  # As many code mappings there are for this project
+        assert response.data["config"] is None
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
