@@ -23,7 +23,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTest(TestCase):
     def test_member_set_simple(self):
         user = self.create_user()

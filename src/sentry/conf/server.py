@@ -1015,6 +1015,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling on-boarding checklist
+    "organizations:profiling-onboarding-checklist": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1167,6 +1169,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
