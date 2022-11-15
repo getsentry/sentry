@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
 import {t} from 'sentry/locale';
 import {EventTransaction, Organization} from 'sentry/types';
 
@@ -43,11 +44,15 @@ export function SpanEvidenceSection({event, organization}: Props) {
       />
 
       <TraceViewWrapper>
-        <TraceView
-          organization={organization}
-          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
-          isEmbedded
-        />
+        <SpanContext.Provider>
+          <TraceView
+            organization={organization}
+            waterfallModel={
+              new WaterfallModel(event as EventTransaction, affectedSpanIds)
+            }
+            isEmbedded
+          />
+        </SpanContext.Provider>
       </TraceViewWrapper>
     </DataSection>
   );
