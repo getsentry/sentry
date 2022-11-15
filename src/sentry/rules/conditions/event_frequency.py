@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping, Tuple
 
 from django import forms
 from django.core.cache import cache
@@ -17,6 +17,11 @@ from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GRO
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.types.condition_activity import (
+    FREQUENCY_CONDITION_BUCKET_SIZE,
+    ConditionActivity,
+    round_to_five_minute,
+)
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
 
@@ -106,20 +111,47 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
+    def _get_options(self) -> Tuple[float, str] | None:
         interval = self.get_option("interval")
         try:
             value = float(self.get_option("value"))
         except (TypeError, ValueError):
-            return False
+            return None
 
         if not interval:
+            return None
+        return value, interval
+
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
+        options = self._get_options()
+        if options is None:
             return False
+        value, interval = options
 
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
+
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        options = self._get_options()
+        if options is None:
+            return False
+        value, interval = options
+        interval_delta = self.intervals[interval][1]
+
+        # extrapolate if interval less than bucket size
+        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
+            value *= FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta
+            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
+
+        interval_end = round_to_five_minute(activity.timestamp)
+        interval_start = interval_end - interval_delta
+        count = buckets[interval_end] - buckets.get(interval_start, 0)
+
+        return count > value
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
         query_result = self.query_hook(event, start, end, environment_id)
