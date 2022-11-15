@@ -191,19 +191,19 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         </Tooltip>
       );
 
+      if (!organization.features.includes('discover-quick-context')) {
+        return [eventIdLink];
+      }
+
       return [
-        organization.features.includes('discover-quick-context') ? (
-          <QuickContextHoverWrapper
-            key={`quickContextEventHover${rowIndex}`}
-            dataRow={dataRow}
-            contextType={ContextType.EVENT}
-            organization={organization}
-          >
-            {eventIdLink}
-          </QuickContextHoverWrapper>
-        ) : (
-          eventIdLink
-        ),
+        <QuickContextHoverWrapper
+          key={`quickContextEventHover${rowIndex}`}
+          dataRow={dataRow}
+          contextType={ContextType.EVENT}
+          organization={organization}
+        >
+          {eventIdLink}
+        </QuickContextHoverWrapper>,
       ];
     }
     return [];
