@@ -1,12 +1,11 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {BarChart} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {SeriesDataUnit} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
@@ -42,28 +41,34 @@ const MonitorStats = ({monitor}: Props) => {
   });
 
   let emptyStats = true;
-  const success = {
+  const success: BarChartSeries = {
     seriesName: t('Successful'),
     yAxisIndex: 0,
-    data: [] as SeriesDataUnit[],
+    data: [],
   };
-  const failed = {
+  const failed: BarChartSeries = {
     seriesName: t('Failed'),
     yAxisIndex: 0,
-    data: [] as SeriesDataUnit[],
+    data: [],
+  };
+  const missed: BarChartSeries = {
+    seriesName: t('Missed'),
+    yAxisIndex: 0,
+    data: [],
   };
   const durationData = [] as [number, number][];
 
   data.stats?.forEach(p => {
-    if (p.ok || p.error) {
+    if (p.ok || p.error || p.missed) {
       emptyStats = false;
     }
     const timestamp = p.ts * 1000;
     success.data.push({name: timestamp, value: p.ok});
     failed.data.push({name: timestamp, value: p.error});
+    missed.data.push({name: timestamp, value: p.missed});
     durationData.push([timestamp, Math.trunc(p.duration)]);
   });
-  const colors = [theme.green200, theme.red200];
+  const colors = [theme.green200, theme.red200, theme.yellow200];
 
   const durationTitle = t('Average Duration');
   const additionalSeries: LineSeriesOption[] = [
@@ -96,7 +101,7 @@ const MonitorStats = ({monitor}: Props) => {
           <BarChart
             isGroupedByDate
             showTimeInTooltip
-            series={[success, failed]}
+            series={[success, failed, missed]}
             stacked
             additionalSeries={additionalSeries}
             height={height}
