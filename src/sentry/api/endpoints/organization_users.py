@@ -37,7 +37,6 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     ).values_list("organizationmember_id", flat=True),
                 )
                 .select_related("user")
-                .prefetch_related("teams")
                 .order_by("user__email")
             )
 
@@ -51,7 +50,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 organization_members,
                 request.user,
                 serializer=OrganizationMemberWithProjectsSerializer(
-                    project_ids=[p.id for p in projects]
+                    projects=projects,
                 ),
             )
         )
