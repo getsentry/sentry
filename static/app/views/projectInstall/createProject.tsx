@@ -20,6 +20,9 @@ import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -29,11 +32,12 @@ import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
 
-type Props = WithRouterProps & {
-  api: any;
-  organization: Organization;
-  teams: Team[];
-};
+type Props = WithRouterProps &
+  WithRouteAnalyticsProps & {
+    api: any;
+    organization: Organization;
+    teams: Team[];
+  };
 
 type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
@@ -71,9 +75,10 @@ class CreateProject extends Component<Props, State> {
   }
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
-      organization: this.props.organization,
-    });
+    this.props.setEventNames(
+      'project_creation_page.viewed',
+      'Project Create: Creation page viewed'
+    );
   }
 
   get defaultCategory() {
@@ -304,7 +309,9 @@ class CreateProject extends Component<Props, State> {
 }
 
 // TODO(davidenwang): change to functional component and replace withTeams with useTeams
-export default withApi(withRouter(withOrganization(withTeams(CreateProject))));
+export default withRouteAnalytics(
+  withApi(withRouter(withOrganization(withTeams(CreateProject))))
+);
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`

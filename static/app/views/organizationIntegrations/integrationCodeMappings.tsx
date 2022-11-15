@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
-import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -32,15 +31,19 @@ import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] & {
-  integration: Integration;
-  organization: Organization;
-  projects: Project[];
-};
+type Props = AsyncComponent['props'] &
+  WithRouteAnalyticsProps & {
+    integration: Integration;
+    organization: Organization;
+    projects: Project[];
+  };
 
 type State = AsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
@@ -92,19 +95,14 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
-    const {referrer} = qs.parse(window.location.search) || {};
-    // We don't start new session if the user was coming from choosing
-    // the manual setup option flow from the issue details page
-    const startSession = referrer === 'stacktrace-issue-details' ? false : true;
-    trackIntegrationAnalytics(
+    this.props.setEventNames(
       'integrations.code_mappings_viewed',
-      {
-        integration: this.props.integration.provider.key,
-        integration_type: 'first_party',
-        organization: this.props.organization,
-      },
-      {startSession}
+      'Integrations: Code Mappings Viewed'
     );
+    this.props.setRouteAnalyticsParams({
+      integration: this.props.integration.provider.key,
+      integration_type: 'first_party',
+    });
   }
 
   trackDocsClick = () => {
@@ -283,7 +281,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default withProjects(withOrganization(IntegrationCodeMappings));
+export default withRouteAnalytics(
+  withProjects(withOrganization(IntegrationCodeMappings))
+);
 
 const Layout = styled('div')`
   display: grid;

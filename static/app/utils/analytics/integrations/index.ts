@@ -60,7 +60,6 @@ type IntegrationInstallationInputValueChangeEventParams = {
 // Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
-  'integrations.code_mappings_viewed': SingleIntegrationEventParams;
   'integrations.config_saved': SingleIntegrationEventParams;
   'integrations.details_viewed': SingleIntegrationEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
@@ -106,7 +105,6 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
     'Integrations: Plugin Add to Project Clicked',
   'integrations.resolve_now_clicked': 'Integrations: Resolve Now Clicked',
   'integrations.request_install': 'Integrations: Request Install',
-  'integrations.code_mappings_viewed': 'Integrations: Code Mappings Viewed',
   'integrations.details_viewed': 'Integrations: Details Viewed',
   'integrations.index_viewed': 'Integrations: Index Page Viewed',
   'integrations.directory_item_searched': 'Integrations: Directory Item Searched',

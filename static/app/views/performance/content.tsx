@@ -17,7 +17,8 @@ import {
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -49,9 +50,6 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   const {projects} = useProjects();
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
-  // TODO: remove the trackAdvancedAnalyticsEvent call and use useRouteAnalyticsParams instead
-  useDisableRouteAnalytics();
-
   const [state, setState] = useState<State>({error: undefined});
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generatePerformanceEventView(location, projects, {
@@ -91,16 +89,18 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
 
   const onboardingProject = getOnboardingProject();
 
+  useRouteAnalyticsEventNames(
+    'performance_views.overview.view',
+    'Performance Views: Transaction overview view'
+  );
+
+  useRouteAnalyticsParams({
+    project_platforms: getSelectedProjectPlatforms(location, projects),
+    show_onboarding: onboardingProject !== undefined,
+  });
+
   useEffect(() => {
     if (!mounted.current) {
-      const selectedProjects = getSelectedProjectPlatforms(location, projects);
-
-      trackAdvancedAnalyticsEvent('performance_views.overview.view', {
-        organization,
-        show_onboarding: onboardingProject !== undefined,
-        project_platforms: selectedProjects,
-      });
-
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
       mounted.current = true;

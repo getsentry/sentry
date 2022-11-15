@@ -99,18 +99,11 @@ export type TeamInsightsEventParameters = {
       project_has_replay?: boolean;
       project_platform?: string;
     };
-  'new_alert_rule.viewed': RuleViewed & {
-    duplicate_rule: string;
-    session_id: string;
-    wizard_v3: string;
-  };
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
     rule_id: string;
   };
-  'project_creation_page.viewed': {};
-  'team_insights.viewed': {};
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -154,8 +147,5 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
-  'new_alert_rule.viewed': 'New Alert Rule: Viewed',
-  'team_insights.viewed': 'Team Insights: Viewed',
-  'project_creation_page.viewed': 'Project Create: Creation page viewed',
   'project_creation_page.created': 'Project Create: Project Created',
 };

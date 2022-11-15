@@ -21,8 +21,10 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -31,6 +33,7 @@ import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
+  WithRouteAnalyticsProps &
   WithRouterProps<{orgId: string}> & {
     organization: Organization;
   };
@@ -82,11 +85,8 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent('monitors.page_viewed', {
-      organization: this.props.organization.id,
-    });
+    this.props.setEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   }
-
   handleSearch = (query: string) => {
     const {location, router} = this.props;
     router.push({
@@ -194,4 +194,4 @@ const Filters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default withRouter(withOrganization(Monitors));
+export default withRouteAnalytics(withRouter(withOrganization(Monitors)));
