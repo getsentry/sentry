@@ -493,8 +493,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if not features.has("organizations:performance-issues", projects[0].organization):
                 # Make sure we only see error issues if the performance issue feature is disabled
                 group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
-
-            if features.has("organizations:performance-issues", projects[0].organization):
+            else:
                 for sf in search_filters or ():
                     # general search query:
                     if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
@@ -502,7 +501,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                             Q(type=GroupType.ERROR.value)
                             | Q(
                                 type__in=(
-                                    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
                                     GroupType.PERFORMANCE_N_PLUS_ONE.value,
                                     GroupType.PERFORMANCE_SLOW_SPAN.value,
                                     GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
