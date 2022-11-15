@@ -247,7 +247,8 @@ class IssueListOverview extends Component<Props, State> {
       prevQuery.query !== newQuery.query ||
       prevQuery.statsPeriod !== newQuery.statsPeriod ||
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
-      prevProps.savedSearch !== this.props.savedSearch
+      prevProps.savedSearch?.query !== this.props.savedSearch?.query ||
+      prevProps.savedSearch?.sort !== this.props.savedSearch?.sort
     ) {
       this.fetchData(selectionChanged);
     } else if (
