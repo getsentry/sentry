@@ -125,7 +125,7 @@ class SpanTree extends Component<PropType> {
     // Measuring cells is an expensive operation, so efficiency here is key.
     // We will look specifically at the cells that need to have their heights recalculated, and clear
     // their respective slots in the cache.
-    if (!isEqual(prevProps.spans, this.props.spans)) {
+    if (prevProps.spans.length !== this.props.spans.length) {
       // When the structure of the span tree is changed in an update, this can be due to the following reasons:
       // - A subtree was collapsed or expanded
       // - An autogroup was collapsed or expanded
@@ -232,28 +232,6 @@ class SpanTree extends Component<PropType> {
     }
   }
 
-  clearCacheSlotsBySpanId = (spanID: string) => {
-    const {spans} = this.props;
-
-    const spanIndex = spans.findIndex(({span}) => {
-      if ('type' in span) {
-        return false;
-      }
-      return span.span_id === spanID;
-    });
-
-    // We need to recompute the heights for all spans *after* this span.
-    // This is because when an autogroup, subtree, or embedded span is collapsed, we do not
-    // want to recompute heights for all spans before it. The change in the heights of the rows
-    // could only possibly occur *after* the selected span, but we can't pinpoint exactly which rows to
-    // recompute, so we have to clear everything after.
-    for (let i = spanIndex; i < spans.length; i++) {
-      cache.clear(i, 0);
-    }
-
-    listRef.current?.recomputeRowHeights();
-  };
-
   generateInfoMessage(input: {
     filteredSpansAbove: EnhancedProcessedSpanType[];
     isCurrentSpanFilteredOut: boolean;
@@ -328,6 +306,9 @@ class SpanTree extends Component<PropType> {
                   {organization}
                 );
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+                // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
+                // determine the specific cache slots to clear when hidden spans are expanded
+                cache.clearAll();
               }
             : undefined
         }
@@ -360,7 +341,6 @@ class SpanTree extends Component<PropType> {
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
-    // this.clearCacheSlotsBySpanId(spanID);
   };
 
   // TODO: Clean this up so spanTree contains objects instead of React nodes
