@@ -15,7 +15,7 @@ type Props = {
 };
 
 type BooleanFilterProps = {
-  children: React.ReactNode;
+  label: string;
   onChange: (value: boolean | null) => void;
   value: boolean | null;
 };
@@ -93,37 +93,36 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
             data-test-id="filter-isInvited"
             onChange={handleBoolFilter('isInvited')}
             value={filters.isInvited}
-          >
-            {t('Invited')}
-          </BooleanFilter>
+            label={t('Invited')}
+          />
           <BooleanFilter
             data-test-id="filter-has2fa"
             onChange={handleBoolFilter('has2fa')}
             value={filters.has2fa}
-          >
-            {t('2FA')}
-          </BooleanFilter>
+            label={t('2FA')}
+          />
           <BooleanFilter
             data-test-id="filter-ssoLinked"
             onChange={handleBoolFilter('ssoLinked')}
             value={filters.ssoLinked}
-          >
-            {t('SSO Linked')}
-          </BooleanFilter>
+            label={t('SSO Linked')}
+          />
         </FilterList>
       </FilterLists>
     </FilterContainer>
   );
 };
 
-const BooleanFilter = ({onChange, value, children}: BooleanFilterProps) => (
+const BooleanFilter = ({onChange, value, label}: BooleanFilterProps) => (
   <label>
     <Checkbox
+      aria-label={t('Enable %s filter', label)}
       checked={value !== null}
       onChange={() => onChange(value === null ? true : null)}
     />
-    {children}
+    {label}
     <Switch
+      aria-label={t('Toggle %s', label)}
       isDisabled={value === null}
       isActive={value === true}
       toggle={() => onChange(!value)}

@@ -74,8 +74,8 @@ export default function getConfiguration({
             const orgFeatures = organization?.features ?? [];
             if (
               orgFeatures.includes('server-side-sampling') &&
-              (orgFeatures.includes('server-side-sampling-ui') ||
-                orgFeatures.includes('dynamic-sampling-basic'))
+              (orgFeatures.includes('dynamic-sampling-deprecated') ||
+                orgFeatures.includes('dynamic-sampling'))
             ) {
               return true;
             }
@@ -85,7 +85,8 @@ export default function getConfiguration({
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"
           ),
-          badge: () => 'beta',
+          badge: () =>
+            organization?.features.includes('dynamic-sampling') ? 'new' : 'beta',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,

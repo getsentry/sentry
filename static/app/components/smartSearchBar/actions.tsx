@@ -6,8 +6,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
-import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
+import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -57,6 +57,7 @@ export function makePinSearchAction({
             ...location,
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {
+              referrer: 'search-bar',
               ...currentQuery,
               query: pinnedSearch.query,
               sort: pinnedSearch.sort,
@@ -81,7 +82,7 @@ export function makePinSearchAction({
       browserHistory.push({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-        query: currentQuery,
+        query: {referrer: 'search-bar', ...currentQuery},
       });
     };
 
@@ -135,10 +136,14 @@ export function makeSaveSearchAction({
   disabled,
 }: SaveSearchActionOpts): ActionBarItem {
   const makeAction = ({query, organization}: ActionProps) => {
-    const onSaveSearch = () =>
+    const onSaveSearch = () => {
+      trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+        organization,
+      });
       openModal(deps => (
         <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
       ));
+    };
 
     const title = disabled
       ? t('You do not have permission to create a saved search')
@@ -167,37 +172,6 @@ export function makeSaveSearchAction({
   };
 
   return {key: 'saveSearch', makeAction};
-}
-
-type SearchBuilderActionOpts = {
-  onSidebarToggle: () => void;
-};
-
-/**
- * The Search Builder action toggles the Issue Stream search builder
- */
-export function makeSearchBuilderAction({onSidebarToggle}: SearchBuilderActionOpts) {
-  const makeAction = () => {
-    const menuItem: MenuItemProps = {
-      onAction: () => onSidebarToggle(),
-      label: t('Toggle Sidebar'),
-      key: 'searchBuilder',
-    };
-
-    const SearchBuilderActionButton = () => (
-      <ActionButton
-        title={t('Toggle search builder')}
-        tooltipProps={{containerDisplayMode: 'inline-flex'}}
-        aria-label={t('Toggle search builder')}
-        onClick={onSidebarToggle}
-        icon={<IconSliders size="xs" />}
-      />
-    );
-
-    return {Button: SearchBuilderActionButton, menuItem};
-  };
-
-  return {key: 'searchBuilder', makeAction};
 }
 
 export const ActionButton = styled(Button)<{isActive?: boolean}>`

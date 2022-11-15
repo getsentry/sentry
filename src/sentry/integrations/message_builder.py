@@ -3,11 +3,12 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
-from sentry.models import Group, Project, Rule, Team, User
+from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
@@ -17,13 +18,13 @@ class AbstractMessageBuilder(ABC):
     pass
 
 
-def format_actor_options(actors: Sequence[Team | User]) -> Sequence[Mapping[str, str]]:
+def format_actor_options(actors: Sequence[Team | APIUser]) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | User) -> Mapping[str, str]:
-    if isinstance(actor, User):
+def format_actor_option(actor: Team | APIUser) -> Mapping[str, str]:
+    if isinstance(actor, APIUser):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
@@ -31,7 +32,7 @@ def format_actor_option(actor: Team | User) -> Mapping[str, str]:
     raise NotImplementedError
 
 
-def build_attachment_title(obj: Group | Event) -> str:
+def build_attachment_title(obj: Group | GroupEvent) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
@@ -55,7 +56,7 @@ def build_attachment_title(obj: Group | Event) -> str:
 
 def get_title_link(
     group: Group,
-    event: Event | None,
+    event: GroupEvent | None,
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
@@ -78,7 +79,7 @@ def get_title_link(
     return url_str
 
 
-def build_attachment_text(group: Group, event: Event | None = None) -> Any | None:
+def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any | None:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -87,6 +88,8 @@ def build_attachment_text(group: Group, event: Event | None = None) -> Any | Non
     if ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
+        if not event:
+            event = group.get_latest_event()
         problem = get_matched_problem(event)
         return get_span_evidence_value_problem(problem)
 

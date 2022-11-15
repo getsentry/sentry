@@ -1,27 +1,20 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
-import {configure as configureEnzyme} from 'enzyme'; // eslint-disable-line no-restricted-imports
-import {Location} from 'history';
+import type {Location} from 'history';
 import MockDate from 'mockdate';
-import * as PropTypes from 'prop-types';
-import * as qs from 'query-string';
+import {object as propTypesObject} from 'prop-types';
+import {stringify} from 'query-string';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types';
-
-import {loadFixtures} from './sentry-test/loadFixtures';
-
-// needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
-window.TextDecoder = TextDecoder as typeof window.TextDecoder;
+import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -47,7 +40,23 @@ configureRtl({testIdAttribute: 'data-test-id'});
  *
  * https://github.com/enzymejs/enzyme/issues/2429
  */
-configureEnzyme({adapter: new Adapter()});
+// eslint-disable-next-line
+const tsxTestsWithEnzyme = [
+  'eventsV2/savedQuery/index.spec.tsx',
+  'dataScrubbing/modals/edit.spec.tsx',
+  'eventsV2/homepage.spec.tsx',
+  'performance/table.spec.tsx',
+  'projectDebugFiles/index.spec.tsx',
+  'eventsV2/resultsChart.spec.tsx',
+];
+const testPath = expect.getState().testPath;
+
+const isJSXTest = testPath && testPath.endsWith('.jsx');
+if (isJSXTest || (testPath && tsxTestsWithEnzyme.some(e => testPath.endsWith(e)))) {
+  const EnzymeAdapter = require('@wojtekmaj/enzyme-adapter-react-17');
+  const enzyme = require('enzyme'); // eslint-disable-line no-restricted-imports
+  enzyme.configure({adapter: new EnzymeAdapter()});
+}
 
 /**
  * Mock (current) date to always be National Pasta Day
@@ -57,15 +66,8 @@ const constantDate = new Date(1508208080000);
 MockDate.set(constantDate);
 
 /**
- * Load all files in `tests/js/fixtures/*` as a module.
- * These will then be added to the `TestStubs` global below
- */
-const fixtures = loadFixtures('js-stubs', {flatten: true});
-
-/**
  * Global testing configuration
  */
-ConfigStore.loadInitialData(fixtures.Config());
 
 /**
  * Mocks
@@ -75,7 +77,7 @@ jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('react-router', () => {
+jest.mock('react-router', function reactRouterMockFactory() {
   const ReactRouter = jest.requireActual('react-router');
   return {
     ...ReactRouter,
@@ -84,15 +86,17 @@ jest.mock('react-router', () => {
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
+      listenBefore: jest.fn(),
+      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
     },
   };
 });
-jest.mock('react-lazyload', () => {
+jest.mock('react-lazyload', function reactLazyLoadMockFactory() {
   const LazyLoadMock = ({children}) => children;
   return LazyLoadMock;
 });
 
-jest.mock('react-virtualized', () => {
+jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
@@ -100,7 +104,7 @@ jest.mock('react-virtualized', () => {
   };
 });
 
-jest.mock('echarts-for-react/lib/core', () => {
+jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');
@@ -114,7 +118,7 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-jest.mock('@sentry/react', () => {
+jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
@@ -169,7 +173,7 @@ const routerFixtures = {
           return to.pathname;
         }
 
-        return `${to.pathname}?${qs.stringify(to.query)}`;
+        return `${to.pathname}?${stringify(to.query)}`;
       }
 
       return '';
@@ -204,21 +208,24 @@ const routerFixtures = {
     context: {
       location: TestStubs.location(),
       router: TestStubs.router(),
-      organization: fixtures.Organization(),
-      project: fixtures.Project(),
+      organization: TestStubs.Organization(),
+      project: TestStubs.Project(),
       ...context,
     },
     childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: PropTypes.object,
-      project: PropTypes.object,
+      router: propTypesObject,
+      location: propTypesObject,
+      organization: propTypesObject,
+      project: propTypesObject,
       ...childContextTypes,
     },
   }),
 };
 
-type TestStubTypes = TestStubFixtures & typeof routerFixtures;
+const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
+const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
+
+ConfigStore.loadInitialData(fixtures.Config());
 
 /**
  * Test Globals
@@ -229,7 +236,7 @@ declare global {
    * directory. Use these for setting up test data.
    */
   // eslint-disable-next-line no-var
-  var TestStubs: TestStubTypes;
+  var TestStubs: typeof fixtures;
   /**
    * Generates a promise that resolves on the next macro-task
    */
@@ -242,7 +249,11 @@ declare global {
   var MockApiClient: typeof Client;
 }
 
-window.TestStubs = {...fixtures, ...routerFixtures};
+// needed by cbor-web for webauthn
+window.TextEncoder = TextEncoder;
+window.TextDecoder = TextDecoder as typeof window.TextDecoder;
+
+window.TestStubs = fixtures;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));

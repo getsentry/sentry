@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Dict, Sequence, Tuple
 
 from django import forms
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.types.condition_activity import ConditionActivity
 
 key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
@@ -28,7 +29,7 @@ class LevelCondition(EventCondition):
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def _passes(self, level_name: str) -> bool:
         desired_level_raw = self.get_option("level")
         desired_match = self.get_option("match")
 
@@ -39,7 +40,7 @@ class LevelCondition(EventCondition):
         # Fetch the event level from the tags since event.level is
         # event.group.level which may have changed
         try:
-            level: int = LOG_LEVELS_MAP[event.get_tag("level")]
+            level: int = LOG_LEVELS_MAP[level_name]
         except KeyError:
             return False
 
@@ -51,9 +52,24 @@ class LevelCondition(EventCondition):
             return level <= desired_level
         return False
 
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
+        return self._passes(event.get_tag("level"))
+
     def render_label(self) -> str:
         data = {
             "level": LEVEL_CHOICES[self.data["level"]],
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
+
+    def get_event_columns(self) -> Sequence[str]:
+        return ["tags.key", "tags.value"]
+
+    def passes_activity(
+        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+    ) -> bool:
+        try:
+            level = event_map[condition_activity.data["event_id"]]["tags"]["level"]
+            return self._passes(level)
+        except (TypeError, KeyError):
+            return False

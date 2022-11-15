@@ -13,7 +13,7 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {useProfileStats} from 'sentry/utils/profiling/hooks/useProfileStats';
+import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 
 interface ProfileChartsProps {
   query: string;
@@ -24,29 +24,34 @@ interface ProfileChartsProps {
 // We want p99 to be before p75 because echarts renders the series in order.
 // So if p75 is before p99, p99 will be rendered on top of p75 which will
 // cover it up.
-const SERIES_ORDER = ['count()', 'p99()', 'p75()'] as const;
+const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
 export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
   const theme = useTheme();
 
-  const profileStats = useProfileStats({query, selection});
+  const profileStats = useProfileEventsStats({
+    query,
+    referrer: 'api.profiling.landing-chart',
+    yAxes: SERIES_ORDER,
+  });
+
   const series: Series[] = useMemo(() => {
-    if (profileStats.type !== 'resolved') {
+    if (profileStats.status !== 'success') {
       return [];
     }
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
 
-    const allSeries = profileStats.data.data
-      .filter(rawData => SERIES_ORDER.indexOf(`${rawData.axis}()` as any) > -1)
+    const allSeries = profileStats.data[0].data
+      .filter(rawData => SERIES_ORDER.indexOf(rawData.axis) > -1)
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
         }
 
-        if (rawData.axis === 'count') {
+        if (rawData.axis === 'count()') {
           return {
             data: rawData.values.map((value, i) => ({
               name: timestamps[i]!,
@@ -54,7 +59,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
               // available, use 0 to represent it
               value: value ?? 0,
             })),
-            seriesName: `${rawData.axis}()`,
+            seriesName: rawData.axis,
             xAxisIndex: 0,
             yAxisIndex: 0,
           };
@@ -67,7 +72,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
             // is available, use 0 to represent it
             value: (value ?? 0) / 1e6, // convert ns to ms
           })),
-          seriesName: `${rawData.axis}()`,
+          seriesName: rawData.axis,
           xAxisIndex: 1,
           yAxisIndex: 1,
         };

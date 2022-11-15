@@ -103,6 +103,7 @@ const StyledBadge = styled(Badge)`
   line-height: 1;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 3px ${space(0.75)};
+  vertical-align: middle;
 `;
 
 export default SettingsNavItem;

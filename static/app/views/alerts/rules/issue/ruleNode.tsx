@@ -125,9 +125,6 @@ function MailActionFields({
         {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
-        ...(organization.features?.includes('alert-release-notification-workflow')
-          ? [{value: MailActionTargetType.ReleaseMembers, label: t('Release Members')}]
-          : []),
       ]}
       memberValue={MailActionTargetType.Member}
       teamValue={MailActionTargetType.Team}
@@ -229,6 +226,7 @@ interface Props {
   onReset: (rowIndex: number, name: string, value: string) => void;
   organization: Organization;
   project: Project;
+  incompatibleRule?: boolean;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   ownership?: null | IssueOwnership;
 }
@@ -244,6 +242,7 @@ function RuleNode({
   onPropertyChange,
   onReset,
   ownership,
+  incompatibleRule,
 }: Props) {
   const handleDelete = useCallback(() => {
     onDelete(index);
@@ -447,6 +446,19 @@ function RuleNode({
     return null;
   }
 
+  function renderIncompatibleRuleBanner() {
+    if (!incompatibleRule) {
+      return null;
+    }
+    return (
+      <MarginlessAlert type="error" showIcon>
+        {t(
+          'This condition conflicts with other condition(s) above. Please select a different condition.'
+        )}
+      </MarginlessAlert>
+    );
+  }
+
   /**
    * Update all the AlertRuleAction's fields from the TicketRuleModal together
    * only after the user clicks "Apply Changes".
@@ -562,6 +574,7 @@ function RuleNode({
           icon={<IconDelete />}
         />
       </RuleRow>
+      {renderIncompatibleRuleBanner()}
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
   );

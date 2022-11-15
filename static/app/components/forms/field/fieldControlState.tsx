@@ -1,20 +1,22 @@
 import styled from '@emotion/styled';
 
-const width = '36px';
+import space from 'sentry/styles/space';
 
-const FieldControlState = styled('div')<{
-  /**
-   * Do not apply a width to the control state container, allowing it to flex
-   * based on its parents constraints.
-   */
-  flexibleControlStateSize?: boolean;
-}>`
+import {FieldGroupProps} from './types';
+
+type FieldControlStateProps = Pick<FieldGroupProps, 'flexibleControlStateSize'>;
+
+const FieldControlState = styled('div')<FieldControlStateProps>`
   display: flex;
   position: relative;
-  ${p => !p.flexibleControlStateSize && `width: ${width}`};
   flex-shrink: 0;
-  justify-content: center;
+  justify-content: end;
   align-items: center;
+
+  ${p =>
+    p.flexibleControlStateSize
+      ? `&:not(:empty) { margin-left: ${space(1.5)} }`
+      : `width: 24px; margin-left: ${space(0.5)};`};
 `;
 
 export default FieldControlState;

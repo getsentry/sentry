@@ -1,40 +1,13 @@
-import {InjectedRouter} from 'react-router';
+import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
-import {EventAttachment, Organization} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
-
-function TestComponent({
-  organization,
-  router,
-  children,
-}: {
-  children: React.ReactNode;
-  organization: Organization;
-  router: InjectedRouter;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
 
 describe('EventTagsAndScreenshot', function () {
   const contexts = {
@@ -181,17 +154,15 @@ describe('EventTagsAndScreenshot', function () {
   describe('renders tags only', function () {
     it('not shared event - without attachments', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, tags, contexts}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={[]}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={[]}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+        />
       );
 
       // Screenshot Container
@@ -234,18 +205,16 @@ describe('EventTagsAndScreenshot', function () {
 
     it('shared event - without attachments', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, tags, contexts}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={[]}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext
-            isShare
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={[]}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+          isShare
+        />
       );
 
       // Screenshot Container
@@ -259,18 +228,16 @@ describe('EventTagsAndScreenshot', function () {
 
     it('shared event - with attachments', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, tags, contexts}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={attachments}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext
-            isShare
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={attachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+          isShare
+        />
       );
 
       // Screenshot Container
@@ -301,7 +268,7 @@ describe('EventTagsAndScreenshot', function () {
 
     it('no context and no tags', async function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
+        <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
             event={event}
@@ -312,14 +279,16 @@ describe('EventTagsAndScreenshot', function () {
             onDeleteScreenshot={() => jest.fn()}
             hasContext={false}
           />
-        </TestComponent>
+        </Fragment>
       );
 
       // Tags Container
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshot'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -353,26 +322,28 @@ describe('EventTagsAndScreenshot', function () {
   describe('renders screenshot and tags', function () {
     it('has context, tags and attachments', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, tags, contexts}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={attachments}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={attachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+        />
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshot'
+      );
+      expect(screen.queryByTestId('screenshot-icon-1')).not.toBeInTheDocument();
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
@@ -386,23 +357,73 @@ describe('EventTagsAndScreenshot', function () {
       expect(container).toSnapshot();
     });
 
+    it('renders multiple screenshots correctly', function () {
+      const moreAttachments = [
+        ...attachments,
+        {
+          id: '1765467047',
+          name: 'screenshot-2.jpg',
+          headers: {'Content-Type': 'image/jpeg'},
+          mimetype: 'image/jpeg',
+          size: 239154,
+          sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40d',
+          dateCreated: '2021-08-31T15:14:53.130940Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+      ];
+      render(
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={moreAttachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+        />
+      );
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        '1 of 2 screenshots'
+      );
+
+      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
+      );
+
+      screen.getByTestId('screenshot-icon-1').click();
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        '2 of 2 screenshots'
+      );
+
+      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
+      );
+    });
+
     it('has context and attachments only', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, contexts}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={attachments}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={attachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+        />
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshot'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -423,21 +444,21 @@ describe('EventTagsAndScreenshot', function () {
 
     it('has tags and attachments only', function () {
       const {container} = render(
-        <TestComponent organization={organization} router={router}>
-          <EventTagsAndScreenshot
-            event={{...event, tags}}
-            organization={organization}
-            projectId={project.slug}
-            location={router.location}
-            attachments={attachments}
-            onDeleteScreenshot={() => jest.fn()}
-            hasContext={false}
-          />
-        </TestComponent>
+        <EventTagsAndScreenshot
+          event={{...event, tags}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={attachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext={false}
+        />
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshot'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',

@@ -9,6 +9,7 @@ import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -36,6 +37,7 @@ from sentry.models import (
     GroupTombstone,
     Project,
     Release,
+    Team,
     User,
     UserOption,
     follows_semver_versioning_scheme,
@@ -46,6 +48,7 @@ from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     issue_ignored,
     issue_mark_reviewed,
@@ -207,7 +210,7 @@ def update_groups(
             },
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            raise serializers.ValidationError(serializer.errors, code=400)
 
     if serializer is None:
         return
@@ -689,7 +692,7 @@ def update_groups(
         )
         if assigned_actor:
             for group in group_list:
-                resolved_actor = assigned_actor.resolve()
+                resolved_actor: APIUser | Team = assigned_actor.resolve()
 
                 assignment = GroupAssignee.objects.assign(
                     group, resolved_actor, acting_user, extra=extra

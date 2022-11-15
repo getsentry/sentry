@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import F, QuerySet
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -28,7 +28,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models.authprovider import AuthProvider
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -69,11 +68,9 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
+        from sentry.services.hybrid_cloud.authprovider import auth_provider_service
 
-        orgs_with_scim = AuthProvider.objects.filter(
-            flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
-        ).values_list("organization_id", flat=True)
-
+        orgs_with_scim = auth_provider_service.get_org_ids_with_scim()
         self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
@@ -295,7 +292,7 @@ class OrganizationMember(Model):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, actor, provider):
-        from sentry.models import LostPasswordHash
+        from sentry.services.hybrid_cloud.lostpasswordhash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         email = self.get_email()
@@ -318,7 +315,7 @@ class OrganizationMember(Model):
         }
 
         if not self.user.password:
-            password_hash = LostPasswordHash.for_user(self.user)
+            password_hash = lost_password_hash_service.get_or_create(self.user.id)
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
@@ -469,10 +466,17 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
+        if not features.has("organizations:team-roles", self.organization):
+            return [
+                r
+                for r in organization_roles.get_all()
+                if r.priority <= organization_roles.get(self.role).priority
+            ]
+
         return [
             r
             for r in organization_roles.get_all()
-            if r.priority <= organization_roles.get(self.role).priority
+            if r.priority <= organization_roles.get(self.role).priority and not r.is_retired
         ]
 
     def is_only_owner(self) -> bool:

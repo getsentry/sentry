@@ -18,6 +18,7 @@ type GroupListBodyProps = {
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
+  isSavedSearchesOpen: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
   query: string;
@@ -30,6 +31,7 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
+  isSavedSearchesOpen: boolean;
   memberList: IndexedMembersByProject;
   query: string;
   sort: string;
@@ -46,6 +48,7 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
+  isSavedSearchesOpen,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -79,6 +82,8 @@ function GroupListBody({
         sort,
         displayReprocessingLayout,
         groupStatsPeriod,
+        source: 'group-list',
+        isSavedSearchesOpen,
       }}
     />
   );
@@ -91,10 +96,15 @@ function GroupList({
   sort,
   displayReprocessingLayout,
   groupStatsPeriod,
+  isSavedSearchesOpen,
 }: GroupListProps) {
   const topIssue = groupIds[0];
   const showInboxTime = sort === IssueSortOptions.INBOX;
-  const canSelect = !useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const canSelect = !useMedia(
+    `(max-width: ${
+      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+    })`
+  );
 
   return (
     <PanelBody>
@@ -115,6 +125,7 @@ function GroupList({
             useFilteredStats
             showInboxTime={showInboxTime}
             canSelect={canSelect}
+            narrowGroups={isSavedSearchesOpen}
           />
         );
       })}

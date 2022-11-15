@@ -1,8 +1,9 @@
 import logging
 import signal
+import uuid
 from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -21,7 +22,8 @@ from sentry.eventstream.kafka.postprocessworker import (
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, kafka
+from sentry.utils import json, kafka, metrics
+from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -89,6 +91,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "group_states": encode_list(group_states) if group_states is not None else None,
+                    "queue": self._get_queue_for_post_process(event),
                 }
             )
         else:
@@ -241,24 +244,35 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: Optional[bool],
     ) -> StreamProcessor[KafkaPayload]:
+        configure_metrics(MetricsWrapper(metrics.backend))
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
-        configuration = build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(cluster_name),
-            group_id=consumer_group,
-            auto_offset_reset=initial_offset_reset,
-            strict_offset_reset=strict_offset_reset,
+        consumer = KafkaConsumer(
+            build_kafka_consumer_configuration(
+                get_kafka_consumer_cluster_options(cluster_name),
+                group_id=consumer_group,
+                auto_offset_reset=initial_offset_reset,
+                strict_offset_reset=strict_offset_reset,
+            )
+        )
+
+        commit_log_consumer = KafkaConsumer(
+            build_kafka_consumer_configuration(
+                get_kafka_consumer_cluster_options(cluster_name),
+                group_id=f"ppf-commit-log-{uuid.uuid1().hex}",
+                auto_offset_reset="earliest",
+            )
         )
 
         synchronized_consumer = ArroyoSynchronizedConsumer(
-            consumer=KafkaConsumer(configuration),
-            commit_log_consumer=KafkaConsumer(configuration),
+            consumer=consumer,
+            commit_log_consumer=commit_log_consumer,
             commit_log_topic=Topic(commit_log_topic),
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, 1000)
+        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, commit_batch_size)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
@@ -297,7 +311,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 commit_batch_timeout_ms,
                 concurrency,
                 initial_offset_reset,
-                bool(strict_offset_reset),
+                strict_offset_reset,
             )
         else:
             consumer = self._build_consumer(

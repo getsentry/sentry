@@ -92,27 +92,26 @@ function findResource(r: PermissionResource) {
   return find(SENTRY_APP_PERMISSIONS, ['resource', r]);
 }
 
+/**
+ * Converts the "Permission" values held in `state` to a list of raw
+ * API scopes we can send to the server. For example:
+ *
+ *    ['org:read', 'org:write', ...]
+ *
+ */
+function permissionStateToList(permissions: Permissions) {
+  return flatMap(
+    Object.entries(permissions),
+    ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
+  );
+}
+
 export default class PermissionSelection extends Component<Props, State> {
   state: State = {
     permissions: this.props.permissions,
   };
 
   static contextType = FormContext;
-
-  /**
-   * Converts the "Permission" values held in `state` to a list of raw
-   * API scopes we can send to the server. For example:
-   *
-   *    ['org:read', 'org:write', ...]
-   *
-   */
-  permissionStateToList() {
-    const {permissions} = this.state;
-    return flatMap(
-      Object.entries(permissions),
-      ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
-    );
-  }
 
   onChange = (resource: PermissionResource, choice: PermissionValue) => {
     const {permissions} = this.state;
@@ -123,7 +122,7 @@ export default class PermissionSelection extends Component<Props, State> {
   save = (permissions: Permissions) => {
     this.setState({permissions});
     this.props.onChange(permissions);
-    this.context.form.setValue('scopes', this.permissionStateToList());
+    this.context.form.setValue('scopes', permissionStateToList(this.state.permissions));
   };
 
   render() {

@@ -18,7 +18,11 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test(self):
-        Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
+        group = Group.objects.create(
+            project=self.project,
+            first_seen=timezone.now() - timedelta(hours=1),
+            data={"metadata": {"title": "title"}},
+        )
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -28,7 +32,8 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             filterMatch="all",
             frequency=10,
         )
-        assert resp.data[-1]["count"] == 1
+        assert len(resp.data) == 1
+        assert resp.data[0]["id"] == str(group.id)
 
     def test_invalid_conditions(self):
         conditions = [
@@ -48,9 +53,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             assert resp.status_code == 400
 
     def test_invalid_filters(self):
-        # No filters are currently supported
-        invalid_filter = [{"id": "anything"}]
+        invalid_filter = [{"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}]
         condition = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
         resp = self.get_response(
             self.organization.slug,
             self.project.slug,

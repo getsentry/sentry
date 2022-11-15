@@ -132,7 +132,7 @@ class TestUpdateDsyms:
 
         expected_build = AppConnectBuild(
             project=default_project,
-            app_id=int(build.app_id),
+            app_id=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -188,7 +188,7 @@ class TestUpdateDsyms:
 
         assert existing_build.fetched
         assert existing_build.project == default_project
-        assert str(existing_build.app_id) == build.app_id
+        assert existing_build.app_id == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version
@@ -215,7 +215,7 @@ class TestUpdateDsyms:
 
         assert not existing_build.fetched
         assert existing_build.project == default_project
-        assert str(existing_build.app_id) == build.app_id
+        assert existing_build.app_id == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version

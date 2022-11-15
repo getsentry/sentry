@@ -18,7 +18,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test
+# @control_silo_test(stable=True)
 class AuthLoginTest(TestCase):
     @fixture
     def path(self):
@@ -176,15 +176,15 @@ class AuthLoginTest(TestCase):
         assert OrganizationMember.objects.filter(user=user).exists()
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
-    def test_registration_single_org_with_invite(self, from_cookie):
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_registration_single_org_with_invite(self, from_session):
         self.session["can_register"] = True
         self.save_session()
 
         self.client.get(self.path)
 
         invite_helper = mock.Mock(valid_request=True)
-        from_cookie.return_value = invite_helper
+        from_session.return_value = invite_helper
 
         resp = self.client.post(
             self.path,
@@ -229,15 +229,15 @@ class AuthLoginTest(TestCase):
         assert resp.context["register_form"].initial["username"] == "foo@example.com"
         self.assertTemplateUsed("sentry/login.html")
 
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
-    def test_register_accepts_invite(self, from_cookie):
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_register_accepts_invite(self, from_session):
         self.session["can_register"] = True
         self.save_session()
 
         self.client.get(self.path)
 
         invite_helper = mock.Mock(valid_request=True)
-        from_cookie.return_value = invite_helper
+        from_session.return_value = invite_helper
 
         resp = self.client.post(
             self.path,
@@ -487,8 +487,6 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                # Non-sentry staff should be kicked out of using customer domain
-                ("http://testserver/auth/login/", 302),
                 ("/organizations/albertos-apples/issues/", 302),
             ]
 
@@ -510,9 +508,10 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                (f"/organizations/{self.organization.slug}/issues/", 302),
-                ("/organizations/albertos-apples/issues/", 302),
-                ("/auth/login/albertos-apples/", 302),
+                (
+                    f"http://albertos-apples.testserver{reverse('sentry-auth-organization', args=['albertos-apples'])}",
+                    302,
+                ),
             ]
 
     def test_login_valid_credentials_orgless(self):

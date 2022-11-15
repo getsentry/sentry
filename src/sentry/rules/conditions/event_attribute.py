@@ -2,7 +2,7 @@ from typing import Any, Sequence
 
 from django import forms
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
 
@@ -66,7 +66,7 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _get_attribute_values(self, event: Event, attr: str) -> Sequence[str]:
+    def _get_attribute_values(self, event: GroupEvent, attr: str) -> Sequence[str]:
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split(".")
 
@@ -166,6 +166,19 @@ class EventAttributeCondition(EventCondition):
                         if frame.post_context:
                             result.extend(frame.post_context)
             return result
+
+        elif path[0] == "device":
+            if path[1] in (
+                "screen_density",
+                "screen_dpi",
+                "screen_height_pixels",
+                "screen_width_pixels",
+            ):
+                contexts = event.data["contexts"]
+                device = contexts.get("device")
+                if device is None:
+                    device = []
+                return [device.get(path[1])]
         return []
 
     def render_label(self) -> str:
@@ -176,7 +189,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute")
         match = self.get_option("match")
         value = self.get_option("value")

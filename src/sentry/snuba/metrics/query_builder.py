@@ -66,6 +66,7 @@ from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
@@ -73,6 +74,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
+    require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -92,11 +94,32 @@ def parse_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
+def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+    """
+    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
+    as such in any query using that tag value.
+
+    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
+    transform that '' as '<< unparameterized >>'.
+
+    It is important to note that this transformation has to be applied ONLY on tag.transaction.
+    """
+    return Function(
+        function="transform",
+        parameters=[
+            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
+            [""],
+            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
+        ],
+        alias=alias,
+    )
+
+
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
@@ -126,6 +149,21 @@ def resolve_tags(
                 [
                     resolve_tags(use_case_id, org_id, input_.parameters[0]),
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                ],
+            )
+        elif input_.function == "match":
+            column = input_.parameters[0]
+
+            if column.name not in FILTERABLE_TAGS:
+                raise InvalidParams(
+                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
+                )
+
+            return Function(
+                function=input_.function,
+                parameters=[
+                    resolve_tags(use_case_id, org_id, column),
+                    input_.parameters[1],  # We directly pass the regex.
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
@@ -166,9 +204,12 @@ def resolve_tags(
             rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
 
             try:
-                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
-                    input_.op
-                ]
+                op = {
+                    Op.EQ: Op.IN,
+                    Op.IN: Op.IN,
+                    Op.NEQ: Op.NOT_IN,
+                    Op.NOT_IN: Op.NOT_IN,
+                }[input_.op]
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
@@ -195,6 +236,11 @@ def resolve_tags(
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
+            # If we are getting the column tags.transaction, we want to transform null values to
+            # '<< unparameterized >>'.
+            if input_.key == "transaction":
+                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -347,7 +393,9 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
-def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+def get_metric_object_from_metric_field(
+    metric_field: MetricField,
+) -> MetricExpressionBase:
     """Get the metric object from a metric field"""
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
@@ -446,7 +494,6 @@ def translate_meta_results(
 
 
 class SnubaQueryBuilder:
-
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
         "metrics_counters",
@@ -458,7 +505,10 @@ class SnubaQueryBuilder:
     }
 
     def __init__(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+        self,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -476,6 +526,11 @@ class SnubaQueryBuilder:
         is_column: bool = False,
     ) -> Union[Column, AliasedExpression, Function]:
         if isinstance(metric_groupby_obj.field, str):
+            if metric_groupby_obj.field == "transaction":
+                return transform_null_transaction_to_unparameterized(
+                    use_case_id, org_id, metric_groupby_obj.alias
+                )
+
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
             if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
@@ -483,15 +538,17 @@ class SnubaQueryBuilder:
             elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_groupby_obj.field
             else:
+                # TODO: if we pass a non tag key this will return a wrong column.
                 assert isinstance(metric_groupby_obj.field, Tag)
                 column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
+
             return (
                 AliasedExpression(
-                    exp=Column(column_name),
+                    exp=Column(name=column_name),
                     alias=metric_groupby_obj.alias,
                 )
                 if not is_column
-                else Column(column_name)
+                else Column(name=column_name)
             )
 
         elif isinstance(metric_groupby_obj.field, MetricField):
@@ -538,7 +595,9 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=condition.rhs,
+                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                            if require_rhs_condition_resolution(condition.lhs.op)
+                            else condition.rhs,
                         )
                     )
                 except IndexError:
@@ -589,7 +648,16 @@ class SnubaQueryBuilder:
         return orderby_fields
 
     def __build_totals_and_series_queries(
-        self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+        self,
+        entity,
+        select,
+        where,
+        groupby,
+        orderby,
+        limit,
+        offset,
+        rollup,
+        intervals_len,
     ):
         rv = {}
         totals_query = Query(
@@ -639,7 +707,11 @@ class SnubaQueryBuilder:
         )
 
     def __update_query_dicts_with_component_entities(
-        self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
+        self,
+        component_entities,
+        metric_mri_to_obj_dict,
+        fields_in_entities,
+        parent_alias,
     ):
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
@@ -869,7 +941,7 @@ class SnubaResultConverter:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(alias, empty_values)
 
-                    if bucketed_time is not None:
+                    if bucketed_time is not None and bucketed_time in self._timestamp_index:
                         series_index = self._timestamp_index[bucketed_time]
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value

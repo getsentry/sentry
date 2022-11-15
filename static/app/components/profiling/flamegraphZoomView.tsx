@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -334,15 +336,15 @@ function FlamegraphZoomView({
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   useEffect(() => {
-    if (flamegraphState.profiles.highlightFrame) {
+    if (flamegraphState.profiles.highlightFrames) {
       selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightFrame.name,
-        flamegraphState.profiles.highlightFrame.package
+        flamegraphState.profiles.highlightFrames.name,
+        flamegraphState.profiles.highlightFrames.package
       );
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
+  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
@@ -387,7 +389,7 @@ function FlamegraphZoomView({
     flamegraphCanvas,
     scheduler,
     flamegraph,
-    flamegraphState.profiles.highlightFrame,
+    flamegraphState.profiles.highlightFrames,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -498,6 +500,10 @@ function FlamegraphZoomView({
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
 
+        dispatch({
+          type: 'set highlight all frames',
+          payload: null,
+        });
         canvasPoolManager.dispatch('highlight frame', [
           hoveredNode ? [hoveredNode] : null,
           'selected',
@@ -733,17 +739,41 @@ function FlamegraphZoomView({
       )
     ) {
       setHighlightingAllOccurences(false);
+      dispatch({type: 'set highlight all frames', payload: null});
       canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
       scheduler.draw();
       return;
     }
 
     setHighlightingAllOccurences(true);
+    dispatch({
+      type: 'set highlight all frames',
+      payload: {
+        name: hoveredNodeOnContextMenuOpen.current.frame.name,
+        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+      },
+    });
+
     canvasPoolManager.dispatch('highlight frame', [
       flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
       'selected',
     ]);
-  }, [canvasPoolManager, flamegraph, scheduler]);
+  }, [canvasPoolManager, flamegraph, scheduler, dispatch]);
+
+  const handleCopyFunctionName = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(hoveredNodeOnContextMenuOpen.current.frame.name)
+      .then(() => {
+        addSuccessMessage(t('Function name copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function name to clipboard'));
+      });
+  }, []);
 
   return (
     <CanvasContainer>
@@ -767,6 +797,7 @@ function FlamegraphZoomView({
         contextMenu={contextMenu}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
+        onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
       />
       {flamegraphCanvas &&

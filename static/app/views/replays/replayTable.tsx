@@ -31,7 +31,7 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   showProjectColumn: boolean;
-  sort: Sort;
+  sort: Sort | undefined;
   fetchError?: Error;
   showSlowestTxColumn?: boolean;
 };
@@ -57,19 +57,19 @@ function SortableHeader({
 }: {
   fieldName: string;
   label: string;
-  sort: Sort;
+  sort: Props['sort'];
 }) {
   const location = useLocation<ReplayListLocationQuery>();
 
-  const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
+  const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
     <SortLink
       role="columnheader"
       aria-sort={
-        sort.field.endsWith(fieldName)
-          ? sort.kind === 'asc'
+        sort?.field.endsWith(fieldName)
+          ? sort?.kind === 'asc'
             ? 'ascending'
             : 'descending'
           : 'none'
@@ -78,11 +78,15 @@ function SortableHeader({
         pathname: location.pathname,
         query: {
           ...location.query,
-          sort: sort.kind === 'desc' ? fieldName : '-' + fieldName,
+          sort: sort?.field.endsWith(fieldName)
+            ? sort?.kind === 'desc'
+              ? fieldName
+              : '-' + fieldName
+            : '-' + fieldName,
         },
       }}
     >
-      {label} {sort.field === fieldName && sortArrow}
+      {label} {sort?.field === fieldName && sortArrow}
     </SortLink>
   );
 }
@@ -96,7 +100,7 @@ function ReplayTable({
   showSlowestTxColumn = false,
 }: Props) {
   const routes = useRoutes();
-  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+  const referrer = getRouteStringFromRoutes(routes);
 
   const organization = useOrganization();
   const theme = useTheme();
@@ -218,7 +222,12 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
+            to={{
+              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+              query: {
+                referrer,
+              },
+            }}
           >
             {replay.user.displayName || ''}
           </Link>
@@ -241,10 +250,16 @@ function ReplayTableRow({
           {hasTxEvent ? (
             <SpanOperationBreakdown>
               {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
-              {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
-                organization,
-                location,
-              })}
+              {spanOperationRelativeBreakdownRenderer(
+                replay.txEvent,
+                {
+                  organization,
+                  location,
+                },
+                {
+                  enableOnClick: false,
+                }
+              )}
             </SpanOperationBreakdown>
           ) : null}
         </Item>

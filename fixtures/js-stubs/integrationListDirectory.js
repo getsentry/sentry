@@ -55,7 +55,7 @@ export function BitbucketIntegrationConfig() {
   };
 }
 
-export function GithubIntegrationConfig() {
+export function GitHubIntegrationConfig() {
   return {
     accountType: null,
     configData: {},

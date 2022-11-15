@@ -1,168 +1,128 @@
 #!/usr/bin/env python
-import ast
 import os
 import os.path
+import pathlib
 import shutil
 import tempfile
-from typing import Union
+from typing import Iterator
 
 import click
 
-from sentry.utils import json
-from sentry.utils.types import Any
+from sentry.runner import configure
+
+configure()
+
+_manifest_files_env = {
+    "SENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__).absolute().parent.parent,
+    "GETSENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__)
+    .absolute()
+    .parent.parent.parent.joinpath("getsentry"),
+}
 
 
-def find_test_cases_matching(model_name: str):
-    manifest = json.loads(open(os.environ["SENTRY_MODEL_MANIFEST_FILE_PATH"]).read())
-    for test_node_id, hits in manifest.items():
-        if model_name in hits:
-            parts = test_node_id.split("::")
-            yield parts[0], parts[1]
+from sentry.testutils.modelmanifest import HybridCloudTestVisitor, ModelManifest
+
+
+def find_test_cases_matching(model_name: str) -> Iterator[HybridCloudTestVisitor]:
+    for env_name, path_root in _manifest_files_env.items():
+        manifest = ModelManifest.open(os.environ[env_name])
+        model_test_ids = manifest.connections[
+            manifest.get_or_create_id(manifest.model_names, model_name)
+        ]
+        for test_id, test_visitor in manifest.each_hybrid_cloud_test(path_root):
+            if test_id not in model_test_ids:
+                continue
+            test_visitor.load()
+            yield test_visitor
+
+
+def pick(prompt, options):
+    choice = ""
+    while choice not in options:
+        choice = input(prompt + " (" + ", ".join(options) + ") ")  # noqa
+    return choice
 
 
 @click.command()
-@click.option(
-    "silo_mode",
-    "--silo-mode",
-    required=True,
-    help="Which mode to apply to tests",
-    type=click.Choice(
-        [
-            "control",
-            "region",
-        ]
-    ),
-)
-@click.option("set_stable", "--set-stable", default=False, is_flag=True, help="Set tests as stable")
 @click.argument("target_model", required=True)
-def main(target_model: str, silo_mode: str, set_stable: bool):
+def main(target_model: str):
     """
     Script to decorate the given target test for silo tests, making it easier to deploy changes to given tests.
     """
 
-    for file_name, test_case_name in find_test_cases_matching(target_model):
-        print(f"Trying {test_case_name} in {file_name}")  # noqa
-        test_case_name = test_case_name.split("[")[
-            0
-        ]  # remove any parameterization off the test case
-        file_path = os.path.abspath(file_name)
-        file_ast = ast.parse(open(file_path).read())
-        test_visitor = TestVisitor(test_case_name, f"{silo_mode}_silo_test", set_stable)
-        test_visitor.visit(file_ast)
+    for test_visitor in find_test_cases_matching(target_model):
+        print(f"Trying {test_visitor.test_name} in {test_visitor.test_file_path}")  # noqa
 
-        test_visitor.rewrite(file_path)
+        if not test_visitor.decorator_was_stable:
+            print(f"Found {test_visitor.test_name}")  # noqa
+            try:
+                if pick("Skip this test?", ["y", "n"]) == "y":
+                    continue
+            except EOFError:
+                continue
+
+            try:
+                silo_mode = pick("silo mode?", ["all", "no", "control", "region"])
+                set_stable = pick("set stable?", ["y", "n"]) == "y"
+            except EOFError:
+                continue
+            _rewrite(test_visitor, f"{silo_mode}_silo_test", set_stable)
 
 
-class TestVisitor(ast.NodeVisitor):
-    def __init__(self, target_symbol_path: str, target_test_silo_mode: str, set_stable: bool):
-        self.set_stable = set_stable
-        self.target_test_silo_mode = target_test_silo_mode
-        self.target_symbol_parts = target_symbol_path.split(".")
-        self.import_match_line = False
-        self.decorator_match_line = None
-        self.func_match_line = None
-        self.class_node = None
+def _decorate(target_test_silo_mode, set_stable, lineno, match_line):
+    if not match_line:
+        return False
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
-        if node.module == "sentry.testutils.silo":
-            for name in node.names:
-                if isinstance(name, ast.alias):
-                    if name.name.endswith("_silo_test"):
-                        self.import_match_line = (node.lineno, node.col_offset)
+    if not match_line[0] == lineno:
+        return False
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> Any:
-        if len(self.target_symbol_parts) == 2 and self.target_test_silo_mode[0] == node.name:
-            self.class_node = node
-            self.generic_visit(node)
-            self.class_node = None
-        elif len(self.target_symbol_parts) == 1:
-            if self.target_symbol_parts[-1] == node.name or self.target_symbol_parts[-1] in {
-                e.id for e in node.bases if isinstance(e, ast.Name)
-            }:
-                self.mark_target(node)
+    ws = b" " * match_line[1]
+    if set_stable:
+        return ws + f"@{target_test_silo_mode}(stable=True)\n".encode()
+    else:
+        return ws + f"@{target_test_silo_mode}\n".encode()
 
-    def visit_FunctionDef(self, node: Union[ast.FunctionDef, ast.ClassDef]) -> Any:
-        if self.target_symbol_parts[-1] == node.name:
-            if self.class_node:
-                node = self.class_node
-            elif len(self.target_symbol_parts) != 1:
-                return
 
-            self.mark_target(node)
-            return
+def _rewrite(test_visitor: HybridCloudTestVisitor, target_test_silo_mode, set_stable):
+    path = test_visitor.test_file_path
+    import_line = f"from sentry.testutils.silo import {target_test_silo_mode}\n".encode()
+    if not test_visitor.decorator_match_line and not test_visitor.func_match_line:
+        raise Exception(f"Could not find test case {test_visitor.target_symbol_parts}!")
 
-        return self.generic_visit(node)
+    with tempfile.NamedTemporaryFile(delete=False) as tf:
+        with open(path) as f:
+            if not test_visitor.import_match_line:
+                tf.write(import_line)
 
-    def mark_target(self, node: Union[ast.FunctionDef, ast.ClassDef]):
-        self.func_match_line = (node.lineno, node.col_offset)
-        for expr in node.decorator_list:
-            decorator_visitor = DecoratorVisitor(self.target_test_silo_mode)
-            decorator_visitor.visit(expr)
-            if decorator_visitor.match_line:
-                self.decorator_match_line = decorator_visitor.match_line
-                break
+            for i, line in enumerate(f.readlines()):
+                i += 1
 
-    def _decorate(self, lineno, match_line):
-        if not match_line:
-            return False
-
-        if not match_line[0] == lineno:
-            return False
-
-        ws = b" " * match_line[1]
-        if self.set_stable:
-            return ws + f"@{self.target_test_silo_mode}(stable=True)\n".encode()
-        else:
-            return ws + f"@{self.target_test_silo_mode}\n".encode()
-
-    def rewrite(self, path):
-        import_line = f"from sentry.testutils.silo import {self.target_test_silo_mode}\n".encode()
-        if not self.decorator_match_line and not self.func_match_line:
-            raise Exception(f"Could not find test case {self.target_symbol_parts}!")
-
-        with tempfile.NamedTemporaryFile(delete=False) as tf:
-            with open(path) as f:
-                if not self.import_match_line:
+                if test_visitor.import_match_line and test_visitor.import_match_line[0] == i:
                     tf.write(import_line)
+                    continue
 
-                for i, line in enumerate(f.readlines()):
-                    i += 1
-
-                    if self.import_match_line and self.import_match_line[0] == i:
-                        tf.write(import_line)
-                        continue
-
-                    if newline := self._decorate(i, self.decorator_match_line):
-                        # If the decorator type is not changing, keep the original line.
-                        if self.target_test_silo_mode in line:
-                            tf.write(line.encode("utf8"))
-                        else:
-                            tf.write(newline)
-                        continue
-
-                    if not self.decorator_match_line and (
-                        newline := self._decorate(i, self.func_match_line)
-                    ):
+                if newline := _decorate(
+                    target_test_silo_mode, set_stable, i, test_visitor.decorator_match_line
+                ):
+                    # If the decorator type is not changing, keep the original line.
+                    # If the decorator that existed was stable, don't replace it, keep it.
+                    if test_visitor.decorator_was_stable:
+                        tf.write(line.encode("utf8"))
+                    else:
                         tf.write(newline)
+                    continue
 
-                    tf.write(line.encode("utf8"))
+                if not test_visitor.decorator_match_line and (
+                    newline := _decorate(
+                        target_test_silo_mode, set_stable, i, test_visitor.func_match_line
+                    )
+                ):
+                    tf.write(newline)
 
-            tf.close()
-            shutil.move(tf.name, path)
+                tf.write(line.encode("utf8"))
 
-
-class DecoratorVisitor(ast.NodeVisitor):
-    def __init__(self, target_test_silo_mode: str):
-        self.target_test_silo_mode = target_test_silo_mode
-        self.match_line = None
-
-    def visit_Name(self, node: ast.Name) -> Any:
-        if node.id.endswith("_silo_test"):
-            self.match_line = (node.lineno, node.col_offset - 1)
-        return ast.NodeVisitor.generic_visit(self, node)
-
-    def visit_Attribute(self, node: ast.Attribute) -> Any:
-        pass
+        tf.close()
+        shutil.move(tf.name, path)
 
 
 if __name__ == "__main__":

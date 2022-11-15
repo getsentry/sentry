@@ -6,6 +6,7 @@ import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import OverlayArrow from 'sentry/components/overlayArrow';
 import {defined} from 'sentry/utils';
+import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -93,36 +94,41 @@ function computeOriginFromArrow(
  * `<AnimatePresence />`.
  */
 const Overlay = styled(
-  ({
-    children,
-    arrowProps,
-    animated,
-    placement,
-    originPoint,
-    style,
-    overlayStyle: _overlayStyle,
-    ...props
-  }: OverlayProps) => {
-    const animationProps = animated
-      ? {
-          ...overlayAnimation,
-          style: {
-            ...style,
-            ...computeOriginFromArrow(placement, originPoint),
-          },
-        }
-      : {style};
+  forwardRef<HTMLDivElement, OverlayProps>(
+    (
+      {
+        children,
+        arrowProps,
+        animated,
+        placement,
+        originPoint,
+        style,
+        overlayStyle: _overlayStyle,
+        ...props
+      },
+      ref
+    ) => {
+      const animationProps = animated
+        ? {
+            ...overlayAnimation,
+            style: {
+              ...style,
+              ...computeOriginFromArrow(placement, originPoint),
+            },
+          }
+        : {style};
 
-    return (
-      <motion.div {...props} {...animationProps}>
-        {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
-        {children}
-      </motion.div>
-    );
-  }
+      return (
+        <motion.div {...props} {...animationProps} ref={ref}>
+          {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+          <PanelProvider>{children}</PanelProvider>
+        </motion.div>
+      );
+    }
+  )
 )`
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.panelBorderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};

@@ -1,6 +1,7 @@
 from sentry.models import ActorTuple, GroupAssignee, ProjectOwnership, Repository, Team, User
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
+from sentry.services.hybrid_cloud.user import UserService
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -253,7 +254,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_b, [self.user], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_b, [UserService.serialize_user(self.user)], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
@@ -540,6 +541,17 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [frame]}}
         ) == ([ActorTuple(self.team.id, Team)], [rule])
+
+    def test_saves_without_either_auto_assignment_option(self):
+        # Project has group for autoassigned_owner_cache
+        self.group = self.create_group(project=self.project)
+        # Turn off all autoassignment
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            suspect_committer_auto_assignment=False,
+            auto_assignment=False,
+        )
+        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
 
 class ResolveActorsTestCase(TestCase):

@@ -5,6 +5,7 @@ from functools import partial, reduce
 import sentry_sdk
 from django.db.models import Count
 from django.utils import dateformat, timezone
+from sentry_sdk import set_tag
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -99,7 +100,7 @@ class ProjectContext:
     max_retries=5,
     acks_late=True,
 )
-def schedule_organizations(dry_run=False, timestamp=None, duration=None):
+def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_flag_check=False):
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
@@ -112,7 +113,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     for i, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-        if features.has("organizations:weekly-email-refresh", organization):
+        if skip_flag_check or features.has("organizations:weekly-email-refresh", organization):
             # Create a celery task per organization
             prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
@@ -128,6 +129,7 @@ def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     organization = Organization.objects.get(id=organization_id)
+    set_tag("org.slug", organization.slug)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes
@@ -207,14 +209,14 @@ def project_event_counts_for_organization(ctx):
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
         if dat["category"] == DataCategory.TRANSACTION:
             # Transaction outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED:
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
                 project_ctx.dropped_transaction_count += total
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
         else:
             # Error outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED:
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
                 project_ctx.dropped_error_count += total
             else:
                 project_ctx.accepted_error_count += total

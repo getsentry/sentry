@@ -18,7 +18,7 @@ import {Commit} from 'sentry/types';
 
 import Button from './button';
 
-function formatCommitMessage(message: string | null) {
+export function formatCommitMessage(message: string | null) {
   if (!message) {
     return t('No message provided');
   }
@@ -26,10 +26,10 @@ function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-interface CommitRowProps {
+export interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
-  onCommitClick?: () => void;
+  onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
 }
 
@@ -103,7 +103,7 @@ function CommitRow({
                 showIcon={false}
                 commitId={commit.id}
                 repository={commit.repository}
-                onClick={onCommitClick}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
               />
             ),
           })}

@@ -55,7 +55,7 @@ def assert_expected_response(
             assert response_value == value, f'"{key}, {response_value}" "{value}"'
 
     # Ensure no lingering unexpected keys exist.
-    assert list(response.keys()) == []
+    assert list(response.keys()) == [], response.keys()
 
 
 def mock_expected_response(
@@ -110,6 +110,7 @@ def mock_expected_response(
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
         "tags": kwargs.pop("tags", {}),
+        "activity": kwargs.pop("activity", 0),
     }
 
 
@@ -121,7 +122,6 @@ def mock_replay(
 ) -> typing.Dict[str, typing.Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
-
     return {
         "type": "replay_event",
         "start_time": sec(timestamp),

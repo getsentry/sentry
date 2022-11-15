@@ -372,7 +372,7 @@ export class Line extends Component<Props, State> {
     const props = {className};
 
     return (
-      <StyledLi {...props}>
+      <StyledLi data-test-id="line" {...props}>
         {this.renderLine()}
         <Context
           frame={data}

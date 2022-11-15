@@ -1,4 +1,5 @@
 import time
+from typing import NoReturn
 
 from django.conf import settings
 from packaging.version import Version
@@ -7,7 +8,6 @@ from rest_framework.response import Response
 
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.models import Project, ProjectKey
-from sentry.relay import config
 from sentry.utils import metrics
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
@@ -19,6 +19,12 @@ CACHE_CONTROL = (
 
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
+
+    # Do not let an organization load trigger session, breaking Vary header.
+    # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
+    # large amount of organization related support utilities, but that ends up being a large refactor.
+    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
+        pass
 
     def _get_context(self, key):
         """Sets context information needed to render the loader"""
@@ -52,7 +58,7 @@ class JavaScriptSdkLoader(BaseView):
 
         return (
             {
-                "config": config.get_project_key_config(key),
+                "config": {"dsn": key.dsn_public},
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
             },

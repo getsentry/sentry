@@ -75,6 +75,7 @@ const StyledBadge = styled(Badge)`
   height: ${space(2)};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraSmall};
+  vertical-align: middle;
 `;
 
 const FeatureBadge = styled(BaseFeatureBadge)<{space?: ValidSize}>`

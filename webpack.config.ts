@@ -520,7 +520,7 @@ if (
 
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
-    const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
     const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
@@ -603,7 +603,7 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
       ...(IS_UI_DEV_ONLY
-        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),

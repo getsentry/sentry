@@ -148,6 +148,9 @@ export function PerformanceLanding(props: Props) {
     : SearchContainerWithFilter;
 
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
+  const shouldForceTransactionNameOnlySearch = organization.features.includes(
+    'performance-transaction-name-only-search-indexed'
+  );
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -189,6 +192,7 @@ export function PerformanceLanding(props: Props) {
               <TabPanels>
                 <Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
+                    sendOutcomeAnalytics
                     organization={organization}
                     location={location}
                   >
@@ -231,18 +235,21 @@ export function PerformanceLanding(props: Props) {
                                           ? getFreeTextFromQuery(derivedQuery)
                                           : derivedQuery;
 
-                                      return metricSettingState ===
+                                      return (metricSettingState ===
                                         MEPState.metricsOnly &&
-                                        shouldShowTransactionNameOnlySearch ? (
+                                        shouldShowTransactionNameOnlySearch) ||
+                                        shouldForceTransactionNameOnlySearch ? (
                                         // TODO replace `handleSearch prop` with transaction name search once
                                         // transaction name search becomes the default search bar
                                         <TransactionNameSearchBar
                                           organization={organization}
-                                          location={location}
                                           eventView={eventView}
-                                          onSearch={(query: string) =>
-                                            handleSearch(query, metricSettingState)
-                                          }
+                                          onSearch={(query: string) => {
+                                            handleSearch(
+                                              query,
+                                              metricSettingState ?? undefined
+                                            );
+                                          }}
                                           query={searchQuery}
                                         />
                                       ) : (
