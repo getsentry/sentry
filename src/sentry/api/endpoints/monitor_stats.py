@@ -18,16 +18,16 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
 
-        # initialize success/failure/duration stats in preparation for counting/aggregating
+        # initialize success/failure/missed/duration stats in preparation for counting/aggregating
         while current <= end:
-            stats[current] = {CheckInStatus.OK: 0, CheckInStatus.ERROR: 0}
+            stats[current] = {CheckInStatus.OK: 0, CheckInStatus.ERROR: 0, CheckInStatus.MISSED: 0}
             duration_stats[current] = {"sum": 0, "num_checkins": 0}
             current += args["rollup"]
 
-        # retrieve the list of checkins in the time range and count success/failure/duration
+        # retrieve the list of checkins in the time range and count success/failure/missed/duration
         history = MonitorCheckIn.objects.filter(
             monitor=monitor,
-            status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+            status__in=[CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.MISSED],
             date_added__gt=args["start"],
             date_added__lte=args["end"],
         ).values_list("date_added", "status", "duration")
@@ -50,6 +50,7 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
                     "ts": ts,
                     "ok": data[CheckInStatus.OK],
                     "error": data[CheckInStatus.ERROR],
+                    "missed": data[CheckInStatus.MISSED],
                     "duration": avg_duration,
                 }
             )
