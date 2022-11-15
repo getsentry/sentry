@@ -63,8 +63,15 @@ def assert_n_plus_one_db_problem(perf_problems):
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
+
+        def mock_project_options(*args, **kwargs):
+            option_key = args[1]
+            if option_key == "sentry:performance_issue_creation_enabled_n_plus_one_db":
+                return True
+
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
+        self.project_option_mock.side_effect = mock_project_options
         self.addCleanup(patch_project_option_get.stop)
 
         patch_project = patch("sentry.models.Project.objects.get_from_cache")
@@ -99,16 +106,19 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_project_option_overrides_default(self):
+    def test_project_option_issue_creation_overrides_default(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert_n_plus_one_db_problem(perf_problems)
 
-        self.project_option_mock.return_value = {
-            "n_plus_one_db_duration_threshold": 100000,
-        }
+        def mock_project_options(*args, **kwargs):
+            option_key = args[1]
+            if option_key == "sentry:performance_issue_creation_enabled_n_plus_one_db":
+                return False
+
+        self.project_option_mock.side_effect = mock_project_options
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
@@ -781,10 +791,15 @@ class PerformanceDetectionTest(unittest.TestCase):
             ],
         )
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    @override_options(
+        {
+            "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            "performance.issues.n_plus_one_db.duration_threshold": 0,
+        }
+    )
     def test_detects_n_plus_one_with_multiple_potential_sources(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-with-odd-db-sources"]
-        self.project_option_mock.return_value = {"n_plus_one_db_duration_threshold": 0}
+
         perf_problems = _detect_performance_problems(n_plus_one_event, Mock())
         assert perf_problems == [
             PerformanceProblem(
