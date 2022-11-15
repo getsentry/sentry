@@ -637,6 +637,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=unknown")
             assert response.status_code == 400
 
+    def test_get_replays_activity_field(self):
+        """Test replays activity field does not raise 400."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=activity")
+            assert response.status_code == 200
+
     def test_archived_records_are_not_returned(self):
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
