@@ -195,37 +195,40 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can redirect on last query deletion', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'delete',
-    });
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
     expect(queryChangeMock).not.toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: {cursor: undefined, statsPeriod: '14d'},
+
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: location.pathname,
+        query: {cursor: undefined, statsPeriod: '14d'},
+      });
     });
   });
 
-  it('renders Add to Dashboard in context menu with feature flag', async function () {
+  it('renders Add to Dashboard in context menu with feature flag', function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
-    wrapper = mountWithTheme(
+
+    render(
       <QueryList
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
@@ -234,26 +237,26 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    let card = wrapper.find('QueryCard').last();
 
-    await act(async () => {
-      triggerPress(card.find('DropdownTrigger'));
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
 
-      await tick();
-      wrapper.update();
-    });
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
 
-    card = wrapper.find('QueryCard').last();
-    const menuItems = card.find('MenuItemWrap');
-
-    expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(2).text()).toEqual('Delete Query');
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('only renders Delete Query and Duplicate Query in context menu', async function () {
-    wrapper = mountWithTheme(
+  it('only renders Delete Query and Duplicate Query in context menu', function () {
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -262,22 +265,22 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    let card = wrapper.find('QueryCard').last();
 
-    await act(async () => {
-      triggerPress(card.find('DropdownTrigger'));
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
 
-      await tick();
-      wrapper.update();
-    });
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
 
-    card = wrapper.find('QueryCard').last();
-    const menuItems = card.find('MenuItemWrap');
-
-    expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Set as Default');
-    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(2).text()).toEqual('Delete Query');
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Set as Default'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
