@@ -23,6 +23,8 @@ import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
+import {formatVersion} from '../../../utils/formatters';
+
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './frameStack';
 
 function renderValue(
@@ -243,7 +245,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                       },
                     }}
                   >
-                    <FlexRow>{release?.version}</FlexRow>
+                    {formatVersion(release.version)}
                   </Link>
                 </DetailsRow>
               );
@@ -278,11 +280,11 @@ const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('organization')]: 'organizationID',
   [t('project')]: 'projectID',
   [t('platform')]: 'platform',
+  [t('release')]: 'release',
   [t('environment')]: 'environment',
   [t('version')]: 'version',
   [t('duration')]: 'durationNS',
   [t('threads')]: 'threads',
-  [t('release')]: 'release',
 };
 
 const DEVICE_DETAILS_KEY: Record<string, string> = {
@@ -312,7 +314,8 @@ const DetailsRow = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
 
-  > span {
+  > span,
+  > a {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
