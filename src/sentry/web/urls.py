@@ -531,6 +531,8 @@ urlpatterns += [
     ),
     # Issues
     url(r"^issues/", react_page_view, name="issues"),
+    # Profiling
+    url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
     # Dashboards
