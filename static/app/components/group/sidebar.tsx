@@ -330,6 +330,18 @@ class BaseGroupSidebar extends Component<Props, State> {
                       organization={organization}
                       projectId={projectId}
                       group={group}
+                      onTagClick={(title, value) => {
+                        trackAdvancedAnalyticsEvent(
+                          'issue_group_details.tags.bar.clicked',
+                          {
+                            tag: title,
+                            value: value.name,
+                            platform: project.platform,
+                            is_mobile: isMobilePlatform(project?.platform),
+                            organization,
+                          }
+                        );
+                      }}
                     />
                   );
                 })

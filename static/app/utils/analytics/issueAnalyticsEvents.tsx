@@ -36,6 +36,12 @@ export type IssueEventParameters = {
     os?: string;
     platform?: string;
   };
+  'issue_group_details.tags.bar.clicked': {
+    is_mobile: boolean;
+    tag: string;
+    value: string;
+    platform?: string;
+  };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
     tag: string;
@@ -45,6 +51,12 @@ export type IssueEventParameters = {
     is_mobile: boolean;
     previous_tag: string;
     tag: string;
+    platform?: string;
+  };
+  'issue_group_details.tags_distribution.bar.clicked': {
+    is_mobile: boolean;
+    tag: string;
+    value: string;
     platform?: string;
   };
   'issue_search.empty': {
@@ -140,6 +152,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Tags show all clicked',
   'issue_group_details.tags.switcher.clicked':
     'Issue Group Details: Tags switcher clicked',
+  'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
+  'issue_group_details.tags_distribution.bar.clicked':
+    'Issue Group Details: Tags distribution value bar clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
