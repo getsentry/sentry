@@ -1252,17 +1252,35 @@ function buildRoutes() {
     </Route>
   );
 
-  const replayRoutes = (
-    <Route
-      path="/organizations/:orgId/replays/"
-      component={make(() => import('sentry/views/replays'))}
-    >
+  const replayChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
-    </Route>
+    </Fragment>
+  );
+
+  const replayRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/replays/"
+          component={withDomainRequired(make(() => import('sentry/views/replays')))}
+          key="orgless-replays-route"
+        >
+          {replayChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/replays/"
+        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
+        key="org-replays"
+      >
+        {replayChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
@@ -1561,13 +1579,25 @@ function buildRoutes() {
   );
 
   const issueListRoutes = (
-    <Route
-      path="/organizations/:orgId/issues/(searches/:searchId/)"
-      component={errorHandler(IssueListContainer)}
-    >
-      <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-    </Route>
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/issues/(searches/:searchId/)"
+          component={withDomainRequired(errorHandler(IssueListContainer))}
+          key="orgless-issues-route"
+        >
+          <IndexRoute component={errorHandler(IssueListOverview)} />
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/issues/(searches/:searchId/)"
+        component={withDomainRedirect(errorHandler(IssueListContainer))}
+        key="org-issues"
+      >
+        <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
+        <IndexRoute component={errorHandler(IssueListOverview)} />
+      </Route>
+    </Fragment>
   );
 
   // Once org issues is complete, these routes can be nested under
