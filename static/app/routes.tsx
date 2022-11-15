@@ -1823,11 +1823,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const gettingStartedRoutes = (
-    <Route
-      path="/:orgId/:projectId/getting-started/"
-      component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
-    >
+  const gettingStartedChildRoutes = (
+    <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/projectInstall/overview'))}
       />
@@ -1837,7 +1834,32 @@ function buildRoutes() {
           () => import('sentry/views/projectInstall/platformOrIntegration')
         )}
       />
-    </Route>
+    </Fragment>
+  );
+
+  const gettingStartedRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/:projectId/getting-started/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/projectInstall/gettingStarted'))
+          )}
+          key="orgless-getting-started-route"
+        >
+          {gettingStartedChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/:orgId/:projectId/getting-started/"
+        component={withDomainRedirect(
+          make(() => import('sentry/views/projectInstall/gettingStarted'))
+        )}
+        key="org-getting-started"
+      >
+        {gettingStartedChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
