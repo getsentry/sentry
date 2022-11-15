@@ -84,7 +84,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders an empty list', function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={[]}
@@ -94,10 +94,8 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const content = wrapper.find('QueryCard');
-    // No queries
-    expect(content).toHaveLength(0);
-    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+
+    expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
   it('renders pre-built queries and saved ones', function () {
