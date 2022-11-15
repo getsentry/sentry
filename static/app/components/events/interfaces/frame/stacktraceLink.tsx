@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
