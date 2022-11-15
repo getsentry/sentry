@@ -101,19 +101,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     }
   }, [previousProject.id, currentProject.id]);
 
+  const currentPlatform = currentProject.platform
+    ? platforms.find(p => p.id === currentProject.platform)
+    : undefined;
+
+  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
-    generateDocKeys,
-    isPlatformSupported,
+    docKeys,
+    isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
-  const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
 
   const doesNotSupportReplay = currentProject.platform
     ? !replayPlatforms.includes(currentProject.platform)
@@ -158,8 +160,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       </Fragment>
     );
   }
-
-  const docKeys = generateDocKeys(currentPlatform.id);
 
   return (
     <Fragment>

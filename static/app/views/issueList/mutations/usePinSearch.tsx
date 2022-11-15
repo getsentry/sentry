@@ -46,11 +46,11 @@ export const usePinSearch = (
           ];
         }
       );
-      addSuccessMessage(t('Saved as Issues default'));
+      addSuccessMessage(t('When you come back you’ll see this search by default.'));
       options.onSuccess?.(savedSearch, variables, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Unable to set as Issues default'));
+      addErrorMessage(t('Unable to remove the default search.'));
       options.onError?.(error, variables, context);
     },
   });

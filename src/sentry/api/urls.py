@@ -6,9 +6,6 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 )
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
-    OrganizationProfilingProfilesEndpoint,
-    OrganizationProfilingStatsEndpoint,
-    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.organization_sentry_function_details import (
@@ -1640,24 +1637,9 @@ urlpatterns = [
                     include(
                         [
                             url(
-                                r"^profiles/$",
-                                OrganizationProfilingProfilesEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-profiles",
-                            ),
-                            url(
                                 r"^filters/$",
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
-                            ),
-                            url(
-                                r"^transactions/$",
-                                OrganizationProfilingTransactionsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-transactions",
-                            ),
-                            url(
-                                r"^stats/$",
-                                OrganizationProfilingStatsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),
