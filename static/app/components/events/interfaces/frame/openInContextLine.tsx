@@ -70,8 +70,7 @@ export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   white-space: nowrap;
 `;
 
-export const OpenInLink = styled(ExternalLink)`
-  display: inline-grid;
+const OpenInLink = styled(ExternalLink)`
   align-items: center;
   grid-template-columns: max-content auto;
   gap: ${space(0.75)};
