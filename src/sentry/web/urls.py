@@ -544,6 +544,8 @@ urlpatterns += [
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
     url(r"^join-request/", react_page_view, name="join-request"),
+    # Stats
+    url(r"^stats/", react_page_view, name="stats"),
     # Replays
     url(r"^replays/", react_page_view, name="replays"),
     # Monitors
