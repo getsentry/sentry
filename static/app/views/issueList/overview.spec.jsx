@@ -18,7 +18,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
@@ -58,7 +57,6 @@ const routerProps = {
 };
 
 describe('IssueList', function () {
-  let wrapper;
   let props;
 
   let group;
@@ -151,16 +149,6 @@ describe('IssueList', function () {
 
     TagStore.init();
 
-    mountWithThemeAndOrg = (component, opts) =>
-      mountWithTheme(component, {
-        ...opts,
-        wrappingComponent: ({children}) => (
-          <OrganizationContext.Provider value={organization}>
-            {children}
-          </OrganizationContext.Provider>
-        ),
-      });
-
     props = {
       api,
       savedSearchLoading: false,
@@ -185,10 +173,6 @@ describe('IssueList', function () {
   afterEach(function () {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
-    if (wrapper) {
-      wrapper.unmount();
-    }
-    wrapper = null;
   });
 
   describe('withStores and feature flags', function () {
@@ -1162,8 +1146,8 @@ describe('IssueList', function () {
   });
 
   describe('render states', function () {
-    it('displays the loading icon', function () {
-      render(<IssueListOverview {...routerProps} {...props} />, {
+    it('displays the loading icon when saved searches are loading', function () {
+      render(<IssueListOverview {...routerProps} {...props} savedSearchLoading />, {
         context: routerContext,
       });
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -1175,13 +1159,9 @@ describe('IssueList', function () {
         status: 500,
         statusCode: 500,
       });
-      const {rerender} = render(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
-        {context: routerContext}
-      );
-      rerender(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
-      );
+      render(<IssueListOverview {...routerProps} {...props} />, {
+        context: routerContext,
+      });
 
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     });
@@ -1194,14 +1174,7 @@ describe('IssueList', function () {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      const {rerender} = render(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
-        {context: routerContext}
-      );
-
-      rerender(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
-      );
+      render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1217,16 +1190,8 @@ describe('IssueList', function () {
         },
       });
 
-      const {rerender} = render(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading />,
-        {context: routerContext}
-      );
+      render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
-      rerender(
-        <IssueListOverview {...routerProps} {...props} savedSearchLoading={false} />
-      );
-
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
 
       expect(
@@ -1247,7 +1212,6 @@ describe('IssueList', function () {
 
       const defaultProps = {
         ...props,
-        savedSearchLoading: true,
         useOrgSavedSearches: true,
         selection: {
           projects: [],
@@ -1263,16 +1227,11 @@ describe('IssueList', function () {
         }),
         ...moreProps,
       };
-      const {rerender} = render(
-        <IssueListOverview {...defaultProps} savedSearchLoading />,
-        {context: routerContext}
-      );
-
-      rerender(<IssueListOverview {...defaultProps} savedSearchLoading={false} />);
+      render(<IssueListOverview {...defaultProps} />, {
+        context: routerContext,
+      });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-      return rerender;
     };
 
     it('displays when no projects selected and all projects user is member of, does not have first event', async function () {
@@ -1491,10 +1450,9 @@ describe('IssueList', function () {
     };
 
     const {routerContext: newRouterContext} = initializeOrg();
-    const {rerender} = render(<IssueListOverview {...props} savedSearchLoading />, {
+    render(<IssueListOverview {...props} />, {
       context: newRouterContext,
     });
-    rerender(<IssueListOverview {...props} savedSearchLoading={false} />);
 
     expect(
       screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))
@@ -1508,7 +1466,6 @@ describe('IssueList', function () {
         results: true,
       },
     });
-    rerender(<IssueListOverview {...props} />);
 
     expect(
       screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))

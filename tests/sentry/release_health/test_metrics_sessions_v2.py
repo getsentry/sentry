@@ -1,22 +1,16 @@
-from itertools import chain, combinations
-from typing import Iterable, List
-from unittest.mock import patch
+from typing import List
 
 import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry.release_health.duplex import compare_results
-from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.metrics_sessions_v2 import (
     SessionStatus,
     _extract_status_filter_from_conditions,
 )
-from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -63,37 +57,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         return response.data
 
-    def test_sessions_metrics_equal_num_keys(self):
-        """
-        Tests whether the number of keys in the metrics implementation of
-        sessions data is the same as in the sessions implementation.
-        """
-        interval_days_int = 1
-        interval_days = f"{interval_days_int}d"
-
-        groupbyes = _session_groupby_powerset()
-
-        for groupby in groupbyes:
-            with patch(
-                "sentry.api.endpoints.organization_sessions.release_health",
-                SessionsReleaseHealthBackend(),
-            ):
-                sessions_data = result_sorted(self.get_sessions_data(groupby, interval_days))
-
-            with patch(
-                "sentry.api.endpoints.organization_sessions.release_health",
-                MetricsReleaseHealthBackend(),
-            ):
-                metrics_data = result_sorted(self.get_sessions_data(groupby, interval_days))
-
-            errors = compare_results(
-                sessions=sessions_data,
-                metrics=metrics_data,
-                rollup=interval_days_int * 24 * 60 * 60,  # days to seconds
-            )
-
-            assert len(errors) == 0
-
     def test_sessions_metrics_with_metrics_only_field(self):
         """
         Tests whether the request of a metrics-only field forwarded to the SessionsReleaseHealthBackend
@@ -114,11 +77,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
 
         assert len(response.data["groups"]) == 0
         assert response.status_code == 200
-
-
-def _session_groupby_powerset() -> Iterable[str]:
-    keys = ["project", "release", "environment", "session.status"]
-    return chain.from_iterable((combinations(keys, size)) for size in range(len(keys) + 1))
 
 
 @pytest.mark.parametrize(

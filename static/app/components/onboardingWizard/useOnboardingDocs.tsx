@@ -2,9 +2,8 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {PlatformIntegration, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -12,12 +11,12 @@ const INITIAL_LOADING_DOCS = {};
 const INITIAL_DOC_CONTENTS = {};
 
 type Options = {
-  generateDocKeys: (platform: PlatformKey) => string[];
-  isPlatformSupported: (platform: undefined | PlatformIntegration) => boolean;
+  docKeys: string[];
+  isPlatformSupported: boolean;
   project: Project;
 };
 
-function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Options) {
+function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
   const organization = useOrganization();
   const api = useApi();
 
@@ -30,11 +29,8 @@ function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Opti
     ? platforms.find(p => p.id === project.platform)
     : undefined;
 
-  const isSupported = isPlatformSupported(currentPlatform);
-  const docKeys = currentPlatform && generateDocKeys(currentPlatform.id);
-
   useEffect(() => {
-    if (!isSupported) {
+    if (!isPlatformSupported) {
       if (loadingDocs !== INITIAL_LOADING_DOCS) {
         setLoadingDocs(INITIAL_LOADING_DOCS);
       }
@@ -44,7 +40,7 @@ function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Opti
       return;
     }
 
-    docKeys?.forEach(docKey => {
+    docKeys.forEach(docKey => {
       if (docKey in loadingDocs) {
         // If a documentation content is loading, we should not attempt to fetch it again.
         // otherwise, if it's not loading, we should only fetch at most once.
@@ -91,7 +87,7 @@ function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Opti
   }, [
     currentPlatform,
     docKeys,
-    isSupported,
+    isPlatformSupported,
     api,
     loadingDocs,
     organization.slug,
@@ -99,7 +95,7 @@ function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Opti
     docContents,
   ]);
 
-  if (!currentPlatform || !isSupported) {
+  if (!currentPlatform || !isPlatformSupported) {
     return {
       isLoading: false,
       hasOnboardingContents: false,
@@ -121,6 +117,7 @@ function useOnboardingDocs({generateDocKeys, isPlatformSupported, project}: Opti
   );
 
   return {
+    docKeys,
     isLoading,
     hasOnboardingContents,
     docContents,

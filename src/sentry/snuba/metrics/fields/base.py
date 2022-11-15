@@ -60,10 +60,9 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     team_key_transaction_snql,
     tolerated_count_transaction,
-    transform_null_to_unparameterized_snql,
     uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_private_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
@@ -822,7 +821,6 @@ class DerivedMetricExpressionDefinition:
     # derived metric
     snql: Optional[Callable[..., Function]] = None
     post_query_func: Any = lambda *args: args
-    is_private: bool = False
 
 
 class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressionBase, ABC):
@@ -1345,7 +1343,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: errored_preaggr_sessions(
                 org_id, metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_SET.value,
@@ -1354,7 +1351,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED_AND_ABNORMAL.value,
@@ -1366,7 +1362,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda crashed_count, abnormal_count, project_ids, org_id, metric_ids, alias=None: addition(
                 crashed_count, abnormal_count, alias=alias
             ),
-            is_private=True,
         ),
         CompositeEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_ALL.value,
@@ -1376,7 +1371,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
-            is_private=True,
         ),
         CompositeEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED.value,
@@ -1396,7 +1390,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: errored_all_users(
                 org_id, metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED_AND_ABNORMAL_USER.value,
@@ -1408,7 +1401,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda crashed_user_count, abnormal_user_count, project_ids, org_id, metric_ids, alias=None: addition(
                 crashed_user_count, abnormal_user_count, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_USER.value,
@@ -1450,7 +1442,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: all_transactions(
                 project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_COUNT.value,
@@ -1459,7 +1450,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_RATE.value,
@@ -1479,7 +1469,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.TOLERATED.value,
@@ -1488,7 +1477,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: tolerated_count_transaction(
                 project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.APDEX.value,
@@ -1519,7 +1507,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
-            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.USER_MISERY.value,
@@ -1563,6 +1550,28 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=count_transaction_name_snql_factory,
             default_null_value=0,
         ),
+        # This specific derived operation doesn't require a metric_mri supplied to the MetricField but
+        # in order to avoid breaking the contract we should always pass it. When using it in the orderby
+        # clause you should put a metric mri with the same entity as the only entity used in the select.
+        # E.g. if you have a select with user_misery which is a set entity and team_key_transaction and you want
+        # to order by team_key_transaction, you will have to supply to the team_key_transaction MetricField
+        # an mri that has the set entity.
+        #
+        # OrderBy(
+        #     field=MetricField(
+        #         op="team_key_transaction",
+        #         # This has entity type set, which is the entity type of the select (in the select you can only have
+        #         one entity type across selections if you use the team_key_transaction in the order by).
+        #         metric_mri=TransactionMRI.USER.value,
+        #         params={
+        #             "team_key_condition_rhs": [
+        #                 (self.project.id, "foo_transaction"),
+        #             ]
+        #         },
+        #         alias="team_key_transactions",
+        #     ),
+        #     direction=Direction.DESC,
+        # )
         DerivedOp(
             op="team_key_transaction",
             can_orderby=True,
@@ -1571,13 +1580,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=team_key_transaction_snql,
             default_null_value=0,
             meta_type="boolean",
-        ),
-        DerivedOp(
-            op="transform_null_to_unparameterized",
-            can_orderby=False,
-            can_groupby=True,
-            can_filter=True,
-            snql_func=transform_null_to_unparameterized_snql,
         ),
     ]
 }
@@ -1639,10 +1641,12 @@ def generate_bottom_up_dependency_tree_for_metrics(
 
 
 def get_derived_metrics(exclude_private: bool = True) -> Mapping[str, DerivedMetricExpression]:
-    # ToDo(ahmed): Modify the behaviour here to determine whether a metric is private or not
-    #  based on whether it is added to the public naming layer or not
     return (
-        {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
+        {
+            mri: expression
+            for (mri, expression) in DERIVED_METRICS.items()
+            if not is_private_mri(mri)
+        }
         if exclude_private
         else DERIVED_METRICS
     )

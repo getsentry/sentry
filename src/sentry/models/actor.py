@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Type, Union
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -8,19 +8,49 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
-
+    from sentry.models import Team
+    from sentry.services.hybrid_cloud.user import APIUser
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_class(type: int) -> Type[Union["Team", "User"]]:
+def actor_type_to_class(type: int) -> Type[Union["Team", "APIUser"]]:
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
     ACTOR_TYPE_TO_CLASS = {ACTOR_TYPES["team"]: Team, ACTOR_TYPES["user"]: User}
 
     return ACTOR_TYPE_TO_CLASS[type]
+
+
+def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "APIUser"]:
+    from sentry.models import Team, User
+    from sentry.services.hybrid_cloud.user import user_service
+
+    if cls is User:
+        user = user_service.get_by_actor_id(actor_id)
+        if user is None:
+            raise User.DoesNotExist()
+        return user
+    if cls is Team:
+        return Team.objects.get(actor_id=actor_id)
+
+    raise ValueError(f"Cls {cls} is not a valid actor type.")
+
+
+def fetch_actor_by_id(cls, id: int) -> Union["Team", "APIUser"]:
+    from sentry.models import Team, User
+
+    if cls is Team:
+        return Team.objects.get(id=id)
+
+    if cls is User:
+        from sentry.services.hybrid_cloud.user import user_service
+
+        user = user_service.get_user(id)
+        if user is None:
+            raise User.DoesNotExist()
+        return user
 
 
 def actor_type_to_string(type: int) -> Optional[str]:
@@ -46,11 +76,11 @@ class Actor(Model):
         app_label = "sentry"
         db_table = "sentry_actor"
 
-    def resolve(self):
+    def resolve(self) -> Union["Team", "APIUser"]:
         # Returns User/Team model object
-        return actor_type_to_class(self.type).objects.get(actor_id=self.id)
+        return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
 
-    def get_actor_tuple(self):
+    def get_actor_tuple(self) -> "ActorTuple":
         # Returns ActorTuple version of the Actor model.
         actor_type = actor_type_to_class(self.type)
         return ActorTuple(self.resolve().id, actor_type)
@@ -108,20 +138,23 @@ class ActorTuple(namedtuple("Actor", "id type")):
         except IndexError:
             raise serializers.ValidationError("Unable to resolve actor identifier")
 
-    def resolve(self):
-        return self.type.objects.select_related("actor").get(id=self.id)
+    def resolve(self) -> Union["Team", "APIUser"]:
+        return fetch_actor_by_id(self.type, self.id)
 
-    def resolve_to_actor(self):
-        return self.resolve().actor
+    def resolve_to_actor(self) -> Actor:
+        return Actor.objects.get(id=self.resolve().actor_id)
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "User"]]:
+    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "APIUser"]]:
         """
         Resolve multiple actors at the same time. Returns the result in the same order
         as the input, minus any actors we couldn't resolve.
         :param actors:
         :return:
         """
+        from sentry.models import User
+        from sentry.services.hybrid_cloud.user import user_service
+
         if not actors:
             return []
 
@@ -131,24 +164,14 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
         results = {}
         for type, _actors in actors_by_type.items():
-            for instance in type.objects.filter(id__in=[a.id for a in _actors]):
-                results[(type, instance.id)] = instance
+            if type == User:
+                for instance in user_service.get_many([a.id for a in _actors]):
+                    results[(type, instance.id)] = instance
+            else:
+                for instance in type.objects.filter(id__in=[a.id for a in _actors]):
+                    results[(type, instance.id)] = instance
 
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
-
-    @classmethod
-    def resolve_dict(cls, actor_dict: Mapping[int, "Actor"]) -> Mapping[int, Union["Team", "User"]]:
-        actors_by_type = defaultdict(list)
-        for actor in actor_dict.values():
-            actors_by_type[actor.type].append(actor)
-
-        resolved_actors = {}
-        for type, actors in actors_by_type.items():
-            resolved_actors[type] = {
-                actor.id: actor for actor in type.objects.filter(id__in=[a.id for a in actors])
-            }
-
-        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
 
 
 def handle_actor_pre_save(instance, **kwargs):

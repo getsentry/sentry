@@ -375,12 +375,15 @@ def test_relay_disabled_key(
 
 
 @pytest.mark.django_db
-def test_exposes_features(call_endpoint, task_runner):
-    with Feature({"organizations:metrics-extraction": True}):
+@pytest.mark.parametrize("drop_sessions", [False, True])
+def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
+    with Feature({"organizations:metrics-extraction": True}), Feature(
+        {"organizations:release-health-drop-sessions": drop_sessions}
+    ):
         with task_runner():
             result, status_code = call_endpoint(full_config=True)
             assert status_code < 400
 
         for config in result["configs"].values():
             config = config["config"]
-            assert config["sessionMetrics"] == {"version": 1, "drop": False}
+            assert config["sessionMetrics"] == {"version": 1, "drop": drop_sessions}

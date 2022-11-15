@@ -8,6 +8,10 @@ import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import {
+  getStacktrace,
+  StackTracePreviewContent,
+} from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,7 +23,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
+import {Event, Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -28,6 +32,7 @@ import useApi from 'sentry/utils/useApi';
 export enum ContextType {
   ISSUE = 'issue',
   RELEASE = 'release',
+  EVENT = 'event',
 }
 
 const HOVER_DELAY: number = 400;
@@ -38,6 +43,10 @@ function isIssueContext(contextType: ContextType): boolean {
 
 function isReleaseContext(contextType: ContextType): boolean {
   return contextType === ContextType.RELEASE;
+}
+
+function isEventContext(contextType: ContextType): boolean {
+  return contextType === ContextType.EVENT;
 }
 
 const fiveMinutesInMs = 5 * 60 * 1000;
@@ -61,7 +70,6 @@ function IssueContext(props: IssueContextProps) {
         },
       },
     ],
-    undefined,
     {
       onSuccess: group => {
         GroupStore.add([group]);
@@ -123,11 +131,11 @@ function IssueContext(props: IssueContextProps) {
   }
 
   return (
-    <Fragment>
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderStatus()}
       {renderAssigneeSelector()}
       {renderSuspectCommits()}
-    </Fragment>
+    </Wrapper>
   );
 }
 
@@ -149,16 +157,15 @@ function NoContext({isLoading}: NoContextProps) {
   );
 }
 
-type ReleaseContextProps = {
+type BaseContextProps = {
   api: Client;
   dataRow: EventData;
   organization: Organization;
 };
 
-function ReleaseContext(props: ReleaseContextProps) {
+function ReleaseContext(props: BaseContextProps) {
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
     [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
-    undefined,
     {
       staleTime: fiveMinutesInMs,
       retry: false,
@@ -287,11 +294,43 @@ function ReleaseContext(props: ReleaseContextProps) {
   }
 
   return (
-    <Fragment>
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
       {renderIssueCountAndAuthors()}
       {renderLastCommit()}
-    </Fragment>
+    </Wrapper>
+  );
+}
+
+function EventContext(props: BaseContextProps) {
+  const {isLoading, isError, data} = useQuery<Event>(
+    [
+      `/organizations/${props.organization.slug}/events/${props.dataRow['project.name']}:${props.dataRow.id}/`,
+    ],
+    undefined,
+    {
+      staleTime: fiveMinutesInMs,
+    }
+  );
+
+  if (isLoading || isError) {
+    return <NoContext isLoading={isLoading} />;
+  }
+
+  if (data?.type !== 'error') {
+    return <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>;
+  }
+
+  const stackTrace = getStacktrace(data);
+
+  return stackTrace ? (
+    <StackTraceWrapper>
+      <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+    </StackTraceWrapper>
+  ) : (
+    <NoContextWrapper>
+      {t('There is no stack trace available for this event.')}
+    </NoContextWrapper>
   );
 }
 
@@ -308,6 +347,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
+      GroupStore.reset();
       queryClient.clear();
     };
   }, [queryClient]);
@@ -319,23 +359,23 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         skipWrapper
         delay={HOVER_DELAY}
         body={
-          <Wrapper data-test-id="quick-context-hover-body">
-            {isIssueContext(props.contextType) ? (
-              <IssueContext
-                api={api}
-                dataRow={props.dataRow}
-                eventID={props.dataRow.id}
-              />
-            ) : isReleaseContext(props.contextType) && props.organization ? (
-              <ReleaseContext
-                api={api}
-                dataRow={props.dataRow}
-                organization={props.organization}
-              />
-            ) : (
-              <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
-            )}
-          </Wrapper>
+          isIssueContext(props.contextType) ? (
+            <IssueContext api={api} dataRow={props.dataRow} eventID={props.dataRow.id} />
+          ) : isReleaseContext(props.contextType) && props.organization ? (
+            <ReleaseContext
+              api={api}
+              dataRow={props.dataRow}
+              organization={props.organization}
+            />
+          ) : isEventContext(props.contextType) && props.organization ? (
+            <EventContext
+              api={api}
+              dataRow={props.dataRow}
+              organization={props.organization}
+            />
+          ) : (
+            <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
+          )
         }
       >
         <StyledIconInfo
@@ -356,7 +396,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0;
   }
-  min-width: 300px;
+  min-width: max-content;
 `;
 
 const StyledIconInfo = styled(IconInfo)`
@@ -476,4 +516,16 @@ const ReleaseAuthorsBody = styled(ContextBody)`
 
 const ReleaseStatusBody = styled('h4')`
   margin-bottom: 0;
+`;
+
+const StackTraceWrapper = styled('div')`
+  overflow: hidden;
+  max-height: 300px;
+  width: 500px;
+  overflow-y: auto;
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+    box-shadow: none;
+  }
 `;

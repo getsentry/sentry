@@ -11,19 +11,18 @@ import localStorage from 'sentry/utils/localStorage';
 type Props = {
   docContent: string | undefined;
   docKey: string;
+  prefix: string;
   project: Project;
 };
 
-function OnBoardingStep(props: Props) {
-  const {docKey, project, docContent} = props;
-
+export function OnboardingStep({docContent, docKey, prefix, project}: Props) {
   const [increment, setIncrement] = useState<number>(0);
 
   if (!docContent) {
     return null;
   }
 
-  const localStorageKey = `perf-onboarding-${project.id}-${docKey}`;
+  const localStorageKey = `${prefix}-onboarding-${project.id}-${docKey}`;
 
   function isChecked() {
     return localStorage.getItem(localStorageKey) === 'check';
@@ -69,7 +68,7 @@ const TaskCheckBox = styled('div')`
   position: relative;
 `;
 
-const DocumentationWrapper = styled('div')`
+export const DocumentationWrapper = styled('div')`
   line-height: 1.5;
 
   .gatsby-highlight {
@@ -105,4 +104,4 @@ const DocumentationWrapper = styled('div')`
   position: relative;
 `;
 
-export default OnBoardingStep;
+export default OnboardingStep;

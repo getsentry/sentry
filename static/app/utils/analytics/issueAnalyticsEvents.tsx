@@ -36,6 +36,29 @@ export type IssueEventParameters = {
     os?: string;
     platform?: string;
   };
+  'issue_group_details.tags.bar.clicked': {
+    is_mobile: boolean;
+    tag: string;
+    value: string;
+    platform?: string;
+  };
+  'issue_group_details.tags.show_all_tags.clicked': {
+    is_mobile: boolean;
+    tag: string;
+    platform?: string;
+  };
+  'issue_group_details.tags.switcher.clicked': {
+    is_mobile: boolean;
+    previous_tag: string;
+    tag: string;
+    platform?: string;
+  };
+  'issue_group_details.tags_distribution.bar.clicked': {
+    is_mobile: boolean;
+    tag: string;
+    value: string;
+    platform?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -97,12 +120,12 @@ export type IssueEventParameters = {
 export type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
-  'event_cause.viewed': null, // send to main event store only due to high event volume
+  'event_cause.viewed': null,
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
-  'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
+  'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
@@ -125,6 +148,13 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
+  'issue_group_details.tags.show_all_tags.clicked':
+    'Issue Group Details: Tags show all clicked',
+  'issue_group_details.tags.switcher.clicked':
+    'Issue Group Details: Tags switcher clicked',
+  'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
+  'issue_group_details.tags_distribution.bar.clicked':
+    'Issue Group Details: Tags distribution value bar clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':

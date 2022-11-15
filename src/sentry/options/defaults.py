@@ -460,9 +460,6 @@ register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
 
-# switch all metrics usage over to using strings for tag values
-register("sentry-metrics.performance.tags-values-are-strings", default=False)
-
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register("sentry-metrics.performance.index-tag-values", default=True)
@@ -538,3 +535,6 @@ register("dynamic-sampling:boost-latest-release", default=False)
 
 # Controls whether we should attempt to derive code mappings for projects during post processing.
 register("post_process.derive-code-mappings", default=True)
+# Allows adjusting the percentage of orgs we test under the dry run mode
+register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
+register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)

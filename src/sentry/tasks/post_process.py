@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -192,6 +192,7 @@ def handle_group_owners(project, group, issue_owners):
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import APIUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
@@ -203,6 +204,7 @@ def handle_group_owners(project, group, issue_owners):
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
             new_owners = {}
+            owners: Union[List[APIUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner
@@ -248,7 +250,7 @@ def handle_group_owners(project, group, issue_owners):
                     )
                     user_id = None
                     team_id = None
-                    if owner_type is User:
+                    if owner_type is APIUser:
                         user_id = owner_id
                     if owner_type is Team:
                         team_id = owner_id
@@ -552,6 +554,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             group=group,
             type=ActivityType.SET_UNRESOLVED.value,
             user=None,
+            data={"event_id": job["event"].event_id},
         )
 
         snooze.delete()
@@ -615,19 +618,29 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project_queued = cache.get(cache_key)
         if project_queued is None:
             cache.set(cache_key, True, 3600)
-            logger.info(
-                f"derive_code_mappings: Events from {project.id} in {project.organization_id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
-            )
 
-        if project_queued or not features.has(
-            "organizations:derive-code-mappings", event.project.organization
-        ):
+        if project_queued:
             return
 
-        derive_code_mappings.delay(project.id, event.data)
+        org_slug = project.organization.slug
+        next_time = timezone.now() + timedelta(hours=1)
+        if features.has("organizations:derive-code-mappings", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data, dry_run=False)
+
+        # Derive code mappings with dry_run=True to validate the generated mappings.
+        elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
+            logger.info(
+                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
+                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            )
+            derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
-        logger.exception("Failed to set auto-assignment")
+        logger.exception("derive_code_mappings: Failed to process code mappings")
 
 
 def process_commits(job: PostProcessJob) -> None:
