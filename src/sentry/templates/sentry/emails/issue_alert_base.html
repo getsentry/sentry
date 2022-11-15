@@ -121,6 +121,13 @@
                       {% endif %}
                     </h3>
                   </div>
+                {% elif type == "transaction" %}
+                  <div class="event-type transaction">
+                    <h3>
+                      <a href="{% absolute_uri link %}">{{ issue_type|truncatechars:40 }}</a><br />
+                        <span class="event-subtitle">{{ subtitle|truncatechars:40 }}</span>
+                    </h3>
+                  </div>
                 {% else %}
                   <div class="event-type default">
                     <h3>
