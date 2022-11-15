@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -41,19 +41,6 @@ const WrappedComponent = ({data, ...rest}) => {
     </OrganizationContext.Provider>
   );
 };
-
-function openContextMenu(wrapper, cellIndex) {
-  const menu = wrapper.find('CellAction').at(cellIndex);
-  // Hover over the menu
-  menu.find('Container > div').at(0).simulate('mouseEnter');
-  wrapper.update();
-
-  // Open the menu
-  wrapper.find('MenuButton').simulate('click');
-
-  // Return the menu wrapper so we can interact with it.
-  return wrapper.find('CellAction').at(cellIndex).find('Menu');
-}
 
 function mockEventView(data) {
   const eventView = new EventView({
@@ -218,49 +205,55 @@ describe('Performance > Table', function () {
         '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
       );
 
-      const userMiseryCell = within(rows[0]).getAllByTestId('cell-action')[9];
-      // const cellAction = userMiseryCell.find('CellAction');
+      const cellActionContainers = screen.getAllByTestId('cell-action-container');
+      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
+      userEvent.hover(cellActionContainers[8]);
+      const cellActions = await screen.findByTestId('cell-action');
+      expect(cellActions).toBeInTheDocument();
+      userEvent.click(cellActions);
 
-      // expect(cellAction.prop('allowActions')).toEqual([
-      //   'add',
-      //   'exclude',
-      //   'show_greater_than',
-      //   'show_less_than',
-      //   'edit_threshold',
-      // ]);
+      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
+      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
 
-      // const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-      // expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
-      // expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
-      //   'Edit threshold (300ms)'
-      // );
+      userEvent.hover(cellActionContainers[0]); // Transaction name
+      const transactionCellActions = await screen.findAllByTestId('cell-action');
+      expect(transactionCellActions[0]).toBeInTheDocument();
+      userEvent.click(transactionCellActions[0]);
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(0);
+      userEvent.click(screen.getByTestId('add-to-filter'));
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
+        pathname: undefined,
+        query: expect.objectContaining({
+          query: 'transaction:/apple/cart',
+        }),
+      });
     });
 
-    // it('hides cell actions when withStaticFilters is true', function () {
-    //   const data = initializeData(
-    //     {
-    //       query: 'event.type:transaction transaction:/api*',
-    //     },
-    //     ['performance-frontend-use-events-endpoint']
-    //   );
+    it('hides cell actions when withStaticFilters is true', function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-frontend-use-events-endpoint']
+      );
 
-    //   render(
-    //     <WrappedComponent
-    //       data={data}
-    //       eventView={mockEventView(data)}
-    //       setError={jest.fn()}
-    //       summaryConditions=""
-    //       projects={data.projects}
-    //       withStaticFilters
-    //     />
-    //   );
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          withStaticFilters
+        />
+      );
 
-    //   const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    //   const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    //   const cellAction = userMiseryCell.find('CellAction');
-
-    //   expect(cellAction.prop('allowActions')).toEqual([]);
-    // });
+      const cellActionContainers = screen.queryByTestId('cell-action-container');
+      expect(cellActionContainers).not.toBeInTheDocument();
+    });
 
     it('sends MEP param when setting enabled', function () {
       const data = initializeData(
@@ -315,86 +308,85 @@ describe('Performance > Table', function () {
   });
 
   describe('with events', function () {
-    // it('renders correct cell actions without feature', function () {
-    //   const data = initializeData(
-    //     {
-    //       query: 'event.type:transaction transaction:/api*',
-    //     },
-    //     ['performance-frontend-use-events-endpoint']
-    //   );
+    it('renders correct cell actions without feature', async function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-frontend-use-events-endpoint']
+      );
 
-    //   render(
-    //     <WrappedComponent
-    //       data={data}
-    //       eventView={mockEventView(data)}
-    //       setError={jest.fn()}
-    //       summaryConditions=""
-    //       projects={data.projects}
-    //     />
-    //   );
+      ProjectsStore.loadInitialData(data.organization.projects);
 
-    //   const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    //   const transactionCell = firstRow.find('GridBodyCell').at(1);
-    //   expect(transactionCell.find('Link').prop('to')).toEqual({
-    //     pathname: '/organizations/org-slug/performance/summary/',
-    //     query: {
-    //       transaction: '/apple/cart',
-    //       project: '2',
-    //       environment: [],
-    //       statsPeriod: '14d',
-    //       start: '2019-10-01T00:00:00',
-    //       end: '2019-10-02T00:00:00',
-    //       query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
-    //       referrer: 'performance-transaction-summary',
-    //       unselectedSeries: 'p100()',
-    //       showTransactions: undefined,
-    //       display: undefined,
-    //       trendFunction: undefined,
-    //       trendColumn: undefined,
-    //     },
-    //   });
-    //   const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    //   const cellAction = userMiseryCell.find('CellAction');
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />,
+        {context: data.routerContext}
+      );
 
-    //   expect(cellAction.prop('allowActions')).toEqual([
-    //     'add',
-    //     'exclude',
-    //     'show_greater_than',
-    //     'show_less_than',
-    //     'edit_threshold',
-    //   ]);
+      const rows = await screen.findAllByTestId('grid-body-row');
+      const transactionCells = within(rows[0]).getAllByTestId('grid-body-cell');
+      const transactionCell = transactionCells[1];
+      const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
+      expect(link).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
+      );
 
-    //   const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-    //   expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
-    //   expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
-    //     'Edit threshold (300ms)'
-    //   );
-    // });
+      const cellActionContainers = screen.getAllByTestId('cell-action-container');
+      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
+      userEvent.hover(cellActionContainers[8]);
+      const cellActions = await screen.findByTestId('cell-action');
+      expect(cellActions).toBeInTheDocument();
+      userEvent.click(cellActions);
 
-    // it('hides cell actions when withStaticFilters is true', function () {
-    //   const data = initializeData(
-    //     {
-    //       query: 'event.type:transaction transaction:/api*',
-    //     },
-    //     ['performance-frontend-use-events-endpoint']
-    //   );
+      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
+      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
 
-    //   render(
-    //     <WrappedComponent
-    //       data={data}
-    //       eventView={mockEventView(data)}
-    //       setError={jest.fn()}
-    //       summaryConditions=""
-    //       projects={data.projects}
-    //       withStaticFilters
-    //     />
-    //   );
+      userEvent.hover(cellActionContainers[0]); // Transaction name
+      const transactionCellActions = await screen.findAllByTestId('cell-action');
+      expect(transactionCellActions[0]).toBeInTheDocument();
+      userEvent.click(transactionCellActions[0]);
 
-    //   const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    //   const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    //   const cellAction = userMiseryCell.find('CellAction');
-    //   expect(cellAction.prop('allowActions')).toEqual([]);
-    // });
+      expect(browserHistory.push).toHaveBeenCalledTimes(0);
+      userEvent.click(screen.getByTestId('add-to-filter'));
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
+        pathname: undefined,
+        query: expect.objectContaining({
+          query: 'transaction:/apple/cart',
+        }),
+      });
+    });
+
+    it('hides cell actions when withStaticFilters is true', function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-frontend-use-events-endpoint']
+      );
+
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          withStaticFilters
+        />
+      );
+
+      const cellActionContainers = screen.queryByTestId('cell-action-container');
+      expect(cellActionContainers).not.toBeInTheDocument();
+    });
 
     it('sends MEP param when setting enabled', function () {
       const data = initializeData(
