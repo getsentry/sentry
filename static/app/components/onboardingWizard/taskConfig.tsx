@@ -210,7 +210,8 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
       action: ({router}) => {
-        if (!organization.features.includes('performance-onboarding-checklist')) {
+        // Use `features?.` because getsentry has a different `Organization` type/payload
+        if (!organization.features?.includes('performance-onboarding-checklist')) {
           window.open(
             'https://docs.sentry.io/product/performance/getting-started/',
             '_blank'
@@ -285,7 +286,8 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
       display:
-        organization.features.includes('session-replay-ui') &&
+        // Use `features?.` because getsentry has a different `Organization` type/payload
+        organization.features?.includes('session-replay-ui') &&
         Boolean(projects?.some(projectSupportsReplay)),
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
@@ -371,7 +373,8 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
       location: getMetricAlertUrl({projects, organization, onboardingState}),
-      display: organization.features.includes('incidents'),
+      // Use `features?.` because getsentry has a different `Organization` type/payload
+      display: organization.features?.includes('incidents'),
     },
     {
       task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
