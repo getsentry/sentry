@@ -198,15 +198,14 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               }
             }
 
-            if (
-              key === 'release' &&
-              organization &&
-              props.profileGroup.metadata.release
-            ) {
+            if (key === 'release' && props.profileGroup.metadata.release) {
               const release = props.profileGroup.metadata.release;
               // If a release only contains a version key, then we cannot link to it and
               // fallback to just displaying the raw version value.
-              if (Object.keys(release).length <= 1 && release.version) {
+              if (
+                !organization ||
+                (Object.keys(release).length <= 1 && release.version)
+              ) {
                 return (
                   <DetailsRow key={key}>
                     <strong>{label}:</strong>
