@@ -210,7 +210,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                 return (
                   <DetailsRow key={key}>
                     <strong>{label}:</strong>
-                    <span>{release.version}</span>
+                    <span>{formatVersion(release.version)}</span>
                   </DetailsRow>
                 );
               }
