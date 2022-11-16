@@ -99,7 +99,7 @@ describe('Edit Modal', function () {
     expect(
       await screen.findByText('Custom regular expression (see documentation)')
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Regular expression'})).toHaveAttribute(
+    expect(screen.getByRole('textbox', {name: 'Regex matches'})).toHaveAttribute(
       'placeholder',
       '[a-zA-Z0-9]+'
     );
