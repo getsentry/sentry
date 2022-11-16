@@ -332,7 +332,7 @@ class BaseGroupSidebar extends Component<Props, State> {
                       group={group}
                       onTagClick={(title, value) => {
                         trackAdvancedAnalyticsEvent(
-                          'issue_group_details.tags.bar.clicked',
+                          'issue_group_details.tags_distribution.bar.clicked',
                           {
                             tag: title,
                             value: value.name,
