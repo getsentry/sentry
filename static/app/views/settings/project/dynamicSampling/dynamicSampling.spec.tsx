@@ -171,7 +171,7 @@ describe('Dynamic Sampling', function () {
           dynamicSamplingBiases: [
             {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
-            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTION, active: true},
+            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
           ],
         },
