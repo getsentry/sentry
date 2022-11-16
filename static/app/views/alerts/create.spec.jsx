@@ -533,8 +533,7 @@ describe('ProjectAlertsCreate', function () {
     const organization = TestStubs.Organization({
       features: ['issue-alert-incompatible-rules'],
     });
-    const errorText =
-      'This condition conflicts with other condition(s) above. Please select a different condition.';
+    const errorText = 'These conditions conflict, please select different conditions.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});
