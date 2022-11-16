@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-// import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
@@ -240,6 +240,51 @@ describe('Results', function () {
           }),
         })
       );
+    });
+
+    it('respects pinned filters for prebuilt queries', async function () {
+      const organization = TestStubs.Organization({
+        features: [...features, 'global-views', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
+        },
+      });
+
+      renderMockRequests();
+
+      jest.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
+        state: {
+          project: [1],
+          environment: [],
+          start: null,
+          end: null,
+          period: '14d',
+          utc: null,
+        },
+        pinnedFilters: new Set(['projects']),
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project({id: 1, slug: 'Pinned Project'})]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
+
+      expect(projectPageFilter).toHaveTextContent('Pinned Project');
     });
 
     it('displays tip when events response contains a tip', async function () {
