@@ -3,6 +3,7 @@
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.wait import WebDriverWait
 
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import Visibility
@@ -152,8 +153,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until('[role="dialog"]')
             self.browser.click('[role="dialog"] button[aria-label="Confirm"]')
 
-            # The saved search should no longer exist in the db
-            # assert not SavedSearch.objects.filter(name="My Saved Search").exists()
-
-            # And the saved search should have been removed from the UI
+            # Search is immediately removed from the UI
             assert not self.browser.element_exists('button[aria-label="My Saved Search"]')
+
+            # The saved search should be removed from the db
+            # Since this is an optimistic update there is nothing to wait for in the UI
+            wait = WebDriverWait(self.browser.driver, 10)
+            wait.until(lambda _: not SavedSearch.objects.filter(name="My Saved Search").exists())
