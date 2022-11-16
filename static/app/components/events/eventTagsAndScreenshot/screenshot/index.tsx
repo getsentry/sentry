@@ -86,17 +86,20 @@ function Screenshot({
               <LoadingIndicator mini />
             </StyledLoadingIndicator>
           )}
-          <StyledImageVisualization
-            attachment={screenshotAttachment}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            eventId={eventId}
-            onLoad={() => setLoadingImage(false)}
-            onError={() => setLoadingImage(false)}
+          <StyledImageWrapper
             onClick={() =>
               openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
             }
-          />
+          >
+            <StyledImageVisualization
+              attachment={screenshotAttachment}
+              orgId={orgSlug}
+              projectId={projectSlug}
+              eventId={eventId}
+              onLoad={() => setLoadingImage(false)}
+              onError={() => setLoadingImage(false)}
+            />
+          </StyledImageWrapper>
         </StyledPanelBody>
         {!onlyRenderScreenshot && (
           <StyledPanelFooter>
@@ -233,6 +236,12 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
+`;
+
+const StyledImageWrapper = styled('div')`
+  :hover {
+    cursor: pointer;
+  }
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
