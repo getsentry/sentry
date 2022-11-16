@@ -2,50 +2,28 @@ import {useState} from 'react';
 import {Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
+import {PlatformCategory, PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import {platformToCategory} from 'sentry/utils/platform';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
-  isPerfIssue: boolean;
+  group: Group;
   issueId: string;
   location: Location;
   organization: Organization;
-  projectId: string;
-  projectSlug: string;
   excludedTags?: string[];
-  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {
-    location,
-    organization,
-    issueId,
-    isPerfIssue,
-    excludedTags,
-    projectSlug,
-    projectId,
-    totalEventCount,
-  } = props;
+  const {location, organization, issueId, excludedTags, group} = props;
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
 
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
-
-  const fields: string[] = [
-    'id',
-    'transaction',
-    'trace',
-    'release',
-    'environment',
-    'user.display',
-    ...(isPerfIssue ? ['transaction.duration'] : []),
-    'timestamp',
-    ...(isReplayEnabled ? ['replayId'] : []),
-  ];
+  const {fields, columnTitles} = getColumns(group, organization);
 
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
@@ -56,25 +34,13 @@ const AllEventsTable = (props: Props) => {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const idQuery = isPerfIssue
-    ? `performance.issue_ids:${issueId} event.type:transaction`
-    : `issue.id:${issueId}`;
-  eventView.project = [parseInt(projectId, 10)];
+  const idQuery =
+    group.issueCategory === IssueCategory.PERFORMANCE
+      ? `performance.issue_ids:${issueId} event.type:transaction`
+      : `issue.id:${issueId}`;
+  eventView.project = [parseInt(group.project.id, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
-
-  const columnTitles: Readonly<string[]> = [
-    t('event id'),
-    t('transaction'),
-    t('trace id'),
-    t('release'),
-    t('environment'),
-    t('user'),
-    ...(isPerfIssue ? [t('total duration')] : []),
-    t('timestamp'),
-    ...(isReplayEnabled ? [t('replay')] : []),
-    t('minidump'),
-  ];
 
   if (error) {
     return <LoadingError message={error} />;
@@ -88,8 +54,8 @@ const AllEventsTable = (props: Props) => {
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
-      projectSlug={projectSlug}
-      totalEventCount={totalEventCount}
+      projectSlug={group.project.slug}
+      totalEventCount={group.count}
       customColumns={['minidump']}
       setError={(msg: string | undefined) => setError(msg ?? '')}
       transactionName=""
@@ -97,6 +63,94 @@ const AllEventsTable = (props: Props) => {
       referrer="api.issues.issue_events"
     />
   );
+};
+
+type ColumnInfo = {columnTitles: string[]; fields: string[]};
+
+const getColumns = (group: Group, organization: Organization): ColumnInfo => {
+  const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
+
+  const {fields, columnTitles} = getPlatformColumns(
+    group.project.platform ?? group.platform,
+    {isReplayEnabled}
+  );
+
+  const baseFields: string[] = [
+    'id',
+    'transaction',
+    'title',
+    'release',
+    'environment',
+    'user.display',
+    'device',
+    'os',
+    ...fields,
+    ...(isPerfIssue ? ['transaction.duration'] : []),
+    'timestamp',
+    ...(isReplayEnabled ? ['replayId'] : []),
+  ];
+
+  const baseColumnTitles: string[] = [
+    t('event id'),
+    t('transaction'),
+    t('title'),
+    t('release'),
+    t('environment'),
+    t('user'),
+    t('device'),
+    t('os'),
+    ...columnTitles,
+    ...(isPerfIssue ? [t('total duration')] : []),
+    t('timestamp'),
+    t('minidump'),
+    ...(isReplayEnabled ? ['replayId'] : []),
+  ];
+
+  return {
+    fields: baseFields,
+    columnTitles: baseColumnTitles,
+  };
+};
+
+const getPlatformColumns = (
+  platform: PlatformKey | undefined,
+  options: {isReplayEnabled: boolean}
+): ColumnInfo => {
+  const replayField = options.isReplayEnabled ? ['replayId'] : [];
+  const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
+
+  const categoryToColumnMap: {[key: string]: ColumnInfo} = {
+    [PlatformCategory.frontend]: {
+      fields: ['url', 'browser', ...replayField],
+      columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
+    },
+    [PlatformCategory.backend]: {
+      fields: ['url', 'runtime'],
+      columnTitles: [t('url'), t('runtime')],
+    },
+    [PlatformCategory.mobile]: {
+      fields: ['url'],
+      columnTitles: [t('url')],
+    },
+    [PlatformCategory.desktop]: {
+      fields: ['os'],
+      columnTitles: [t('os')],
+    },
+    [PlatformCategory.other]: {
+      fields: [],
+      columnTitles: [],
+    },
+  };
+
+  let platformCategory = platformToCategory(platform);
+
+  // backend end serverless have the same columns
+  if (platformCategory === PlatformCategory.serverless) {
+    platformCategory = PlatformCategory.backend;
+  }
+
+  return categoryToColumnMap[platformCategory];
 };
 
 export default AllEventsTable;
