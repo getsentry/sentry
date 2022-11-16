@@ -1015,6 +1015,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling on-boarding checklist
+    "organizations:profiling-onboarding-checklist": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1219,6 +1221,10 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable org member role provisioning through scim
+    "organizations:scim-orgmember-roles": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

@@ -369,7 +369,7 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
   return css`
     display: inline-block;
-    border-radius: ${theme.button.borderRadius};
+    border-radius: ${theme.borderRadius};
     text-transform: none;
     font-weight: 600;
     ${getColors({...props, theme})};
