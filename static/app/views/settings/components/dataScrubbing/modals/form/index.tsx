@@ -134,7 +134,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
               inline={false}
-              id={t('Regular expression')}
+              id="regex-matches"
               error={errors?.pattern}
               flexibleControlStateSize
               stacked
@@ -148,7 +148,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onChange={this.handleChange('pattern')}
                 value={values.pattern}
                 onBlur={onValidate('pattern')}
-                id={t('Regular expression')}
+                id="regex-matches"
               />
             </Field>
           )}
