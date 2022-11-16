@@ -86,7 +86,6 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     ...platformSpecificFields,
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
-    ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
   const columnTitles: string[] = [
@@ -102,7 +101,6 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
     t('minidump'),
-    ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
   return {
