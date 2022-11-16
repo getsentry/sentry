@@ -6,23 +6,21 @@ import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import PlayerDOMAlert from './playerDOMAlert';
 
 interface Props {
   className?: string;
+  isPreview?: boolean;
 }
 
-function BasePlayerRoot({className}: Props) {
+function BasePlayerRoot({className, isPreview = false}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
     fastForwardSpeed,
     isBuffering,
   } = useReplayContext();
-  const location = useLocation();
-  const isDetailsPage = location.pathname.includes('/replays/');
 
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
@@ -77,7 +75,7 @@ function BasePlayerRoot({className}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
-      {isDetailsPage ? <PlayerDOMAlert /> : null}
+      {!isPreview ? <PlayerDOMAlert /> : null}
     </SizingWindow>
   );
 }
