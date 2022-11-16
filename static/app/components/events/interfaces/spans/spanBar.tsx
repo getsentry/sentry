@@ -105,7 +105,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 export const MARGIN_LEFT = 0;
 
 export type SpanBarProps = {
-  addExpandedSpan: (spanId: string, callback?: () => void) => void;
+  addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: boolean;
@@ -115,7 +115,7 @@ export type SpanBarProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
-  isSpanExpanded: (spanId: string) => boolean;
+  isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   listRef: React.RefObject<ReactVirtualizedList>;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
@@ -123,7 +123,7 @@ export type SpanBarProps = {
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
   organization: Organization;
-  removeExpandedSpan: (spanId: string, callback?: () => void) => void;
+  removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -190,11 +190,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     ) {
       this.scrollIntoView();
       markAnchoredSpanIsMounted?.();
-      addExpandedSpan(span.span_id);
+      addExpandedSpan(span);
       return;
     }
 
-    if (isSpanExpanded(span.span_id)) {
+    if (isSpanExpanded(span)) {
       this.setState({showDetail: true}, measure);
     }
   }
@@ -249,13 +249,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       () => {
         const {measure, span, addExpandedSpan, removeExpandedSpan} = this.props;
 
-        if (isGapSpan(span)) {
-          return;
-        }
-
         this.state.showDetail
-          ? addExpandedSpan(span.span_id, measure)
-          : removeExpandedSpan(span.span_id, measure);
+          ? addExpandedSpan(span, measure)
+          : removeExpandedSpan(span, measure);
       }
     );
   };
@@ -269,9 +265,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     this.setState({showDetail: true}, () => {
-      if (!isGapSpan(span)) {
-        addExpandedSpan(span.span_id, measure);
-      }
+      addExpandedSpan(span, measure);
 
       const boundingRect = element.getBoundingClientRect();
       // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver

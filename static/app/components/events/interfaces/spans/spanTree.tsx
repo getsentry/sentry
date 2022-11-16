@@ -161,20 +161,20 @@ class SpanTree extends Component<PropType> {
           }
 
           // We only want to clear the cache for spans that are expanded.
-          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+          if (this.props.spanContextProps.isSpanExpanded(span.span)) {
             cache.clear(index, 0);
           }
         });
 
         // This loop will ensure that any expanded spans after the spans which were removed
         // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
-        this.props.spans.forEach((span, index) => {
-          if (isGapSpan(span.span)) {
+        this.props.spans.forEach(({span}, index) => {
+          if (isGapSpan(span)) {
             cache.clear(index, 0);
             return;
           }
 
-          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
             // Since spans were removed, the index in the new state is offset by the num of spans removed
             cache.clear(index + diffLeft.size, 0);
           }
@@ -187,25 +187,25 @@ class SpanTree extends Component<PropType> {
           differenceWith(this.props.spans, prevProps.spans, comparator)
         );
 
-        prevProps.spans.forEach((span, index) => {
-          if (isGapSpan(span.span)) {
+        prevProps.spans.forEach(({span}, index) => {
+          if (isGapSpan(span)) {
             cache.clear(index, 0);
             return;
           }
 
           // We only want to clear the cache for spans that are added.
-          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
             cache.clear(index, 0);
           }
         });
 
-        this.props.spans.forEach((span, index) => {
-          if (isGapSpan(span.span)) {
+        this.props.spans.forEach(({span}, index) => {
+          if (isGapSpan(span)) {
             cache.clear(index, 0);
             return;
           }
 
-          if (this.props.spanContextProps.isSpanExpanded(span.span.span_id)) {
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
             cache.clear(index, 0);
           }
         });
@@ -220,7 +220,7 @@ class SpanTree extends Component<PropType> {
 
           if (
             !diffRight.has(span) &&
-            this.props.spanContextProps.isSpanExpanded(span.span.span_id)
+            this.props.spanContextProps.isSpanExpanded(span.span)
           ) {
             // Since spans were removed, the index in the new state is offset by the num of spans removed
             cache.clear(index + diffRight.size, 0);
@@ -306,6 +306,7 @@ class SpanTree extends Component<PropType> {
                   {organization}
                 );
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+                this.props.updateScrollState();
                 // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
                 // determine the specific cache slots to clear when hidden spans are expanded
                 cache.clearAll();

@@ -1,12 +1,14 @@
 import {Component, createContext} from 'react';
 
+import {ProcessedSpanType} from './types';
+
 export type SpanContextProps = {
-  addExpandedSpan: (spanId: string, callback?: () => void) => void;
+  addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   didAnchoredSpanMount: boolean;
-  isSpanExpanded: (spanId: string) => boolean;
+  isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   markAnchoredSpanIsMounted: () => void;
   registerScrollFn: (hash: string, fn: () => void, isSpanInGroup: boolean) => void;
-  removeExpandedSpan: (spanId: string, callback?: () => void) => void;
+  removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   scrollToHash: (hash: string) => void;
 };
 
@@ -34,7 +36,7 @@ export class Provider extends Component<Props> {
 
   // This set keeps track of all spans which are currently expanded to show their details.
   // Since the span tree is virtualized, we need this so the tree can remember which spans have been expanded after they unmount
-  expandedSpansMap: Set<string> = new Set();
+  expandedSpansMap: Set<Readonly<ProcessedSpanType>> = new Set();
 
   scrollToHash = (_: string) => {
     // if (this.scrollFns.has(hash)) {
@@ -57,18 +59,21 @@ export class Provider extends Component<Props> {
     this.didAnchoredSpanMount = true;
   };
 
-  addExpandedSpan = (spanId: string, callback?: () => void) => {
-    this.expandedSpansMap.add(spanId);
+  // TODO: Make the operations take in the span objects.
+  // This way we can keep track of gap spans as well.
+
+  addExpandedSpan = (span: Readonly<ProcessedSpanType>, callback?: () => void) => {
+    this.expandedSpansMap.add(span);
     callback?.();
   };
 
-  removeExpandedSpan = (spanId: string, callback?: () => void) => {
-    this.expandedSpansMap.delete(spanId);
+  removeExpandedSpan = (span: Readonly<ProcessedSpanType>, callback?: () => void) => {
+    this.expandedSpansMap.delete(span);
     callback?.();
   };
 
-  isSpanExpanded = (spanId: string) => {
-    return this.expandedSpansMap.has(spanId);
+  isSpanExpanded = (span: Readonly<ProcessedSpanType>) => {
+    return this.expandedSpansMap.has(span);
   };
 
   render() {
