@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {divide, flattenSpans} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplaySpan} from 'sentry/views/replays/types';
@@ -61,6 +62,7 @@ function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: 
             position="bottom"
           >
             <Span
+              isDark={ConfigStore.get('theme') === 'dark'}
               startPct={startPct}
               widthPct={widthPct}
               onClick={() => setActiveTab('network')}
@@ -84,7 +86,7 @@ const Spans = styled('ul')`
   pointer-events: none;
 `;
 
-const Span = styled('li')<{startPct: number; widthPct: number}>`
+const Span = styled('li')<{isDark: boolean; startPct: number; widthPct: number}>`
   cursor: pointer;
   display: block;
   position: absolute;
@@ -92,7 +94,7 @@ const Span = styled('li')<{startPct: number; widthPct: number}>`
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: ${p => p.theme.charts.colors[0]};
+  background: ${p => (p.isDark ? p.theme.charts.colors[5] : p.theme.charts.colors[0])};
   border-radius: 2px;
   pointer-events: auto;
 `;
