@@ -294,7 +294,11 @@ def get_detection_settings(project_id: Optional[str] = None):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
-        DetectorType.CONSECUTIVE_DB_OP: {"duration_threshold": 100},
+        DetectorType.CONSECUTIVE_DB_OP: {
+            "duration_threshold": 100,
+            "occurence_count": 1,
+            "consecutive_span_count": 1,
+        },
     }
 
 
@@ -304,7 +308,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     detection_settings = get_detection_settings(project_id)
     detectors = {
-        # DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
+        DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
@@ -880,12 +884,23 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if not self._is_db_op(op):
             return
 
-        if span_duration > timedelta(seconds=50):
+        if span_duration > timedelta(seconds=5):
             span_id = span.get("span_id", None)
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                fingerprint=fingerprint,
+                op=op,
+                desc="desc",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                parent_span_ids=[span_id],
+                cause_span_ids=[span_id],
+                offender_span_ids=[span_id],
+            )
 
     def _is_db_op(self, op: str) -> bool:
         return op.startswith("db") and not op.startswith("db.redis")
+
+    def on_complete(self) -> None:
+        pass
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):

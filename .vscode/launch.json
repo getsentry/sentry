@@ -37,6 +37,16 @@
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "internalConsoleOptions": "openOnSessionStart",
       "args": ["--runInBand"]
+    },
+    {
+      "name": "Python: Debug test file",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests/sentry/utils/performance_issues/test_performance_detection.py::PerformanceDetectionTest::test_consecutive_db_span"
+      ],
+      "django": true
     }
   ]
 }
