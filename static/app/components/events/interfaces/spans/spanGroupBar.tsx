@@ -41,6 +41,7 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
+  didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
@@ -144,7 +145,14 @@ function renderMeasurements(
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
 
-  const {onWheel, generateContentSpanBarRef, getScrollLeftValue} = props;
+  const {
+    onWheel,
+    generateContentSpanBarRef,
+    getScrollLeftValue,
+    didAnchoredSpanMount,
+    spanGrouping,
+    toggleSpanGroup,
+  } = props;
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
   // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
@@ -160,6 +168,18 @@ export function SpanGroupBar(props: Props) {
     },
     [generateContentSpanBarRef, getScrollLeftValue]
   );
+
+  useEffect(() => {
+    if (location.hash && !didAnchoredSpanMount) {
+      const anchoredSpan = spanGrouping.find(
+        span => spanTargetHash(span.span.span_id) === location.hash
+      );
+
+      if (anchoredSpan) {
+        toggleSpanGroup();
+      }
+    }
+  }, [didAnchoredSpanMount, spanGrouping, toggleSpanGroup]);
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
@@ -196,15 +216,7 @@ export function SpanGroupBar(props: Props) {
       {(
         dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
       ) => {
-        const {
-          generateBounds,
-          toggleSpanGroup,
-          span,
-          treeDepth,
-          spanNumber,
-          event,
-          spanGrouping,
-        } = props;
+        const {generateBounds, span, treeDepth, spanNumber, event} = props;
 
         const {isSpanVisibleInView: isSpanVisible} = generateBounds({
           startTimestamp: span.start_timestamp,
@@ -237,7 +249,7 @@ export function SpanGroupBar(props: Props) {
                         width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                         paddingTop: 0,
                       }}
-                      onClick={() => props.toggleSpanGroup()}
+                      onClick={() => toggleSpanGroup()}
                       ref={spanTitleRef}
                     >
                       <RowTitleContainer ref={setTransformCallback}>
@@ -263,7 +275,7 @@ export function SpanGroupBar(props: Props) {
                       style={{
                         width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
                       }}
-                      onClick={() => props.toggleSpanGroup()}
+                      onClick={() => toggleSpanGroup()}
                     >
                       {props.renderSpanRectangles()}
                       {renderMeasurements(event, generateBounds)}

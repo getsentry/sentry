@@ -70,14 +70,69 @@ class SpanTree extends Component<PropType> {
     if (location.hash) {
       const {spans} = this.props;
 
-      const index = spans.findIndex(({span}) => {
-        if ('type' in span) {
-          return false;
-        }
-        return spanTargetHash(span.span_id) === location.hash;
-      });
+      // This reducer searches for the index of the anchored span.
+      // It's possible that one of the spans within an autogroup is anchored, so we need to search
+      // for the index within the autogroupings as well.
+      const {finalIndex, isIndexFound} = spans.reduce(
+        (
+          acc: {
+            finalIndex: number;
+            isIndexFound: boolean;
+          },
+          span,
+          currIndex
+        ) => {
+          if ('type' in span.span || acc.isIndexFound) {
+            return acc;
+          }
 
-      if (index < 0) {
+          if (spanTargetHash(span.span.span_id) === location.hash) {
+            acc.finalIndex = currIndex;
+            acc.isIndexFound = true;
+          }
+
+          if (span.type === 'span_group_siblings') {
+            if (!span.spanSiblingGrouping) {
+              return acc;
+            }
+
+            const indexWithinGroup = span.spanSiblingGrouping.findIndex(
+              s => spanTargetHash(s.span.span_id) === location.hash
+            );
+
+            if (indexWithinGroup === -1) {
+              return acc;
+            }
+
+            acc.finalIndex = currIndex + indexWithinGroup;
+            acc.isIndexFound = true;
+            return acc;
+          }
+
+          if (span.type === 'span_group_chain') {
+            if (!span.spanNestedGrouping) {
+              return acc;
+            }
+
+            const indexWithinGroup = span.spanNestedGrouping.findIndex(
+              s => spanTargetHash(s.span.span_id) === location.hash
+            );
+
+            if (indexWithinGroup === -1) {
+              return acc;
+            }
+
+            acc.finalIndex = currIndex + indexWithinGroup;
+            acc.isIndexFound = true;
+            return acc;
+          }
+
+          return acc;
+        },
+        {finalIndex: -1, isIndexFound: false}
+      );
+
+      if (!isIndexFound) {
         return;
       }
 
@@ -85,7 +140,7 @@ class SpanTree extends Component<PropType> {
       // we need it to mount and use its boundingbox to determine that, but since the list is virtualized, there's no guarantee that
       // this span is mounted initially. The actual scroll positioning will be determined within the SpanBar instance that is anchored,
       // since this scroll estimation will allow that span to mount
-      window.scrollTo(0, window.scrollY + ROW_HEIGHT * index);
+      window.scrollTo(0, window.scrollY + ROW_HEIGHT * finalIndex);
     }
   }
 
@@ -610,6 +665,7 @@ class SpanTree extends Component<PropType> {
           <SpanDescendantGroupBar
             key={`${node.props.spanNumber}-span-group`}
             {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
           />
         );
       case SpanTreeNodeType.SIBLING_GROUP:
@@ -617,6 +673,7 @@ class SpanTree extends Component<PropType> {
           <SpanSiblingGroupBar
             key={`${node.props.spanNumber}-span-sibling`}
             {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
           />
         );
       case SpanTreeNodeType.MESSAGE:

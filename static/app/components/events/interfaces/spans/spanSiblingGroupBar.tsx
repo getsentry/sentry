@@ -25,6 +25,7 @@ import {
 
 export type SpanSiblingGroupBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
+  didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
@@ -55,6 +56,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     generateContentSpanBarRef,
     isEmbeddedSpanTree,
     getScrollLeftValue,
+    didAnchoredSpanMount,
   } = props;
 
   const organization = useOrganization();
@@ -157,6 +159,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       onWheel={onWheel}
       generateContentSpanBarRef={generateContentSpanBarRef}
       getScrollLeftValue={getScrollLeftValue}
+      didAnchoredSpanMount={didAnchoredSpanMount}
     />
   );
 }
