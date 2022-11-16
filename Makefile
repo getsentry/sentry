@@ -72,10 +72,10 @@ install-transifex:
 	curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
 
 push-transifex: merge-locale-catalogs install-transifex
-	tx push -s
+	./tx push -s
 
 pull-transifex: install-transifex
-	tx pull -a
+	./tx pull -a
 
 # Update transifex with new strings that need to be translated
 update-transifex: push-transifex
