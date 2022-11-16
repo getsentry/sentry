@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -92,7 +93,7 @@ function renderMockRequests() {
     },
   });
 
-  MockApiClient.addMockResponse({
+  const eventsMetaMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-meta/',
     body: {
       count: 2,
@@ -120,7 +121,7 @@ function renderMockRequests() {
     },
   });
 
-  MockApiClient.addMockResponse({
+  const eventFacetsMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-facets/',
     body: [
       {
@@ -191,7 +192,14 @@ function renderMockRequests() {
     },
   });
 
-  return {eventsStatsMock, eventsResultsMock, mockVisit, mockSaved};
+  return {
+    eventsStatsMock,
+    eventsMetaMock,
+    eventsResultsMock,
+    mockVisit,
+    mockSaved,
+    eventFacetsMock,
+  };
 }
 
 describe('Results', function () {
@@ -240,6 +248,704 @@ describe('Results', function () {
           }),
         })
       );
+    });
+
+    it('pagination cursor should be cleared when making a search', async function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {
+            query: {
+              ...generateFields(),
+              cursor: '0%3A50%3A0',
+            },
+          },
+        },
+      });
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // ensure cursor query string is initially present in the location
+      expect(initialData.router.location).toEqual({
+        query: {
+          ...generateFields(),
+          cursor: '0%3A50%3A0',
+        },
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
+
+      // perform a search
+      userEvent.type(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'geo:canada{enter}'
+      );
+
+      // should only be called with saved queries
+      expect(mockRequests.mockVisit).not.toHaveBeenCalled();
+
+      // cursor query string should be omitted from the query string
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          ...generateFields(),
+          query: 'geo:canada',
+          statsPeriod: '14d',
+        },
+      });
+    });
+
+    it('renders a y-axis selector', async function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), yAxis: 'count()'}},
+        },
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // Click the 'default' option.
+      await selectEvent.select(
+        await screen.findByRole('button', {name: 'Y-Axis count()'}),
+        'count_unique(user)'
+      );
+    });
+
+    it('renders a display selector', async function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
+        },
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // Click the 'default' option.
+      await selectEvent.select(
+        await screen.findByRole('button', {name: /Display/}),
+        'Total Period'
+      );
+    });
+
+    it('excludes top5 options when plan does not include discover-query', async function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'previous'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      userEvent.click(await screen.findByRole('button', {name: /Display/}));
+
+      expect(screen.queryByText('Top 5 Daily')).not.toBeInTheDocument();
+      expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
+    });
+
+    it('needs confirmation on long queries', function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), statsPeriod: '60d', project: '-1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('needs confirmation on long query with explicit projects', function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {
+            query: {
+              ...generateFields(),
+              statsPeriod: '60d',
+              project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            },
+          },
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('does not need confirmation on short queries', function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), statsPeriod: '30d', project: '-1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not need confirmation with to few projects', function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {
+            query: {...generateFields(), statsPeriod: '90d', project: [1, 2, 3, 4]},
+          },
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('creates event view from saved query', async function () {
+      const organization = TestStubs.Organization({
+        features,
+        slug: 'org-slug',
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {id: '1', statsPeriod: '24h'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      await waitFor(() => expect(mockRequests.mockVisit).toHaveBeenCalled());
+
+      expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
+        'href',
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
+      );
+
+      expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
+        'href',
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
+      );
+
+      expect(screen.getByRole('link', {name: 'deadbeef'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/discover/project-slug:deadbeef/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-user.display&statsPeriod=24h&topEvents=5&yAxis=count%28%29'
+      );
+
+      expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
+        'href',
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
+      );
+
+      expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
+        'href',
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
+      );
+    });
+
+    it('overrides saved query params with location query params', async function () {
+      const organization = TestStubs.Organization({
+        features,
+        slug: 'org-slug',
+      });
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {
+            query: {
+              id: '1',
+              statsPeriod: '7d',
+              project: [2],
+              environment: ['production'],
+            },
+          },
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      await waitFor(() => expect(mockRequests.mockVisit).toHaveBeenCalled());
+
+      expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
+        'href',
+        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
+      );
+    });
+
+    it('updates chart whenever yAxis parameter changes', function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), yAxis: 'count()'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const {eventsStatsMock} = renderMockRequests();
+
+      const {rerender} = render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // Should load events once
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '14d',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+
+      // Update location simulating a browser back button action
+      rerender(
+        <Results
+          organization={organization}
+          location={{
+            ...initialData.router.location,
+            query: {...generateFields(), yAxis: 'count_unique(user)'},
+          }}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />
+      );
+
+      // Should load events again
+      expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '14d',
+            yAxis: ['count_unique(user)'],
+          }),
+        })
+      );
+    });
+
+    it('updates chart whenever display parameter changes', function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
+        },
+      });
+
+      const {eventsStatsMock} = renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const {rerender} = render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // Should load events once
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '14d',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+
+      // Update location simulating a browser back button action
+      rerender(
+        <Results
+          organization={organization}
+          location={{
+            ...initialData.router.location,
+            query: {...generateFields(), display: 'previous', yAxis: 'count()'},
+          }}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />
+      );
+
+      // Should load events again
+      expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '28d',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+    });
+
+    it('updates chart whenever display and yAxis parameters change', function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
+        },
+      });
+
+      const {eventsStatsMock} = renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const {rerender} = render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      // Should load events once
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '14d',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+
+      // Update location simulating a browser back button action
+      rerender(
+        <Results
+          organization={organization}
+          location={{
+            ...initialData.router.location,
+            query: {
+              ...generateFields(),
+              display: 'previous',
+              yAxis: 'count_unique(user)',
+            },
+          }}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />
+      );
+
+      // Should load events again
+      expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '28d',
+            yAxis: ['count_unique(user)'],
+          }),
+        })
+      );
+    });
+
+    it('appends tag value to existing query when clicked', async function () {
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
+        },
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
+
+      // since environment collides with the environment field, it is wrapped with `tags[...]`
+      expect(
+        await screen.findByRole('link', {
+          name: 'Add the environment dev segment tag to the search query',
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole('link', {
+          name: 'Add the foo bar segment tag to the search query',
+        })
+      ).toBeInTheDocument();
     });
 
     it('respects pinned filters for prebuilt queries', async function () {
