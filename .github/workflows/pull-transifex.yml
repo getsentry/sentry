@@ -15,6 +15,8 @@ jobs:
 
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
+      - run: sudo apt-get install -y gettext
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
