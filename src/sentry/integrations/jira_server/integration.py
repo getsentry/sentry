@@ -353,7 +353,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": "Ignored Fields",
                 "type": "textarea",
                 "placeholder": _("components, security, customfield_10006"),
-                "help": _("Comma-separated Jira field IDs or names that you want to hide."),
+                "help": _("Comma-separated Jira field IDs that you want to hide."),
             },
         ]
 
