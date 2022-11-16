@@ -6,10 +6,12 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import {intervalToMilliseconds} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import useApiRequests from 'sentry/utils/useApiRequests';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {Monitor, MonitorStat} from './types';
 
@@ -22,8 +24,19 @@ type State = {
 };
 
 const MonitorStats = ({monitor}: Props) => {
-  const until = Math.floor(new Date().getTime() / 1000);
-  const since = until - 3600 * 24 * 30;
+  const {selection} = usePageFilters();
+  const {start, end, period} = selection.datetime;
+
+  let since: number, until: number;
+  if (start && end) {
+    until = new Date(end).getTime() / 1000;
+    since = new Date(start).getTime() / 1000;
+  } else {
+    until = Math.floor(new Date().getTime() / 1000);
+    const intervalSeconds = intervalToMilliseconds(period ?? '30d') / 1000;
+    since = until - intervalSeconds;
+  }
+
   const {data, renderComponent} = useApiRequests<State>({
     endpoints: [
       [
@@ -101,6 +114,8 @@ const MonitorStats = ({monitor}: Props) => {
           <BarChart
             isGroupedByDate
             showTimeInTooltip
+            useShortDate
+            utc
             series={[success, failed, missed]}
             stacked
             additionalSeries={additionalSeries}
@@ -125,7 +140,7 @@ const MonitorStats = ({monitor}: Props) => {
           />
         ) : (
           <EmptyMessage
-            title={t('Nothing recorded in the last 30 days.')}
+            title={t('Nothing recorded in the chosen time window.')}
             description={t('All check-ins for this monitor.')}
           />
         )}
