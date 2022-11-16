@@ -62,7 +62,7 @@ describe('EventIdField', function () {
 
     expect(screen.queryByLabelText('Clear event ID')).not.toBeInTheDocument();
 
-    expect(screen.getByTestId('icon-check-mark')).toHaveAttribute('fill', theme.green300);
+    expect(screen.getByTestId('icon-check-mark')).toHaveAttribute('fill', theme.green400);
   });
 
   it('ERROR status', async function () {

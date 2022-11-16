@@ -224,7 +224,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;

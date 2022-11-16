@@ -175,7 +175,7 @@ export function makeSaveSearchAction({
 }
 
 export const ActionButton = styled(Button)<{isActive?: boolean}>`
-  color: ${p => (p.isActive ? p.theme.blue300 : p.theme.gray300)};
+  color: ${p => (p.isActive ? p.theme.linkColor : p.theme.subText)};
   width: 18px;
   height: 18px;
   padding: 2px;

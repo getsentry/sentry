@@ -26,9 +26,9 @@ const Box = ({text, img, variant}: BoxProps) => (
     <Captions>
       <LabelWrap>
         {variant === 'do' ? (
-          <IconCheckmark color="green300" size="xs" />
+          <IconCheckmark color="successText" size="xs" />
         ) : (
-          <IconClose color="red300" size="xs" />
+          <IconClose color="dangerText" size="xs" />
         )}
         <Label className={variant === 'do' ? 'green' : 'red'}>
           {variant === 'do' ? 'DO' : "DON'T"}
@@ -105,10 +105,10 @@ const Label = styled('p')`
   margin-left: ${space(0.5)};
   margin-bottom: 0;
   &.green {
-    color: ${p => p.theme.green300};
+    color: ${p => p.theme.successText};
   }
   &.red {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.errorText};
   }
 `;
 const Text = styled('p')`

@@ -9,7 +9,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
@@ -21,19 +21,19 @@ type Props = {
 function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Resolved');
   let Icon = IconCheckmark;
-  let color: Color = 'green300';
+  let color: ColorOrAlias = 'successText';
   if (isIssue) {
     statusText = t('Issue');
     Icon = IconIssues;
-    color = 'gray300';
+    color = 'subText';
   } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
     Icon = IconFire;
-    color = 'red300';
+    color = 'errorText';
   } else if (status === IncidentStatus.WARNING) {
     statusText = t('Warning');
     Icon = IconExclamation;
-    color = 'yellow300';
+    color = 'warningText';
   }
 
   return (
@@ -60,7 +60,7 @@ const Wrapper = styled('div')`
   align-items: center;
 `;
 
-const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
+const AlertIconWrapper = styled('div')<{color: ColorOrAlias; icon: React.ReactNode}>`
   width: 36px;
   height: 36px;
   position: relative;
@@ -77,7 +77,7 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   }
 `;
 
-const AlertIconBackground = styled(IconDiamond)<{color: Color}>`
+const AlertIconBackground = styled(IconDiamond)<{color: ColorOrAlias}>`
   width: 36px;
   height: 36px;
 `;

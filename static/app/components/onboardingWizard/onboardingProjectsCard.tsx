@@ -97,7 +97,7 @@ export default function OnboardingProjectsCard({
 
 const Heading = styled(motion.div)`
   display: flex;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
@@ -170,7 +170,7 @@ const PulsingIndicator = styled('div')`
   margin-left: auto;
 `;
 const PulsingIndicatorText = styled('span')`
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0 ${space(1)};
 `;

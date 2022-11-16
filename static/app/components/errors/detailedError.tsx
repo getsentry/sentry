@@ -39,7 +39,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
   return (
     <Wrapper className={className}>
       <ErrorHeading>
-        <IconFlag size="md" color="red300" />
+        <IconFlag size="md" color="errorText" />
         {heading}
       </ErrorHeading>
 

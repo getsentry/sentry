@@ -21,7 +21,7 @@ const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.purple300};
+      color: ${p.theme.activeText};
       background: ${p.theme.backgroundSecondary};
     `};
 

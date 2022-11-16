@@ -211,7 +211,7 @@ function Information({
       <Fragment>
         <Tooltip title={tooltipDesc}>
           <TimeSinceWrapper>
-            {displayIcon && <IconWarning color="red300" size="xs" />}
+            {displayIcon && <IconWarning color="errorText" size="xs" />}
             {tct('Uploaded [timesince]', {
               timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
             })}

@@ -57,7 +57,7 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
     outline: none;
     padding: 0;
     cursor: pointer;
-    color: ${p => p.theme.blue300};
+    color: ${p => p.theme.linkColor};
     margin-left: ${space(0.5)};
   }
 `;

@@ -370,7 +370,7 @@ const Content = styled(motion.div)`
 
   code {
     font-size: 87.5%;
-    color: ${p => p.theme.pink300};
+    color: ${p => p.theme.pink400};
   }
 
   pre code {

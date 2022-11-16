@@ -79,7 +79,7 @@ function TogglableAddress({
           containerDisplayMode="inline-flex"
           delay={tooltipDelay}
         >
-          <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
+          <AddressToggleIcon onClick={onToggle} size="xs" color="activeText" />
         </AddressIconTooltip>
       )}
       <Tooltip

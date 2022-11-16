@@ -69,7 +69,7 @@ export default function DesyncedFilterAlert({
           <Button
             priority="link"
             size="zero"
-            icon={<IconClose color="purple300" />}
+            icon={<IconClose color="activeText" />}
             aria-label={t('Close Alert')}
             onClick={() => setHideAlert(true)}
           />
@@ -96,7 +96,7 @@ const RevertButton = styled(Button)`
   display: flex;
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
 
   &:after {
     content: '|';

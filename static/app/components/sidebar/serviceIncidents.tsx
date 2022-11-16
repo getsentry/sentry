@@ -172,15 +172,15 @@ function getStatusSymbol(status: Status) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
-        <IconCheckmark size="sm" isCircled color="green300" />
+        <IconCheckmark size="sm" isCircled color="successText" />
       ) : status === 'major_outage' ? (
-        <IconFatal size="sm" color="red300" />
+        <IconFatal size="sm" color="errorText" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" color="yellow300" />
+        <IconWarning size="sm" color="warningText" />
       ) : status === 'partial_outage' ? (
-        <IconFire size="sm" color="yellow300" />
+        <IconFire size="sm" color="warningText" />
       ) : (
-        <IconInfo size="sm" color="gray300" />
+        <IconInfo size="sm" color="subText" />
       )}
     </Tooltip>
   );

@@ -433,5 +433,5 @@ const EventWaitingIndicator = styled(
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;

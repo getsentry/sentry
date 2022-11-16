@@ -79,7 +79,7 @@ const Title = styled('span')`
 `;
 
 const SubHeader = styled('div')<{errorReceived: boolean}>`
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)``;

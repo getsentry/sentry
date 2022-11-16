@@ -139,7 +139,7 @@ export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-overflow: ellipsis;
 
   &:hover {
-    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
+    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.linkColor)};
   }
 `;
 

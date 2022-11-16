@@ -180,7 +180,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;
 
 const FireIconContainer = styled('span')<{size: IconSize | string}>`
@@ -188,12 +188,12 @@ const FireIconContainer = styled('span')<{size: IconSize | string}>`
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-right: ${space(0.5)};
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => p.failedThreshold && `color: ${p.theme.red300};`}
+  ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 
 export const EventVitalContainer = styled('div')``;

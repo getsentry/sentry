@@ -214,15 +214,15 @@ class MetricChart extends PureComponent<Props, State> {
           <SectionHeading>{t('Summary')}</SectionHeading>
           <StyledSectionValue>
             <ValueItem>
-              <IconCheckmark color="green300" isCircled />
+              <IconCheckmark color="successText" isCircled />
               {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
             </ValueItem>
             <ValueItem>
-              <IconWarning color="yellow300" />
+              <IconWarning color="warningText" />
               {warningPercent ? warningPercent.toFixed(2) : 0}%
             </ValueItem>
             <ValueItem>
-              <IconFire color="red300" />
+              <IconFire color="errorText" />
               {criticalPercent ? criticalPercent.toFixed(2) : 0}%
             </ValueItem>
           </StyledSectionValue>

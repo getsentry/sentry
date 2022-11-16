@@ -14,12 +14,12 @@ type Props = {
 function ProcessingIcon({processingInfo}: Props) {
   switch (processingInfo.status) {
     case CandidateProcessingStatus.OK:
-      return <IconCheckmark color="green300" size="xs" />;
+      return <IconCheckmark color="successText" size="xs" />;
     case CandidateProcessingStatus.ERROR: {
       const {details} = processingInfo;
       return (
         <Tooltip title={details} disabled={!details}>
-          <IconClose color="red300" size="xs" />
+          <IconClose color="dangerText" size="xs" />
         </Tooltip>
       );
     }
@@ -27,7 +27,7 @@ function ProcessingIcon({processingInfo}: Props) {
       const {details} = processingInfo;
       return (
         <Tooltip title={details} disabled={!details}>
-          <IconWarning color="yellow300" size="xs" />
+          <IconWarning color="warningText" size="xs" />
         </Tooltip>
       );
     }

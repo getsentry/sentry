@@ -64,7 +64,7 @@ export const EventIndicator = styled(
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'waiting' ? p.theme.pink300 : p.theme.green300)};
+  color: ${p => (p.status === 'waiting' ? p.theme.pink400 : p.theme.green400)};
 `;
 
 export const PulsingIndicator = styled('div')`

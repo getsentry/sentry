@@ -66,8 +66,8 @@ const BadgeBorder = styled('div')<{borderColor: Color | keyof Aliases}>`
 
 export function ErrorBadge() {
   return (
-    <BadgeBorder borderColor="red300">
-      <IconFire color="red300" size="xs" />
+    <BadgeBorder borderColor="error">
+      <IconFire color="errorText" size="xs" />
     </BadgeBorder>
   );
 }

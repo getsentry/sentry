@@ -27,7 +27,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (credentials.status === 'invalid') {
     return (
-      <Wrapper color={theme.red300} onClick={onEditRepository}>
+      <Wrapper color={theme.errorText} onClick={onEditRepository}>
         <StyledTooltip
           title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
@@ -41,7 +41,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (pendingDownloads) {
     return (
-      <Wrapper color={theme.gray400}>
+      <Wrapper color={theme.textColor}>
         <IconWrapper>
           <IconDownload size="sm" />
         </IconWrapper>
@@ -52,7 +52,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (lastCheckedBuilds) {
     return (
-      <Wrapper color={theme.gray400}>
+      <Wrapper color={theme.textColor}>
         <IconWrapper>
           <IconRefresh size="sm" />
         </IconWrapper>
