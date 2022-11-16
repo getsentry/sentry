@@ -1941,7 +1941,16 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted'))
+          make(() => import('sentry/views/projectInstall/gettingStarted')),
+          {
+            redirect: [
+              {
+                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
+                from: '/:orgId/:projectId/getting-started/',
+                to: '/getting-started/:projectId/',
+              },
+            ],
+          }
         )}
         key="org-getting-started"
       >
