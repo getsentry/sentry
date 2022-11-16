@@ -295,7 +295,7 @@ describe('Results', function () {
       });
 
       // perform a search
-      const search = wrapper.find('#smart-search-input').first();
+      const search = wrapper.find('textarea').first();
 
       search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
         preventDefault() {},
