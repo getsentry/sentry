@@ -1,4 +1,5 @@
 declare namespace Profiling {
+  type Release = import('sentry/types').Release;
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -167,8 +168,8 @@ declare namespace Profiling {
       received: string;
       traceID: string;
       transactionID: string;
+      release: Release | null;
       transactionName: string;
-      version: string;
     };
   };
 }
