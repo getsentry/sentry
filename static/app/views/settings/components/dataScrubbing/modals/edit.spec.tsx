@@ -1,13 +1,8 @@
-import selectEvent from 'react-select-event';
+import sortBy from 'lodash/sortBy';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import {
-  makeClosableHeader,
-  makeCloseButton,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
+import {openModal} from 'sentry/actionCreators/modal';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Edit from 'sentry/views/settings/components/dataScrubbing/modals/edit';
 import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
@@ -24,149 +19,177 @@ const organizationSlug = 'sentry';
 const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
 const rules = convertedRules;
 const rule = rules[2];
+const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
 jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
-describe('Edit Modal', function () {
-  it('open Edit Rule Modal', async function () {
-    const handleCloseModal = jest.fn();
+async function renderComponent() {
+  const modal = await mountGlobalModal();
 
-    render(
-      <Edit
-        Body={ModalBody}
-        closeModal={handleCloseModal}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
-        Footer={ModalFooter}
-        projectId={projectId}
-        savedRules={rules}
-        api={api}
-        endpoint={endpoint}
-        orgSlug={organizationSlug}
-        onSubmitSuccess={jest.fn()}
-        rule={rule}
-      />
-    );
+  openModal(modalProps => (
+    <Edit
+      {...modalProps}
+      projectId={projectId}
+      savedRules={rules}
+      api={api}
+      endpoint={endpoint}
+      orgSlug={organizationSlug}
+      onSubmitSuccess={successfullySaved}
+      rule={rule}
+    />
+  ));
 
-    expect(
-      screen.getByRole('heading', {name: 'Edit an advanced data scrubbing rule'})
-    ).toBeInTheDocument();
+  await tick();
+  modal.update();
+
+  return modal;
+}
+
+describe('Edit Modal', () => {
+  it('open Edit Rule Modal', async () => {
+    const wrapper = await renderComponent();
+
+    expect(wrapper.find('Header').text()).toEqual('Edit an advanced data scrubbing rule');
+
+    const fieldGroup = wrapper.find('FieldGroup');
+    expect(fieldGroup).toHaveLength(2);
 
     // Method Field
-    expect(screen.getByText('Method')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[0]);
-    expect(await screen.findByText('What to do')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Replace'));
-
-    Object.values(MethodType)
-      .filter(method => method !== MethodType.REPLACE)
-      .forEach(method => {
-        expect(screen.getByText(getMethodLabel(method).label)).toBeInTheDocument();
-      });
+    const methodGroup = fieldGroup.at(0).find('Field');
+    const methodField = methodGroup.at(0);
+    expect(methodField.find('FieldLabel').text()).toEqual('Method');
+    const methodFieldHelp = 'What to do';
+    expect(methodField.find('QuestionTooltip').prop('title')).toEqual(methodFieldHelp);
+    expect(methodField.find('Tooltip').prop('title')).toEqual(methodFieldHelp);
+    const methodFieldSelect = methodField.find('SelectField');
+    expect(methodFieldSelect.exists()).toBe(true);
+    const methodFieldSelectProps = methodFieldSelect.props();
+    expect(methodFieldSelectProps.value).toEqual(MethodType.REPLACE);
+    const methodFieldSelectOptions = sortBy(Object.values(MethodType)).map(value => ({
+      ...getMethodLabel(value),
+      value,
+    }));
+    expect(methodFieldSelectProps.options).toEqual(methodFieldSelectOptions);
 
     // Placeholder Field
-    expect(screen.getByText('Custom Placeholder (Optional)')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[1]);
-    expect(
-      await screen.findByText('It will replace the default placeholder [Filtered]')
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
+    const placeholderField = methodGroup.at(1);
+    expect(placeholderField.find('FieldLabel').text()).toEqual(
+      'Custom Placeholder (Optional)'
+    );
+    const placeholderFieldHelp = 'It will replace the default placeholder [Filtered]';
+    expect(placeholderField.find('QuestionTooltip').prop('title')).toEqual(
+      placeholderFieldHelp
+    );
+    expect(placeholderField.find('Tooltip').prop('title')).toEqual(placeholderFieldHelp);
+
+    if (rule.method === MethodType.REPLACE) {
+      const placeholderInput = placeholderField.find('input');
+      expect(placeholderInput.prop('value')).toEqual(rule.placeholder);
+    }
 
     // Type Field
-    expect(screen.getByText('Data Type')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[2]);
-    expect(
-      await screen.findByText(
-        'What to look for. Use an existing pattern or define your own using regular expressions.'
-      )
-    ).toBeInTheDocument();
-    userEvent.click(screen.getAllByText('Regex matches')[0]);
+    const typeGroup = fieldGroup.at(1).find('Field');
+    const typeField = typeGroup.at(0);
+    expect(typeField.find('FieldLabel').text()).toEqual('Data Type');
+    const typeFieldHelp =
+      'What to look for. Use an existing pattern or define your own using regular expressions.';
+    expect(typeField.find('QuestionTooltip').prop('title')).toEqual(typeFieldHelp);
+    expect(typeField.find('Tooltip').prop('title')).toEqual(typeFieldHelp);
+    const typeFieldSelect = typeField.find('SelectField');
+    expect(typeFieldSelect.exists()).toBe(true);
+    const typeFieldSelectProps = typeFieldSelect.props();
+    expect(typeFieldSelectProps.value).toEqual(RuleType.PATTERN);
 
-    Object.values(RuleType)
-      .filter(ruleType => ruleType !== RuleType.PATTERN)
-      .forEach(ruleType => {
-        expect(screen.getByText(getRuleLabel(ruleType))).toBeInTheDocument();
-      });
-
-    userEvent.click(screen.getAllByText('Regex matches')[0]);
+    const typeFieldSelectOptions = sortBy(Object.values(RuleType)).map(value => ({
+      label: getRuleLabel(value),
+      value,
+    }));
+    expect(typeFieldSelectProps.options).toEqual(typeFieldSelectOptions);
 
     // Regex matches Field
-    expect(screen.getAllByText('Regex matches')).toHaveLength(2);
-    userEvent.hover(screen.getAllByTestId('more-information')[3]);
-    expect(
-      await screen.findByText('Custom regular expression (see documentation)')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Regular expression'})).toHaveAttribute(
-      'placeholder',
-      '[a-zA-Z0-9]+'
-    );
+    const regexField = typeGroup.at(1);
+    expect(regexField.find('FieldLabel').text()).toEqual('Regex matches');
+    const regexFieldHelp = 'Custom regular expression (see documentation)';
+    expect(regexField.find('QuestionTooltip').prop('title')).toEqual(regexFieldHelp);
+    expect(regexField.find('Tooltip').prop('title')).toEqual(regexFieldHelp);
+
+    if (rule.type === RuleType.PATTERN) {
+      const regexFieldInput = regexField.find('input');
+      expect(regexFieldInput.prop('value')).toEqual(rule.pattern);
+    }
 
     // Event ID
-    expect(
-      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
-    ).toBeInTheDocument();
+    expect(wrapper.find('Toggle').text()).toEqual('Use event ID for auto-completion');
 
     // Source Field
-    expect(screen.getByText('Source')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[4]);
-    expect(
-      await screen.findByText(
-        'Where to look. In the simplest case this can be an attribute name.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Source'})).toHaveAttribute(
-      'placeholder',
-      'Enter a custom attribute, variable or header name'
-    );
+    const sourceGroup = wrapper.find('SourceGroup');
+    expect(sourceGroup.exists()).toBe(true);
+    expect(sourceGroup.find('EventIdField')).toHaveLength(0);
+    const sourceField = sourceGroup.find('Field');
+    expect(sourceField.find('FieldLabel').text()).toEqual('Source');
+    const sourceFieldHelp =
+      'Where to look. In the simplest case this can be an attribute name.';
+    expect(sourceField.find('QuestionTooltip').prop('title')).toEqual(sourceFieldHelp);
+    expect(sourceField.find('Tooltip').prop('title')).toEqual(sourceFieldHelp);
+    const sourceFieldInput = sourceField.find('input');
+    expect(sourceFieldInput.prop('value')).toEqual(rule.source);
 
     // Close Modal
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    expect(handleCloseModal).toHaveBeenCalled();
+    const cancelButton = wrapper.find('[aria-label="Cancel"]').hostNodes();
+    expect(cancelButton.exists()).toBe(true);
+    cancelButton.simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
   });
 
-  it('edit Rule Modal', async function () {
-    render(
-      <Edit
-        Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
-        Footer={ModalFooter}
-        projectId={projectId}
-        savedRules={rules}
-        api={api}
-        endpoint={endpoint}
-        orgSlug={organizationSlug}
-        onSubmitSuccess={jest.fn()}
-        rule={rule}
-      />
-    );
+  it('edit Rule Modal', async () => {
+    const wrapper = await renderComponent();
 
     // Method Field
-    await selectEvent.select(screen.getByText('Replace'), 'Mask');
+    const methodField = wrapper.find('[data-test-id="method-field"]');
+    const methodFieldInput = methodField.find('input').at(0);
+    methodFieldInput.simulate('keyDown', {key: 'ArrowDown'});
+    const methodFieldMenuOptions = wrapper.find(
+      '[data-test-id="method-field"] MenuList Option'
+    );
+    const maskOption = methodFieldMenuOptions.at(1);
+    maskOption.simulate('click');
 
     // Placeholder Field should be now hidden
-    expect(screen.queryByText('Custom Placeholder (Optional)')).not.toBeInTheDocument();
+    const placeholderField = wrapper.find('[data-test-id="placeholder-field"]');
+    expect(placeholderField).toHaveLength(0);
 
     // Type Field
-    await selectEvent.select(screen.getAllByText('Regex matches')[0], 'Anything');
+    const typeField = wrapper.find('[data-test-id="type-field"]');
+    const typeFieldInput = typeField.find('input').at(0);
+    typeFieldInput.simulate('keyDown', {key: 'ArrowDown'});
+    const typeFieldMenuOptions = wrapper.find(
+      '[data-test-id="type-field"] MenuList Option'
+    );
+    const anythingOption = typeFieldMenuOptions.at(0);
+    anythingOption.simulate('click');
 
     // Regex Field should be now hidden
-    expect(screen.queryByText('Regex matches')).not.toBeInTheDocument();
+    const regexField = wrapper.find('[data-test-id="regex-field"]');
+    expect(regexField).toHaveLength(0);
 
     // Source Field
-    userEvent.clear(screen.getByRole('textbox', {name: 'Source'}));
-    userEvent.type(
-      screen.getByRole('textbox', {name: 'Source'}),
-      valueSuggestions[2].value
-    );
+    const sourceField = wrapper.find('[data-test-id="source-field"]');
+    const sourceFieldInput = sourceField.find('input');
+    sourceFieldInput.simulate('change', {target: {value: valueSuggestions[2].value}});
 
     // Save rule
-    userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+    const saveButton = wrapper.find('[aria-label="Save Rule"]').hostNodes();
+    expect(saveButton.exists()).toBe(true);
+    saveButton.simulate('click');
 
+    expect(submitRules).toHaveBeenCalled();
     expect(submitRules).toHaveBeenCalledWith(api, endpoint, [
       {
         id: 0,
@@ -182,7 +205,7 @@ describe('Edit Modal', function () {
         pattern: '',
         placeholder: '',
         type: 'anything',
-        source: valueSuggestions[2].value,
+        source: '$error.value',
       },
     ]);
   });
