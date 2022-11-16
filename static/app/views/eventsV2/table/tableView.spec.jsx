@@ -1,8 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -35,8 +34,8 @@ describe('TableView > CellActions', function () {
   };
   const eventView = EventView.fromLocation(location);
 
-  function makeWrapper(context, tableData, view) {
-    return mountWithTheme(
+  function renderComponent(context, tableData, view) {
+    return render(
       <TableView
         organization={context.organization}
         location={location}
@@ -46,21 +45,16 @@ describe('TableView > CellActions', function () {
         tableData={tableData}
         onChangeShowTags={onChangeShowTags}
       />,
-      context.routerContext
+      {context: context.routerContext}
     );
   }
 
-  function openContextMenu(wrapper, cellIndex) {
-    const menu = wrapper.find('CellAction').at(cellIndex);
-    // Hover over the menu
-    menu.find('Container > div').at(0).simulate('mouseEnter');
-    wrapper.update();
+  function openContextMenu(cellIndex) {
+    const firstRow = screen.getAllByRole('row')[1];
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
 
-    // Open the menu
-    wrapper.find('MenuButton').simulate('click');
-
-    // Return the menu wrapper so we can interact with it.
-    return wrapper.find('CellAction').at(cellIndex).find('Menu');
+    userEvent.hover(within(emptyValueCell).getByTestId('cell-action-container'));
+    userEvent.click(within(emptyValueCell).getByRole('button'));
   }
 
   beforeEach(function () {
@@ -68,7 +62,7 @@ describe('TableView > CellActions', function () {
     browserHistory.replace.mockReset();
 
     const organization = TestStubs.Organization({
-      features: ['discover-basic'],
+      features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       projects: [TestStubs.Project()],
     });
 
@@ -116,24 +110,26 @@ describe('TableView > CellActions', function () {
 
   it('updates sort order on equation fields', function () {
     const view = eventView.clone();
-    const wrapper = makeWrapper(initialData, rows, view);
-    const equationSort = wrapper.find('SortLink').last();
+    renderComponent(initialData, rows, view);
 
-    expect(equationSort.find('StyledTooltip').props().title).toBe('count() + 100');
-    expect(equationSort.find('a').props().href).toBe(
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%5B0%5D&statsPeriod=14d&yAxis=p95'
+    const equationCell = screen.getByRole('columnheader', {name: 'count() + 100'});
+    const sortLink = within(equationCell).getByRole('link');
+
+    expect(sortLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
   it('updates sort order on non-equation fields', function () {
     const view = eventView.clone();
-    const wrapper = makeWrapper(initialData, rows, view);
-    const equationSort = wrapper.find('SortLink').at(1);
+    renderComponent(initialData, rows, view);
 
-    expect(equationSort.find('StyledTooltip').props().title).toBe('transaction');
-    equationSort.simulate('click');
+    const transactionCell = screen.getByRole('columnheader', {name: 'transaction'});
+    const sortLink = within(transactionCell).getByRole('link');
 
-    expect(equationSort.find('a').props().href).toBe(
+    expect(sortLink).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
@@ -141,9 +137,9 @@ describe('TableView > CellActions', function () {
   it('handles add cell action on null value', function () {
     rows.data[0].title = null;
 
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -158,9 +154,9 @@ describe('TableView > CellActions', function () {
     const view = eventView.clone();
     view.query = 'tag:value has:title';
 
-    const wrapper = makeWrapper(initialData, rows, view);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+    renderComponent(initialData, rows, view);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -174,9 +170,9 @@ describe('TableView > CellActions', function () {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
-    const wrapper = makeWrapper(initialData, rows, view);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+    renderComponent(initialData, rows, view);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -188,9 +184,10 @@ describe('TableView > CellActions', function () {
 
   it('handles add cell action with multiple y axis', function () {
     location.query.yAxis = ['count()', 'failure_count()'];
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -202,9 +199,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('handles exclude cell action on string value', function () {
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -218,9 +215,9 @@ describe('TableView > CellActions', function () {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
-    const wrapper = makeWrapper(initialData, rows, view);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+    renderComponent(initialData, rows, view);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -233,9 +230,9 @@ describe('TableView > CellActions', function () {
   it('handles exclude cell action on null value', function () {
     rows.data[0].title = null;
 
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -250,9 +247,9 @@ describe('TableView > CellActions', function () {
     view.query = 'tag:value !has:title';
     rows.data[0].title = null;
 
-    const wrapper = makeWrapper(initialData, rows, view);
-    const menu = openContextMenu(wrapper, 0);
-    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+    renderComponent(initialData, rows, view);
+    openContextMenu(1);
+    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -263,9 +260,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('handles greater than cell action on number value', function () {
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 2);
-    menu.find('button[data-test-id="show-values-greater-than"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(3);
+    userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -276,9 +273,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('handles less than cell action on number value', function () {
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 2);
-    menu.find('button[data-test-id="show-values-less-than"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(3);
+    userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -290,9 +287,10 @@ describe('TableView > CellActions', function () {
 
   it('handles go to transaction without project column selected', function () {
     rows.data[0]['project.name'] = 'project-slug';
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 1);
-    menu.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(2);
+    userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/summary/',
@@ -305,9 +303,10 @@ describe('TableView > CellActions', function () {
 
   it('handles go to transaction with project column selected', function () {
     rows.data[0].project = 'project-slug';
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 1);
-    menu.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(2);
+    userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/summary/',
@@ -319,9 +318,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('handles go to release', function () {
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const menu = openContextMenu(wrapper, 4);
-    menu.find('button[data-test-id="release"]').simulate('click');
+    renderComponent(initialData, rows, eventView);
+    openContextMenu(5);
+    userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/v1.0.2/',
@@ -331,18 +330,14 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('has tooltip on integer value greater than 999', function () {
+  it('has title on integer value greater than 999', function () {
     rows.data[0]['count()'] = 1000;
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    const tooltip = wrapper.find('GridBody Tooltip').at(1);
+    renderComponent(initialData, rows, eventView);
 
-    expect(wrapper.find('GridBody Tooltip').length).toEqual(3);
-    expect(tooltip.prop('title')).toBe('1,000');
-  });
+    const firstRow = screen.getAllByRole('row')[1];
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[3];
 
-  it('does not have tooltip on integer value less than 999', function () {
-    const wrapper = makeWrapper(initialData, rows, eventView);
-    expect(wrapper.find('GridBody Tooltip').length).toEqual(2);
+    expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
 
   it('renders size columns correctly', function () {
