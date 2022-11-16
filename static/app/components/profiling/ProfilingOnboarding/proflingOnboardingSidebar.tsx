@@ -11,15 +11,22 @@ import {
   DocumentationWrapper,
   OnboardingStep,
 } from 'sentry/components/sidebar/onboardingStep';
-import {TaskSidebar, TaskSidebarList} from 'sentry/components/sidebar/taskSidebar';
+import {
+  EventIndicator,
+  TaskSidebar,
+  TaskSidebarList,
+} from 'sentry/components/sidebar/taskSidebar';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import EventWaiter from 'sentry/utils/eventWaiter';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
 import {makeDocKeyMap, splitProjectsByProfilingSupport} from './util';
@@ -106,9 +113,15 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
-
-  // TODO: implement polling
-  // usePollForFirstProfileEvent();
+  const api = useApi();
+  const organization = useOrganization();
+  const [received, setReceived] = useState(false);
+  const previousProject = usePrevious(currentProject);
+  useEffect(() => {
+    if (previousProject.id !== currentProject.id) {
+      setReceived(false);
+    }
+  }, [previousProject.id, currentProject.id]);
 
   const docKeysMap = useMemo(() => makeDocKeyMap(currentPlatform?.id), [currentPlatform]);
 
@@ -121,25 +134,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
-  // TODO: If a project reaches this point, it'll always be supported. This needs to be reworked.
-  // if (!isPlatformSupported) {
-  //   return (
-  //     <Fragment>
-  //       <div>
-  //         {tct(
-  //           'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
-  //           {platform: currentPlatform?.name || currentProject.slug}
-  //         )}
-  //       </div>
-  //       <div>
-  //         <Button size="sm" href="https://docs.sentry.io/platforms/" external>
-  //           {t('Go to Sentry Documentation')}
-  //         </Button>
-  //       </div>
-  //     </Fragment>
-  //   );
-  // }
 
   if (!currentPlatform || !docKeysMap || !hasOnboardingContents) {
     return (
@@ -197,22 +191,32 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </div>
         );
       })}
-
-      {/* <EventWaitingIndicator /> */}
+      <EventWaiter
+        api={api}
+        organization={organization}
+        project={currentProject}
+        eventType="profile"
+        onIssueReceived={() => {
+          setReceived(true);
+        }}
+      >
+        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      </EventWaiter>
     </Fragment>
   );
 }
 
-// TODO: implement poll for first profile event
-// function usePollForFirstProfileEvent() {
-//   // TODO: implement polling on onboarding endpoint
-// }
+const EventReceivedIndicator = () => (
+  <EventIndicator status="received">
+    {t("We've received this project's first profile!")}
+  </EventIndicator>
+);
 
-// const EventWaitingIndicator = () => (
-//   <EventIndicator status="waiting">
-//     {t("Waiting for this project's first profile")}
-//   </EventIndicator>
-// );
+const EventWaitingIndicator = () => (
+  <EventIndicator status="waiting">
+    {t("Waiting for this project's first profile.")}
+  </EventIndicator>
+);
 
 const Heading = styled('div')`
   display: flex;
