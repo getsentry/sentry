@@ -184,15 +184,17 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       });
 
       const eventIdLink = (
-        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-          <StyledLink data-test-id="view-event" to={target}>
-            {value}
-          </StyledLink>
-        </Tooltip>
+        <StyledLink data-test-id="view-event" to={target}>
+          {value}
+        </StyledLink>
       );
 
       if (!organization.features.includes('discover-quick-context')) {
-        return [eventIdLink];
+        return [
+          <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+            {eventIdLink}
+          </Tooltip>,
+        ];
       }
 
       return [
