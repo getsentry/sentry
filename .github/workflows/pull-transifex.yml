@@ -18,7 +18,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Setup sentry python env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+
       - name: Pull from Transifex
+        env:
+          SENTRY_NO_VENV_CHECK: 1
         run: |
           make pull-transifex
           git status

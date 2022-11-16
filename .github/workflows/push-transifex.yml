@@ -24,4 +24,6 @@ jobs:
         id: setup
 
       - name: Push to Transifex
+        env:
+          SENTRY_NO_VENV_CHECK: 1
         run: make push-transifex
