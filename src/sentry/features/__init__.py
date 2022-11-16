@@ -226,7 +226,6 @@ default_manager.add("projects:similarity-indexing", ProjectFeature)
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
 default_manager.add("projects:similarity-view", ProjectFeature)
 default_manager.add("projects:similarity-view-v2", ProjectFeature)
-default_manager.add("projects:sourcemapcache-processor", ProjectFeature)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
 
 # Project plugin features
