@@ -373,7 +373,7 @@ class GridEditable<
       : [];
 
     return (
-      <GridRow key={row}>
+      <GridRow key={row} data-test-id="grid-body-row">
         {prependColumns &&
           prependColumns.map((item, i) => (
             <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
