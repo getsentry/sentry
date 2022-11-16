@@ -597,7 +597,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               contextType={ContextType.RELEASE}
               organization={organization}
             >
-              <Version version={data.release} tooltipRawVersion truncate />
+              <Version version={data.release} truncate />
             </QuickContextHoverWrapper>
           ) : (
             <Version version={data.release} tooltipRawVersion truncate />
