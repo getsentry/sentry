@@ -269,6 +269,7 @@ const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
 };
 
 const StyledSidebar = styled('aside')`
+  grid-area: saved-searches;
   width: 100%;
   padding: ${space(2)};
 
