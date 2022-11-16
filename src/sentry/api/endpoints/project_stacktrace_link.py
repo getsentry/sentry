@@ -99,10 +99,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     last_error = "stack_root_mismatch"
                     continue
 
-                serialized_code_mapping = serialize(config, request.user)
+                result["config"] = serialize(config, request.user)
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
-                provider = serialized_code_mapping["provider"]["key"]
+                provider = result["config"]["provider"]["key"]
                 scope.set_tag("integration_provider", provider)
                 scope.set_tag("stacktrace_link.platform", platform)
 
@@ -137,21 +137,18 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     last_error = get_link_error
                     result["attemptedUrl"] = attempted_url
                 else:
-                    # Only return code mapping when there's a match
-                    result["config"] = serialized_code_mapping
                     scope.set_tag("stacktrace_link.found", True)
                     # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
-            if result["config"] is None:
-                if last_error:
-                    result["error"] = last_error
-                    if last_error == "stack_root_mismatch":
-                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    else:
-                        scope.set_tag("stacktrace_link.found", False)
-                        scope.set_tag("stacktrace_link.error", "file_not_found")
+            if last_error:
+                result["error"] = last_error
+                if last_error == "stack_root_mismatch":
+                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                else:
+                    scope.set_tag("stacktrace_link.found", False)
+                    scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(
