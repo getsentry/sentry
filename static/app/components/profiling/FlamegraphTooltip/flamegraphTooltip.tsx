@@ -25,12 +25,12 @@ export function formatWeightToProfileDuration(
 
 function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
   if (!frame.frame.file) {
-    return null;
+    return '<unknown file>';
   }
-  if (frame.frame.line && frame.frame.column) {
+  if (typeof frame.frame.line === 'number' && typeof frame.frame.column === 'number') {
     return `${frame.frame.file}:${frame.frame.line}:${frame.frame.column}`;
   }
-  if (frame.frame.line) {
+  if (typeof frame.frame.line === 'number') {
     return `${frame.frame.file}:${frame.frame.line}`;
   }
   return `${frame.frame.file}:<unknown line>`;
