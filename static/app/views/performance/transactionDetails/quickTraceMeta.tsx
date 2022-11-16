@@ -66,7 +66,10 @@ export default function QuickTraceMeta({
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
-  const showReplay =
+  const hasReplay =
+    event.entries?.some(({type}) => type === 'breadcrumbs') &&
+    event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
+  const isReplayEnabled =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   let body: React.ReactNode;
@@ -78,7 +81,8 @@ export default function QuickTraceMeta({
       return null;
     }
 
-    body = showReplay ? <ReplayNode event={event} /> : t('Missing Trace');
+    body =
+      isReplayEnabled && hasReplay ? <ReplayNode event={event} /> : t('Missing Trace');
 
     // need to configure tracing
     footer = <ExternalLink href={docsLink}>{t('Read the docs')}</ExternalLink>;

@@ -57,6 +57,7 @@ export const EventNode = styled(Tag)`
 `;
 
 export const EventNodeReplay = styled(EventNode)`
+  display: inline-flex;
   margin-right: ${space(1)};
 `;
 

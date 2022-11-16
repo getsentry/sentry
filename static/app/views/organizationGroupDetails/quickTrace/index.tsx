@@ -22,7 +22,10 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
 
-  const hasSessionReplay = organization.features.includes('session-replay-ui');
+  const hasReplay =
+    event.entries?.some(({type}) => type === 'breadcrumbs') &&
+    event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
   const showQuickTrace = hasPerformanceView && hasTraceContext;
 
   if (showQuickTrace) {
@@ -37,7 +40,7 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
     );
   }
 
-  return hasSessionReplay ? (
+  return hasReplay && isReplayEnabled ? (
     <ReplayOnlyTrace>
       <ReplayNode event={event} />
     </ReplayOnlyTrace>
