@@ -13,6 +13,7 @@ export class Frame extends WeightedNode {
   readonly image?: string;
   readonly resource?: string;
   readonly threadId?: number;
+  readonly inline?: boolean;
 
   static Root = new Frame(
     {
