@@ -421,6 +421,76 @@ urlpatterns += [
                 ),
                 url(r"^account/", generic_react_page_view),
                 url(
+                    r"^organization/",
+                    react_page_view,
+                    name="sentry-customer-domain-organization-settings",
+                ),
+                url(
+                    r"^projects/",
+                    react_page_view,
+                    name="sentry-customer-domain-projects-settings",
+                ),
+                url(
+                    r"^teams/",
+                    react_page_view,
+                    name="sentry-customer-domain-teams-settings",
+                ),
+                url(
+                    r"^members/",
+                    react_page_view,
+                    name="sentry-customer-domain-members-settings",
+                ),
+                url(
+                    r"^security-and-privacy/",
+                    react_page_view,
+                    name="sentry-customer-domain-security-and-privacy-settings",
+                ),
+                url(
+                    r"^auth/",
+                    react_page_view,
+                    name="sentry-customer-domain-auth-settings",
+                ),
+                url(
+                    r"^audit-log/",
+                    react_page_view,
+                    name="sentry-customer-domain-audit-log-settings",
+                ),
+                url(
+                    r"^relay/",
+                    react_page_view,
+                    name="sentry-customer-domain-relay-settings",
+                ),
+                url(
+                    r"^repos/",
+                    react_page_view,
+                    name="sentry-customer-domain-repos-settings",
+                ),
+                url(
+                    r"^integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-integrations-settings",
+                ),
+                url(
+                    r"^developer-settings/",
+                    react_page_view,
+                    name="sentry-customer-domain-developer-settings-settings",
+                ),
+                url(
+                    r"^billing/",
+                    react_page_view,
+                    name="sentry-customer-domain-billing-settings",
+                ),
+                url(
+                    r"^subscription/",
+                    react_page_view,
+                    name="sentry-customer-domain-subscription-settings",
+                ),
+                url(
+                    r"^legal/",
+                    react_page_view,
+                    name="sentry-customer-domain-legal-settings",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -461,6 +531,12 @@ urlpatterns += [
     ),
     # Issues
     url(r"^issues/", react_page_view, name="issues"),
+    # Alerts
+    url(r"^alerts/", react_page_view, name="alerts"),
+    # Performance
+    url(r"^performance/", react_page_view, name="performance"),
+    # Profiling
+    url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
     # Dashboards
@@ -470,8 +546,26 @@ urlpatterns += [
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
     url(r"^join-request/", react_page_view, name="join-request"),
+    # Activity
+    url(r"^activity/", react_page_view, name="activity"),
+    # Stats
+    url(r"^stats/", react_page_view, name="stats"),
+    # Replays
+    url(r"^replays/", react_page_view, name="replays"),
+    # Monitors
+    url(r"^monitors/", react_page_view, name="monitors"),
+    # Releases
+    url(r"^releases/", react_page_view, name="releases"),
     # User Feedback
     url(r"^user-feedback/", react_page_view, name="user-feedback"),
+    # Data Export
+    url(r"^data-export/", react_page_view, name="data-export"),
+    # Disabled Member
+    url(
+        r"^disabled-member/",
+        DisabledMemberView.as_view(),
+        name="sentry-customer-domain-organization-disabled-member",
+    ),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(

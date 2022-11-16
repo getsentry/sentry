@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.organization import (
     ApiTeam,
     ApiTeamMember,
     organization_service,
+    unescape_flag_name,
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import all_silo_test
@@ -130,6 +131,11 @@ def assert_organization_member_equals(
             omt.team_id for omt in organization_member.member_teams
         )
     }
+
+    for field in dataclasses.fields(organization_member.flags):
+        assert getattr(organization_member.flags, field.name) == getattr(
+            orm_organization_member.flags, unescape_flag_name(field.name)
+        )
 
 
 def assert_orgs_equal(orm_org: Organization, org: ApiOrganization) -> None:
