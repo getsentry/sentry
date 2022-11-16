@@ -69,7 +69,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Session Replay')}</Heading>
+        <Heading>{t('Getting Started with Replays')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
@@ -247,7 +247,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t("Waiting for this project's first replay event")}
+    {t("Waiting for this project's first user session")}
   </div>
 ))`
   display: flex;
@@ -260,7 +260,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t("We've received this project's first replay event!")}
+    {t("We've received this project's first user session!")}
   </div>
 ))`
   display: flex;

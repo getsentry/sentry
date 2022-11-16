@@ -1231,38 +1231,93 @@ function buildRoutes() {
     </Route>
   );
 
+  const monitorsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    return (
+      <Fragment>
+        <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
+        <Route
+          path={
+            forCustomerDomain
+              ? '/monitors/create/'
+              : '/organizations/:orgId/monitors/create/'
+          }
+          component={make(() => import('sentry/views/monitors/create'))}
+          key={forCustomerDomain ? 'orgless-monitors-create' : 'org-monitors-create'}
+        />
+        <Route
+          path={
+            forCustomerDomain
+              ? '/monitors/:monitorId/'
+              : '/organizations/:orgId/monitors/:monitorId/'
+          }
+          component={make(() => import('sentry/views/monitors/details'))}
+          key={
+            forCustomerDomain ? 'orgless-monitors-monitor-id' : 'org-monitors-monitor-id'
+          }
+        />
+        <Route
+          path={
+            forCustomerDomain
+              ? '/monitors/:monitorId/edit/'
+              : '/organizations/:orgId/monitors/:monitorId/edit/'
+          }
+          component={make(() => import('sentry/views/monitors/edit'))}
+          key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
+        />
+      </Fragment>
+    );
+  };
+
   const monitorsRoutes = (
-    <Route
-      path="/organizations/:orgId/monitors/"
-      component={make(() => import('sentry/views/monitors'))}
-    >
-      <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/monitors/"
+          component={withDomainRequired(make(() => import('sentry/views/monitors')))}
+          key="orgless-monitors-route"
+        >
+          {monitorsChildRoutes({forCustomerDomain: true})}
+        </Route>
+      ) : null}
       <Route
-        path="/organizations/:orgId/monitors/create/"
-        component={make(() => import('sentry/views/monitors/create'))}
-      />
-      <Route
-        path="/organizations/:orgId/monitors/:monitorId/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path="/organizations/:orgId/monitors/:monitorId/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
-    </Route>
+        path="/organizations/:orgId/monitors/"
+        component={withDomainRedirect(make(() => import('sentry/views/monitors')))}
+        key="org-monitors"
+      >
+        {monitorsChildRoutes({forCustomerDomain: false})}
+      </Route>
+    </Fragment>
   );
 
-  const replayRoutes = (
-    <Route
-      path="/organizations/:orgId/replays/"
-      component={make(() => import('sentry/views/replays'))}
-    >
+  const replayChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
-    </Route>
+    </Fragment>
+  );
+
+  const replayRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/replays/"
+          component={withDomainRequired(make(() => import('sentry/views/replays')))}
+          key="orgless-replays-route"
+        >
+          {replayChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/replays/"
+        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
+        key="org-replays"
+      >
+        {replayChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
@@ -1347,31 +1402,56 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const statsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    return (
+      <Fragment>
+        <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
+        <Route
+          path="issues/"
+          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
+        >
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/organizationStats/teamInsights/issues')
+            )}
+          />
+        </Route>
+        <Route
+          path="health/"
+          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
+        >
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/organizationStats/teamInsights/health')
+            )}
+          />
+        </Route>
+        {forCustomerDomain ? null : (
+          <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
+        )}
+      </Fragment>
+    );
+  };
+
   const statsRoutes = (
-    <Route path="/organizations/:orgId/stats/">
-      <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/stats/"
+          component={withDomainRequired(NoOp)}
+          key="orgless-stats-route"
+        >
+          {statsChildRoutes({forCustomerDomain: true})}
+        </Route>
+      ) : null}
       <Route
-        path="issues/"
-        component={make(() => import('sentry/views/organizationStats/teamInsights'))}
+        path="/organizations/:orgId/stats/"
+        component={withDomainRedirect(NoOp)}
+        key="org-stats"
       >
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/organizationStats/teamInsights/issues')
-          )}
-        />
+        {statsChildRoutes({forCustomerDomain: false})}
       </Route>
-      <Route
-        path="health/"
-        component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-      >
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/organizationStats/teamInsights/health')
-          )}
-        />
-      </Route>
-      <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
-    </Route>
+    </Fragment>
   );
 
   // TODO(mark) Long term this /queries route should go away and /discover
@@ -1536,22 +1616,31 @@ function buildRoutes() {
   );
 
   const issueListRoutes = (
-    <Route
-      path="/organizations/:orgId/issues/(searches/:searchId/)"
-      component={errorHandler(IssueListContainer)}
-    >
-      <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-    </Route>
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/issues/(searches/:searchId/)"
+          component={withDomainRequired(errorHandler(IssueListContainer))}
+          key="orgless-issues-route"
+        >
+          <IndexRoute component={errorHandler(IssueListOverview)} />
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/issues/(searches/:searchId/)"
+        component={withDomainRedirect(errorHandler(IssueListContainer))}
+        key="org-issues"
+      >
+        <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
+        <IndexRoute component={errorHandler(IssueListOverview)} />
+      </Route>
+    </Fragment>
   );
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsRoutes = (
-    <Route
-      path="/organizations/:orgId/issues/:groupId/"
-      component={make(() => import('sentry/views/organizationGroupDetails'))}
-    >
+  const issueDetailsChildRoutes = (
+    <Fragment>
       <IndexRoute
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventDetails')
@@ -1678,7 +1767,31 @@ function buildRoutes() {
           component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
         />
       </Route>
-    </Route>
+    </Fragment>
+  );
+  const issueDetailsRoutes = (
+    <Fragment>
+      <Route
+        path="/organizations/:orgId/issues/:groupId/"
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationGroupDetails'))
+        )}
+        key="org-issues-group-id"
+      >
+        {issueDetailsChildRoutes}
+      </Route>
+      {usingCustomerDomain ? (
+        <Route
+          path="/issues/:groupId/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/organizationGroupDetails'))
+          )}
+          key="orgless-issues-group-id-route"
+        >
+          {issueDetailsChildRoutes}
+        </Route>
+      ) : null}
+    </Fragment>
   );
 
   // These are the "manage" pages. For sentry.io, these are _different_ from
@@ -1798,11 +1911,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const gettingStartedRoutes = (
-    <Route
-      path="/:orgId/:projectId/getting-started/"
-      component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
-    >
+  const gettingStartedChildRoutes = (
+    <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/projectInstall/overview'))}
       />
@@ -1812,7 +1922,32 @@ function buildRoutes() {
           () => import('sentry/views/projectInstall/platformOrIntegration')
         )}
       />
-    </Route>
+    </Fragment>
+  );
+
+  const gettingStartedRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/:projectId/getting-started/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/projectInstall/gettingStarted'))
+          )}
+          key="orgless-getting-started-route"
+        >
+          {gettingStartedChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/:orgId/:projectId/getting-started/"
+        component={withDomainRedirect(
+          make(() => import('sentry/views/projectInstall/gettingStarted'))
+        )}
+        key="org-getting-started"
+      >
+        {gettingStartedChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new

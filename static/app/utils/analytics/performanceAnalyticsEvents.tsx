@@ -64,10 +64,6 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
-  'performance_views.overview.view': {
-    project_platforms: string;
-    show_onboarding: boolean;
-  };
   'performance_views.project_transaction_threshold.change': {
     from: string;
     key: string;
@@ -79,9 +75,6 @@ export type PerformanceEventParameters = {
   };
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
-  };
-  'performance_views.span_summary.view': {
-    project_platforms: string;
   };
   'performance_views.spans.change_op': {
     operation_name?: string;
@@ -169,7 +162,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
-  'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.summary.tag_explorer.tag_value':
@@ -181,7 +173,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.summary.tag_explorer.change_page':
     'Performance Views: Tag Explorer Change Page',
   'performance_views.summary.tag_explorer.sort': 'Performance Views: Tag Explorer Sorted',
-  'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.project_transaction_threshold.change':
     'Project Transaction Threshold: Changed',
