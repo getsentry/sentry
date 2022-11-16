@@ -112,38 +112,43 @@ function Modal({
 
   // Pagination behaviour is different between the attachments tab with page links
   // vs the issue details page where we have all of the screenshots fetched already
-  const paginationProps: ComponentProps<typeof ScreenshotPagination> | null = links
-    ? {
-        previousDisabled:
-          links?.previous?.results === false && currentAttachmentIndex === 0,
-        nextDisabled:
-          links?.next?.results === false &&
-          currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1,
-        onPrevious: () => {
-          handleCursor(links.previous?.cursor, path, query, -1);
-        },
-        onNext: () => {
-          handleCursor(links.next?.cursor, path, query, 1);
-        },
-      }
-    : memoizedAttachments && memoizedAttachments.length && defined(currentAttachmentIndex)
-    ? {
-        previousDisabled: currentAttachmentIndex === 0,
-        nextDisabled: currentAttachmentIndex === memoizedAttachments.length - 1,
-        onPrevious: () => {
-          setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
-          setCurrentAttachmentIndex(currentAttachmentIndex - 1);
-        },
-        onNext: () => {
-          setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
-          setCurrentAttachmentIndex(currentAttachmentIndex + 1);
-        },
-        headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
-          currentScreenshotIndex: currentAttachmentIndex + 1,
-          totalScreenshotCount: memoizedAttachments.length,
-        }),
-      }
-    : null;
+  let paginationProps: ComponentProps<typeof ScreenshotPagination> | null = null;
+  if (links) {
+    paginationProps = {
+      previousDisabled:
+        links?.previous?.results === false && currentAttachmentIndex === 0,
+      nextDisabled:
+        links?.next?.results === false &&
+        currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1,
+      onPrevious: () => {
+        handleCursor(links.previous?.cursor, path, query, -1);
+      },
+      onNext: () => {
+        handleCursor(links.next?.cursor, path, query, 1);
+      },
+    };
+  } else if (
+    memoizedAttachments &&
+    memoizedAttachments.length &&
+    defined(currentAttachmentIndex)
+  ) {
+    paginationProps = {
+      previousDisabled: currentAttachmentIndex === 0,
+      nextDisabled: currentAttachmentIndex === memoizedAttachments.length - 1,
+      onPrevious: () => {
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
+        setCurrentAttachmentIndex(currentAttachmentIndex - 1);
+      },
+      onNext: () => {
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
+        setCurrentAttachmentIndex(currentAttachmentIndex + 1);
+      },
+      headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
+        currentScreenshotIndex: currentAttachmentIndex + 1,
+        totalScreenshotCount: memoizedAttachments.length,
+      }),
+    };
+  }
 
   return (
     <Fragment>
