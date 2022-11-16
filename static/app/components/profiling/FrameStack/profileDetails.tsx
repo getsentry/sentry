@@ -52,7 +52,7 @@ function getReleaseProjectId(
   release: Profiling.Schema['metadata']['release'],
   selection: PageFilters
 ) {
-  if (!release) {
+  if (!release || !release.projects) {
     return undefined;
   }
   // if a release has only one project
