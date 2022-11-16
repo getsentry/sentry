@@ -10,24 +10,24 @@ import Results from 'sentry/views/eventsV2/results';
 
 import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
 
-// const FIELDS = [
-//   {
-//     field: 'title',
-//   },
-//   {
-//     field: 'timestamp',
-//   },
-//   {
-//     field: 'user',
-//   },
-//   {
-//     field: 'count()',
-//   },
-// ];
+const FIELDS = [
+  {
+    field: 'title',
+  },
+  {
+    field: 'timestamp',
+  },
+  {
+    field: 'user',
+  },
+  {
+    field: 'count()',
+  },
+];
 
-// const generateFields = () => ({
-//   field: FIELDS.map(i => i.field),
-// });
+const generateFields = () => ({
+  field: FIELDS.map(i => i.field),
+});
 
 const eventTitle = 'Oh no something bad';
 
@@ -240,6 +240,52 @@ describe('Results', function () {
           }),
         })
       );
+    });
+
+    it('displays tip when events response contains a tip', async function () {
+      renderMockRequests();
+
+      const eventsResultsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {
+            fields: {},
+            tips: {query: 'this is a tip'},
+          },
+          data: [],
+        },
+      });
+
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {...generateFields(), yAxis: 'count()'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      await waitFor(() => {
+        expect(eventsResultsMock).toHaveBeenCalled();
+      });
+
+      expect(screen.getByText('this is a tip')).toBeInTheDocument();
     });
 
     it('renders metric fallback alert', async function () {
