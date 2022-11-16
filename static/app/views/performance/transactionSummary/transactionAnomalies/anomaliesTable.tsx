@@ -113,10 +113,10 @@ const NumberCell = styled('div')`
 `;
 
 const LowConfidence = styled('div')`
-  color: ${p => p.theme.yellow300};
+  color: ${p => p.theme.yellow400};
 `;
 const HighConfidence = styled('div')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.red400};
 `;
 
 const ConfidenceCell = styled('div')`
