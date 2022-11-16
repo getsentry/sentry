@@ -111,14 +111,18 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
     };
   }, [props.hoveredNode, api, projects, organization, props.profileGroup]);
 
+  // @TODO: this only works for github right now, other providers will not work
   const onOpenInGithubClick = useCallback(() => {
     if (githubLink.type !== 'resolved') {
       return;
     }
-    if (!githubLink.data.sourceUrl) {
+    if (
+      !githubLink.data.sourceUrl ||
+      githubLink.data.config?.provider?.key !== 'github'
+    ) {
       return;
     }
-    window.open(githubLink.data.sourceUrl, '_blank');
+    window.open(githubLink.data.sourceUrl, '_blank', 'noopener,noreferrer');
   }, [githubLink]);
 
   return props.contextMenu.open ? (
@@ -160,7 +164,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
               tooltip={
                 !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
                   ? t('Open in GitHub is not yet supported for this platform')
-                  : githubLink.type === 'resolved' && !githubLink.data.sourceUrl
+                  : githubLink.type === 'resolved' &&
+                    (!githubLink.data.sourceUrl ||
+                      githubLink.data.config?.provider?.key !== 'github')
                   ? t('Could not find source code location in GitHub')
                   : undefined
               }
