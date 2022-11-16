@@ -588,7 +588,7 @@ class SymbolicatorSession:
 
                     if json["status"] != "pending":
                         metrics.timing(
-                            "events.symbolicator.response.completed.size", len(response.content())
+                            "events.symbolicator.response.completed.size", len(response.content)
                         )
                 else:
                     with sentry_sdk.push_scope():
