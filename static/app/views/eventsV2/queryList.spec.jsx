@@ -1,5 +1,6 @@
 import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
+import {click} from '@testing-library/user-event/dist/click';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -18,7 +19,6 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/type
 import QueryList from 'sentry/views/eventsV2/queryList';
 
 jest.mock('sentry/actionCreators/modal');
-jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
   let location,
@@ -28,6 +28,7 @@ describe('EventsV2 > QueryList', function () {
     duplicateMock,
     queryChangeMock,
     updateHomepageMock,
+    eventsStatsMock,
     wrapper;
 
   const {router, routerContext} = initializeOrg();
@@ -49,7 +50,7 @@ describe('EventsV2 > QueryList', function () {
       TestStubs.DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
     ];
 
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       statusCode: 200,
@@ -282,7 +283,7 @@ describe('EventsV2 > QueryList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('passes yAxis from the savedQuery to MiniGraph', function () {
+  it('passes yAxis from the savedQuery to MiniGraph', async function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
@@ -291,7 +292,8 @@ describe('EventsV2 > QueryList', function () {
       ...savedQueries.slice(1)[0],
       yAxis,
     };
-    wrapper = mountWithTheme(
+
+    render(
       <QueryList
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
@@ -301,8 +303,16 @@ describe('EventsV2 > QueryList', function () {
       />
     );
 
-    const miniGraph = wrapper.find('MiniGraph');
-    expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
+    const chart = await screen.findByTestId('area-chart');
+    expect(chart).toBeInTheDocument();
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
   });
 
   it('Set as Default updates the homepage query', function () {
@@ -331,7 +341,7 @@ describe('EventsV2 > QueryList', function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      wrapper = mountWithTheme(
+      render(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -347,61 +357,54 @@ describe('EventsV2 > QueryList', function () {
           location={location}
         />
       );
-      let card = wrapper.find('QueryCard').last();
 
-      await act(async () => {
-        triggerPress(card.find('DropdownTrigger'));
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
 
-        await tick();
-        wrapper.update();
+      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+
+      userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+
+      userEvent.click(addToDashboardMenuItem);
+
+      waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.AREA,
+              limit: 5,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: ['test'],
+                  conditions: '',
+                  fields: ['test', 'count()', 'count()'],
+                  name: '',
+                  orderby: 'test',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              displayType: DisplayType.AREA,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
       });
-
-      card = wrapper.find('QueryCard').last();
-      const menuItems = card.find('MenuItemWrap');
-
-      expect(menuItems.length).toEqual(3);
-      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-      await act(async () => {
-        triggerPress(menuItems.at(0));
-
-        await tick();
-        wrapper.update();
-      });
-
-      expect(openAddToDashboardModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: {
-            title: 'Saved query #1',
-            displayType: DisplayType.AREA,
-            limit: 5,
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: ['test'],
-                conditions: '',
-                fields: ['test', 'count()', 'count()'],
-                name: '',
-                orderby: 'test',
-              },
-            ],
-          },
-          widgetAsQueryParams: expect.objectContaining({
-            defaultTableColumns: ['test', 'count()'],
-            defaultTitle: 'Saved query #1',
-            defaultWidgetQuery:
-              'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-            displayType: DisplayType.AREA,
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
-        })
-      );
     });
 
     it('opens a modal with the correct params for other chart', async function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      wrapper = mountWithTheme(
+      render(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -417,55 +420,48 @@ describe('EventsV2 > QueryList', function () {
           location={location}
         />
       );
-      let card = wrapper.find('QueryCard').last();
 
-      await act(async () => {
-        triggerPress(card.find('DropdownTrigger'));
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
 
-        await tick();
-        wrapper.update();
+      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+
+      userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+
+      userEvent.click(addToDashboardMenuItem);
+
+      waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: ['count()'],
+                  name: '',
+                  // Orderby gets dropped because ordering only applies to
+                  // Top-N and tables
+                  orderby: '',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+              displayType: DisplayType.LINE,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
       });
-
-      card = wrapper.find('QueryCard').last();
-      const menuItems = card.find('MenuItemWrap');
-
-      expect(menuItems.length).toEqual(3);
-      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-      await act(async () => {
-        triggerPress(menuItems.at(0));
-
-        await tick();
-        wrapper.update();
-      });
-
-      expect(openAddToDashboardModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: {
-            title: 'Saved query #1',
-            displayType: DisplayType.LINE,
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: [],
-                conditions: '',
-                fields: ['count()'],
-                name: '',
-                // Orderby gets dropped because ordering only applies to
-                // Top-N and tables
-                orderby: '',
-              },
-            ],
-          },
-          widgetAsQueryParams: expect.objectContaining({
-            defaultTableColumns: ['test', 'count()'],
-            defaultTitle: 'Saved query #1',
-            defaultWidgetQuery:
-              'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-            displayType: DisplayType.LINE,
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
-        })
-      );
     });
   });
 });
