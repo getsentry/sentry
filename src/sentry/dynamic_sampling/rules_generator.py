@@ -99,10 +99,10 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
     boosted_releases_dict = {release.id: release.version for release in boosted_releases_objs}
 
     boosted_release_versions = []
-    for (release_id, timestamp) in boosted_release_in_cache:
+    for (release_id, environment, timestamp) in boosted_release_in_cache:
         if release_id not in boosted_releases_dict:
             continue
-        boosted_release_versions.append((boosted_releases_dict[release_id], timestamp))
+        boosted_release_versions.append((boosted_releases_dict[release_id], environment, timestamp))
 
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
     return cast(
@@ -119,7 +119,16 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             "op": "glob",
                             "name": "trace.release",
                             "value": [release_version],
-                        }
+                        },
+                        (
+                            {
+                                "op": "glob",
+                                "name": "trace.environment",
+                                "value": environment,
+                            }
+                            if environment is not None
+                            else {}
+                        ),
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
@@ -132,7 +141,9 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     ),
                 },
             }
-            for idx, (release_version, timestamp) in enumerate(boosted_release_versions)
+            for idx, (release_version, environment, timestamp) in enumerate(
+                boosted_release_versions
+            )
         ],
     )
 
