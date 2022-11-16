@@ -27,7 +27,7 @@ export default function AwsLambdaFailureDetails({
       <HeaderWithHelp docsUrl={baseDocsUrl} />
       <Wrapper>
         <div>
-          <StyledCheckmark isCircled color="green300" />
+          <StyledCheckmark isCircled color="successText" />
           <h3>
             {tn(
               'successfully updated %s function',
@@ -37,7 +37,7 @@ export default function AwsLambdaFailureDetails({
           </h3>
         </div>
         <div>
-          <StyledWarning color="red300" />
+          <StyledWarning color="errorText" />
           <h3>
             {tn(
               'Failed to update %s function',

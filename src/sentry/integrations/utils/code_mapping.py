@@ -3,7 +3,7 @@ from typing import Dict, List, NamedTuple, Union
 
 from .repo import Repo, RepoTree
 
-logger = logging.getLogger("sentry.integrations.utils.code_mapping")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -44,6 +44,7 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+# call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
@@ -130,7 +131,8 @@ class CodeMappingTreesHelper:
         e.g. ssl.py -> raise NotImplementedError
         """
         if frame_filename.dir_path != "":
-            return src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            return f"{source_path}/"
         else:
             raise NotImplementedError("We do not support top level files.")
 
@@ -150,7 +152,7 @@ class CodeMappingTreesHelper:
             [
                 CodeMapping(
                     repo=repo_tree.repo,
-                    stacktrace_root=frame_filename.root,  # sentry
+                    stacktrace_root=f"{frame_filename.root}/",  # sentry
                     source_path=self._get_code_mapping_source_path(
                         matched_files[0], frame_filename
                     ),

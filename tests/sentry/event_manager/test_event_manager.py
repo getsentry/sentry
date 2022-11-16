@@ -2162,6 +2162,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             data = event.data
             expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event.get_event_type() == "transaction"
+            assert event.transaction == "/books/"
             assert data["span_grouping_config"]["id"] == "default:2022-10-27"
             assert data["hashes"] == [expected_hash]
             span_hashes = [span["hash"] for span in data["spans"]]
@@ -2193,7 +2194,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert len(event.groups) == 1
             group = event.groups[0]
             assert group.title == "N+1 Query"
-            assert group.message == "N+1 Query"
+            assert group.message == "N+1 Query: /books/"
             assert group.culprit == "/books/"
             assert group.get_event_type() == "transaction"
             description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"

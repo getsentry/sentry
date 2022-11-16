@@ -21,7 +21,7 @@ import DiscoverQuery, {
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import type {Color} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -96,7 +96,7 @@ function TeamMisery({
             }
             headers={[
               <FlexCenter key="transaction">
-                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
+                <StyledIconStar isSolid color="yellow400" /> {t('Key transaction')}
               </FlexCenter>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -129,7 +129,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow300" />
+                      <StyledIconStar isSolid color="yellow400" />
                     </div>
                     <TransactionWrapper>
                       <Link
@@ -158,7 +158,7 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
+                      <TrendText color={trend >= 0 ? 'successText' : 'errorText'}>
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>
@@ -329,6 +329,6 @@ const SubText = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const TrendText = styled('div')<{color: Color}>`
+const TrendText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

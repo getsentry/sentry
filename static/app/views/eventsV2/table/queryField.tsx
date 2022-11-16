@@ -666,7 +666,7 @@ class QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="red300" />
+              <IconWarning color="errorText" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -830,12 +830,12 @@ const BlankSpace = styled('div')`
   &:after {
     font-size: ${p => p.theme.fontSizeMedium};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;

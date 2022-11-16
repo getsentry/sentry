@@ -18,6 +18,7 @@ describe('CreateProject', function () {
       projectId: '',
       orgId: 'testOrg',
     },
+    setEventNames: jest.fn(),
   };
 
   beforeEach(() => {
