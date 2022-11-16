@@ -1,6 +1,7 @@
 name: pull transifex
 on:
-  workflow_dispatch:
+  pull_request:
+  # workflow_dispatch:
   # schedule:
   #   - cron: '0 0 1,15 * *'
 jobs:
@@ -26,6 +27,7 @@ jobs:
 
       - name: Pull from Transifex
         env:
+          TX_TOKEN: ${{ secrets.TRANSIFEX_TOKEN }}
           SENTRY_NO_VENV_CHECK: 1
         run: |
           make pull-transifex
