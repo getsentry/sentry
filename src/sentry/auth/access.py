@@ -182,7 +182,7 @@ class Access(abc.ABC):
 
 
 @dataclass
-class DbAccess(Access, abc.ABC):
+class DbAccess(Access):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so there's clarity in
     # what things mean
@@ -338,7 +338,7 @@ class DbAccess(Access, abc.ABC):
 
 
 @dataclass
-class ApiAccess(Access):
+class ApiBackedAccess(Access):
     api_user_organization_context: ApiUserOrganizationContext
     requested_scopes: Iterable[str] | None
     auth_state: ApiAuthState
@@ -474,14 +474,7 @@ class ApiAccess(Access):
         if self.api_user_organization_context.member and features.has(
             "organizations:team-roles", self.api_user_organization_context.organization.id
         ):
-            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
-                memberships = self.api_user_organization_context.member.member_teams
-                span.set_tag("organization", self.api_user_organization_context.organization.id)
-                span.set_tag(
-                    "organization.slug", self.api_user_organization_context.organization.slug
-                )
-                span.set_data("membership_count", len(memberships))
-
+            memberships = self.api_user_organization_context.member.member_teams
             for membership in memberships:
                 team_scopes = membership.scopes
                 for scope in scopes:
@@ -572,17 +565,15 @@ class OrganizationGlobalAccess(DbAccess):
         )
 
 
-class ApiOrganizationGlobalAccess(ApiAccess):
+class ApiBackedOrganizationGlobalAccess(ApiBackedAccess):
     """Access to all an organization's teams and projects."""
-
-    _override_scopes: FrozenSet[str]
 
     def __init__(
         self,
         *,
         api_user_organization_context: ApiUserOrganizationContext,
         auth_state: ApiAuthState,
-        scopes: Iterable[str],
+        scopes: Iterable[str] | None,
     ):
         super().__init__(
             api_user_organization_context=api_user_organization_context,
@@ -645,7 +636,7 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
         return self.has_project_access(project)
 
 
-class ApiOrganizationGlobalMembership(ApiOrganizationGlobalAccess):
+class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
@@ -799,10 +790,10 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        return ApiOrganizationGlobalAccess(
+        return ApiBackedOrganizationGlobalAccess(
             api_user_organization_context=api_user_org_context,
             auth_state=auth_state,
-            scopes=(scopes if scopes is not None else settings.SENTRY_SCOPES) or (),
+            scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -986,7 +977,7 @@ def from_api_member(
     if api_user_organization_context.user_id is None:
         return DEFAULT
 
-    return ApiAccess(
+    return ApiBackedAccess(
         api_user_organization_context=api_user_organization_context,
         requested_scopes=scopes,
         auth_state=auth_state
@@ -1016,7 +1007,7 @@ def from_api_auth(
     if is_system_auth(auth):
         return SystemAccess()
     if auth.organization_id == api_user_org_context.organization.id:
-        return ApiOrganizationGlobalAccess(
+        return ApiBackedOrganizationGlobalAccess(
             api_user_organization_context=api_user_org_context,
             auth_state=ApiAuthState(
                 permissions=[],
@@ -1025,7 +1016,7 @@ def from_api_auth(
                     is_required=False,
                 ),
             ),
-            scopes=settings.SENTRY_SCOPES or (),
+            scopes=settings.SENTRY_SCOPES,
         )
     else:
         return DEFAULT

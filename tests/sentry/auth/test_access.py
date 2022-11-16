@@ -638,7 +638,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:admin") is False
 
 
-@all_silo_test(stable=True)
+@no_silo_test(stable=True)
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
@@ -653,7 +653,7 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
-@all_silo_test(stable=True)
+@no_silo_test(stable=True)
 class SystemAccessTest(TestCase):
     def test_system_access(self):
         org = self.create_organization()

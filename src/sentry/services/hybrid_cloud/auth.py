@@ -39,7 +39,7 @@ class ApiAuthState:
 def query_sso_state(
     organization_id: int | None,
     is_super_user: bool,
-    member: ApiOrganizationMember | OrganizationMember,
+    member: ApiOrganizationMember | OrganizationMember | None,
     org_member_class: Any = OrganizationMember,
 ) -> ApiMemberSsoState:
     """
@@ -139,6 +139,8 @@ class DatabaseBackedAuthService(AuthService):
             org_member_class=OrganizationMember,
         )
         permissions: List[str] = list()
+        # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
+        # have them, you can only use them when you are acting, as a superuser.  This is intentional.
         if is_superuser:
             permissions.extend(get_permissions_for_user(user_id))
 
