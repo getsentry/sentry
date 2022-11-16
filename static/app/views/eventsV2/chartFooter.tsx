@@ -88,7 +88,6 @@ export default function ChartFooter({
     topEventOptions.push({value: i.toString(), label: i.toString()});
   }
 
-  console.log({displayOptionsssss: displayOptions});
   return (
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
