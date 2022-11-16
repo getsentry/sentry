@@ -35,7 +35,11 @@ def generate_modules(data):
 
 # TODO(smcache): Remove after rollout.
 def _use_sourcemapcache(project_id: int) -> bool:
-    if project_id in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
+    # Internal Sentry projects
+    # 11276 - sentry/javascript project for forced dogfooding
+    # SENTRY_PROJECT - default project for all installations
+    # SENTRY_FRONTEND_PROJECT - configurable default frontend project
+    if project_id in (11276, settings.SENTRY_PROJECT, settings.SENTRY_FRONTEND_PROJECT):
         return True
 
     return project_id % 1000 < options.get(PROCESSING_OPTION_SOURCEMAPCACHE, 0.0) * 1000
