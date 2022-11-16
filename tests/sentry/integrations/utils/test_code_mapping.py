@@ -113,6 +113,14 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
+    def test_matches_top_src_file(self):
+        stacktraces = ["setup.py"]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        assert code_mappings == []
+
+        assert self._caplog.records[0].message == "We do not support top level files."
+        assert self._caplog.records[0].levelname == "INFO"
+
     def test_more_than_one_match_does_derive(self):
         stacktraces = [
             # More than one file matches for this, however, the package name is taken into account
