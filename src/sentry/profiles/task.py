@@ -571,7 +571,9 @@ def _get_event_instance_for_legacy(profile: Profile) -> Any:
         "platform": profile["platform"],
         "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "release": f"{profile['version_name']} ({profile['version_code']})"
+        if profile["version_code"]
+        else profile["version_name"],
         "retention_days": profile["retention_days"],
         "timestamp": profile["received"],
         "transaction_name": profile["transaction_name"],
