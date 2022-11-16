@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
@@ -5,6 +7,7 @@ from sentry.utils.safe import get_path
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
 from .processor import JavaScriptStacktraceProcessor
+from .processor_smcache import JavaScriptSmCacheStacktraceProcessor
 
 
 def preprocess_event(data):
@@ -41,5 +44,9 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        # TODO(smcache): Implement gradual rollout
         if "javascript" in platforms or "node" in platforms:
+            for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
+                if str(data["project"]) == str(value):
+                    return [JavaScriptSmCacheStacktraceProcessor]
             return [JavaScriptStacktraceProcessor]
