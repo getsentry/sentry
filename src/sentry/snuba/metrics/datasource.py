@@ -689,16 +689,23 @@ def get_series(
         # one group which is basically identical to eliminating the orderBy altogether
         metrics_query = replace(metrics_query, orderby=None)
 
-    # We check whether the order by has only str fields because in that case we can just make the query without the
-    # typical order by logic. If we wouldn't do this, the select with the order by fields will be empty because
-    # we don't allow the selection of project_id, thus causing an exception to be raised.
+    # It is important to understand that str fields in the order by always refer to a simple column, which at the
+    # time of writing this comment is only the project_id column. Because you can't select with a str directly,
+    # we need to run some logic to account for that. The idea is that snuba will automatically "select" any field in
+    # the group by therefore if we want to order by str field "x" we must always group by "x" in order to have it
+    # injected in the select by Snuba. We decided for this approach because it allows us to avoid writing derived ops
+    # for fetching simple columns.
     #
-    # The problem with this implementation is that it requires the user to have the same str fields in both group by
-    # and order by but this needs further testing.
+    # Our goal is to treat order by str fields transparently, that means, we treat them as they are not in the order by.
+    # This means:
+    # - If we only have str fields in the order by -> we just run the logic as if the order by was empty.
+    # - If we have a mix of str and MetricField fields in the order by -> we run the order by logic by selecting in the
+    # first query only the MetricField-based fields, but we keep the group by and order by intact. Because we know
+    # that the group by must contain all the str fields specified in the order by we know that they will be returned
+    # by the first query, thus we will have the full result set with the proper ordering.
     #
-    # In case we have a mix of str and MetricField in the order by, we will perform the custom logic, and it will work
-    # out because the validate_orderby has been modified to not check for str in the superset calculation, as a result
-    # we will not need to add an equivalent MetricField to represent the str.
+    # If we wouldn't run this logic, we will enter all cases in the order by branch which will fail because no
+    # str-based fields can be injected into the select.
     orderby_contains_only_str_fields = True
     if metrics_query.orderby is not None:
         for orderby in metrics_query.orderby:

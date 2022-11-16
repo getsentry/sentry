@@ -1333,7 +1333,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="duration_count",
                 ),
             ],
-            groupby=[],
+            groupby=[Column("project_id")],
             array_join=None,
             where=[
                 Condition(
@@ -1391,7 +1391,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
-            groupby=None,
+            groupby=[MetricGroupByField(field="project_id")],
             orderby=[MetricOrderByField(field="project_id", direction=Direction.ASC)],
             include_series=False,
             include_totals=True,

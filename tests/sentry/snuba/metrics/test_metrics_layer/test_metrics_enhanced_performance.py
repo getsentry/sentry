@@ -536,10 +536,46 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                         metric_mri=TransactionMRI.DURATION.value,
                     ),
                 ],
-                groupby=[MetricGroupByField(field="project_id")],
+                groupby=[MetricGroupByField(field="transaction")],
                 orderby=[
                     MetricOrderByField(
                         field="transaction",
+                        direction=Direction.DESC,
+                    ),
+                ],
+                limit=Limit(limit=3),
+                offset=Offset(offset=0),
+                include_series=False,
+            )
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    def test_query_with_order_by_str_field_not_in_group_by(self):
+        for value in (0, 1, 2):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={},
+                value=value,
+            )
+
+        with pytest.raises(InvalidParams):
+            metrics_query = self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
+                select=[
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                    ),
+                ],
+                groupby=[],
+                orderby=[
+                    MetricOrderByField(
+                        field="project_id",
                         direction=Direction.DESC,
                     ),
                 ],

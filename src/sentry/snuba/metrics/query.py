@@ -226,11 +226,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
             if isinstance(metric_order_by_field.field, MetricField):
                 self._validate_field(metric_order_by_field.field)
 
-        orderby_fields: Set[MetricField] = set()
+        orderby_metric_fields: Set[MetricField] = set()
         metric_entities: Set[MetricField] = set()
+        group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):
-                orderby_fields.add(metric_order_by_field.field)
+                orderby_metric_fields.add(metric_order_by_field.field)
 
                 # Construct a metrics expression
                 metric_field_obj = metric_object_factory(
@@ -244,16 +245,31 @@ class MetricsQuery(MetricsQueryValidationRunner):
                     metric_entities.update(entity.keys())
                 else:
                     metric_entities.add(entity)
+            elif isinstance(metric_order_by_field.field, str):
+                if metric_order_by_field.field not in group_by_str_fields:
+                    raise InvalidParams(
+                        f"String field {metric_order_by_field.field} in the 'order by' must be also "
+                        f"in the 'group by'"
+                    )
 
         # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
             raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")
 
-        # validate all orderby columns are presented in provided 'fields'
-        if set(self.select).issuperset(orderby_fields):
+        # Validate all orderby columns are presented in provided 'fields'
+        if set(self.select).issuperset(orderby_metric_fields):
             return
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+
+    def action_by_str_fields(self, on_group_by: bool) -> Set[str]:
+        action_by_str_fields: Set[str] = set()
+
+        for action_by_field in (self.groupby if on_group_by else self.orderby) or []:
+            if isinstance(action_by_field.field, str):
+                action_by_str_fields.add(action_by_field.field)
+
+        return action_by_str_fields
 
     @staticmethod
     def calculate_intervals_len(
@@ -323,13 +339,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_groupby(self) -> None:
         if not self.groupby:
             return
-        for metric_groupby_obj in self.groupby:
-            if (
-                isinstance(metric_groupby_obj.field, str)
-                and metric_groupby_obj.field in UNALLOWED_TAGS
-            ):
+
+        for group_by_field in self.groupby:
+            if isinstance(group_by_field.field, str) and group_by_field.field in UNALLOWED_TAGS:
                 raise InvalidParams(
-                    f"Tag name {metric_groupby_obj.field} cannot be used in groupBy query"
+                    f"Tag name {group_by_field.field} cannot be used in groupBy query"
                 )
 
     def validate_include_totals(self) -> None:
