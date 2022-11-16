@@ -109,18 +109,16 @@ function Modal({
   const query = location.query;
   const {dateCreated, size, mimetype} = currentEventAttachment;
   const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
-  const previousDisabled =
-    links?.previous?.results === false && currentAttachmentIndex === 0;
-  const nextDisabled =
-    links?.next?.results === false &&
-    currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1;
 
   // Pagination behaviour is different between the attachments tab with page links
   // vs the issue details page where we have all of the screenshots fetched already
   const paginationProps: ComponentProps<typeof ScreenshotPagination> | null = links
     ? {
-        previousDisabled,
-        nextDisabled,
+        previousDisabled:
+          links?.previous?.results === false && currentAttachmentIndex === 0,
+        nextDisabled:
+          links?.next?.results === false &&
+          currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1,
         onPrevious: () => {
           handleCursor(links.previous?.cursor, path, query, -1);
         },
