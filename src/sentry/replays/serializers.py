@@ -38,6 +38,7 @@ VALID_FIELD_SET = {
     "device",
     "sdk",
     "tags",
+    "activity",
 }
 
 
