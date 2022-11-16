@@ -2,8 +2,9 @@ import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
-import space from 'sentry/styles/space';
 import StateLayer from 'sentry/components/stateLayer';
+import space from 'sentry/styles/space';
+
 import {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
