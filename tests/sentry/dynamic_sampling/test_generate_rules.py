@@ -7,6 +7,7 @@ from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
+from sentry.models import Release
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -145,7 +146,15 @@ class LatestReleaseTest(TestCase):
         # no need to create real project in DB
         ts = time.time()
 
-        self.redis_client.hset(f"ds::p:{self.project.id}:boosted_releases", self.release.id, ts)
+        for release, environment in (
+            (Release.get_or_create(project=self.project, version="1.0"), "prod"),
+            (Release.get_or_create(project=self.project, version="1.0"), "dev"),
+        ):
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::r:{release.id}:e:{environment}",
+                ts,
+            )
 
         expected = [
             {
@@ -154,9 +163,29 @@ class LatestReleaseTest(TestCase):
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["foo-1.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["1.0"]},
+                        {"op": "glob", "name": "trace.environment", "value": ["prod"]},
+                    ],
                 },
                 "id": 1500,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["1.0"]},
+                        {"op": "glob", "name": "trace.environment", "value": ["dev"]},
+                    ],
+                },
+                "id": 1501,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
@@ -170,6 +199,7 @@ class LatestReleaseTest(TestCase):
                 "type": "trace",
             },
         ]
+
         assert generate_rules(self.project) == expected
         config_str = json.dumps({"rules": expected})
         validate_sampling_configuration(config_str)

@@ -120,15 +120,11 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             "name": "trace.release",
                             "value": [release_version],
                         },
-                        (
-                            {
-                                "op": "glob",
-                                "name": "trace.environment",
-                                "value": environment,
-                            }
-                            if environment is not None
-                            else {}
-                        ),
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": [environment],
+                        },
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
