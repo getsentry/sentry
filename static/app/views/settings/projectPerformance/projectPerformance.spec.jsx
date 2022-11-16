@@ -115,7 +115,7 @@ describe('projectPerformance', function () {
 
   it('updates the performance issue settings when changing a boolean field', function () {
     const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues'],
+      features: ['performance-view', 'performance-issues', 'performance-issues-dev'],
     });
 
     render(

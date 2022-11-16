@@ -234,24 +234,24 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Form
-          saveOnBlur
-          allowUndo
-          apiMethod="PUT"
-          apiEndpoint={issuesEndpoint}
-          initialData={{performance_issue_creation_enabled_n_plus_one_db: true}}
-        >
-          <Access access={requiredScopes}>
-            {({hasAccess}) => (
-              <JsonForm
-                title={t('Performance Issues')}
-                fields={this.performanceIssueDetectorFormFields}
-                disabled={!hasAccess}
-              />
-            )}
-          </Access>
-        </Form>
         <Feature features={['organizations:performance-issues-dev']}>
+          <Form
+            saveOnBlur
+            allowUndo
+            apiMethod="PUT"
+            apiEndpoint={issuesEndpoint}
+            initialData={{performance_issue_creation_enabled_n_plus_one_db: true}}
+          >
+            <Access access={requiredScopes}>
+              {({hasAccess}) => (
+                <JsonForm
+                  title={t('Performance Issues')}
+                  fields={this.performanceIssueDetectorFormFields}
+                  disabled={!hasAccess}
+                />
+              )}
+            </Access>
+          </Form>
           <Form
             saveOnBlur
             allowUndo
