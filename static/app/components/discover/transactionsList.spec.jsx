@@ -1,10 +1,5 @@
-import {act} from 'react-dom/test-utils';
-import {filter} from 'lodash';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
 
 import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -24,7 +19,6 @@ const WrapperComponent = props => {
 };
 
 describe('TransactionsList', function () {
-  let wrapper;
   let api;
   let location;
   let context;
@@ -157,14 +151,6 @@ describe('TransactionsList', function () {
         },
       });
     });
-
-    const openDropdown = async w => {
-      await act(async () => {
-        triggerPress(w.find('CompactSelect Button'));
-        await tick();
-        w.update();
-      });
-    };
 
     describe.each(['events', 'eventsv2'])('with %s', function (featureSide) {
       const isOnEventsFeatureSide = featureSide === 'events';
