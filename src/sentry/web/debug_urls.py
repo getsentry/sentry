@@ -84,7 +84,6 @@ urlpatterns = [
         r"^debug/mail/codeowners_auto_sync_failure/$", DebugCodeOwnersAutoSyncFailureView.as_view()
     ),
     url(r"^debug/mail/digest/$", sentry.web.frontend.debug.mail.digest),
-    url(r"^debug/mail/report/$", sentry.web.frontend.debug.mail.report),
     url(r"^debug/mail/regression/$", DebugRegressionEmailView.as_view()),
     url(r"^debug/mail/regression/release/$", DebugRegressionReleaseEmailView.as_view()),
     url(r"^debug/mail/resolved/$", DebugResolvedEmailView.as_view()),
