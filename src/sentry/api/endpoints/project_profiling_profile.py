@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,8 +10,10 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -64,7 +66,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
 
 @region_silo_endpoint
 class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, transaction_id: str) -> StreamingHttpResponse:
+    def get(self, request: Request, project: Project, transaction_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
         kwargs: Dict[str, Any] = {
@@ -76,19 +78,50 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
 
 @region_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
+    def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
-        kwargs: Dict[str, Any] = {
-            "method": "GET",
-            "path": f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
-        }
-        return proxy_profiling_service(**kwargs)
+
+        response = get_from_profiling_service(
+            "GET",
+            f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
+        )
+
+        if response.status == 200:
+            profile = json.loads(response.data)
+
+            # make sure to remove the version from the metadata
+            # we're going to replace it with the release here
+            version = profile.get("metadata", {}).pop("version")
+            profile["metadata"]["release"] = get_release(project, version)
+
+            return Response(profile)
+
+        return HttpResponse(
+            content=response.data,
+            status=response.status,
+            content_type=response.headers.get("Content-Type", "application/json"),
+        )
+
+
+def get_release(project: Project, version: str) -> Any:
+    if not version:
+        return None
+
+    try:
+        release = Release.objects.get(
+            projects=project,
+            organization_id=project.organization_id,
+            version=version,
+        )
+        return serialize(release)
+    except Release.DoesNotExist:
+        return {"version": version}
 
 
 @region_silo_endpoint
 class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
+    def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
         kwargs: Dict[str, Any] = {

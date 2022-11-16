@@ -25,6 +25,8 @@ class APIUser:
     display_name: str = ""
     is_superuser: bool = False
     is_authenticated: bool = False
+    is_anonymous: bool = False
+    is_active: bool = False
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name

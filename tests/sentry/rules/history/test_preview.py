@@ -212,6 +212,25 @@ class ProjectRulePreviewTest(TestCase):
         results = preview(self.project, conditions, filters, "all", "all", 0)
         assert event.group not in results
 
+    def test_event_attribute(self):
+        event = self._set_up_event({"message": "hello world"})
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+                "attribute": "message",
+                "match": "eq",
+                "value": "hello world",
+            }
+        ]
+
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
+        filters[0]["value"] = "goodbye world"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group not in results
+
     def test_unsupported_conditions(self):
         self._set_up_first_seen()
         # conditions with no immediate plan to support
@@ -310,18 +329,20 @@ class GetEventsTest(TestCase):
         )
         event.group.update(first_seen=two_hours)
 
-        activity = [
-            ConditionActivity(
-                group_id=event.group.id,
-                type=ConditionActivityType.CREATE_ISSUE,
-                timestamp=prev_hour,
-            )
-        ]
+        activity = {
+            event.group.id: [
+                ConditionActivity(
+                    group_id=event.group.id,
+                    type=ConditionActivityType.CREATE_ISSUE,
+                    timestamp=prev_hour,
+                )
+            ]
+        }
         events = get_events(self.project, activity, [])
 
         assert len(events) == 1
         assert event.event_id in events
-        assert activity[0].data["event_id"] == event.event_id
+        assert activity[event.group.id][0].data["event_id"] == event.event_id
 
     def test_get_activity(self):
         prev_hour = timezone.now() - timedelta(hours=1)
@@ -333,20 +354,22 @@ class GetEventsTest(TestCase):
             project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
         )
 
-        activity = [
-            ConditionActivity(
-                group_id=group.id,
-                type=ConditionActivityType.REGRESSION,
-                timestamp=prev_hour,
-                data={"event_id": regression_event.event_id},
-            ),
-            ConditionActivity(
-                group_id=group.id,
-                type=ConditionActivityType.REAPPEARED,
-                timestamp=prev_hour,
-                data={"event_id": reappeared_event.event_id},
-            ),
-        ]
+        activity = {
+            group.id: [
+                ConditionActivity(
+                    group_id=group.id,
+                    type=ConditionActivityType.REGRESSION,
+                    timestamp=prev_hour,
+                    data={"event_id": regression_event.event_id},
+                ),
+                ConditionActivity(
+                    group_id=group.id,
+                    type=ConditionActivityType.REAPPEARED,
+                    timestamp=prev_hour,
+                    data={"event_id": reappeared_event.event_id},
+                ),
+            ]
+        }
         events = get_events(self.project, activity, [])
 
         assert len(events) == 2
