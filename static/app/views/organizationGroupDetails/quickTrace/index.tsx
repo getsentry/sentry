@@ -1,6 +1,7 @@
-import {Fragment, useContext} from 'react';
+import {useContext} from 'react';
 import {Location} from 'history';
 
+import Placeholder from 'sentry/components/placeholder';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -20,19 +21,22 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
 
-  return (
-    <Fragment>
-      {hasPerformanceView && hasTraceContext && (
-        <IssueQuickTrace
-          organization={organization}
-          event={event}
-          location={location}
-          isPerformanceIssue={isPerformanceIssue}
-          quickTrace={quickTrace!}
-        />
-      )}
-    </Fragment>
-  );
+  if (hasPerformanceView && hasTraceContext) {
+    if (quickTrace?.isLoading) {
+      return <Placeholder height="24px" />;
+    }
+
+    return (
+      <IssueQuickTrace
+        organization={organization}
+        event={event}
+        location={location}
+        isPerformanceIssue={isPerformanceIssue}
+        quickTrace={quickTrace}
+      />
+    );
+  }
+  return null;
 }
 
 export default QuickTrace;
