@@ -1,8 +1,5 @@
-import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
-import {click} from '@testing-library/user-event/dist/click';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -11,7 +8,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes} from 'sentry/utils/discover/types';
