@@ -342,6 +342,10 @@ register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORI
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
+# Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
+# Set this value of the fraction of projects that you want to use it for.
+register("processing.sourcemapcache-processor", default=0.0)
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
