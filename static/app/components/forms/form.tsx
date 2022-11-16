@@ -132,7 +132,6 @@ export default class Form extends Component<FormProps> {
     if (this.model.isSaving) {
       return;
     }
-
     this.props.onPreSubmit?.();
 
     if (this.props.onSubmit) {

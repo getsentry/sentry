@@ -7,6 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import {JsonFormObject} from 'sentry/components/forms/types';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -21,9 +22,21 @@ type Props = {
 
 type State = AsyncComponent['state'] & {
   authProvider: object;
+  orgSettingsFields: JsonFormObject[];
 };
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
+  componentWillMount() {
+    const idempotencyKey = [...Array(2)]
+      .map(_ => Math.random().toString(36).substr(2, 10))
+      .join('');
+    const orgSettingsFields: JsonFormObject[] = organizationSettingsFields;
+    orgSettingsFields[0].fields[0].getData = a => {
+      return {slug: a.slug, idempotencyKey};
+    };
+    this.setState({orgSettingsFields});
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [['authProvider', `/organizations/${organization.slug}/auth-provider/`]];
@@ -58,7 +71,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
+        <JsonForm {...jsonFormSettings} forms={this.state.orgSettingsFields} />
         <AvatarChooser
           type="organization"
           allowGravatar={false}

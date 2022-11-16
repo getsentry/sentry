@@ -485,7 +485,6 @@ class FormModel {
   saveField(id: string, currentValue: FieldValue) {
     const oldValue = this.initialData[id];
     const savePromise = this.saveFieldRequest(id, currentValue);
-
     if (!savePromise) {
       return null;
     }

@@ -1,4 +1,6 @@
-import {ApiForm, CheckboxField, TextField} from 'sentry/components/forms';
+import {useState} from 'react';
+
+import {ApiForm, CheckboxField, HiddenField, TextField} from 'sentry/components/forms';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -7,6 +9,9 @@ import ConfigStore from 'sentry/stores/configStore';
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
+  const [idempotencyKey, _] = useState(
+    [...Array(2)].map(() => Math.random().toString(36).substr(2, 10)).join('')
+  );
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -57,6 +62,7 @@ function OrganizationCreate() {
               required
             />
           )}
+          <HiddenField name="idempotencyKey" defaultValue={idempotencyKey} />
         </ApiForm>
       </NarrowLayout>
     </SentryDocumentTitle>
