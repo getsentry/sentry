@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -32,10 +33,6 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
     ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
     : 0;
 
-  if (fetchError) {
-    throw new Error('Failed to load Replay');
-  }
-
   const replayRecord = replay?.getReplay();
 
   const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
@@ -47,6 +44,14 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
     return 0;
   }, [eventTimestamp, startTimestampMs]);
+
+  if (fetchError) {
+    return (
+      <Alert type="info" showIcon>
+        {t('The replay associated with this event could not be found.')}
+      </Alert>
+    );
+  }
 
   if (fetching || !replayRecord) {
     return (
@@ -85,18 +90,6 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
             <ReplayPlayer />
           </StaticPanel>
         </FluidHeight>
-
-        <CTAButtonContainer>
-          <Button
-            data-test-id="view-replay-button"
-            to={fullReplayUrl}
-            priority="primary"
-            size="sm"
-            icon={<IconPlay size="sm" />}
-          >
-            {t('View Full Replay')}
-          </Button>
-        </CTAButtonContainer>
       </PlayerContainer>
     </ReplayContextProvider>
   );
