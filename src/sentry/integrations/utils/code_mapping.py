@@ -16,6 +16,14 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class CodeMappingMatch(NamedTuple):
+    filename: str
+    repo_name: str
+    repo_branch: str
+    stacktrace_root: str
+    source_path: str
+
+
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, stacktrace_frame_file_path: str) -> None:
@@ -123,6 +131,28 @@ class CodeMappingTreesHelper:
             return None
 
         return _code_mappings[0]
+
+    def list_all_file_matches(
+        self, repo_tree: RepoTree, frame_filename: FrameFilename
+    ) -> Dict[str, List[CodeMappingMatch]]:
+        file_matches = {}
+        for repo_full_name in self.trees.keys():
+            matched_files = [
+                src_path
+                for src_path in repo_tree.files
+                if self._potential_match(src_path, frame_filename)
+            ]
+
+            for file in matched_files:
+                possible_code_mapping = CodeMappingMatch(
+                    filename=file,
+                    repo_name=repo_tree.repo.name,
+                    repo_branch=repo_tree.repo.branch,
+                    stacktrace_root=f"{frame_filename.root}/",  # sentry
+                    source_path=self._get_code_mapping_source_path(file, frame_filename),
+                )
+                file_matches.append(possible_code_mapping)
+        return file_matches
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
         """Generate the source path of a code mapping
