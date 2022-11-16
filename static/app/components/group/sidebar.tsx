@@ -261,7 +261,7 @@ class BaseGroupSidebar extends Component<Props, State> {
           organization={organization}
           features={['issue-details-tag-improvements']}
         >
-          {isMobilePlatform(project.platform) && (
+          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
             <TagFacets
               environments={environments}
               groupId={group.id}
@@ -301,7 +301,9 @@ class BaseGroupSidebar extends Component<Props, State> {
         {this.renderPluginIssue()}
 
         {(!organization.features.includes('issue-details-tag-improvements') ||
-          !isMobilePlatform(project.platform)) && (
+          !(
+            isMobilePlatform(project.platform) && project.platform === 'react-native'
+          )) && (
           <SidebarSection.Wrap>
             <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
             <SidebarSection.Content>

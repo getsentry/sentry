@@ -220,7 +220,7 @@ describe('GroupSidebar', function () {
       render(
         <GroupSidebar
           group={group}
-          project={{...project, platform: 'android'}}
+          project={{...project, platform: 'react-native'}}
           organization={{
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
