@@ -3,7 +3,7 @@ from typing import Dict, List, NamedTuple, Union
 
 from .repo import Repo, RepoTree
 
-logger = logging.getLogger("sentry.integrations.utils.code_mapping")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -44,6 +44,7 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+# call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
