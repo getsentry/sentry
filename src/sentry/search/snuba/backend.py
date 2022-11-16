@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
+from sentry.types.issues import GroupType
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -532,6 +533,25 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             )
             queryset_conditions.update(
                 {"issue.type": QCallbackCondition(lambda types: Q(type__in=types))}
+            )
+            queryset_conditions.update(
+                {
+                    "message": QCallbackCondition(
+                        lambda query: Q(type=GroupType.ERROR.value)
+                        | Q(
+                            type__in=(
+                                GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                                GroupType.PERFORMANCE_SLOW_SPAN.value,
+                                GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
+                                GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
+                                GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
+                                GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
+                                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                            ),
+                            message__icontains=query,
+                        )
+                    )
+                }
             )
 
         if environments is not None:
