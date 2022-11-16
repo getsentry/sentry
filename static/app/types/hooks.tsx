@@ -132,7 +132,6 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-
   'analytics:track-button-clicks': TrackButtonClicks;
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
@@ -381,8 +380,8 @@ type TrackButtonClicks = (opts: {
     priority?: string;
     text?: string;
   };
-  newEventKey?: string;
-  newEventName?: string;
+  eventKey?: string;
+  eventName?: string;
 }) => void;
 
 /**

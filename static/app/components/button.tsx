@@ -34,6 +34,10 @@ interface BaseButtonProps
    */
   align?: 'center' | 'left' | 'right';
   /**
+   * Adds extra parameters to the analytics tracking
+   */
+  analyticsParams?: {};
+  /**
    * Used by ButtonBar to determine active status.
    */
   barId?: string;
@@ -62,6 +66,15 @@ interface BaseButtonProps
    */
   download?: HTMLAnchorElement['download'];
   /**
+   * Used when you want to overwrite the default Reload event key for analytics
+   */
+  eventKey?: string;
+  /**
+   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
+   * you must pass in a eventName to send an Amplitude event.
+   */
+  eventName?: string;
+  /**
    * The button is an external link. Similar to the `Link` `external` property.
    */
   external?: boolean;
@@ -83,15 +96,6 @@ interface BaseButtonProps
    * Used when the button is part of a form.
    */
   name?: string;
-  /**
-   * Used when you want to overwrite the default Reload event key for analytics
-   */
-  newEventKey?: string;
-  /**
-   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
-   * you must pass in a newEventName to send an Amplitude event.
-   */
-  newEventName?: string;
   /**
    * Callback for when the button is clicked.
    */
@@ -163,8 +167,9 @@ function BaseButton({
   disabled = false,
   tooltipProps,
   onClick,
-  newEventName,
-  newEventKey,
+  eventName,
+  eventKey,
+  analyticsParams,
   ...buttonProps
 }: ButtonProps) {
   const organization = useOrganization();
@@ -189,8 +194,8 @@ function BaseButton({
         typeof children === 'string' ? children : children?.type.displayName;
 
       trackButtonClick({
-        newEventName,
-        newEventKey,
+        eventName,
+        eventKey,
         organization,
         routes,
         data: {
@@ -200,6 +205,7 @@ function BaseButton({
           name: buttonProps.name,
           id: buttonProps['data-test-id'],
           link: href,
+          ...analyticsParams,
         },
       });
 
@@ -213,11 +219,12 @@ function BaseButton({
       children,
       href,
       icon?.type.displayName,
-      newEventName,
-      newEventKey,
+      eventName,
+      eventKey,
       organization,
       priority,
       routes,
+      analyticsParams,
     ]
   );
 
