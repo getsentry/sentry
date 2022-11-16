@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -76,9 +75,11 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           <ReplaysFeatureBadge />
         </BadgeContainer>
         <FluidHeight>
-          <CTAOverlayLink aria-label={t('View Full Replay')} to={fullReplayUrl}>
-            <CTAIcon />
-          </CTAOverlayLink>
+          <CTAOverlay>
+            <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+              {t('Open Replay')}
+            </Button>
+          </CTAOverlay>
 
           <StaticPanel>
             <ReplayPlayer />
@@ -129,7 +130,7 @@ const FeatureText = styled('div')`
   color: ${p => p.theme.text};
 `;
 
-const CTAOverlayLink = styled(Link)`
+const CTAOverlay = styled('div')`
   position: absolute;
   width: 100%;
   height: 100%;
@@ -137,22 +138,7 @@ const CTAOverlayLink = styled(Link)`
   justify-content: center;
   align-items: center;
   z-index: 1;
-`;
-
-const CTAIcon = styled(({className}: {className?: string}) => (
-  <div className={className}>
-    <IconPlay size="xl" />
-  </div>
-))`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: ${p => p.theme.purple400};
-  color: white;
-  padding-left: 5px; /* Align the icon in the center of the circle */
+  background: rgba(255, 255, 255, 0.5);
 `;
 
 const StaticPanel = styled(FluidHeight)`
