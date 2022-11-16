@@ -120,6 +120,7 @@ declare namespace Profiling {
     image?: string;
     resource?: string;
     threadId?: number;
+    inline?: boolean;
 
     // nodejs only
     columnNumber?: number;
