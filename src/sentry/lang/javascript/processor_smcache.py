@@ -1001,6 +1001,7 @@ class JavaScriptSmCacheStacktraceProcessor(StacktraceProcessor):
             processable_frame.data["token"] = token
 
             # Store original data in annotation
+            # TODO(smcache): Remove smcache key after successful rollout.
             new_frame["data"] = dict(
                 frame.get("data") or {}, sourcemap=sourcemap_label, smcache=True
             )
