@@ -69,7 +69,6 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
       <Fragment>
         <FieldGroup hasTwoColumns={values.method === MethodType.REPLACE}>
           <Field
-            data-test-id="method-field"
             label={t('Method')}
             help={t('What to do')}
             inline={false}
@@ -90,7 +89,6 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
           </Field>
           {values.method === MethodType.REPLACE && (
             <Field
-              data-test-id="placeholder-field"
               label={t('Custom Placeholder (Optional)')}
               help={t('It will replace the default placeholder [Filtered]')}
               inline={false}
@@ -133,10 +131,10 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
           </Field>
           {values.type === RuleType.PATTERN && (
             <Field
-              data-test-id="regex-field"
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
               inline={false}
+              id="regex-matches"
               error={errors?.pattern}
               flexibleControlStateSize
               stacked
@@ -150,6 +148,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onChange={this.handleChange('pattern')}
                 value={values.pattern}
                 onBlur={onValidate('pattern')}
+                id="regex-matches"
               />
             </Field>
           )}
