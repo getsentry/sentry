@@ -9,6 +9,9 @@ Rule #3
 * SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
   http://testserver/organizations/example/issues/3/?referrer=digest_email
 
+* N+1 Query (457 events, 191 users)
+  http://testserver/organizations/example/issues/12/?referrer=digest_email
+
 Rule #2
 
 * DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
@@ -17,6 +20,9 @@ Rule #2
 * SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
   http://testserver/organizations/example/issues/3/?referrer=digest_email
 
+* N+1 Query (457 events, 191 users)
+  http://testserver/organizations/example/issues/12/?referrer=digest_email
+
 Rule #1
 
 * DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
@@ -24,6 +30,9 @@ Rule #1
 
 * SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
   http://testserver/organizations/example/issues/3/?referrer=digest_email
+
+* N+1 Query (457 events, 191 users)
+  http://testserver/organizations/example/issues/12/?referrer=digest_email
 
 
 

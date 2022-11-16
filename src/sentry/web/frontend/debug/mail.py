@@ -510,7 +510,7 @@ def digest(request):
             state["user_counts"][group.id] = random.randint(10, 1e4)
 
     # add in performance issues
-    for _ in range(random.randint(1, 10)):
+    for i in range(random.randint(1, 10)):
         with override_options(
             {
                 "performance.issues.all.problem-creation": 1.0,
@@ -522,7 +522,7 @@ def digest(request):
             perf_data = dict(
                 load_data(
                     "transaction-n-plus-one",
-                    timestamp=datetime(2022, 11, 11, 21, 39, 23, 30723),
+                    timestamp=datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc),
                 )
             )
             perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -532,6 +532,7 @@ def digest(request):
             perf_event = perf_event_manager.save(project.id)
 
         perf_event = perf_event.for_group(perf_event.groups[0])
+        perf_event.group.id = i
         perf_group = perf_event.group
 
         records.append(
