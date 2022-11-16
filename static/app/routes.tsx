@@ -1929,7 +1929,7 @@ function buildRoutes() {
     <Fragment>
       {usingCustomerDomain ? (
         <Route
-          path="/:projectId/getting-started/"
+          path="/getting-started/:projectId/"
           component={withDomainRequired(
             make(() => import('sentry/views/projectInstall/gettingStarted'))
           )}
