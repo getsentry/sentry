@@ -1,4 +1,6 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import partition from 'lodash/partition';
+
+import {PlatformKey, profiling} from 'sentry/data/platformCategories';
 import {Project} from 'sentry/types/project';
 
 export const supportedProfilingPlatforms = [
@@ -9,9 +11,29 @@ export const supportedProfilingPlatforms = [
 ] as const;
 
 export type SupportedProfilingPlatform = Extract<
-  PlatformKey,
+  typeof profiling[number],
   typeof supportedProfilingPlatforms[number]
 >;
+
+const platformToDocsPlatform: Record<
+  typeof profiling[number],
+  typeof supportedProfilingPlatforms[number]
+> = {
+  android: 'android',
+  'apple-ios': 'apple-ios',
+  node: 'node',
+  'node-express': 'node',
+  'node-koa': 'node',
+  'node-connect': 'node',
+  python: 'python',
+  'python-django': 'python',
+  'python-flask': 'python',
+  'python-sanic': 'python',
+  'python-bottle': 'python',
+  'python-pylons': 'python',
+  'python-pyramid': 'python',
+  'python-tornado': 'python',
+};
 
 export const profilingOnboardingDocKeys = [
   '0-alert',
@@ -44,13 +66,16 @@ function makeDocKey(platformId: PlatformKey, key: string) {
 
 type DocKeyMap = Record<typeof profilingOnboardingDocKeys[number], string>;
 export function makeDocKeyMap(platformId: PlatformKey | undefined) {
-  if (!platformId) {
+  if (!platformId || !platformToDocsPlatform[platformId]) {
     return null;
   }
+
+  const docsPlatform = platformToDocsPlatform[platformId];
+
   const expectedDocKeys: ProfilingOnboardingDocKeys[] =
-    supportedPlatformExpectedDocKeys[platformId];
+    supportedPlatformExpectedDocKeys[docsPlatform];
   return expectedDocKeys.reduce((acc: DocKeyMap, key) => {
-    acc[key] = makeDocKey(platformId, key);
+    acc[key] = makeDocKey(docsPlatform, key);
     return acc;
   }, {} as DocKeyMap);
 }
@@ -59,19 +84,10 @@ export function splitProjectsByProfilingSupport(projects: Project[]): {
   supported: Project[];
   unsupported: Project[];
 } {
-  const supported: Project[] = [];
-  const unsupported: Project[] = [];
-
-  for (const project of projects) {
-    if (
-      project.platform &&
-      supportedProfilingPlatforms.includes(project.platform as SupportedProfilingPlatform)
-    ) {
-      supported.push(project);
-    } else {
-      unsupported.push(project);
-    }
-  }
+  const [supported, unsupported] = partition(
+    projects,
+    project => project.platform && platformToDocsPlatform[project.platform]
+  );
 
   return {supported, unsupported};
 }
