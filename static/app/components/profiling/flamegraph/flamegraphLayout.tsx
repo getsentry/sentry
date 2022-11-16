@@ -12,22 +12,22 @@ import {
 
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
-const MIN_FRAMESTACK_DIMENSIONS: [number, number] = [680, 30];
-interface ProfilingFlamechartLayoutProps {
+const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
+interface FlamegraphLayoutProps {
   flamechart: React.ReactElement;
-  frameStack: React.ReactElement;
+  flamechartDrawer: React.ReactElement;
   minimap: React.ReactElement;
 }
 
-export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps) {
+export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
   const {layout} = useFlamegraphPreferences();
-  const frameStackRef = useRef<HTMLDivElement>(null);
+  const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
     const initialDimensions: [number, number] = [
       // Half the screen minus the ~sidebar width
-      Math.max(window.innerWidth * 0.5 - 220, MIN_FRAMESTACK_DIMENSIONS[0]),
+      Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]),
       (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
@@ -36,20 +36,20 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
       newDimensions: [number, number],
       maybeOldDimensions: [number, number] | undefined
     ) => {
-      if (!frameStackRef.current) {
+      if (!flamegraphDrawerRef.current) {
         return;
       }
 
       if (layout === 'table left' || layout === 'table right') {
-        frameStackRef.current.style.width = `${
+        flamegraphDrawerRef.current.style.width = `${
           maybeOldDimensions?.[0] ?? newDimensions[0]
         }px`;
-        frameStackRef.current.style.height = `100%`;
+        flamegraphDrawerRef.current.style.height = `100%`;
       } else {
-        frameStackRef.current.style.height = `${
+        flamegraphDrawerRef.current.style.height = `${
           maybeOldDimensions?.[1] ?? newDimensions[1]
         }px`;
-        frameStackRef.current.style.width = `100%`;
+        flamegraphDrawerRef.current.style.width = `100%`;
       }
     };
 
@@ -62,7 +62,7 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
           : layout === 'table right'
           ? 'horizontal-rtl'
           : 'vertical',
-      min: MIN_FRAMESTACK_DIMENSIONS,
+      min: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS,
     };
   }, [
     flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
@@ -73,26 +73,26 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
   const {onMouseDown} = useResizableDrawer(resizableOptions);
 
   return (
-    <ProfilingFlamechartLayoutContainer>
-      <ProfilingFlamechartGrid layout={layout}>
+    <FlamegraphLayoutContainer>
+      <FlamegraphGrid layout={layout}>
         <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
           {props.minimap}
         </MinimapContainer>
         <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
-        <FrameStackContainer ref={frameStackRef} layout={layout}>
-          {cloneElement(props.frameStack, {onResize: onMouseDown})}
-        </FrameStackContainer>
-      </ProfilingFlamechartGrid>
-    </ProfilingFlamechartLayoutContainer>
+        <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
+          {cloneElement(props.flamechartDrawer, {onResize: onMouseDown})}
+        </FLAMEGRAPH_DRAWERContainer>
+      </FlamegraphGrid>
+    </FlamegraphLayoutContainer>
   );
 }
 
-const ProfilingFlamechartLayoutContainer = styled('div')`
+const FlamegraphLayoutContainer = styled('div')`
   display: flex;
   flex: 1 1 100%;
 `;
 
-const ProfilingFlamechartGrid = styled('div')<{
+const FlamegraphGrid = styled('div')<{
   layout?: FlamegraphPreferences['layout'];
 }>`
   display: grid;
@@ -148,11 +148,13 @@ const ZoomViewContainer = styled('div')`
   position: relative;
 `;
 
-const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
+const FLAMEGRAPH_DRAWERContainer = styled('div')<{
+  layout: FlamegraphPreferences['layout'];
+}>`
   grid-area: frame-stack;
   position: relative;
   overflow: hidden;
-  min-width: ${MIN_FRAMESTACK_DIMENSIONS[0]}px;
+  min-width: ${MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]}px;
 
   > div {
     position: absolute;
