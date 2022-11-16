@@ -25,6 +25,16 @@ from sentry.services.hybrid_cloud import (
 from sentry.silo import SiloMode
 
 
+# This 'assumes' the naming conventions observed in the system thus far, but there is no enforcement currently,
+# except that there would be an attribute exception (hopefully in tests).
+def escape_flag_name(flag_name: str) -> str:
+    return flag_name.replace(":", "__").replace("-", "_")
+
+
+def unescape_flag_name(flag_name: str) -> str:
+    return flag_name.replace("__", ":").replace("_", "-")
+
+
 @dataclass
 class ApiTeam:
     id: int = -1
@@ -53,6 +63,20 @@ class ApiProject:
 
 
 @dataclass
+class ApiOrganizationMemberFlags:
+    sso__linked: bool = False
+    sso__invalid: bool = False
+    member_limit__restricted: bool = False
+
+    def __getattr__(self, item: str) -> bool:
+        item = escape_flag_name(item)
+        return bool(getattr(self, item))
+
+    def __getitem__(self, item: str) -> bool:
+        return bool(getattr(self, item))
+
+
+@dataclass
 class ApiOrganizationMember:
     id: int = -1
     organization_id: int = -1
@@ -62,6 +86,7 @@ class ApiOrganizationMember:
     role: str = ""
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
+    flags: ApiOrganizationMemberFlags = field(default_factory=lambda: ApiOrganizationMemberFlags())
 
 
 @dataclass
@@ -79,12 +104,10 @@ class ApiOrganizationFlags:
 class ApiOrganization:
     slug: str = ""
     id: int = -1
-    # exists if and only if the organization was queried with a user_id context, and that user_id
-    # was confirmed to be a member.
-    # member: Optional[ApiOrganizationMember] = None
     name: str = ""
 
-    # Represents the full set of teams and projects associated with the org.
+    # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
+    # visibility, but you can apply a manual filter on the status attribute.
     teams: List[ApiTeam] = field(default_factory=list)
     projects: List[ApiProject] = field(default_factory=list)
 
@@ -94,19 +117,23 @@ class ApiOrganization:
 @dataclass
 class ApiUserOrganizationContext:
     """
-    This object wraps an organization result inside of its membership context in terms of an (optional) use id.
+    This object wraps an organization result inside of its membership context in terms of an (optional) user id.
     This is due to the large number of callsites that require an organization and a user's membership at the
     same time and in a consistency state.  This object allows a nice envelop for both of these ideas from a single
     transactional query.  Used by access, determine_active_organization, and others.
     """
 
-    user_id: Optional[int]
+    # user_id is None iff the get_organization_by_id call is not provided a user_id context.
+    user_id: Optional[int] = None
+    # The organization is always non-null because the null wrapping is around this object instead.
+    # A None organization => a None ApiUserOrganizationContext
     organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
-    # Set iff the user_id in this object has a membership for the requested organization.
+    # member can be None when the given user_id does not have membership with the given organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[ApiOrganizationMember] = None
 
     def __post_init__(self) -> None:
+        # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
 
@@ -175,6 +202,12 @@ class OrganizationService(InterfaceWithLifecycle):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
+    def _serialize_member_flags(self, member: OrganizationMember) -> ApiOrganizationMemberFlags:
+        result = ApiOrganizationMemberFlags()
+        for f in dataclasses.fields(ApiOrganizationMemberFlags):
+            setattr(result, f.name, getattr(member.flags, unescape_flag_name(f.name)))
+        return result
+
     def _serialize_member(
         self,
         member: OrganizationMember,
@@ -185,6 +218,7 @@ class OrganizationService(InterfaceWithLifecycle):
             user_id=member.user.id if member.user is not None else None,
             role=member.role,
             scopes=list(member.get_scopes()),
+            flags=self._serialize_member_flags(member),
         )
 
         omts = OrganizationMemberTeam.objects.filter(

@@ -20,7 +20,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     ParanoidManager,
     ParanoidModel,
-    region_silo_only_model,
+    control_silo_only_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
@@ -104,7 +104,7 @@ class SentryAppManager(ParanoidManager):
         return self.filter(status=SentryAppStatus.PUBLISHED)
 
 
-@region_silo_only_model
+@control_silo_only_model
 class SentryApp(ParanoidModel, HasApiScopes):
     __include_in_export__ = True
 
