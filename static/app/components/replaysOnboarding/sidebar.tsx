@@ -69,7 +69,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Replay Sessions')}</Heading>
+        <Heading>{t('Getting Started with Replays')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
@@ -101,19 +101,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     }
   }, [previousProject.id, currentProject.id]);
 
+  const currentPlatform = currentProject.platform
+    ? platforms.find(p => p.id === currentProject.platform)
+    : undefined;
+
+  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
-    generateDocKeys,
-    isPlatformSupported,
+    docKeys,
+    isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
-  const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
 
   const doesNotSupportReplay = currentProject.platform
     ? !replayPlatforms.includes(currentProject.platform)
@@ -158,8 +160,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       </Fragment>
     );
   }
-
-  const docKeys = generateDocKeys(currentPlatform.id);
 
   return (
     <Fragment>
@@ -247,7 +247,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t("Waiting for this project's first replay event")}
+    {t("Waiting for this project's first user session")}
   </div>
 ))`
   display: flex;
@@ -260,7 +260,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t("We've received this project's first replay event!")}
+    {t("We've received this project's first user session!")}
   </div>
 ))`
   display: flex;

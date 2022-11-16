@@ -1,6 +1,5 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -9,7 +8,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -30,20 +28,11 @@ jest.mock('sentry/utils/localStorage', () => ({
   setItem: jest.fn(),
 }));
 
-const mountWithThemeAndOrg = (component, opts, organization) =>
-  mountWithTheme(component, {
-    ...opts,
-    wrappingComponent: ({children}) => (
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    ),
-  });
+function renderComponnent(component, routerContext, organization) {
+  return render(component, {context: routerContext, organization});
+}
 
 describe('PageFiltersContainer', function () {
-  enforceActOnUseLegacyStoreHook();
-
-  let wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
@@ -83,13 +72,12 @@ describe('PageFiltersContainer', function () {
   });
 
   afterEach(function () {
-    wrapper.unmount();
     jest.clearAllMocks();
     PageFiltersStore.reset();
   });
 
   it('does not update router if there is custom routing', function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer hasCustomRouting />,
       routerContext,
       organization
@@ -98,7 +86,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer hasCustomRouting />,
       {
         ...routerContext,
@@ -113,38 +101,36 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    wrapper = mountWithThemeAndOrg(<PageFiltersContainer />, routerContext, organization);
+    renderComponnent(<PageFiltersContainer />, routerContext, organization);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer params={{orgId: organization.slug}} />,
-      changeQuery(routerContext, {
-        statsPeriod: '7d',
-      }),
+      changeQuery(routerContext, {statsPeriod: '7d'}),
       organization
     );
 
     expect(router.push).not.toHaveBeenCalled();
 
-    await tick();
-
-    expect(PageFiltersStore.getState().selection).toEqual({
-      datetime: {
-        period: '7d',
-        utc: null,
-        start: null,
-        end: null,
-      },
-      environments: [],
-      projects: [],
-    });
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection).toEqual({
+        datetime: {
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
+        },
+        environments: [],
+        projects: [],
+      })
+    );
   });
 
   it('updates GlobalSelection store with default period', async function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         environment: 'prod',
@@ -152,29 +138,30 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    await tick();
-
-    expect(PageFiltersStore.getState()).toEqual({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      selection: {
-        datetime: {
-          period: '14d',
-          utc: null,
-          start: null,
-          end: null,
+    await waitFor(() =>
+      expect(PageFiltersStore.getState()).toEqual({
+        isReady: true,
+        desyncedFilters: new Set(),
+        pinnedFilters: new Set(),
+        selection: {
+          datetime: {
+            period: '14d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: ['prod'],
+          projects: [],
         },
-        environments: ['prod'],
-        projects: [],
-      },
-    });
+      })
+    );
+
     // Not called because of the default date
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         statsPeriod: null,
@@ -182,27 +169,27 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    await tick();
-
-    expect(PageFiltersStore.getState()).toEqual({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      selection: {
-        datetime: {
-          period: '14d',
-          utc: null,
-          start: null,
-          end: null,
+    await waitFor(() =>
+      expect(PageFiltersStore.getState()).toEqual({
+        isReady: true,
+        desyncedFilters: new Set(),
+        pinnedFilters: new Set(),
+        selection: {
+          datetime: {
+            period: '14d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
         },
-        environments: [],
-        projects: [],
-      },
-    });
+      })
+    );
   });
 
   it('resets start&end if showAbsolute prop is false', async function () {
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
@@ -211,34 +198,32 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    await tick();
-
-    expect(PageFiltersStore.getState()).toEqual({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      selection: {
-        datetime: {
-          period: '14d',
-          utc: null,
-          start: null,
-          end: null,
+    await waitFor(() =>
+      expect(PageFiltersStore.getState()).toEqual({
+        isReady: true,
+        desyncedFilters: new Set(),
+        pinnedFilters: new Set(),
+        selection: {
+          datetime: {
+            period: '14d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
         },
-        environments: [],
-        projects: [],
-      },
-    });
+      })
+    );
   });
 
   /**
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async function () {
-    wrapper = mountWithThemeAndOrg(
+    const {rerender} = renderComponnent(
       <PageFiltersContainer />,
-      changeQuery(routerContext, {
-        statsPeriod: '7d',
-      }),
+      changeQuery(routerContext, {statsPeriod: '7d'}),
       organization
     );
 
@@ -248,18 +233,15 @@ describe('PageFiltersContainer', function () {
       globalActions.updateEnvironments,
     ].forEach(mock => mock.mockClear());
 
-    wrapper.setContext(
-      changeQuery(routerContext, {
-        statsPeriod: '7d',
-      }).context
-    );
+    rerender(<PageFiltersContainer />, {
+      context: changeQuery(routerContext, {statsPeriod: '7d'}),
+    });
 
-    await tick();
-    wrapper.update();
-
-    expect(globalActions.updateDateTime).not.toHaveBeenCalled();
-    expect(globalActions.updateProjects).not.toHaveBeenCalled();
-    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(globalActions.updateDateTime).not.toHaveBeenCalled();
+      expect(globalActions.updateProjects).not.toHaveBeenCalled();
+      expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
+    });
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
@@ -278,7 +260,7 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  it('loads from local storage when no URL parameters and filters are pinned', async function () {
+  it('loads from local storage when no URL parameters and filters are pinned', function () {
     getItem.mockImplementation(() =>
       JSON.stringify({
         projects: [3],
@@ -297,15 +279,14 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
 
-    await tick(); // reflux tick
-
     expect(PageFiltersStore.getState().selection.projects).toEqual([3]);
+
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).toHaveBeenLastCalledWith(
@@ -318,7 +299,7 @@ describe('PageFiltersContainer', function () {
     );
   });
 
-  it('does not load from local storage when there are URL params', async function () {
+  it('does not load from local storage when there are URL params', function () {
     getItem.mockImplementation(() =>
       JSON.stringify({projects: [3], environments: ['staging']})
     );
@@ -335,21 +316,20 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
 
-    await tick(); // reflux tick
-
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store when there are query params in URL', async function () {
+  it('updates store when there are query params in URL', function () {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -362,15 +342,14 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
 
-    await tick(); // reflux tick
-
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -389,7 +368,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -423,22 +402,21 @@ describe('PageFiltersContainer', function () {
 
     OrganizationStore.onUpdate(initializationObj.organization);
 
-    wrapper = mountWithThemeAndOrg(
+    renderComponnent(
       <PageFiltersContainer hideGlobalHeader />,
       initializationObj.routerContext,
       initializationObj.organization
     );
 
     // reflux tick
-    await tick();
     expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
 
     // Wait for desynced filters to update
-    await tick();
-    expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
+    );
 
-    wrapper.update();
-    expect(wrapper.find('DesyncedFilterAlert')).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Restore old values'})).toBeInTheDocument();
   });
 
   /**
@@ -491,11 +469,12 @@ describe('PageFiltersContainer', function () {
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
-      wrapper = mountWithThemeAndOrg(
+      const {rerender} = renderComponnent(
         <PageFiltersContainer />,
         initialData.routerContext,
         initialData.organization
       );
+
       expect(globalActions.updateProjects).not.toHaveBeenCalled();
 
       const updatedOrganization = {
@@ -512,16 +491,10 @@ describe('PageFiltersContainer', function () {
 
       // Eventually OrganizationContext will fetch org details for `org-slug`
       // and update `organization` prop emulate fetchOrganizationDetails
-      OrganizationStore.onUpdate(updatedOrganization);
-      wrapper.setContext({
-        organization: updatedOrganization,
-        location: {query: {}},
-        router: {
-          ...initialData.router,
-          location: {pathname: '/test', query: {}},
-        },
-      });
-      wrapper.setProps({organization: updatedOrganization});
+      act(() => OrganizationStore.onUpdate(updatedOrganization));
+
+      initialData.router.location.query = {};
+      rerender(<PageFiltersContainer organization={updatedOrganization} />);
 
       act(() => ProjectsStore.loadInitialData(updatedOrganization.projects));
 
@@ -542,7 +515,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      wrapper = mountWithThemeAndOrg(
+      renderComponnent(
         <PageFiltersContainer />,
         initializationObj.routerContext,
         initializationObj.organization
@@ -569,7 +542,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      wrapper = mountWithThemeAndOrg(
+      renderComponnent(
         <PageFiltersContainer />,
         initializationObj.routerContext,
         initializationObj.organization
@@ -595,15 +568,17 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    beforeEach(async function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
       });
 
       ProjectsStore.loadInitialData(initialData.projects);
+    });
 
-      wrapper = mountWithThemeAndOrg(
+    it('replaces URL with project', function () {
+      renderComponnent(
         <PageFiltersContainer
           shouldForceProject
           forceProject={initialData.projects[0]}
@@ -613,11 +588,6 @@ describe('PageFiltersContainer', function () {
         initialData.organization
       );
 
-      await tick();
-      wrapper.update();
-    });
-
-    it('replaces URL with project', function () {
       expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {environment: [], project: ['1']},
@@ -644,7 +614,7 @@ describe('PageFiltersContainer', function () {
     });
 
     it('does not add forced project to URL', async function () {
-      wrapper = mountWithThemeAndOrg(
+      renderComponnent(
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
@@ -654,8 +624,9 @@ describe('PageFiltersContainer', function () {
         initialData.routerContext,
         initialData.organization
       );
-      await tick();
-      wrapper.update();
+
+      // Needed to make sure things update
+      await act(tick);
 
       expect(router.replace).not.toHaveBeenCalled();
     });
@@ -675,17 +646,27 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      const createWrapper = props => {
-        wrapper = mountWithThemeAndOrg(
+      function getComponentForNonGlobalView(props) {
+        return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             {...props}
-          />,
+          />
+        );
+      }
+
+      function renderForNonGlobalView(props) {
+        const result = renderComponnent(
+          getComponentForNonGlobalView(props),
           initialData.routerContext,
           initialData.organization
         );
-        return wrapper;
-      };
+
+        const rerender = newProps =>
+          result.rerender(getComponentForNonGlobalView({...props, ...newProps}));
+
+        return {...result, rerender};
+      }
 
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
@@ -695,7 +676,7 @@ describe('PageFiltersContainer', function () {
       });
 
       it('uses first project in org projects when mounting', function () {
-        createWrapper();
+        renderForNonGlobalView();
 
         // Projects are returned in sorted slug order, so `prod-project` would
         // be the first project
@@ -709,16 +690,12 @@ describe('PageFiltersContainer', function () {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
-        createWrapper({shouldForceProject: true});
+        const {rerender} = renderForNonGlobalView({shouldForceProject: true});
 
-        wrapper.setProps({
-          forceProject: initialData.projects[1],
-        });
+        rerender({forceProject: initialData.projects[1]});
 
         // load the projects
         act(() => ProjectsStore.loadInitialData(initialData.projects));
-
-        wrapper.update();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: '/test',
@@ -728,38 +705,23 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', function () {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
         // forceProject generally starts undefined
-        createWrapper({shouldForceProject: true});
+        const {rerender} = renderForNonGlobalView({shouldForceProject: true});
 
-        wrapper.setContext({
-          router: {
-            ...initialData.router,
-            location: {
-              ...initialData.router.location,
-              query: {
-                project: '321',
-              },
-            },
-          },
-        });
-        wrapper.setProps({
-          forceProject: initialData.projects[1],
-        });
+        initialData.router.location.query = {project: '321'};
+        rerender({forceProject: initialData.projects[1]});
 
-        wrapper.update();
-
+        await act(tick);
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
-        createWrapper({
+        renderForNonGlobalView({
           shouldForceProject: true,
           forceProject: initialData.projects[1],
         });
-
-        wrapper.update();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: '/test',
@@ -780,33 +742,24 @@ describe('PageFiltersContainer', function () {
           params: {orgId: 'org-slug'},
         },
       });
-      ProjectsStore.loadInitialData(initialData.projects);
-
-      const createWrapper = props => {
-        wrapper = mountWithThemeAndOrg(
-          <PageFiltersContainer
-            params={{orgId: initialData.organization.slug}}
-            {...props}
-          />,
-          initialData.routerContext,
-          initialData.organization
-        );
-        return wrapper;
-      };
 
       beforeEach(function () {
+        ProjectsStore.loadInitialData(initialData.projects);
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
-        createWrapper({
-          shouldForceProject: true,
-          forceProject: initialData.projects[1],
-        });
-
-        wrapper.update();
+        renderComponnent(
+          <PageFiltersContainer
+            params={{orgId: initialData.organization.slug}}
+            shouldForceProject
+            forceProject={initialData.projects[1]}
+          />,
+          initialData.routerContext,
+          initialData.organization
+        );
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: '/test',
@@ -831,20 +784,30 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      const createWrapper = (props, ctx) => {
-        wrapper = mountWithThemeAndOrg(
+      function getComponentForGlobalView(props) {
+        return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             {...props}
-          />,
+          />
+        );
+      }
+
+      function renderForGlobalView(props, ctx) {
+        const result = renderComponnent(
+          getComponentForGlobalView(props),
           {
             ...initialData.routerContext,
             ...ctx,
           },
           initialData.organization
         );
-        return wrapper;
-      };
+
+        const rerender = newProps =>
+          result.rerender(getComponentForGlobalView({...props, ...newProps}));
+
+        return {...result, rerender};
+      }
 
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
@@ -853,26 +816,20 @@ describe('PageFiltersContainer', function () {
         initialData.router.replace.mockClear();
       });
 
-      it('does not use first project in org projects when mounting (and without localStorage data)', async function () {
-        createWrapper();
-
-        await tick();
-        wrapper.update();
-
+      it('does not use first project in org projects when mounting (and without localStorage data)', function () {
+        renderForGlobalView();
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', function () {
         ProjectsStore.reset();
 
-        createWrapper();
+        const {rerender} = renderForGlobalView();
 
         // load the projects
         act(() => ProjectsStore.loadInitialData(initialData.projects));
 
-        wrapper.setProps({
-          forceProject: initialData.projects[1],
-        });
+        rerender({forceProject: initialData.projects[1]});
 
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
@@ -881,11 +838,9 @@ describe('PageFiltersContainer', function () {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
-        createWrapper({shouldForceProject: true});
+        const {rerender} = renderForGlobalView({shouldForceProject: true});
 
-        wrapper.setProps({
-          forceProject: initialData.projects[1],
-        });
+        rerender({forceProject: initialData.projects[1]});
 
         // load the projects
         act(() => ProjectsStore.loadInitialData(initialData.projects));
@@ -898,20 +853,14 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', function () {
         // forceProject generally starts undefined
-        createWrapper(
+        const {rerender} = renderForGlobalView(
           {shouldForceProject: true},
           changeQuery(initialData.routerContext, {project: 321})
         );
 
-        await tick();
-
-        wrapper.setProps({
-          forceProject: initialData.projects[1],
-        });
-
-        wrapper.update();
+        rerender({forceProject: initialData.projects[1]});
 
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });

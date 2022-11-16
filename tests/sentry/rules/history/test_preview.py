@@ -212,6 +212,25 @@ class ProjectRulePreviewTest(TestCase):
         results = preview(self.project, conditions, filters, "all", "all", 0)
         assert event.group not in results
 
+    def test_event_attribute(self):
+        event = self._set_up_event({"message": "hello world"})
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+                "attribute": "message",
+                "match": "eq",
+                "value": "hello world",
+            }
+        ]
+
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group in results
+
+        filters[0]["value"] = "goodbye world"
+        results = preview(self.project, conditions, filters, "all", "all", 0)
+        assert event.group not in results
+
     def test_unsupported_conditions(self):
         self._set_up_first_seen()
         # conditions with no immediate plan to support

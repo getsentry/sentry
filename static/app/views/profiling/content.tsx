@@ -17,14 +17,14 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   formatSort,
@@ -38,45 +38,6 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
-
-function hasSetupProfilingForAtLeastOneProject(
-  selectedProjects: PageFilters['projects'],
-  projects: Project[]
-): boolean {
-  const projectIDsToProjectTable = projects.reduce<Record<string, Project>>(
-    (acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    },
-    {}
-  );
-
-  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
-    const projectWithProfiles = projects.find(p => {
-      const project = projectIDsToProjectTable[String(p)];
-
-      if (!project) {
-        // Shouldnt happen, but lets be safe and just not do anything
-        return false;
-      }
-      return project.hasProfiles;
-    });
-
-    return projectWithProfiles !== undefined;
-  }
-
-  const projectWithProfiles = selectedProjects.find(p => {
-    const project = projectIDsToProjectTable[String(p)];
-
-    if (!project) {
-      // Shouldnt happen, but lets be safe and just not do anything
-      return false;
-    }
-    return project.hasProfiles;
-  });
-
-  return projectWithProfiles !== undefined;
-}
 
 interface ProfilingContentProps {
   location: Location;
@@ -127,21 +88,37 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
+    const profilingOnboardingChecklistEnabled = organization.features?.includes(
+      'profiling-onboarding-checklist'
+    );
+    if (profilingOnboardingChecklistEnabled) {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+      return;
+    }
     openModal(props => {
       return <ProfilingOnboardingModal {...props} organization={organization} />;
     });
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (transactions.status !== 'success') {
-      return false;
+    // if it's My Projects or All projects, only show onboarding if we can't
+    // find any projects with profiles
+    if (
+      selection.projects.length === 0 ||
+      selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      return projects.every(project => !project.hasProfiles);
     }
 
-    if (transactions.data[0].data.length > 0) {
-      return false;
-    }
-    return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
-  }, [selection.projects, projects, transactions]);
+    // otherwise, only show onboarding if we can't find any projects with profiles
+    // from those that were selected
+    const projectsWithProfiles = new Set(
+      projects.filter(project => project.hasProfiles).map(project => project.id)
+    );
+    return selection.projects.every(
+      project => !projectsWithProfiles.has(String(project))
+    );
+  }, [selection.projects, projects]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
