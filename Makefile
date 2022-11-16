@@ -69,7 +69,7 @@ compile-locale:
 	cd src/sentry && sentry django compilemessages
 
 install-transifex:
-	$(PIP) install transifex-client
+	curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
 
 push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
