@@ -119,7 +119,7 @@ def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
     metrics.gauge("symbolication.lpq.computation.rate.total", average_rate)
     metrics.gauge("symbolication.lpq.computation.rate.recent", recent_rate)
 
-    return (
+    return bool(
         recent_rate > options["min_recent_event_rate"]
         and recent_rate > options["recent_event_multiple"] * average_rate
     )
@@ -145,7 +145,7 @@ def excessive_event_duration(project_id: int, durations: BucketedDurationsHistog
     metrics.gauge("symbolication.lpq.computation.durations.p75", p75_duration)
     metrics.gauge("symbolication.lpq.computation.durations.events_per_minutes", events_per_minute)
 
-    return (
+    return bool(
         events_per_minute > options["min_events_per_minute"]
         and p75_duration > options["min_p75_duration"]
     )
