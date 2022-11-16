@@ -9,7 +9,7 @@ pytest>=7.2
 pytest-cov>=4.0.0
 pytest-django>=4.4.0
 pytest-rerunfailures>=10
-pytest-sentry>=0.1.9
+pytest-sentry>=0.1.10
 pytest-xdist>=3
 responses>=0.21.0
 
