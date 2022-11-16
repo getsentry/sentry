@@ -1,8 +1,5 @@
-import {act} from 'react-dom/test-utils';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {triggerPress} from 'sentry-test/utils';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -22,7 +19,6 @@ const WrapperComponent = props => {
 };
 
 describe('TransactionsList', function () {
-  let wrapper;
   let api;
   let location;
   let context;
@@ -44,18 +40,16 @@ describe('TransactionsList', function () {
       pathname: '/',
       query: {},
     };
-    handleDropdownChange = value => {
-      const selected = options.find(option => option.value === value);
-      if (selected) {
-        wrapper.setProps({selected});
-      }
+    handleDropdownChange = () => {
+      //
     };
   });
 
   describe('Basic', function () {
-    let generateLink;
+    let generateLink, routerContext;
 
     beforeEach(function () {
+      routerContext = TestStubs.routerContext([{organization}]);
       initialize();
       eventView = EventView.fromSavedQuery({
         id: '',
@@ -88,8 +82,13 @@ describe('TransactionsList', function () {
         }),
       };
 
+      const pageLinks =
+        '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
+        '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/eventsv2/`,
+        headers: {Link: pageLinks},
         body: {
           meta: {transaction: 'string', count: 'number'},
           data: [
@@ -101,6 +100,7 @@ describe('TransactionsList', function () {
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/eventsv2/`,
+        headers: {Link: pageLinks},
         body: {
           meta: {transaction: 'string', count: 'number'},
           data: [
@@ -113,6 +113,7 @@ describe('TransactionsList', function () {
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
+        headers: {Link: pageLinks},
         body: {
           meta: {fields: {transaction: 'string', 'count()': 'number'}},
           data: [
@@ -124,6 +125,7 @@ describe('TransactionsList', function () {
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
+        headers: {Link: pageLinks},
         body: {
           meta: {fields: {transaction: 'string', 'count()': 'number'}},
           data: [
@@ -135,6 +137,7 @@ describe('TransactionsList', function () {
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-trends/`,
+        headers: {Link: pageLinks},
         body: {
           meta: {
             transaction: 'string',
@@ -149,26 +152,15 @@ describe('TransactionsList', function () {
       });
     });
 
-    const openDropdown = async w => {
-      await act(async () => {
-        triggerPress(w.find('CompactSelect Button'));
-        await tick();
-        w.update();
-      });
-    };
-
-    const selectDropdownOption = async (w, selection) => {
-      await openDropdown(w);
-      await act(async () => {
-        triggerPress(w.find(`MenuItemWrap[value="${selection}"]`));
-        await tick();
-        w.update();
-      });
-    };
-
-    describe('with eventsv2', function () {
+    describe.each(['events', 'eventsv2'])('with %s', function (featureSide) {
+      const isOnEventsFeatureSide = featureSide === 'events';
+      if (isOnEventsFeatureSide) {
+        beforeEach(function () {
+          organization.features.push('performance-frontend-use-events-endpoint');
+        });
+      }
       it('renders basic UI components', async function () {
-        wrapper = mountWithTheme(
+        render(
           <WrapperComponent
             api={api}
             location={location}
@@ -177,22 +169,28 @@ describe('TransactionsList', function () {
             selected={options[0]}
             options={options}
             handleDropdownChange={handleDropdownChange}
-          />
+          />,
+          {
+            context: routerContext,
+          }
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {
+            name: 'Open in Discover',
+          })
+        ).toBeInTheDocument();
 
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // 2 for the transaction names
-        expect(wrapper.find('GridCell')).toHaveLength(2);
-        // 2 for the counts
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+        expect(screen.getAllByTestId('table-header')).toHaveLength(2);
+        expect(
+          screen.getByRole('button', {name: 'Filter Transactions'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+
+        const gridCells = screen.getAllByTestId('grid-cell');
+        expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
       });
 
       it('renders a trend view', async function () {
@@ -202,7 +200,7 @@ describe('TransactionsList', function () {
           label: t('Trending Regressions'),
           trendType: 'regression',
         });
-        wrapper = mountWithTheme(
+        render(
           <WrapperComponent
             api={api}
             location={location}
@@ -211,244 +209,58 @@ describe('TransactionsList', function () {
             selected={options[2]}
             options={options}
             handleDropdownChange={handleDropdownChange}
-          />
+          />,
+          {
+            context: routerContext,
+          }
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(3);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(0);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // trend_percentage and transaction name
-        expect(wrapper.find('GridCell')).toHaveLength(4);
-        // trend_difference
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
-      });
-
-      it('renders default titles', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-          />
-        );
-
-        await tick();
-        wrapper.update();
-
-        const headers = wrapper.find('SortLink');
-        expect(headers).toHaveLength(2);
-        expect(headers.first().text()).toEqual('transaction');
-        expect(headers.last().text()).toEqual('count()');
-      });
-
-      it('renders custom titles', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-            titles={['foo', 'bar']}
-          />
-        );
-
-        await tick();
-        wrapper.update();
-
-        const headers = wrapper.find('SortLink');
-        expect(headers).toHaveLength(2);
-        expect(headers.first().text()).toEqual('foo');
-        expect(headers.last().text()).toEqual('bar');
-      });
-
-      it('allows users to change the sort in the dropdown', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-          />
-        );
-
-        await tick();
-        wrapper.update();
-
-        // initial sort is ascending by transaction name
-        expect(wrapper.find('GridCell').first().text()).toEqual('/a');
-        expect(wrapper.find('GridCellNumber').first().text()).toEqual('100');
-        expect(wrapper.find('GridCell').last().text()).toEqual('/b');
-        expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
-
-        await selectDropdownOption(wrapper, 'count');
-        await tick();
-        wrapper.update();
-
-        // now the sort is descending by count
-        expect(wrapper.find('GridCell').first().text()).toEqual('/b');
-        expect(wrapper.find('GridCellNumber').first().text()).toEqual('1000');
-        expect(wrapper.find('GridCell').last().text()).toEqual('/a');
-        expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
-      });
-
-      it('generates link for the transaction cell', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-            generateLink={generateLink}
-          />
-        );
-
-        await tick();
-        wrapper.update();
-
-        const links = wrapper.find('Link');
-        expect(links).toHaveLength(2);
-        expect(links.first().props().to).toEqual(
-          expect.objectContaining({
-            pathname: `/${organization.slug}`,
-            query: {
-              transaction: '/a',
-              count: 100,
-            },
-          })
-        );
-        expect(links.last().props().to).toEqual(
-          expect.objectContaining({
-            pathname: `/${organization.slug}`,
-            query: {
-              transaction: '/b',
-              count: 1000,
-            },
-          })
-        );
-      });
-
-      it('handles forceLoading correctly', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={null}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-            forceLoading
-          />
-        );
-
-        expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-        wrapper.setProps({api, forceLoading: false});
-
-        await tick();
-        wrapper.update();
-
-        expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // 2 for the transaction names
-        expect(wrapper.find('GridCell')).toHaveLength(2);
-        // 2 for the counts
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
-      });
-    });
-
-    describe('with events', function () {
-      beforeEach(function () {
-        organization.features.push('performance-frontend-use-events-endpoint');
-      });
-
-      it('renders basic UI components', async function () {
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            selected={options[0]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-          />
-        );
-
-        await tick();
-        wrapper.update();
-
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // 2 for the transaction names
-        expect(wrapper.find('GridCell')).toHaveLength(2);
-        // 2 for the counts
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
-      });
-
-      it('renders a trend view', async function () {
-        options.push({
-          sort: {kind: 'desc', field: 'trend_percentage()'},
-          value: 'regression',
-          label: t('Trending Regressions'),
-          trendType: 'regression',
+        const filterDropdown = screen.getByRole('button', {
+          name: 'Filter Trending Regressions',
         });
-        wrapper = mountWithTheme(
-          <WrapperComponent
-            api={api}
-            location={location}
-            organization={organization}
-            trendView={eventView}
-            selected={options[2]}
-            options={options}
-            handleDropdownChange={handleDropdownChange}
-          />
+        expect(filterDropdown).toBeInTheDocument();
+        userEvent.click(filterDropdown);
+
+        const menuOptions = await screen.findAllByRole('menuitemradio');
+        expect(menuOptions.map(e => e.textContent)).toEqual([
+          'Transactions',
+          'Failing Transactions',
+          'Trending Regressions',
+        ]);
+
+        expect(
+          screen.queryByRole('button', {
+            name: 'Open in Discover',
+          })
+        ).not.toBeInTheDocument();
+
+        expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+
+        const gridCells = screen.getAllByTestId('grid-cell');
+        expect(gridCells.map(e => e.textContent)).toEqual(
+          expect.arrayContaining([
+            '/a',
+            '(no value)',
+            '(no value)',
+            '/b',
+            '(no value)',
+            '(no value)',
+          ])
         );
 
-        await tick();
-        wrapper.update();
-
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(3);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(0);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // trend_percentage and transaction name
-        expect(wrapper.find('GridCell')).toHaveLength(4);
-        // trend_difference
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+        const tableHeadings = screen.getAllByTestId('table-header');
+        expect(tableHeadings.map(e => e.textContent)).toEqual([
+          'transaction',
+          'percentage',
+          'difference',
+        ]);
       });
 
       it('renders default titles', async function () {
-        wrapper = mountWithTheme(
+        render(
           <WrapperComponent
             api={api}
             location={location}
@@ -457,20 +269,20 @@ describe('TransactionsList', function () {
             selected={options[0]}
             options={options}
             handleDropdownChange={handleDropdownChange}
-          />
+          />,
+          {
+            context: routerContext,
+          }
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-        const headers = wrapper.find('SortLink');
-        expect(headers).toHaveLength(2);
-        expect(headers.first().text()).toEqual('transaction');
-        expect(headers.last().text()).toEqual('count()');
+        const tableHeadings = screen.getAllByTestId('table-header');
+        expect(tableHeadings.map(e => e.textContent)).toEqual(['transaction', 'count()']);
       });
 
       it('renders custom titles', async function () {
-        wrapper = mountWithTheme(
+        render(
           <WrapperComponent
             api={api}
             location={location}
@@ -480,20 +292,38 @@ describe('TransactionsList', function () {
             options={options}
             handleDropdownChange={handleDropdownChange}
             titles={['foo', 'bar']}
-          />
+          />,
+          {
+            context: routerContext,
+          }
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-        const headers = wrapper.find('SortLink');
-        expect(headers).toHaveLength(2);
-        expect(headers.first().text()).toEqual('foo');
-        expect(headers.last().text()).toEqual('bar');
+        const tableHeadings = screen.getAllByTestId('table-header');
+        expect(tableHeadings.map(e => e.textContent)).toEqual(['foo', 'bar']);
       });
 
       it('allows users to change the sort in the dropdown', async function () {
-        wrapper = mountWithTheme(
+        let component = null;
+
+        const handleDropdown = value => {
+          const selected = options.find(option => option.value === value);
+          if (selected && component) {
+            component.rerender(
+              <WrapperComponent
+                selected={selected}
+                api={api}
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                options={options}
+              />
+            );
+          }
+        };
+
+        component = render(
           <WrapperComponent
             api={api}
             location={location}
@@ -501,32 +331,45 @@ describe('TransactionsList', function () {
             eventView={eventView}
             selected={options[0]}
             options={options}
-            handleDropdownChange={handleDropdownChange}
-          />
+            handleDropdownChange={handleDropdown}
+          />,
+          {
+            context: routerContext,
+          }
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-        // initial sort is ascending by transaction name
-        expect(wrapper.find('GridCell').first().text()).toEqual('/a');
-        expect(wrapper.find('GridCellNumber').first().text()).toEqual('100');
-        expect(wrapper.find('GridCell').last().text()).toEqual('/b');
-        expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
+        const gridCells = screen.getAllByTestId('grid-cell');
+        expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
 
-        await selectDropdownOption(wrapper, 'count');
-        await tick();
-        wrapper.update();
+        const filterDropdown = screen.getByRole('button', {
+          name: 'Filter Transactions',
+        });
+        expect(filterDropdown).toBeInTheDocument();
+        userEvent.click(filterDropdown);
 
-        // now the sort is descending by count
-        expect(wrapper.find('GridCell').first().text()).toEqual('/b');
-        expect(wrapper.find('GridCellNumber').first().text()).toEqual('1000');
-        expect(wrapper.find('GridCell').last().text()).toEqual('/a');
-        expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
+        const menuOptions = await screen.findAllByRole('menuitemradio');
+        expect(menuOptions.map(e => e.textContent)).toEqual([
+          'Transactions',
+          'Failing Transactions',
+        ]);
+
+        userEvent.click(menuOptions[1]); // Failing transactions is 'count' as per the test options
+
+        waitFor(() => {
+          // now the sort is descending by count
+          expect(screen.getAllByTestId('grid-cell').map(e => e.textContent)).toEqual([
+            '/a',
+            '100',
+            '/b',
+            '1000',
+          ]);
+        });
       });
 
       it('generates link for the transaction cell', async function () {
-        wrapper = mountWithTheme(
+        render(
           <WrapperComponent
             api={api}
             location={location}
@@ -536,36 +379,37 @@ describe('TransactionsList', function () {
             options={options}
             handleDropdownChange={handleDropdownChange}
             generateLink={generateLink}
-          />
+          />,
+          {context: routerContext}
         );
 
-        await tick();
-        wrapper.update();
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-        const links = wrapper.find('Link');
+        const links = screen.getAllByRole('link');
         expect(links).toHaveLength(2);
-        expect(links.first().props().to).toEqual(
-          expect.objectContaining({
-            pathname: `/${organization.slug}`,
-            query: {
-              transaction: '/a',
-              'count()': 100,
-            },
-          })
-        );
-        expect(links.last().props().to).toEqual(
-          expect.objectContaining({
-            pathname: `/${organization.slug}`,
-            query: {
-              transaction: '/b',
-              'count()': 1000,
-            },
-          })
-        );
+        if (isOnEventsFeatureSide) {
+          expect(links[0]).toHaveAttribute(
+            'href',
+            '/org-slug?count%28%29=100&transaction=%2Fa'
+          );
+          expect(links[1]).toHaveAttribute(
+            'href',
+            '/org-slug?count%28%29=1000&transaction=%2Fb'
+          );
+        } else {
+          expect(links[0]).toHaveAttribute(
+            'href',
+            '/org-slug?count=100&transaction=%2Fa'
+          );
+          expect(links[1]).toHaveAttribute(
+            'href',
+            '/org-slug?count=1000&transaction=%2Fb'
+          );
+        }
       });
 
       it('handles forceLoading correctly', async function () {
-        wrapper = mountWithTheme(
+        const component = render(
           <WrapperComponent
             api={null}
             location={location}
@@ -575,26 +419,30 @@ describe('TransactionsList', function () {
             options={options}
             handleDropdownChange={handleDropdownChange}
             forceLoading
-          />
+          />,
+          {context: routerContext}
         );
 
-        expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-        wrapper.setProps({api, forceLoading: false});
+        expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
-        await tick();
-        wrapper.update();
+        component.rerender(
+          <WrapperComponent
+            api={null}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />,
+          {context: routerContext}
+        );
 
-        expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-        expect(wrapper.find('CompactSelect')).toHaveLength(1);
-        await openDropdown(wrapper);
-        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
-        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-        expect(wrapper.find('Pagination')).toHaveLength(1);
-        expect(wrapper.find('PanelTable')).toHaveLength(1);
-        // 2 for the transaction names
-        expect(wrapper.find('GridCell')).toHaveLength(2);
-        // 2 for the counts
-        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+        expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+        const gridCells = screen.getAllByTestId('grid-cell');
+        expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
       });
     });
   });

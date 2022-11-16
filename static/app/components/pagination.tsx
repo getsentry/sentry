@@ -63,7 +63,7 @@ const Pagination = ({
   const nextDisabled = disabled || links.next?.results === false;
 
   return (
-    <Wrapper className={className}>
+    <Wrapper className={className} data-test-id="pagination">
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
       <ButtonBar merged>
         <Button
