@@ -103,22 +103,3 @@ class SavedSearch(Model):
         return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")
-
-
-# TODO: Remove once we've completely removed sentry 9
-@region_silo_only_model
-class SavedSearchUserDefault(Model):
-    """
-    Indicates the default saved search for a given user
-    """
-
-    __include_in_export__ = True
-
-    savedsearch = FlexibleForeignKey("sentry.SavedSearch")
-    project = FlexibleForeignKey("sentry.Project")
-    user = FlexibleForeignKey("sentry.User")
-
-    class Meta:
-        unique_together = (("project", "user"),)
-        app_label = "sentry"
-        db_table = "sentry_savedsearch_userdefault"
