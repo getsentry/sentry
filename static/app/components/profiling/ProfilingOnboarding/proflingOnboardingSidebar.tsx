@@ -13,6 +13,7 @@ import {
 } from 'sentry/components/sidebar/onboardingStep';
 import {TaskSidebar, TaskSidebarList} from 'sentry/components/sidebar/taskSidebar';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -21,12 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-import {
-  makeDocKeyMap,
-  splitProjectsByProfilingSupport,
-  SupportedProfilingPlatform,
-  supportedProfilingPlatforms,
-} from './util';
+import {makeDocKeyMap, splitProjectsByProfilingSupport} from './util';
 
 export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -34,7 +30,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects} = useProjects();
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
   const pageFilters = usePageFilters();
@@ -45,28 +41,33 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    if (!projects.length) {
+    if (supportedProjects.length <= 0) {
       return;
     }
-    const pageProjectSelectionId = pageFilters.selection.projects[0];
-    const pageProjectSelection = projects.find(
-      p => p.id === String(pageProjectSelectionId)
-    );
-    if (pageProjectSelection && supportedProjects.includes(pageProjectSelection)) {
-      setCurrentProject(pageProjectSelection);
-      return;
-    }
-    setCurrentProject(supportedProjects[0]);
-  }, [projects, pageFilters.selection.projects, supportedProjects]);
 
-  if (
-    !isActive ||
-    !hasProjectAccess ||
-    !currentProject ||
-    !projectsLoaded ||
-    !projects ||
-    projects.length === 0
-  ) {
+    // if it's My Projects or All Projects, pick the first supported project
+    if (
+      pageFilters.selection.projects.length === 0 ||
+      pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      setCurrentProject(supportedProjects[0]);
+      return;
+    }
+
+    // if it's a list of projects, pick the first one that's supported
+    const supportedProjectsById = supportedProjects.reduce((mapping, project) => {
+      mapping[project.id] = project;
+      return mapping;
+    }, {});
+    for (const projectId of pageFilters.selection.projects) {
+      if (supportedProjectsById[String(projectId)]) {
+        setCurrentProject(supportedProjectsById[String(projectId)]);
+        return;
+      }
+    }
+  }, [pageFilters.selection.projects, supportedProjects]);
+
+  if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
   }
 
@@ -111,43 +112,34 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const docKeysMap = useMemo(() => makeDocKeyMap(currentPlatform?.id), [currentPlatform]);
 
-  const isPlatformSupported = useMemo(() => {
-    if (!currentPlatform) {
-      return false;
-    }
-    return supportedProfilingPlatforms.includes(
-      // typescript being typescript
-      currentPlatform.id as SupportedProfilingPlatform
-    );
-  }, [currentPlatform]);
-
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     docKeys: docKeysMap ? Object.values(docKeysMap) : [],
     project: currentProject,
-    isPlatformSupported,
+    isPlatformSupported: true,
   });
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (!isPlatformSupported) {
-    return (
-      <Fragment>
-        <div>
-          {tct(
-            'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
-            {platform: currentPlatform?.name || currentProject.slug}
-          )}
-        </div>
-        <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
-            {t('Go to Sentry Documentation')}
-          </Button>
-        </div>
-      </Fragment>
-    );
-  }
+  // TODO: If a project reaches this point, it'll always be supported. This needs to be reworked.
+  // if (!isPlatformSupported) {
+  //   return (
+  //     <Fragment>
+  //       <div>
+  //         {tct(
+  //           'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+  //           {platform: currentPlatform?.name || currentProject.slug}
+  //         )}
+  //       </div>
+  //       <div>
+  //         <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+  //           {t('Go to Sentry Documentation')}
+  //         </Button>
+  //       </div>
+  //     </Fragment>
+  //   );
+  // }
 
   if (!currentPlatform || !docKeysMap || !hasOnboardingContents) {
     return (
@@ -161,7 +153,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <div>
           <Button
             size="sm"
-            href="https://docs.sentry.io/product/performance/getting-started/"
+            href="https://docs.sentry.io/product/profiling/getting-started/"
             external
           >
             {t('Go to documentation')}
