@@ -393,7 +393,7 @@ const appConfig: Configuration = {
       patterns: [
         {
           from: `${staticPrefix}/images/logo-sentry.svg`,
-          to: `${distPath}/entrypoints/logo-sentry.svg`,
+          to: 'entrypoints/logo-sentry.svg',
           toType: 'template',
         },
       ],
