@@ -151,11 +151,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.encoding = None
         mock_fetch_file.return_value.headers = {}
 
-        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
-        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
-        # Note its been called twice, as there as two processors when run with the feature.
-        with self.feature({"projects:sourcemapcache-processor": False}):
-            event = self.post_and_retrieve_event(data)
+        event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/foo.js",
@@ -213,11 +209,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
         mock_fetch_file.return_value.encoding = None
 
-        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
-        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
-        # Note its been called twice, as there as two processors when run with the feature.
-        with self.feature({"projects:sourcemapcache-processor": False}):
-            event = self.post_and_retrieve_event(data)
+        event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/test.min.js",
