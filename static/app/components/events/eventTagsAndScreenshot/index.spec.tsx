@@ -343,7 +343,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
         'Screenshot'
       );
-      expect(screen.queryByTestId('screenshot-icon-1')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Previous Screenshot'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Next Screenshot'})
+      ).not.toBeInTheDocument();
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
@@ -385,7 +390,7 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        '1 of 2 screenshots'
+        '1 of 2'
       );
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
@@ -394,10 +399,10 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
       );
 
-      screen.getByTestId('screenshot-icon-1').click();
+      screen.getByRole('button', {name: 'Next Screenshot'}).click();
 
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        '2 of 2 screenshots'
+        '2 of 2'
       );
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
