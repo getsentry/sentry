@@ -113,6 +113,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
     );
+
     const url = shouldUseEvents
       ? `/organizations/${organization.slug}/events/`
       : `/organizations/${organization.slug}/eventsv2/`;

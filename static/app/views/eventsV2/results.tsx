@@ -247,6 +247,7 @@ export class Results extends Component<Props, State> {
     this.setState({needConfirmation, confirmedQuery}, () => {
       this.setState({confirmedQuery: false});
     });
+
     if (needConfirmation) {
       this.openConfirm();
     }
