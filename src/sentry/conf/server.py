@@ -2794,17 +2794,17 @@ SENTRY_LPQ_OPTIONS = {
     "recent_event_period": 60,
     # The minimum rate of events *per second* a project needs to have
     # in the `recent_event_period` to be eligible for the LPQ.
-    "min_recent_event_rate": 50,
+    "min_recent_event_rate": 5,
     # The ratio of recent event rate over average event rate above which a project is eligible
     # for the LPQ.
-    "recent_event_multiple": 5,
+    "recent_event_multiple": 4,
     # The minimum rate of events *per minute* a project needs to have
     # in the `duration_time_window` to be eligible for the LPQ.
     "min_events_per_minute": 15,
     # A project is considered for the LPQ if the p75 event processing time
     # exceeds configured value.
     # This considers events that *finished* during the last `duration_time_window`.
-    "min_p75_duration": 6 * 60,
+    "min_p75_duration": 30,
 }
 
 # XXX(meredith): Temporary metrics indexer
