@@ -29,6 +29,7 @@ class OnboardingTask:
     METRIC_ALERT = 12
     INTEGRATIONS = 13
     SESSION_REPLAY = 14
+    FIRST_PROFILE = 15
 
 
 class OnboardingTaskStatus:
@@ -124,6 +125,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
+        (OnboardingTask.FIRST_PROFILE, "setup_profiling"),
     )
 
     # Used in the API to map IDs to string keys. This keeps things
@@ -150,6 +152,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.FIRST_PROFILE,
         ]
     )
 
@@ -167,6 +170,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.FIRST_PROFILE,
         ]
     )
 
