@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import StateLayer from 'sentry/components/stateLayer';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -201,6 +202,11 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
+      {priority !== 'link' && (
+        <StateLayer
+          higherOpacity={priority && ['primary', 'danger'].includes(priority)}
+        />
+      )}
       <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
@@ -268,16 +274,8 @@ const getColors = ({
   theme,
 }: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
-  const {
-    color,
-    colorActive,
-    background,
-    backgroundActive,
-    border,
-    borderActive,
-    focusBorder,
-    focusShadow,
-  } = theme.button[themeName];
+  const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
+    theme.button[themeName];
 
   const getFocusState = () => {
     switch (priority) {
@@ -329,7 +327,6 @@ const getColors = ({
       &:active,
       &[aria-expanded="true"] {
         color: ${colorActive || color};
-        background: ${backgroundActive};
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
 
@@ -368,6 +365,7 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 
 export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
   return css`
+    position: relative;
     display: inline-block;
     border-radius: ${theme.borderRadius};
     text-transform: none;

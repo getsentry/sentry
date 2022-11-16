@@ -6,6 +6,7 @@ import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import {FormSize, Theme} from 'sentry/utils/theme';
+import StateLayer from 'sentry/components/stateLayer';
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -123,6 +124,10 @@ function BaseMenuListItem({
           size={size}
           {...innerWrapProps}
         >
+          <StyledStateLayer
+            isHovered={isFocused}
+            higherOpacity={priority !== 'default'}
+          />
           {leadingItems && (
             <LeadingItems
               disabled={disabled}
@@ -207,29 +212,6 @@ function getTextColor({
   }
 }
 
-function getFocusBackground({
-  theme,
-  priority,
-  disabled,
-}: {
-  disabled: boolean;
-  priority: Priority;
-  theme: Theme;
-}) {
-  if (disabled) {
-    return theme.hover;
-  }
-  switch (priority) {
-    case 'primary':
-      return theme.purple100;
-    case 'danger':
-      return theme.red100;
-    case 'default':
-    default:
-      return theme.hover;
-  }
-}
-
 export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
@@ -255,33 +237,29 @@ export const InnerWrap = styled('div', {
   }
   ${p => p.disabled && `cursor: default;`}
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
   ${p =>
     p.isFocused &&
     `
       z-index: 1;
-
-      ::before, ::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-
       /* Background to hide the previous item's divider */
       ::before {
-        background: ${p.theme.background};
-        z-index: -1;
-      }
-
-      /* Hover/focus background */
-      ::after {
-        background: ${getFocusBackground(p)};
-        border-radius: inherit;
-        z-index: -1;
+        background: ${p.theme.backgroundElevated};
       }
     `}
+`;
+
+const StyledStateLayer = styled(StateLayer)`
+  z-index: -1;
 `;
 
 /**
