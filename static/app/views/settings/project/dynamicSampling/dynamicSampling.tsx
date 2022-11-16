@@ -42,7 +42,7 @@ const knowBiases = {
     label: t('Prioritize dev environments'),
     help: t('Captures more traces from environments that contain “dev” and “test”'),
   },
-  [DynamicSamplingBiasType.BOOST_KEY_TRANSACTION]: {
+  [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
     label: t('Prioritize key transactions'),
     help: t('Captures your most important transactions'),
   },
