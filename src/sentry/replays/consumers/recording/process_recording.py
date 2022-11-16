@@ -18,6 +18,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 from django.db.utils import IntegrityError
+from sentry_sdk.tracing import Transaction
 
 from sentry.constants import DataCategory
 from sentry.models import File
@@ -71,7 +72,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self,
         message_dict: RecordingSegmentChunkMessage,
         message: Message[KafkaPayload],
-        current_transaction,
+        current_transaction: Transaction,
     ) -> None:
         cache_prefix = replay_recording_segment_cache_id(
             project_id=message_dict["project_id"],
@@ -100,7 +101,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self,
         message_dict: RecordingSegmentMessage,
         parts: RecordingSegmentParts,
-        current_transaction,
+        current_transaction: Transaction,
     ) -> None:
         with current_transaction.start_child(
             op="replays.process_recording.store_recording", description="store_recording"
@@ -216,7 +217,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self,
         message_dict: RecordingSegmentMessage,
         message: Message[KafkaPayload],
-        current_transaction,
+        current_transaction: Transaction,
     ) -> None:
 
         cache_prefix = replay_recording_segment_cache_id(
