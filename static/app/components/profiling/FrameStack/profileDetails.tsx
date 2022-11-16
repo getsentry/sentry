@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {
@@ -20,10 +20,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-
-import {formatVersion} from '../../../utils/formatters';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './frameStack';
 
@@ -48,36 +45,11 @@ function renderValue(
   return value;
 }
 
-function getReleaseProjectId(
-  release: Profiling.Schema['metadata']['release'],
-  selection: PageFilters
-) {
-  if (!release || !release.projects) {
-    return undefined;
-  }
-  // if a release has only one project
-  if (release.projects.length === 1) {
-    return release.projects[0].id;
-  }
-
-  // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
-  if (
-    selection.projects.length === 1 &&
-    release.projects.map(p => p.id).includes(selection.projects[0])
-  ) {
-    return selection.projects[0];
-  }
-
-  // project selector on release detail page will pick it up
-  return undefined;
-}
-
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
-  const pageFilters = usePageFilters();
   const [detailsTab, setDetailsTab] = useState<'device' | 'transaction'>('transaction');
 
   const organizations = useLegacyStore(OrganizationsStore);
@@ -232,6 +204,16 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               props.profileGroup.metadata.release
             ) {
               const release = props.profileGroup.metadata.release;
+              // If a release only contains a version key, then we cannot link to it and
+              // fallback to just displaying the raw version value.
+              if (Object.keys(release).length <= 1 && release.version) {
+                return (
+                  <DetailsRow key={key}>
+                    <strong>{label}:</strong>
+                    <span>{formatVersion(release.version)}</span>
+                  </DetailsRow>
+                );
+              }
               return (
                 <DetailsRow key={key}>
                   <strong>{label}:</strong>
@@ -241,7 +223,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                         organization.slug
                       }/releases/${encodeURIComponent(release.version)}/`,
                       query: {
-                        project: getReleaseProjectId(release, pageFilters.selection),
+                        project: props.profileGroup.metadata.projectID,
                       },
                     }}
                   >
