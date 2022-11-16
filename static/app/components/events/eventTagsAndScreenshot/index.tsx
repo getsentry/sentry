@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
@@ -112,7 +112,9 @@ function EventTagsAndScreenshots({
         pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
         query: {...location.query, types: SCREENSHOT_TYPE},
       }}
-    />
+    >
+      {tn('Screenshot', 'Screenshots', screenshots.length)}
+    </Link>
   );
 
   return (
@@ -135,17 +137,11 @@ function EventTagsAndScreenshots({
       {showScreenshot && (
         <div>
           <ScreenshotWrapper>
-            <ScreenshotDataSection
+            <StyledScreenshotDataSection
               data-test-id="screenshot-data-section"
-              title={
-                screenshots.length > 1
-                  ? tct('[link:Screenshots]', {
-                      link: screenshotLink,
-                    })
-                  : tct('[link:Screenshot]', {
-                      link: screenshotLink,
-                    })
-              }
+              title={tct('[link]', {
+                link: screenshotLink,
+              })}
               description={t(
                 'This image was captured around the time that the event occurred.'
               )}
@@ -162,7 +158,7 @@ function EventTagsAndScreenshots({
                 totalScreenshots={screenshots.length}
                 openVisualizationModal={handleOpenVisualizationModal}
               />
-            </ScreenshotDataSection>
+            </StyledScreenshotDataSection>
           </ScreenshotWrapper>
         </div>
       )}
@@ -189,6 +185,12 @@ const Wrapper = styled(DataSection)<{
     display: grid;
     grid-template-columns: ${p =>
       p.showScreenshot && p.showTags ? 'auto max-content' : '1fr'};
+  }
+`;
+
+const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
+  h3 a {
+    color: ${p => p.theme.linkColor};
   }
 `;
 
