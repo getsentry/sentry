@@ -216,6 +216,8 @@ export default DropdownMenu;
 
 const StyledOverlay = styled(Overlay)`
   max-width: 24rem;
+  overflow-y: scroll;
+  max-height: 90vh;
   @media only screen and (max-width: calc(24rem + ${space(2)} * 2)) {
     max-width: calc(100vw - ${space(2)} * 2);
   }
