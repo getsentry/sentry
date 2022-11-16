@@ -567,8 +567,9 @@ urlpatterns += [
         name="sentry-customer-domain-organization-disabled-member",
     ),
     # Project on-boarding
+    # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
     url(
-        r"^(?P<project_slug>[\w_-]+)/getting-started",
+        r"^getting-started/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-getting-started",
     ),
