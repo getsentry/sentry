@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union
 
-from snuba_sdk import OrderBy
+from snuba_sdk import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
+from sentry.search.events import builder
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -84,12 +87,15 @@ COLUMNS = [
     # We want to alias `project_id` to the column as well
     # because the query builder uses that internally
     Column(alias="project_id", column="project_id", kind=Kind.INTEGER),
+    # Snuba adds a time column for the dataset that rounds the timestamp.
+    # The exact rounding depends on the granularity in the query.
+    Column(alias="time", column="time", kind=Kind.DATE),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class ProfileColumnArg(ColumnArg):
+class ProfileColumnArg(ColumnArg):  # type: ignore
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -102,7 +108,7 @@ class ProfileColumnArg(ColumnArg):
         return value
 
 
-class ProfileNumericColumn(NumericColumn):
+class ProfileNumericColumn(NumericColumn):  # type: ignore
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -147,7 +153,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         "project_id",
     }
 
-    def __init__(self, builder: Any):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property
@@ -310,7 +316,33 @@ class ProfilesDatasetConfig(DatasetConfig):
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
+        return {
+            PROJECT_ALIAS: self._project_slug_orderby_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_orderby_converter,
+        }
+
+    def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
+        projects = self.builder.params.projects
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        # Do not optimize projects list if conditions contain OR operator
+        if not self.builder.has_or_condition and len(self.builder.projects_to_filter) > 0:
+            projects = [
+                project for project in projects if project.id in self.builder.projects_to_filter
+            ]
+
+        return OrderBy(
+            Function(
+                "transform",
+                [
+                    self.builder.column("project.id"),
+                    [project.id for project in projects],
+                    [project.slug for project in projects],
+                    "",
+                ],
+            ),
+            direction,
+        )
 
     def resolve_column(self, column: str) -> str:
         try:
@@ -318,7 +350,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
         try:
             col = COLUMN_MAP[column]
             if col.unit:

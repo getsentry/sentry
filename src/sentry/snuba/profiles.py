@@ -1,30 +1,30 @@
-from typing import Any, List, Optional, Sequence
+from datetime import datetime
+from typing import Any, List, Optional
 
-from snuba_sdk.conditions import Condition, Op
-
-from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import InvalidSearchQuery
-from sentry.search.events.types import ParamsType, WhereType
-from sentry.snuba.discover import transform_tips
-from sentry.utils.snuba import Dataset
+from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
+from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.snuba.discover import transform_tips, zerofill
+from sentry.utils.snuba import Dataset, SnubaTSResult
 
 
 def query(
-    selected_columns: Sequence[str],
+    selected_columns: List[str],
     query: Optional[str],
     params: ParamsType,
-    equations: Optional[Sequence[str]] = None,
-    orderby: Optional[Sequence[str]] = None,
+    snuba_params: Optional[SnubaParams] = None,
+    equations: Optional[List[str]] = None,
+    orderby: Optional[List[str]] = None,
     offset: int = 0,
     limit: int = 50,
-    referrer: Optional[str] = None,
+    referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     use_aggregate_conditions: bool = False,
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
-    functions_acl: Optional[Sequence[str]] = None,
+    functions_acl: Optional[List[str]] = None,
     use_metrics_layer: bool = False,
 ) -> Any:
     if not selected_columns:
@@ -34,11 +34,13 @@ def query(
         dataset=Dataset.Profiles,
         params=params,
         query=query,
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
         auto_fields=auto_fields,
         auto_aggregations=auto_aggregations,
         use_aggregate_conditions=use_aggregate_conditions,
+        transform_alias_to_input_format=transform_alias_to_input_format,
         functions_acl=functions_acl,
         limit=limit,
         offset=offset,
@@ -48,24 +50,48 @@ def query(
     return result
 
 
-class ProfilesQueryBuilder(QueryBuilder):  # type: ignore
-    def resolve_column_name(self, col: str) -> str:
-        return self.config.resolve_column(col)
+def timeseries_query(
+    selected_columns: List[str],
+    query: Optional[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str = "",
+    zerofill_results: bool = True,
+    comparison_delta: Optional[datetime] = None,
+    functions_acl: Optional[List[str]] = None,
+    allow_metric_aggregates: bool = False,
+    has_metrics: bool = False,
+    use_metrics_layer: bool = False,
+) -> Any:
+    builder = ProfilesTimeseriesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        query=query,
+        interval=rollup,
+        selected_columns=selected_columns,
+        functions_acl=functions_acl,
+    )
+    results = builder.run_query(referrer)
 
-    def resolve_params(self) -> List[WhereType]:
-        conditions = super().resolve_params()
-
-        # the profiles dataset requires a condition
-        # on the organization_id in the query
-        conditions.append(
-            Condition(
-                self.column("organization.id"),
-                Op.EQ,
-                self.params["organization_id"],
+    return SnubaTSResult(
+        {
+            "data": zerofill(
+                results["data"],
+                params["start"],
+                params["end"],
+                rollup,
+                "time",
             )
-        )
-
-        return conditions
-
-    def get_field_type(self, field: str) -> Optional[str]:
-        return self.config.resolve_column_type(field)
+            if zerofill_results
+            else results["data"],
+            "meta": {
+                "fields": {
+                    value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
+                    for value in results["meta"]
+                }
+            },
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )

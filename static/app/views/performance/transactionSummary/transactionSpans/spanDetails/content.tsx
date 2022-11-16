@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
@@ -8,7 +8,6 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
@@ -19,6 +18,8 @@ import SuspectSpansQuery, {
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -46,14 +47,14 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
-  useEffect(() => {
-    if (project) {
-      trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
-        organization,
-        project_platforms: getSelectedProjectPlatforms(location, [project]),
-      });
-    }
-  }, [organization, project, location]);
+  // customize the route analytics event we send
+  useRouteAnalyticsEventNames(
+    'performance_views.span_summary.view',
+    'Performance Views: Span Summary page viewed'
+  );
+  useRouteAnalyticsParams({
+    project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
+  });
 
   return (
     <Fragment>

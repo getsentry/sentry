@@ -122,7 +122,7 @@ class EntitySubscriptionTestCase(TestCase):
         ]
         assert snql_query.query.where == [
             Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, None),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
@@ -380,7 +380,7 @@ class EntitySubscriptionTestCase(TestCase):
                             function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
                         ),
                         Op.IN,
-                        [],
+                        [""],
                     ),
                 ]
             ),

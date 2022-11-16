@@ -1,10 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 
 const defaultData = {
@@ -22,35 +19,25 @@ const defaultData = {
     'QueryException',
     'QueryException',
   ],
-  issue: 'SENTRY-VYR',
 };
 
-const features = ['discover-quick-context'];
-
-function makeWrapper(
+function renderComponent(
   eventView,
   handleCellAction,
   columnIndex = 0,
-  data = defaultData,
-  organization = null,
-  showQuickContextMenu = true
+  data = defaultData
 ) {
-  return mountWithTheme(
+  return render(
     <CellAction
       dataRow={data}
       eventView={eventView}
       column={eventView.getColumns()[columnIndex]}
-      organization={organization}
       handleCellAction={handleCellAction}
-      showQuickContextMenu={showQuickContextMenu}
     >
       <strong>some content</strong>
     </CellAction>
   );
 }
-
-jest.mock('sentry/utils/useApi');
-jest.mock('sentry/utils/useOrganization');
 
 describe('Discover -> CellAction', function () {
   const location = {
@@ -67,7 +54,6 @@ describe('Discover -> CellAction', function () {
         'percentile(measurements.fcp, 0.5)',
         'error.handled',
         'error.type',
-        'issue',
       ],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
@@ -82,123 +68,63 @@ describe('Discover -> CellAction', function () {
   };
   const view = EventView.fromLocation(location);
 
-  describe('hover menu button', function () {
-    const wrapper = makeWrapper(view);
+  function hoverContainer() {
+    userEvent.hover(screen.getByText('some content'));
+  }
 
+  function unhoverContainer() {
+    userEvent.unhover(screen.getByText('some content'));
+  }
+
+  function openMenu() {
+    hoverContainer();
+    userEvent.click(screen.getByRole('button'));
+  }
+
+  describe('hover menu button', function () {
     it('shows no menu by default', function () {
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(0);
+      renderComponent(view);
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
     it('shows a menu on hover, and hides again', function () {
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(1);
+      renderComponent(view);
 
-      wrapper.find('Container').simulate('mouseLeave');
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(0);
-    });
-  });
+      hoverContainer();
+      expect(screen.getByRole('button')).toBeInTheDocument();
 
-  describe('hover context button', function () {
-    const organization = TestStubs.Organization({features});
-    let wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
-
-    it('shows no context button by default', function () {
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('shows context button on hover, and hides again for issues column', function () {
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(1);
-
-      wrapper.find('Container').simulate('mouseLeave');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('does not show context button on hover for non-issue column', function () {
-      wrapper = makeWrapper(view, jest.fn(), 1);
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
-    });
-
-    it('does not show context button on hover for with showQuickContextMenu prop set to false', function () {
-      wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization, false);
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
+      unhoverContainer();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
 
   describe('opening the menu', function () {
-    const wrapper = makeWrapper(view);
-    wrapper.find('Container').simulate('mouseEnter');
-
     it('toggles the menu on click', function () {
-      // Button should be rendered.
-      expect(wrapper.find('button[data-test-id="action-menu-button"]')).toHaveLength(1);
-      wrapper.find('button[data-test-id="action-menu-button"]').simulate('click');
-
-      // Menu should show now.
-      expect(wrapper.find('div[data-test-id="action-menu"]')).toHaveLength(1);
-    });
-  });
-
-  describe('opening and closing the context popover', function () {
-    const organization = TestStubs.Organization({features});
-    const wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
-    wrapper.find('Container').simulate('mouseEnter');
-
-    it('toggles the context popover on click', async () => {
-      const api = new MockApiClient();
-      jest.spyOn(api, 'requestPromise').mockResolvedValue({
-        id: '3512441874',
-        project: {
-          id: '1',
-          slug: 'cool-team',
-        },
-        status: 'ignored',
-        assignedTo: {
-          id: '12312',
-          name: 'ingest',
-          type: 'team',
-        },
-      });
-      // @ts-ignore useApi and useOrganization is mocked
-      useOrganization.mockReturnValue(organization);
-      useApi.mockReturnValue(api);
-
-      const contextButton = wrapper.find('button[data-test-id="context-button"]');
-      expect(contextButton).toHaveLength(1);
-
-      // Click to show popover.
-      contextButton.simulate('click');
-      await waitFor(() => {
-        expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(1);
-      });
-
-      // Click again to hide popover.
-      contextButton.simulate('click');
-      expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(0);
+      renderComponent(view);
+      openMenu();
+      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
     });
   });
 
   describe('per cell actions', function () {
-    let wrapper;
     let handleCellAction;
+
     beforeEach(function () {
       handleCellAction = jest.fn();
-      wrapper = makeWrapper(view, handleCellAction);
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('button[data-test-id="action-menu-button"]').simulate('click');
     });
 
     it('add button appends condition', function () {
-      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+      renderComponent(view, handleCellAction);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
     it('exclude button adds condition', function () {
-      wrapper.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+      renderComponent(view, handleCellAction);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
@@ -207,28 +133,25 @@ describe('Discover -> CellAction', function () {
       const excludeView = EventView.fromLocation({
         query: {...location.query, query: '!transaction:nope'},
       });
-      wrapper = makeWrapper(excludeView, handleCellAction);
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      wrapper.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+      renderComponent(excludeView, handleCellAction);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
     it('go to summary button goes to transaction summary page', function () {
-      wrapper.find('button[data-test-id="transaction-summary"]').simulate('click');
+      renderComponent(view, handleCellAction);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
     });
 
     it('go to release button goes to release health page', function () {
-      wrapper = makeWrapper(view, handleCellAction, 3);
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="release"]').simulate('click');
+      renderComponent(view, handleCellAction, 3);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'release',
@@ -237,12 +160,9 @@ describe('Discover -> CellAction', function () {
     });
 
     it('greater than button adds condition', function () {
-      wrapper = makeWrapper(view, handleCellAction, 2);
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="show-values-greater-than"]').simulate('click');
+      renderComponent(view, handleCellAction, 2);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_greater_than',
@@ -251,12 +171,9 @@ describe('Discover -> CellAction', function () {
     });
 
     it('less than button adds condition', function () {
-      wrapper = makeWrapper(view, handleCellAction, 2);
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="show-values-less-than"]').simulate('click');
+      renderComponent(view, handleCellAction, 2);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_less_than',
@@ -265,25 +182,17 @@ describe('Discover -> CellAction', function () {
     });
 
     it('error.handled with null adds condition', function () {
-      wrapper = makeWrapper(view, handleCellAction, 7, defaultData);
-
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+      renderComponent(view, handleCellAction, 7, defaultData);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 1);
     });
 
     it('error.type with array values adds condition', function () {
-      wrapper = makeWrapper(view, handleCellAction, 8, defaultData);
-
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+      renderComponent(view, handleCellAction, 8, defaultData);
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [
         'ServerException',
@@ -294,143 +203,148 @@ describe('Discover -> CellAction', function () {
     });
 
     it('error.handled with 0 adds condition', function () {
-      wrapper = makeWrapper(view, handleCellAction, 7, {
+      renderComponent(view, handleCellAction, 7, {
         ...defaultData,
         'error.handled': [0],
       });
-
-      // Show button and menu.
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-
-      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+      openMenu();
+      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [0]);
     });
 
     it('show appropriate actions for string cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 0);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      renderComponent(view, handleCellAction, 0);
+      openMenu();
+
+      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeTruthy();
+        screen.getByRole('button', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeFalsy();
+        screen.queryByRole('button', {name: 'Show values greater than'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeFalsy();
+        screen.queryByRole('button', {name: 'Show values less than'})
+      ).not.toBeInTheDocument();
     });
 
     it('show appropriate actions for string cells with null values', function () {
-      wrapper = makeWrapper(view, handleCellAction, 4);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      renderComponent(view, handleCellAction, 4);
+      openMenu();
+
+      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeTruthy();
+        screen.getByRole('button', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
     });
 
     it('show appropriate actions for number cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 1);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeFalsy();
+      renderComponent(view, handleCellAction, 1);
+      openMenu();
+
       expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeFalsy();
+        screen.queryByRole('button', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeTruthy();
+        screen.queryByRole('button', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeTruthy();
+        screen.getByRole('button', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Show values less than'})
+      ).toBeInTheDocument();
     });
 
     it('show appropriate actions for date cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 2);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      renderComponent(view, handleCellAction, 2);
+      openMenu();
+
+      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeFalsy();
+        screen.queryByRole('button', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeTruthy();
+        screen.getByRole('button', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeTruthy();
+        screen.getByRole('button', {name: 'Show values less than'})
+      ).toBeInTheDocument();
     });
 
     it('show appropriate actions for release cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 3);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeTruthy();
+      renderComponent(view, handleCellAction, 3);
+      openMenu();
 
-      wrapper = makeWrapper(view, handleCellAction, 3, {
-        ...defaultData,
-        release: null,
-      });
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Go to release'})).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty release cells', function () {
+      renderComponent(view, handleCellAction, 3, {...defaultData, release: null});
+      openMenu();
+
+      expect(
+        screen.queryByRole('button', {name: 'Go to release'})
+      ).not.toBeInTheDocument();
     });
 
     it('show appropriate actions for measurement cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 5);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeTruthy();
-      expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeTruthy();
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeFalsy();
-      expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeFalsy();
+      renderComponent(view, handleCellAction, 5);
+      openMenu();
 
-      wrapper = makeWrapper(view, handleCellAction, 5, {
+      expect(
+        screen.queryByRole('button', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty measurement cells', function () {
+      renderComponent(view, handleCellAction, 5, {
         ...defaultData,
         'measurements.fcp': null,
       });
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
+      openMenu();
+
+      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeFalsy();
+        screen.getByRole('button', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeFalsy();
-      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+        screen.queryByRole('button', {name: 'Show values greater than'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeTruthy();
+        screen.queryByRole('button', {name: 'Show values less than'})
+      ).not.toBeInTheDocument();
     });
 
     it('show appropriate actions for numeric function cells', function () {
-      wrapper = makeWrapper(view, handleCellAction, 6);
-      wrapper.find('Container').simulate('mouseEnter');
-      wrapper.find('MenuButton').simulate('click');
-      expect(
-        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
-      ).toBeTruthy();
-      expect(
-        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
-      ).toBeTruthy();
+      renderComponent(view, handleCellAction, 6);
+      openMenu();
 
-      wrapper = makeWrapper(view, handleCellAction, 6, {
+      expect(
+        screen.getByRole('button', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty numeric function cells', function () {
+      renderComponent(view, handleCellAction, 6, {
         ...defaultData,
         'percentile(measurements.fcp, 0.5)': null,
       });
-      wrapper.find('Container').simulate('mouseEnter');
-      expect(wrapper.find('MenuButton').exists()).toBeFalsy();
+      hoverContainer();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
 });

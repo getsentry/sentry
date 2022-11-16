@@ -5,6 +5,8 @@ export enum SidebarPanelKey {
   OnboardingWizard = 'todos',
   ServiceIncidents = 'statusupdate',
   PerformanceOnboarding = 'performance_onboarding',
+  ReplaysOnboarding = 'replays_onboarding',
+  ProfilingOnboarding = 'profiling_onboarding',
 }
 
 export type CommonSidebarProps = {

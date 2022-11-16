@@ -1,27 +1,19 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
-logger = logging.getLogger("sentry.integrations.utils.code_mapping")
+from .repo import Repo, RepoTree
+
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 NO_TOP_DIR = "NO_TOP_DIR"
 
 
-class Repo(NamedTuple):
-    name: str
-    branch: str
-
-
 class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
-
-
-class RepoTree(NamedTuple):
-    repo: Repo
-    files: List[str]
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -31,15 +23,17 @@ class FrameFilename:
         if stacktrace_frame_file_path.find("/") > -1:
             # XXX: This code assumes that all stack trace frames are part of a module
             self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
-            # Does it have more than one level?
+
+            # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
                 self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
             else:
-                # A package name + a file (e.g. requests/models.py)
+                # A package name, a file but no dir (e.g. requests/models.py)
                 self.dir_path = ""
                 self.file_name = self.file_and_dir_path
         else:
             self.root = ""
+            self.dir_path = ""
             self.file_and_dir_path = self.full_path
             self.file_name = self.full_path
 
@@ -50,6 +44,7 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+# call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
@@ -109,9 +104,16 @@ class CodeMappingTreesHelper:
         _code_mappings: List[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
-            _code_mappings.extend(
-                self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
-            )
+            try:
+                _code_mappings.extend(
+                    self._generate_code_mapping_from_tree(
+                        self.trees[repo_full_name], frame_filename
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continues."
+                )
 
         if len(_code_mappings) == 0:
             logger.warning(f"No files matched for {frame_filename.full_path}")
@@ -123,14 +125,25 @@ class CodeMappingTreesHelper:
 
         return _code_mappings[0]
 
+    def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
+        """Generate the source path of a code mapping
+        e.g. src/sentry/identity/oauth2.py -> src/sentry
+        e.g. ssl.py -> raise NotImplementedError
+        """
+        if frame_filename.dir_path != "":
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            return f"{source_path}/"
+        else:
+            raise NotImplementedError("We do not support top level files.")
+
     def _generate_code_mapping_from_tree(
         self,
-        repo_full_name: str,
+        repo_tree: RepoTree,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
         matched_files = [
             src_path
-            for src_path in self.trees[repo_full_name].files
+            for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
         # It is too risky generating code mappings when there's more
@@ -138,10 +151,11 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=self.trees[repo_full_name].repo,
-                    stacktrace_root=frame_filename.root,  # sentry
-                    # e.g. src/sentry/identity/oauth2.py -> src/sentry
-                    source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),
+                    repo=repo_tree.repo,
+                    stacktrace_root=f"{frame_filename.root}/",  # sentry
+                    source_path=self._get_code_mapping_source_path(
+                        matched_files[0], frame_filename
+                    ),
                 )
             ]
             if len(matched_files) == 1
@@ -169,4 +183,15 @@ class CodeMappingTreesHelper:
         if self._matches_current_code_mappings(src_file, frame_filename):
             return False
 
-        return src_file.rfind(frame_filename.file_and_dir_path) > -1
+        match = False
+        # For instance:
+        #  src_file: "src/sentry/integrations/slack/client.py"
+        #  frame_filename.full_path: "sentry/integrations/slack/client.py"
+        split = src_file.split(frame_filename.file_and_dir_path)
+        if len(split) > 1:
+            # This is important because we only want stack frames to match when they
+            # include the exact package name
+            # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
+            match = split[0].rfind(f"{frame_filename.root}/") > -1
+
+        return match

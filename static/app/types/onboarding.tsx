@@ -23,6 +23,12 @@ export enum OnboardingTaskKey {
   INTEGRATIONS = 'integrations',
   /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
   FIRST_INTEGRATION = 'setup_integrations',
+  SESSION_REPLAY = 'setup_session_replay',
+  /// Demo New Walkthrough Tasks
+  SIDEBAR_GUIDE = 'sidebar_guide',
+  ISSUE_GUIDE = 'issue_guide',
+  RELEASE_GUIDE = 'release_guide',
+  PERFORMANCE_GUIDE = 'performance_guide',
 }
 
 export type OnboardingSupplementComponentProps = {

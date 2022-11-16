@@ -268,7 +268,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
               )}
             >
-              <TextCopyInput>
+              <TextCopyInput aria-label={t('Token value')}>
                 {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
               </TextCopyInput>
             </Tooltip>
@@ -460,15 +460,15 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value}) => (
-                      <TextCopyInput>
+                    {({value, id}) => (
+                      <TextCopyInput id={id}>
                         {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
                     )}
                   </FormField>
                 )}
                 <FormField name="clientSecret" label="Client Secret">
-                  {({value}) =>
+                  {({value, id}) =>
                     value ? (
                       <Tooltip
                         disabled={this.showAuthInfo}
@@ -478,7 +478,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                           'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
                         )}
                       >
-                        <TextCopyInput>
+                        <TextCopyInput id={id}>
                           {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                         </TextCopyInput>
                       </Tooltip>

@@ -11,9 +11,10 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import exempt_from_silo_limits
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
@@ -23,24 +24,29 @@ from sentry.types.activity import ActivityType
 
 class Fixtures:
     @cached_property
+    @exempt_from_silo_limits()
     def session(self):
         return Factories.create_session()
 
     @cached_property
+    @exempt_from_silo_limits()
     def projectkey(self):
         return self.create_project_key(project=self.project)
 
     @cached_property
+    @exempt_from_silo_limits()
     def user(self):
         return self.create_user("admin@localhost", is_superuser=True)
 
     @cached_property
+    @exempt_from_silo_limits()
     def organization(self):
         # XXX(dcramer): ensure that your org slug doesnt match your team slug
         # and the same for your project slug
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
+    @exempt_from_silo_limits()
     def team(self):
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
@@ -50,25 +56,30 @@ class Fixtures:
         return team
 
     @cached_property
+    @exempt_from_silo_limits()
     def project(self):
         return self.create_project(
             name="Bar", slug="bar", teams=[self.team], fire_project_created=True
         )
 
     @cached_property
+    @exempt_from_silo_limits()
     def release(self):
         return self.create_release(project=self.project, version="foo-1.0")
 
     @cached_property
+    @exempt_from_silo_limits()
     def environment(self):
         return self.create_environment(name="development", project=self.project)
 
     @cached_property
+    @exempt_from_silo_limits()
     def group(self):
         # こんにちは konichiwa
         return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property
+    @exempt_from_silo_limits()
     def event(self):
         return self.store_event(
             data={
@@ -80,6 +91,7 @@ class Fixtures:
         )
 
     @cached_property
+    @exempt_from_silo_limits()
     def activity(self):
         return Activity.objects.create(
             group=self.group,
@@ -90,6 +102,7 @@ class Fixtures:
         )
 
     @cached_property
+    @exempt_from_silo_limits()
     def integration(self):
         integration = Integration.objects.create(
             provider="github", name="GitHub", external_id="github:1"
@@ -98,6 +111,7 @@ class Fixtures:
         return integration
 
     @cached_property
+    @exempt_from_silo_limits()
     def organization_integration(self):
         return self.integration.add_organization(self.organization, self.user)
 
@@ -376,7 +390,7 @@ class Fixtures:
         self,
         organization: "Organization",
         external_id: str = "TXXXXXXX1",
-        user: User = None,
+        user: APIUser = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

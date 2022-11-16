@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import reduce
 from typing import List, Mapping, Optional
 
@@ -5,9 +7,8 @@ from snuba_sdk import Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Release, SemverFilter
-from sentry.search.events import constants
-from sentry.search.events.builder import QueryBuilder
+from sentry.models import Release, SemverFilter
+from sentry.search.events import builder, constants
 from sentry.search.events.filter import (
     _flip_field_sort,
     handle_operator_negation,
@@ -19,7 +20,9 @@ from sentry.search.utils import parse_release
 from sentry.utils.strings import oxfordize_list
 
 
-def team_key_transaction_filter(builder: QueryBuilder, search_filter: SearchFilter) -> WhereType:
+def team_key_transaction_filter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType:
     value = search_filter.value.value
     key_transaction_expr = builder.resolve_field_alias(constants.TEAM_KEY_TRANSACTION_ALIAS)
 
@@ -37,7 +40,9 @@ def team_key_transaction_filter(builder: QueryBuilder, search_filter: SearchFilt
     )
 
 
-def release_filter_converter(builder: QueryBuilder, search_filter: SearchFilter) -> WhereType:
+def release_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> Optional[WhereType]:
     """Parse releases for potential aliases like `latest`"""
     if search_filter.value.is_wildcard():
         operator = search_filter.operator
@@ -47,13 +52,13 @@ def release_filter_converter(builder: QueryBuilder, search_filter: SearchFilter)
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             reduce(
-                lambda x, y: x + y,
+                lambda x, y: x + y,  # type: ignore
                 [
                     parse_release(
                         v,
-                        builder.params["project_id"],
-                        builder.params.get("environment_objects"),
-                        builder.params.get("organization_id"),
+                        builder.params.project_ids,
+                        builder.params.environments,
+                        builder.params.organization.id if builder.params.organization else None,
                     )
                     for v in to_list(search_filter.value.value)
                 ],
@@ -65,7 +70,7 @@ def release_filter_converter(builder: QueryBuilder, search_filter: SearchFilter)
 
 
 def project_slug_converter(
-    builder: QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> Optional[WhereType]:
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
@@ -79,7 +84,9 @@ def project_slug_converter(
 
     slugs = to_list(value)
     project_slugs: Mapping[str, int] = {
-        slug: project_id for slug, project_id in builder.project_slugs.items() if slug in slugs
+        slug: project_id
+        for slug, project_id in builder.params.project_slug_map.items()
+        if slug in slugs
     }
     missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
@@ -106,28 +113,23 @@ def project_slug_converter(
 
 
 def release_stage_filter_converter(
-    builder: QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> Optional[WhereType]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
     """
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
     # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
-
-    if "organization_id" not in builder.params:
-        raise ValueError("organization_id is a required param")
-
-    organization_id: int = builder.params["organization_id"]
-    project_ids: Optional[List[int]] = builder.params.get("project_id")
-    environments: Optional[List[Environment]] = builder.params.get("environment_objects", [])
     qs = (
         Release.objects.filter_by_stage(
-            organization_id,
+            builder.params.organization.id,
             search_filter.operator,
             search_filter.value.value,
-            project_ids=project_ids,
-            environments=environments,
+            project_ids=builder.params.project_ids,
+            environments=builder.params.environments,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[: constants.MAX_SEARCH_RELEASES]
@@ -142,7 +144,7 @@ def release_stage_filter_converter(
 
 
 def semver_filter_converter(
-    builder: QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> Optional[WhereType]:
     """
     Parses a semver query search and returns a snuba condition to filter to the
@@ -159,11 +161,9 @@ def semver_filter_converter(
        the passed filter. This means that when searching for `>= 1.0.0`, we'll return
        version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
     """
-    if "organization_id" not in builder.params:
-        raise ValueError("organization_id is a required param")
-
-    organization_id: int = builder.params["organization_id"]
-    project_ids: Optional[List[int]] = builder.params.get("project_id")
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
+    organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
@@ -178,7 +178,7 @@ def semver_filter_converter(
         Release.objects.filter_by_semver(
             organization_id,
             parse_semver(version, operator),
-            project_ids=project_ids,
+            project_ids=builder.params.project_ids,
         )
         .values_list("version", flat=True)
         .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
@@ -214,24 +214,21 @@ def semver_filter_converter(
 
 
 def semver_package_filter_converter(
-    builder: QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> Optional[WhereType]:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
     """
-    if "organization_id" not in builder.params:
-        raise ValueError("organization_id is a required param")
-
-    organization_id: int = builder.params["organization_id"]
-    project_ids: Optional[List[int]] = builder.params.get("project_id")
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     package: str = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver(
-            organization_id,
+            builder.params.organization.id,
             SemverFilter("exact", [], package),
-            project_ids=project_ids,
+            project_ids=builder.params.project_ids,
         ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
     )
 
@@ -243,17 +240,14 @@ def semver_package_filter_converter(
 
 
 def semver_build_filter_converter(
-    builder: QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> Optional[WhereType]:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
     """
-    if "organization_id" not in builder.params:
-        raise ValueError("organization_id is a required param")
-
-    organization_id: int = builder.params["organization_id"]
-    project_ids: Optional[List[int]] = builder.params.get("project_id")
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     build: str = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
@@ -263,10 +257,10 @@ def semver_build_filter_converter(
         raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
     versions = list(
         Release.objects.filter_by_semver_build(
-            organization_id,
+            builder.params.organization.id,
             django_op,
             build,
-            project_ids=project_ids,
+            project_ids=builder.params.project_ids,
             negated=negated,
         ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
     )

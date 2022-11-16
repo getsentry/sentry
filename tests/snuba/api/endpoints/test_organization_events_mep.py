@@ -403,7 +403,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "count_miserable(user)",
                         "user_misery()",
                         "failure_rate()",
+                        "failure_count()",
                     ],
+                    "orderby": "tpm()",
                     "query": "event.type:transaction",
                     "dataset": dataset,
                     "per_page": 50,
@@ -425,6 +427,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert data["count_miserable(user)"] == 1.0
             assert data["user_misery()"] == 0.058
             assert data["failure_rate()"] == 1
+            assert data["failure_count()"] == 1
 
             assert meta["isMetricsData"]
             assert field_meta["transaction"] == "string"
@@ -437,6 +440,105 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
             assert field_meta["failure_rate()"] == "percentage"
+            assert field_meta["failure_count()"] == "integer"
+
+    def test_user_misery_and_team_key_sort(self):
+        self.store_transaction_metric(
+            1,
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            "measurements.fcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            2,
+            "measurements.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            3,
+            "measurements.fid",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            4,
+            "measurements.cls",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            "user",
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_FRUSTRATED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "project",
+                    "tpm()",
+                    "p75(measurements.fcp)",
+                    "p75(measurements.lcp)",
+                    "p75(measurements.fid)",
+                    "p75(measurements.cls)",
+                    "count_unique(user)",
+                    "apdex()",
+                    "count_miserable(user)",
+                    "user_misery()",
+                    "failure_rate()",
+                    "failure_count()",
+                ],
+                "orderby": ["team_key_transaction", "user_misery()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"][0]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data["transaction"] == "foo_transaction"
+        assert data["project"] == self.project.slug
+        assert data["p75(measurements.fcp)"] == 1.0
+        assert data["p75(measurements.lcp)"] == 2.0
+        assert data["p75(measurements.fid)"] == 3.0
+        assert data["p75(measurements.cls)"] == 4.0
+        assert data["apdex()"] == 1.0
+        assert data["count_miserable(user)"] == 1.0
+        assert data["user_misery()"] == 0.058
+        assert data["failure_rate()"] == 1
+        assert data["failure_count()"] == 1
+
+        assert meta["isMetricsData"]
+        assert field_meta["transaction"] == "string"
+        assert field_meta["project"] == "string"
+        assert field_meta["p75(measurements.fcp)"] == "duration"
+        assert field_meta["p75(measurements.lcp)"] == "duration"
+        assert field_meta["p75(measurements.fid)"] == "duration"
+        assert field_meta["p75(measurements.cls)"] == "number"
+        assert field_meta["apdex()"] == "number"
+        assert field_meta["count_miserable(user)"] == "integer"
+        assert field_meta["user_misery()"] == "number"
+        assert field_meta["failure_rate()"] == "percentage"
+        assert field_meta["failure_count()"] == "integer"
 
     def test_no_team_key_transactions(self):
         self.store_transaction_metric(
@@ -1774,6 +1876,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["p50(transaction.duration)"] == 1.5
 
+    def test_unparam_filter(self):
+        self.store_transaction_metric(
+            1,
+            # Transaction: unparam
+            tags={
+                "transaction": "<< unparameterized >>",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            2,
+            # Transaction:null
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            3,
+            tags={
+                "transaction": "foo_transaction",
+            },
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "count()",
+            ],
+            "query": 'transaction:"<< unparameterized >>"',
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == "<< unparameterized >>"
+        assert response.data["data"][0]["count()"] == 2
+
     def test_custom_measurements_without_function(self):
         self.store_transaction_metric(
             33,
@@ -1882,6 +2027,60 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
 
+    def test_transaction_wildcard(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p90()",
+                ],
+                "query": "transaction:foo*",
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p90()"] == 1
+
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+        assert data[0]["transaction"] == "foo_transaction"
+
+    def test_transaction_status_wildcard(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p90()",
+                ],
+                "query": "transaction.status:f*bar",
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p90()"] == 1
+
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -1905,11 +2104,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_project_threshold(self):
-        super().test_apdex_project_threshold()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_transaction_threshold(self):
-        super().test_apdex_transaction_threshold()

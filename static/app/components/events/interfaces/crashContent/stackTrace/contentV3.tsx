@@ -1,6 +1,7 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Frame, Group, PlatformType} from 'sentry/types';
@@ -239,11 +240,11 @@ function Content({
 
 export default Content;
 
-const Wrapper = styled('div')`
+const Wrapper = styled(Panel)`
   && {
+    border-top-left-radius: 0;
+    position: relative;
     border: 0;
-    box-shadow: none;
-    margin: 0;
   }
 `;
 

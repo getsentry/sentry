@@ -89,8 +89,9 @@ type Props = {
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
-  projectId?: string;
+  projectSlug?: string;
   referrer?: string;
+  showReplayCol?: boolean;
   totalEventCount?: string;
 };
 
@@ -149,7 +150,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectId} = this.props;
+    const {eventView, organization, location, transactionName, projectSlug} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -161,7 +162,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
-      projectId,
+      projectSlug,
     });
 
     const allowActions = [
@@ -179,13 +180,12 @@ class EventsTable extends Component<Props, State> {
       const {issueId} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
+      // TODO: set referrer properly
       if (isIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
-        target.search = '?referrer=events-table';
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
         target = generateLink(transactionName)(organization, dataRow, location.query);
-        // TODO: add referrer
       }
 
       return (
@@ -296,7 +296,7 @@ class EventsTable extends Component<Props, State> {
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
-      field.field !== 'replayid' &&
+      field.field !== 'replayId' &&
       field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 
@@ -342,8 +342,15 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, totalEventCount, referrer} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      setError,
+      totalEventCount,
+      referrer,
+      showReplayCol,
+    } = this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -356,11 +363,14 @@ class EventsTable extends Component<Props, State> {
         (col: TableColumn<React.ReactText>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );
+
     const columnOrder = eventView
       .getColumns()
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
+          ((!containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)) &&
+            col.name !== 'replayId') ||
+          showReplayCol
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -444,7 +454,10 @@ class EventsTable extends Component<Props, State> {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
             const shouldFetchAttachments: boolean =
-              !!this.props.issueId && !!cursor && this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
+              organization.features.includes('event-attachments') &&
+              !!this.props.issueId &&
+              !!cursor &&
+              this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;

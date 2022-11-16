@@ -111,7 +111,7 @@ const Subheader = styled('h4')`
   margin-bottom: ${space(2)};
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

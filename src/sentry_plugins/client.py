@@ -5,7 +5,7 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized
 class ApiClient(BaseApiClient):
     integration_type = "plugin"
 
-    datadog_prefix = "sentry-plugins"
+    metrics_prefix = "sentry-plugins"
 
     log_path = "sentry.plugins.client"
 
@@ -64,7 +64,7 @@ class AuthApiClient(ApiClient):
 class InternalApiClient(BaseInternalApiClient):
     integration_type = "plugin"
 
-    datadog_prefix = "sentry-plugins"
+    metrics_prefix = "sentry-plugins"
 
     log_path = "sentry.plugins.client"
 

@@ -52,7 +52,9 @@ class ProjectManager(BaseManager):
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
-            projectteam__team__organizationmemberteam__organizationmember__user__in=users,
+            projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
+                lambda u: u.id, users
+            ),
         ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
 
         projects_by_user_id = defaultdict(set)
@@ -141,6 +143,15 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
             ("has_replays", "This Project has sent replays"),
+            ("spike_protection_error_currently_active", "spike_protection_error_currently_active"),
+            (
+                "spike_protection_transaction_currently_active",
+                "spike_protection_transaction_currently_active",
+            ),
+            (
+                "spike_protection_attachment_currently_active",
+                "spike_protection_attachment_currently_active",
+            ),
         ),
         default=10,
         null=True,
@@ -336,8 +347,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         rules = Rule.objects.filter(owner_id__isnull=False, project=self)
         for rule in list(chain(alert_rules, rules)):
             actor = rule.owner
+            is_member = False
             if actor.type == ACTOR_TYPES["user"]:
-                is_member = organization.member_set.filter(user=actor.resolve()).exists()
+                is_member = organization.member_set.filter(user_id=actor.resolve().id).exists()
             if actor.type == ACTOR_TYPES["team"]:
                 is_member = actor.resolve().organization_id == organization.id
             if not is_member:
