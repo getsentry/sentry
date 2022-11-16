@@ -538,7 +538,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
             <GuideAnchor target="images-loaded" position="bottom">
               <Title>{t('Images Loaded')}</Title>
             </GuideAnchor>
-            <QuestionTooltip
+            <StyledQuestionTooltip
               size="xs"
               position="top"
               title={t(
@@ -638,4 +638,8 @@ const ToggleButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  z-index: 2;
 `;
