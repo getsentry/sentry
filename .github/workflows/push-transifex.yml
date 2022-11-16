@@ -1,14 +1,12 @@
 name: push transifex
 on:
-  # pull_request:
-  workflow_dispatch:
+  pull_request:
+  # workflow_dispatch:
   # schedule:
   #   - cron: '0 0 1,15 * *'
 jobs:
-  jest-balance:
-    # Buckle up, this may take a while
-    timeout-minutes: 60
-    # Make sure this matches the runner that runs frontend tests
+  push-transifex:
+    timeout-minutes: 30
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
