@@ -242,6 +242,44 @@ describe('Results', function () {
       );
     });
 
+    it('renders metric fallback alert', async function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {fromMetric: true, id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          /You've navigated to this page from a performance metric widget generated from processed events/
+        )
+      ).toBeInTheDocument();
+    });
+
     it('renders unparameterized data banner', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
