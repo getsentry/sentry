@@ -269,7 +269,7 @@ class BaseGroupSidebar extends Component<Props, State> {
               event={event}
               title={
                 <div>
-                  {t('Tag Summary')} <FeatureBadge type="alpha" />
+                  {t('Tag Summary')} <FeatureBadge type="beta" />
                 </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
