@@ -8,9 +8,9 @@ from typing import List
 def run_cmd(
     args: List[str],
     *,
-    retries=3,
-    timeout=5,
-):
+    retries: int = 3,
+    timeout: int = 5,
+) -> int:
     cmd = " ".join(args)
     for retry in range(1, retries + 1):
         logging.info(f"Running {retry} health check {cmd!r}...")
@@ -29,7 +29,7 @@ def run_cmd(
     return 1
 
 
-def main():
+def main() -> None:
     # Available health checks
     postgres_healthcheck = "docker exec sentry_postgres pg_isready -U postgres".split(" ")
     kafka_healthcheck = (
