@@ -226,6 +226,7 @@ interface Props {
   onReset: (rowIndex: number, name: string, value: string) => void;
   organization: Organization;
   project: Project;
+  incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   ownership?: null | IssueOwnership;
@@ -243,6 +244,7 @@ function RuleNode({
   onReset,
   ownership,
   incompatibleRule,
+  incompatibleBanner,
 }: Props) {
   const handleDelete = useCallback(() => {
     onDelete(index);
@@ -447,14 +449,12 @@ function RuleNode({
   }
 
   function renderIncompatibleRuleBanner() {
-    if (!incompatibleRule) {
+    if (!incompatibleBanner) {
       return null;
     }
     return (
       <MarginlessAlert type="error" showIcon>
-        {t(
-          'This condition conflicts with other condition(s) above. Please select a different condition.'
-        )}
+        {t('These conditions conflict, please select different conditions.')}
       </MarginlessAlert>
     );
   }
@@ -510,7 +510,7 @@ function RuleNode({
   const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
   const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
   return (
-    <RuleRowContainer>
+    <RuleRowContainer incompatible={incompatibleRule}>
       <RuleRow>
         <Rule>
           {isNew && <StyledFeatureBadge type="new" />}
@@ -610,10 +610,11 @@ const RuleRow = styled('div')`
   padding: ${space(1)};
 `;
 
-const RuleRowContainer = styled('div')`
+const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.innerBorder} solid;
+  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
 `;
 
 const Rule = styled('div')`
