@@ -71,12 +71,10 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
   const isReplayEnabled = organization.features.includes('session-replay-ui');
 
-  const {fields, columnTitles} = getPlatformColumns(
-    group.project.platform ?? group.platform,
-    {isReplayEnabled}
-  );
+  const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
+    getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});
 
-  const baseFields: string[] = [
+  const fields: string[] = [
     'id',
     'transaction',
     'title',
@@ -85,13 +83,13 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'user.display',
     'device',
     'os',
-    ...fields,
+    ...platformSpecificFields,
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
     ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
-  const baseColumnTitles: string[] = [
+  const columnTitles: string[] = [
     t('event id'),
     t('transaction'),
     t('title'),
@@ -100,7 +98,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     t('user'),
     t('device'),
     t('os'),
-    ...columnTitles,
+    ...platformSpecificColumnTitles,
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
     t('minidump'),
@@ -108,8 +106,8 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   ];
 
   return {
-    fields: baseFields,
-    columnTitles: baseColumnTitles,
+    fields,
+    columnTitles,
   };
 };
 
