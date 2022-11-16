@@ -85,6 +85,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
+        last_error = None
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
         # the ordering is deterministic
@@ -95,8 +96,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         with configure_scope() as scope:
             for config in configs:
                 if not filepath.startswith(config.stack_root) and not frame:
-                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    result["error"] = "stack_root_mismatch"
+                    last_error = "stack_root_mismatch"
                     continue
 
                 result["config"] = serialize(config, request.user)
@@ -106,7 +106,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 scope.set_tag("integration_provider", provider)
                 scope.set_tag("stacktrace_link.platform", platform)
 
-                link, attempted_url, error = get_link(
+                link, attempted_url, get_link_error = get_link(
                     config, filepath, config.default_branch, commit_id
                 )
 
@@ -122,8 +122,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                             if not filepath.startswith(
                                 config.stack_root
                             ) and not munged_filename.startswith(config.stack_root):
-                                scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                                result["error"] = "stack_root_mismatch"
+                                last_error = "stack_root_mismatch"
                                 continue
 
                             link, attempted_url, error = get_link(
@@ -135,14 +134,21 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # configuration
                 result["sourceUrl"] = link
                 if not link:
-                    scope.set_tag("stacktrace_link.found", False)
-                    scope.set_tag("stacktrace_link.error", "file_not_found")
-                    result["error"] = error
+                    last_error = get_link_error
                     result["attemptedUrl"] = attempted_url
                 else:
                     scope.set_tag("stacktrace_link.found", True)
                     # if we found a match, we can break
                     break
+
+            # Post-processing before exiting scope context
+            if last_error:
+                result["error"] = last_error
+                if last_error == "stack_root_mismatch":
+                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                else:
+                    scope.set_tag("stacktrace_link.found", False)
+                    scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(
