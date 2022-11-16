@@ -280,7 +280,7 @@ const IconGrabbableWrapper = styled('div')`
 `;
 
 const ConditionEqualOperator = styled('div')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
 `;
 
 const Operator = styled('div')`
