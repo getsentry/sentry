@@ -1,7 +1,7 @@
 Details
 -------
 
-http://testserver/organizations/sentry/issues/2/?referrer=alert_email&amp;alert_type=email&amp;alert_timestamp=1337&amp;alert_rule_id=1
+http://testserver/organizations/sentry/issues/1/?referrer=alert_email&amp;alert_type=email&amp;alert_timestamp=1337&amp;alert_rule_id=1
 
 
 Suspect Commits
