@@ -423,8 +423,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   checkIncompatibleRule = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
       const incompatibleRule = findIncompatibleRules(this.state.rule);
-      this.setState({incompatibleConditions: incompatibleRule.conditionIndices});
-      this.setState({incompatibleFilters: incompatibleRule.filterIndices});
+      this.setState({
+        incompatibleConditions: incompatibleRule.conditionIndices,
+        incompatibleFilters: incompatibleRule.filterIndices,
+      });
     }
   }, 500);
 
@@ -1239,9 +1241,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                 incompatibleBanner={
                                   incompatibleFilters === null &&
                                   incompatibleConditions !== null
-                                    ? incompatibleConditions[
-                                        incompatibleConditions.length - 1
-                                      ]
+                                    ? incompatibleConditions.at(-1)
                                     : null
                                 }
                               />
@@ -1316,9 +1316,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                 }
                                 incompatibleRules={incompatibleFilters}
                                 incompatibleBanner={
-                                  incompatibleFilters
-                                    ? incompatibleFilters[incompatibleFilters.length - 1]
-                                    : null
+                                  incompatibleFilters ? incompatibleFilters.at(-1) : null
                                 }
                               />
                             </StepContent>
@@ -1463,22 +1461,16 @@ export const findIncompatibleRules = (
       ) {
         userFrequency = i;
       }
-      if (
-        (firstSeen !== -1 &&
-          [regression, reappeared, eventFrequency, userFrequency].some(
-            idx => idx !== -1
-          )) ||
-        (regression !== -1 && reappeared !== -1)
-      ) {
-        const indices = [
-          firstSeen,
-          regression,
-          reappeared,
-          eventFrequency,
-          userFrequency,
-        ];
-        indices.sort();
-        return {conditionIndices: indices.filter(idx => idx !== -1), filterIndices: null};
+      // FirstSeenEventCondition is incompatible with all the following types
+      const firstSeenError =
+        firstSeen !== -1 &&
+        [regression, reappeared, eventFrequency, userFrequency].some(idx => idx !== -1);
+      const regressionReappearedError = regression !== -1 && reappeared !== -1;
+      if (firstSeenError || regressionReappearedError) {
+        const indices = [firstSeen, regression, reappeared, eventFrequency, userFrequency]
+          .filter(idx => idx !== -1)
+          .sort();
+        return {conditionIndices: indices, filterIndices: null};
       }
     }
   }
