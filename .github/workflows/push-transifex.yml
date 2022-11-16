@@ -4,6 +4,7 @@ on:
   # workflow_dispatch:
   # schedule:
   #   - cron: '0 0 1,15 * *'
+
 jobs:
   push-transifex:
     timeout-minutes: 30
@@ -27,4 +28,6 @@ jobs:
         env:
           TX_TOKEN: ${{ secrets.TRANSIFEX_TOKEN }}
           SENTRY_NO_VENV_CHECK: 1
-        run: make push-transifex
+        run: |
+          make push-transifex
+          git status
