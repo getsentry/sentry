@@ -19,6 +19,7 @@ export const REPLAY_LIST_FIELDS = [
   'startedAt',
   'urls',
   'user',
+  'activity',
 ];
 
 type State = {
