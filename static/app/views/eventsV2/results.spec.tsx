@@ -3,31 +3,31 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+// import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 
 import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
 
-const FIELDS = [
-  {
-    field: 'title',
-  },
-  {
-    field: 'timestamp',
-  },
-  {
-    field: 'user',
-  },
-  {
-    field: 'count()',
-  },
-];
+// const FIELDS = [
+//   {
+//     field: 'title',
+//   },
+//   {
+//     field: 'timestamp',
+//   },
+//   {
+//     field: 'user',
+//   },
+//   {
+//     field: 'count()',
+//   },
+// ];
 
-const generateFields = () => ({
-  field: FIELDS.map(i => i.field),
-});
+// const generateFields = () => ({
+//   field: FIELDS.map(i => i.field),
+// });
 
 const eventTitle = 'Oh no something bad';
 
@@ -197,7 +197,7 @@ function renderMockRequests() {
 describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic', 'discover-frontend-use-events-endpoint'];
-    it('loads data when moving from an invalid to valid EventView', async function () {
+    it('loads data when moving from an invalid to valid EventView', function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -242,12 +242,49 @@ describe('Results', function () {
       );
     });
 
+    it('renders unparameterized data banner', async function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      });
+
+      const initialData = initializeOrg({
+        ...initializeOrg(),
+        organization,
+        router: {
+          location: {query: {showUnparameterizedBanner: true, id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          context: initialData.routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(/These are unparameterized transactions/)
+      ).toBeInTheDocument();
+    });
+
     it('updates the homepage query with up to date eventView when Set as Default is clicked', async () => {
       const mockHomepageUpdate = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
         statusCode: 200,
       });
+
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',
