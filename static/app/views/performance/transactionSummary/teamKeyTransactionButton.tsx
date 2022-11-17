@@ -26,7 +26,7 @@ class TitleButton extends Component<TitleProps> {
       <Button
         {...props}
         size="sm"
-        icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
+        icon={keyedTeamsCount ? <IconStar color="yellow400" isSolid /> : <IconStar />}
       >
         {keyedTeamsCount
           ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
