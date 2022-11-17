@@ -48,9 +48,9 @@ def _generate_environment_condition(environment: Optional[str]) -> Union[Conditi
     # In case we want to generate a rule for a trace without an environment we can use negations to express it as
     # a trace that has an environment that doesn't match any environment.
     if environment is None:
-        environment_condition = {"op": "not", "inner": environment_condition}
+        environment_condition = {"op": "not", "inner": environment_condition}  # type: ignore
 
-    return environment_condition
+    return environment_condition  # type: ignore
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
