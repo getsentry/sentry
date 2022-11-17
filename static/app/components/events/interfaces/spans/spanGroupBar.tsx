@@ -1,6 +1,7 @@
 import {Fragment, LegacyRef, useCallback, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
   RowCell,
@@ -171,12 +172,15 @@ export function SpanGroupBar(props: Props) {
 
   useEffect(() => {
     if (location.hash && !didAnchoredSpanMount) {
-      const anchoredSpan = spanGrouping.find(
+      const anchoredSpanIndex = spanGrouping.findIndex(
         span => spanTargetHash(span.span.span_id) === location.hash
       );
 
-      if (anchoredSpan) {
+      // TODO: This doesn't always work.
+      // A potential fix is to just scroll to the Autogroup without expanding it if a span within it is anchored.
+      if (anchoredSpanIndex > -1) {
         toggleSpanGroup();
+        window.scrollTo(0, window.scrollY + anchoredSpanIndex * ROW_HEIGHT);
       }
     }
   }, [didAnchoredSpanMount, spanGrouping, toggleSpanGroup]);
