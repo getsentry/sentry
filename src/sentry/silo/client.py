@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from django.conf import settings
+from django.http.request import HttpRequest
+from requests import Request
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
 from sentry.types.region import Region, get_region_by_id
 
-INVALID_PROXY_HEADERS = ["Host", "Content-Type", "Content-Length"]
+INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
 
 
 class SiloClientError(Exception):
@@ -34,6 +36,30 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
+    def clean_headers(self, headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
+        modified_headers = {**headers}
+        for invalid_header in INVALID_PROXY_HEADERS:
+            modified_headers.pop(invalid_header)
+        return modified_headers
+
+    def proxy_request(self, incoming_request: HttpRequest):
+        """
+        Directly proxy the provided request to the appropriate silo with minimal header changes
+        """
+        prepared_request = Request(
+            method=incoming_request.method,
+            url=self.build_url(incoming_request.path),
+            headers=self.clean_headers(incoming_request.headers),
+            data=incoming_request.body,
+        ).prepare()
+        client_response = super()._request(
+            incoming_request.method,
+            incoming_request.path,
+            allow_text=True,
+            prepared_request=prepared_request,
+        )
+        return client_response.to_http_response()
+
     def request(
         self,
         method: str,
@@ -44,13 +70,10 @@ class BaseSiloClient(BaseApiClient):
     ) -> BaseApiResponseX:
         # TODO: Establish a scheme to authorize requests across silos
         # (e.g. signing secrets, JWTs)
-        modified_headers = {**headers}
-        for invalid_header in INVALID_PROXY_HEADERS:
-            modified_headers.pop(invalid_header)
         client_response = super()._request(
             method,
             path,
-            headers=modified_headers,
+            headers=self.clean_headers(headers),
             data=data,
             params=params,
             json=True,

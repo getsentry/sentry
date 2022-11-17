@@ -5,6 +5,7 @@ from typing import Any, Callable, Mapping, Sequence, Type, Union
 
 import sentry_sdk
 from django.core.cache import cache
+from requests import PreparedRequest
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.http import build_session
@@ -80,6 +81,7 @@ class BaseApiClient(TrackResponseMixin):
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
     ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
@@ -118,16 +120,20 @@ class BaseApiClient(TrackResponseMixin):
         ) as span:
             try:
                 with build_session() as session:
-                    resp = getattr(session, method.lower())(
-                        url=full_url,
-                        headers=headers,
-                        json=data if json else None,
-                        data=data if not json else None,
-                        params=params,
-                        auth=auth,
-                        verify=self.verify_ssl,
-                        allow_redirects=allow_redirects,
-                        timeout=timeout,
+                    resp = (
+                        session.send(prepared_request)
+                        if prepared_request is not None
+                        else getattr(session, method.lower())(
+                            url=full_url,
+                            headers=headers,
+                            json=data if json else None,
+                            data=data if not json else None,
+                            params=params,
+                            auth=auth,
+                            verify=self.verify_ssl,
+                            allow_redirects=allow_redirects,
+                            timeout=timeout,
+                        )
                     )
                     resp.raise_for_status()
             except ConnectionError as e:
