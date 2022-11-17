@@ -13,6 +13,8 @@ from sentry.ingest.billing_metrics_consumer import (
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 @freeze_time("1985-10-26 21:00:00")
 def test_outcomes_consumed():

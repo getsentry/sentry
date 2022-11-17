@@ -20,7 +20,8 @@ from arroyo.types import Commit, Message, Partition, Position
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome_custom_publish
@@ -102,8 +103,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     buckets.
     """
 
-    #: The ID of the metric used to count transactions
-    metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    counter_metric_name = "d:transactions/duration@millisecond"
 
     def __init__(
         self,
@@ -194,7 +194,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         assert not self._closed
 
         bucket_payload = self._get_bucket_payload(message)
-        quantity = self._count_processed_transactions(bucket_payload)
+        org_id = bucket_payload["org_id"]
+        quantity = self._count_processed_transactions(org_id, bucket_payload)
 
         if quantity < 1:
             # We still want to commmit buckets that don't generate billing
@@ -205,7 +206,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         else:
             future = track_outcome_custom_publish(
                 self._produce,
-                org_id=bucket_payload["org_id"],
+                org_id=org_id,
                 project_id=bucket_payload["project_id"],
                 key_id=None,
                 outcome=Outcome.ACCEPTED,
@@ -222,9 +223,13 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
-    def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
-        if bucket_payload["metric_id"] != self.metric_id:
+    def _count_processed_transactions(self, org_id: int, bucket_payload: MetricsBucket) -> int:
+        counter_metric_id = indexer.resolve(
+            UseCaseKey.PERFORMANCE, org_id, self.counter_metric_name
+        )
+        if bucket_payload["metric_id"] != counter_metric_id:
             return 0
+
         value = bucket_payload["value"]
         try:
             return len(value)
