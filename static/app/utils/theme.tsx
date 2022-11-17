@@ -87,35 +87,35 @@ export const darkColors = {
   translucentGray200: 'rgba(218, 184, 245, 0.18)',
   translucentGray100: 'rgba(208, 168, 240, 0.1)',
 
-  purple400: '#6859CF',
+  purple400: '#A397F7',
   purple300: '#7669D3',
-  purple200: 'rgba(108, 95, 199, 0.6)',
-  purple100: 'rgba(118, 105, 211, 0.1)',
+  purple200: 'rgba(118, 105, 211, 0.27)',
+  purple100: 'rgba(118, 105, 211, 0.12)',
 
-  blue400: '#4284FF',
-  blue300: '#5C95FF',
-  blue200: 'rgba(92, 149, 255, 0.4)',
-  blue100: 'rgba(92, 149, 255, 0.1)',
+  blue400: '#70A2FF',
+  blue300: '#3070E8',
+  blue200: 'rgba(48, 112, 232, 0.25)',
+  blue100: 'rgba(48, 112, 232, 0.12)',
 
-  green400: '#26B593',
-  green300: '#2AC8A3',
-  green200: 'rgba(42, 200, 163, 0.4)',
-  green100: 'rgba(42, 200, 163, 0.1)',
+  green400: '#1AB792',
+  green300: '#1D876E',
+  green200: 'rgba(29, 135, 110, 0.3)',
+  green100: 'rgba(29, 135, 110, 0.14)',
 
-  yellow400: '#F5B000',
-  yellow300: '#FFC227',
-  yellow200: 'rgba(255, 194, 39, 0.35)',
-  yellow100: 'rgba(255, 194, 39, 0.07)',
+  yellow400: '#E5A500',
+  yellow300: '#B28000',
+  yellow200: 'rgba(178, 128, 0, 0.25)',
+  yellow100: 'rgba(178, 128, 0, 0.1)',
 
-  red400: '#FA2E34',
-  red300: '#FA4F54',
-  red200: 'rgba(250, 79, 84, 0.4)',
-  red100: 'rgba(250, 79, 84, 0.1)',
+  red400: '#F87277',
+  red300: '#E12D33',
+  red200: 'rgba(225, 45, 51, 0.25)',
+  red100: 'rgba(225, 45, 51, 0.12)',
 
-  pink400: '#C4317A',
-  pink300: '#D1478C',
-  pink200: 'rgba(209, 71, 140, 0.55)',
-  pink100: 'rgba(209, 71, 140, 0.13)',
+  pink400: '#E674AD',
+  pink300: '#CE3B85',
+  pink200: 'rgba(206, 59, 133, 0.25)',
+  pink100: 'rgba(206, 59, 133, 0.1)',
 };
 
 const lightShadows = {
@@ -208,6 +208,18 @@ const generateAliases = (colors: BaseColors) => ({
   errorText: colors.red400,
 
   /**
+   * A color that denotes danger, for dangerous actions like deletion
+   */
+  danger: colors.red300,
+  dangerText: colors.red400,
+
+  /**
+   * A color that denotes a warning
+   */
+  warning: colors.yellow300,
+  warningText: colors.yellow400,
+
+  /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
@@ -241,8 +253,8 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.blue300,
-  linkHoverColor: colors.blue300,
+  linkColor: colors.blue400,
+  linkHoverColor: colors.blue400,
   linkUnderline: colors.blue200,
   linkFocus: colors.blue300,
 
@@ -369,7 +381,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.blue100,
     border: colors.blue200,
     borderHover: colors.blue300,
-    iconColor: colors.blue300,
+    iconColor: colors.blue400,
     iconHoverColor: colors.blue400,
   },
   warning: {
@@ -377,7 +389,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.yellow100,
     border: colors.yellow200,
     borderHover: colors.yellow300,
-    iconColor: colors.yellow300,
+    iconColor: colors.yellow400,
     iconHoverColor: colors.yellow400,
   },
   success: {
@@ -385,7 +397,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.green100,
     border: colors.green200,
     borderHover: colors.green300,
-    iconColor: colors.green300,
+    iconColor: colors.green400,
     iconHoverColor: colors.green400,
   },
   error: {
@@ -393,7 +405,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.red100,
     border: colors.red200,
     borderHover: colors.red300,
-    iconColor: colors.red300,
+    iconColor: colors.red400,
     iconHoverColor: colors.red400,
     textLight: colors.red200,
   },
@@ -441,32 +453,32 @@ const generateTagTheme = (colors: BaseColors) => ({
   promotion: {
     background: colors.pink100,
     border: colors.pink200,
-    iconColor: colors.pink300,
+    iconColor: colors.pink400,
   },
   highlight: {
     background: colors.purple100,
     border: colors.purple200,
-    iconColor: colors.purple300,
+    iconColor: colors.purple400,
   },
   warning: {
     background: colors.yellow100,
     border: colors.yellow200,
-    iconColor: colors.yellow300,
+    iconColor: colors.yellow400,
   },
   success: {
     background: colors.green100,
     border: colors.green200,
-    iconColor: colors.green300,
+    iconColor: colors.green400,
   },
   error: {
     background: colors.red100,
     border: colors.red200,
-    iconColor: colors.red300,
+    iconColor: colors.red400,
   },
   info: {
     background: colors.purple100,
     border: colors.purple200,
-    iconColor: colors.purple300,
+    iconColor: colors.purple400,
   },
   white: {
     background: colors.white,
@@ -528,8 +540,8 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusShadow: colors.red200,
   },
   link: {
-    color: colors.blue300,
-    colorActive: colors.blue300,
+    color: alias.linkColor,
+    colorActive: alias.linkHoverColor,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',

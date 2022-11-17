@@ -10,6 +10,7 @@ from hashlib import md5
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
 
 import sentry_sdk
+from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk import (
     Column,
@@ -45,7 +46,7 @@ from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -492,6 +493,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if not features.has("organizations:performance-issues", projects[0].organization):
                 # Make sure we only see error issues if the performance issue feature is disabled
                 group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
+            else:
+                for sf in search_filters or ():
+                    # general search query:
+                    if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
+                        group_queryset = group_queryset.filter(
+                            Q(type=GroupType.ERROR.value)
+                            | Q(
+                                type__in=(
+                                    GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                                    GroupType.PERFORMANCE_SLOW_SPAN.value,
+                                    GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
+                                    GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
+                                    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
+                                    GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
+                                    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                                ),
+                                message__icontains=sf.value.raw_value,
+                            )
+                        )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")

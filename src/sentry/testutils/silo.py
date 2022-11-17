@@ -122,6 +122,7 @@ class SiloModeTest:
 
 
 all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+no_silo_test = SiloModeTest(SiloMode.MONOLITH)
 control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 

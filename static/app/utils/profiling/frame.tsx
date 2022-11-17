@@ -12,6 +12,7 @@ export class Frame extends WeightedNode {
   readonly image?: string;
   readonly resource?: string;
   readonly threadId?: number;
+  readonly inline?: boolean;
 
   static Root = new Frame(
     {
@@ -34,6 +35,7 @@ export class Frame extends WeightedNode {
     this.is_application = !!frameInfo.is_application;
     this.image = frameInfo.image;
     this.threadId = frameInfo.threadId;
+    this.inline = frameInfo.inline || false;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.

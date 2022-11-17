@@ -344,15 +344,12 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {profiling}
                 {releases}
+                {replays}
+                {monitors}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-              </SidebarSection>
-
-              <SidebarSection>
-                {replays}
-                {monitors}
               </SidebarSection>
 
               <SidebarSection>

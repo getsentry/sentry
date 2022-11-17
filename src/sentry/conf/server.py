@@ -588,7 +588,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
-    "sentry.tasks.reports",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -781,26 +780,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
-    "schedule-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60 * 3},
-    },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
-    },
-    "schedule-verify-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.verify_prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
@@ -1221,6 +1206,10 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable org member role provisioning through scim
+    "organizations:scim-orgmember-roles": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1242,8 +1231,6 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
-    "projects:sourcemapcache-processor": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -2770,6 +2757,41 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # This backoff is only applied to automatic changes to project eligibility, and has zero effect
     # on any manually-triggered changes to a project's presence in the LPQ.
     "backoff_timer": 5 * 60,
+}
+
+# Tunable knobs for automatic LPQ eligibility.
+# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
+# This sampling rate needs to be considered when tuning any of the cutoff rates.
+#
+# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
+# event processing times.
+#
+# A project is eligible for the LPQ based on event rate if
+# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
+# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
+# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+#
+# A project is eligible for the LPQ based on processing duration if it averages more than
+# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
+# of event processing durations in that window exceeds `min_p75_duration` seconds. See
+# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+SENTRY_LPQ_OPTIONS = {
+    # The period that is considered for "recent events".
+    # Has to be a multiple of `counter_bucket_size` above.
+    "recent_event_period": 60,
+    # The minimum rate of events *per second* a project needs to have
+    # in the `recent_event_period` to be eligible for the LPQ.
+    "min_recent_event_rate": 5,
+    # The ratio of recent event rate over average event rate above which a project is eligible
+    # for the LPQ.
+    "recent_event_multiple": 4,
+    # The minimum rate of events *per minute* a project needs to have
+    # in the `duration_time_window` to be eligible for the LPQ.
+    "min_events_per_minute": 15,
+    # A project is considered for the LPQ if the p75 event processing time
+    # exceeds configured value.
+    # This considers events that *finished* during the last `duration_time_window`.
+    "min_p75_duration": 30,
 }
 
 # XXX(meredith): Temporary metrics indexer

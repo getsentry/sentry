@@ -531,7 +531,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
-        repo = Repository.objects.create(
+        repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
             or "{}-{}".format(petname.Generate(2, "", letters=10), random.randint(1000, 9999)),
