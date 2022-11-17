@@ -35,6 +35,7 @@ def get_metrics_billing_consumer(
     auto_offset_reset: str,
     max_batch_size: int,
     max_batch_time: int,
+    max_buffer_size: int,
 ) -> StreamProcessor[KafkaPayload]:
     topic = settings.KAFKA_SNUBA_GENERIC_METRICS
     cluster = settings.KAFKA_TOPICS[topic]["cluster"]
@@ -55,7 +56,7 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(),
+        processor_factory=BillingMetricsConsumerStrategyFactory(max_buffer_size),
         commit_policy=commit_policy,
     )
 
@@ -69,12 +70,15 @@ def _get_bootstrap_servers(cluster: str) -> Sequence[str]:
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self, max_buffer_size) -> None:
+        self._max_buffer_size = max_buffer_size
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit, max_buffer_size=10_000)
+        return BillingTxCountMetricConsumerStrategy(commit, max_buffer_size=self._max_buffer_size)
 
 
 class MetricsBucket(TypedDict):
