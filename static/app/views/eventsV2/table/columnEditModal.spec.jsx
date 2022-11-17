@@ -1,7 +1,11 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
 import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
@@ -9,7 +13,7 @@ import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 const stubEl = props => <div>{props.children}</div>;
 
 function mountModal({columns, onApply, customMeasurements}, initialData) {
-  return mountWithTheme(
+  return render(
     <ColumnEditModal
       Header={stubEl}
       Footer={stubEl}
@@ -20,13 +24,47 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
       closeModal={() => void 0}
       customMeasurements={customMeasurements}
     />,
-    initialData.routerContext
+    {context: initialData.routerContext}
   );
 }
 
-describe('EventsV2 -> ColumnEditModal', function () {
-  enforceActOnUseLegacyStoreHook();
+// Get all queryField components which represent a row in the column editor.
+const findAllQueryFields = () => screen.findAllByTestId('queryField');
 
+// Get the nth label (value) within the row of the column editor.
+const findAllQueryFieldNthCell = async nth =>
+  (await findAllQueryFields())
+    .map(f => within(f).getAllByTestId('label')[nth])
+    .filter(Boolean);
+
+const getAllQueryFields = () => screen.getAllByTestId('queryField');
+const getAllQueryFieldsNthCell = nth =>
+  getAllQueryFields()
+    .map(f => within(f).getAllByTestId('label')[nth])
+    .filter(Boolean);
+
+const openMenu = async (row, column = 0) => {
+  const queryFields = await screen.findAllByTestId('queryField');
+  const queryField = queryFields[row];
+  expect(queryField).toBeInTheDocument();
+
+  const labels = within(queryField).queryAllByTestId('label');
+  if (labels.length > 0) {
+    userEvent.click(labels[column]);
+  } else {
+    // For test adding a new column, no existing label.
+    userEvent.click(screen.getByText('(Required)'));
+  }
+};
+
+const selectByLabel = async (label, options) => {
+  await openMenu(options.at);
+  const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
+  const opt = menuOptions.find(e => e.textContent.includes(label));
+  userEvent.click(opt);
+};
+
+describe('EventsV2 -> ColumnEditModal', function () {
   beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess([
@@ -72,75 +110,61 @@ describe('EventsV2 -> ColumnEditModal', function () {
   ];
 
   describe('basic rendering', function () {
-    const wrapper = mountModal(
-      {
-        columns,
-        onApply: () => void 0,
-      },
-      initialData
-    );
-
-    it('renders fields and basic controls', function () {
+    it('renders fields and basic controls, delete and grab buttons', async function () {
+      mountModal(
+        {
+          columns,
+          onApply: () => void 0,
+        },
+        initialData
+      );
       // Should have fields equal to the columns.
-      expect(wrapper.find('QueryField')).toHaveLength(columns.length);
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+        'event.type',
+        'browser.name',
+        'count()',
+        'count_unique(…)',
+        'p95(…)',
+        'issue.id',
+        'count_unique(…)', // extra because of the function
+      ]);
+      expect(screen.getByRole('button', {name: 'Apply'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add a Column'})).toBeInTheDocument();
 
-      expect(wrapper.find('button[aria-label="Apply"]')).toHaveLength(1);
-      expect(wrapper.find('button[aria-label="Add a Column"]')).toHaveLength(1);
-    });
-
-    it('renders delete and grab buttons', function () {
-      expect(
-        wrapper.find('RowContainer button[aria-label="Remove column"]').length
-      ).toEqual(columns.length);
-      expect(
-        wrapper.find('RowContainer button[aria-label="Drag to reorder"]').length
-      ).toEqual(columns.length);
+      expect(screen.getAllByRole('button', {name: 'Remove column'})).toHaveLength(
+        columns.length
+      );
+      expect(screen.getAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
+        columns.length
+      );
     });
   });
 
   describe('rendering unknown fields', function () {
-    const wrapper = mountModal(
-      {
-        columns: [
-          {kind: 'function', function: ['count_unique', 'user-defined']},
-          {kind: 'field', field: 'user-def'},
-        ],
-        onApply: () => void 0,
-      },
-      initialData
-    );
+    it('renders unknown fields in field and field parameter controls', async function () {
+      mountModal(
+        {
+          columns: [
+            {kind: 'function', function: ['count_unique', 'user-defined']},
+            {kind: 'field', field: 'user-def'},
+          ],
+          onApply: () => void 0,
+        },
+        initialData
+      );
 
-    it('renders unknown fields in field and field parameter controls', function () {
-      const funcRow = wrapper.find('QueryField').first();
-      expect(
-        funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
-      ).toBe('count_unique(\u2026)');
-      expect(
-        funcRow
-          .find('SelectControl[name="parameter"] SingleValue span[data-test-id="label"]')
-          .text()
-      ).toBe('user-defined');
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+        'count_unique(…)',
+        'user-def',
+      ]);
 
-      const fieldRow = wrapper.find('QueryField').last();
-      expect(
-        fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
-      ).toBe('user-def');
-      expect(fieldRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
-      expect(fieldRow.find('BlankSpace')).toHaveLength(1);
+      expect(getAllQueryFieldsNthCell(1).map(el => el.textContent)).toEqual([
+        'user-defined',
+      ]);
     });
   });
 
   describe('rendering tags that overlap fields & functions', function () {
-    const wrapper = mountModal(
-      {
-        columns: [
-          {kind: 'field', field: 'tags[project]'},
-          {kind: 'field', field: 'tags[count]'},
-        ],
-        onApply: () => void 0,
-      },
-      initialData
-    );
     beforeEach(() => {
       TagStore.reset();
       TagStore.loadTagsSuccess([
@@ -149,200 +173,306 @@ describe('EventsV2 -> ColumnEditModal', function () {
       ]);
     });
 
-    it('selects tag expressions that overlap fields', function () {
-      const funcRow = wrapper.find('QueryField').first();
-      expect(
-        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
-      ).toBe('project');
-      expect(funcRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
+    it('selects tag expressions that overlap fields', async function () {
+      mountModal(
+        {
+          columns: [
+            {kind: 'field', field: 'tags[project]'},
+            {kind: 'field', field: 'tags[count]'},
+          ],
+          onApply: () => void 0,
+        },
+        initialData
+      );
+
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+        'project',
+        'count',
+      ]);
     });
 
-    it('selects tag expressions that overlap functions', function () {
-      const funcRow = wrapper.find('QueryField').last();
-      expect(
-        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
-      ).toBe('count');
-      expect(funcRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
+    it('selects tag expressions that overlap functions', async function () {
+      mountModal(
+        {
+          columns: [
+            {kind: 'field', field: 'tags[project]'},
+            {kind: 'field', field: 'tags[count]'},
+          ],
+          onApply: () => void 0,
+        },
+        initialData
+      );
+
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+        'project',
+        'count',
+      ]);
     });
   });
 
   describe('rendering functions', function () {
-    const wrapper = mountModal(
-      {
-        columns: [
-          {kind: 'function', function: ['count', 'id']},
-          {kind: 'function', function: ['count_unique', 'title']},
-          {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
-        ],
-        onApply: () => void 0,
-      },
-      initialData
-    );
+    it('renders three columns when needed', async function () {
+      mountModal(
+        {
+          columns: [
+            {kind: 'function', function: ['count', 'id']},
+            {kind: 'function', function: ['count_unique', 'title']},
+            {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
+          ],
+          onApply: () => void 0,
+        },
+        initialData
+      );
 
-    it('renders three columns when needed', function () {
-      const countRow = wrapper.find('QueryField').first();
-      // Has a select and 2 disabled inputs
-      expect(countRow.find('SelectControl')).toHaveLength(1);
-      expect(countRow.find('BlankSpace')).toHaveLength(2);
+      const queryFields = await findAllQueryFields();
 
-      const percentileRow = wrapper.find('QueryField').last();
-      // two select fields, and one number input.
-      expect(percentileRow.find('SelectControl')).toHaveLength(2);
-      expect(percentileRow.find('BlankSpace')).toHaveLength(0);
-      expect(percentileRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
+      const countRow = queryFields[0];
+
+      expect(
+        within(countRow)
+          .getAllByTestId('label')
+          .map(el => el.textContent)
+      ).toEqual(['count()']);
+
+      const percentileRow = queryFields[2];
+
+      expect(
+        within(percentileRow)
+          .getAllByTestId('label')
+          .map(el => el.textContent)
+      ).toEqual(['percentile(…)', 'transaction.duration']);
+      expect(within(percentileRow).getByDisplayValue('0.66')).toBeInTheDocument();
     });
   });
 
   describe('function & column selection', function () {
-    let onApply, wrapper;
+    let onApply;
     beforeEach(function () {
       onApply = jest.fn();
-      wrapper = mountModal(
+    });
+
+    it('restricts column choices', async function () {
+      mountModal(
         {
           columns: [columns[0]],
           onApply,
         },
         initialData
       );
+      await selectByLabel('avg(…)', {
+        at: 0,
+      });
+
+      await openMenu(0, 1);
+
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      const menuOptionsText = menuOptions.map(el => el.textContent);
+      expect(menuOptionsText).toContain('transaction.duration');
+      expect(menuOptionsText).not.toContain('title');
     });
 
-    it('restricts column choices', function () {
-      selectByLabel(wrapper, 'avg(\u2026)', {name: 'field', at: 0, control: true});
-
-      openMenu(wrapper, {name: 'parameter', at: 0, control: true});
-      const options = wrapper
-        .find('QueryField SelectControl[name="parameter"] Option')
-        .map(option => option.props().label);
-
-      expect(options).not.toContain('title');
-      expect(options).toContain('transaction.duration');
-    });
-
-    it('shows no options for parameterless functions', function () {
-      selectByLabel(wrapper, 'last_seen()', {name: 'field', at: 0, control: true});
-
-      expect(wrapper.find('QueryField BlankSpace')).toHaveLength(1);
-    });
-
-    it('shows additional inputs for multi-parameter functions', function () {
-      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
-
-      // Parameter select should display and use the default value.
-      const field = wrapper.find('QueryField SelectControl[name="parameter"]');
-      expect(field.find('SingleValue span[data-test-id="label"]').text()).toBe(
-        'transaction.duration'
+    it('shows no options for parameterless functions', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
       );
+      await selectByLabel('last_seen()', {name: 'field', at: 0, control: true});
 
-      // Input should show and have default value.
-      const refinement = wrapper.find('QueryField input[inputMode="numeric"]');
-      expect(refinement.props().value).toBe('0.5');
+      expect(screen.getByTestId('blankSpace')).toBeInTheDocument();
     });
 
-    it('handles scalar field parameters', function () {
-      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+    it('shows additional inputs for multi-parameter functions', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
+      await selectByLabel('percentile(\u2026)', {
+        name: 'field',
+        at: 0,
+      });
 
-      // Parameter select should display and use the default value.
-      const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('300');
-
-      // Trigger a blur and make sure the column is not wrong.
-      field.simulate('blur');
-
-      // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
-      expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '300', undefined, undefined]},
-      ]);
+      expect(screen.getAllByTestId('label')[0]).toHaveTextContent('percentile(…)');
+      expect(
+        within(screen.getByTestId('queryField')).getByDisplayValue(0.5)
+      ).toBeInTheDocument();
     });
 
-    it('handles parameter overrides', function () {
-      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+    it('handles scalar field parameters', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
+      await selectByLabel('apdex(\u2026)', {
+        name: 'field',
+        at: 0,
+      });
 
-      // Parameter select should display and use the default value.
-      const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('300');
-      expect(field.prop('placeholder')).toBe(undefined);
+      expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
-      // Trigger a blur and make sure the column is not wrong.
-      field.simulate('blur');
+      await waitFor(() => {
+        expect(onApply).toHaveBeenCalledWith([
+          {kind: 'function', function: ['apdex', '300', undefined, undefined]},
+        ]);
+      });
     });
 
-    it('clears unused parameters', function () {
+    it('handles parameter overrides', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
+      await selectByLabel('apdex(…)', {
+        name: 'field',
+        at: 0,
+      });
+
+      expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
+    });
+
+    it('clears unused parameters', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
       // Choose percentile, then apdex which has fewer parameters and different types.
-      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+      await selectByLabel('percentile(\u2026)', {
+        name: 'field',
+        at: 0,
+      });
+      await selectByLabel('apdex(\u2026)', {
+        name: 'field',
+        at: 0,
+      });
 
       // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['apdex', '300', undefined, undefined]},
       ]);
     });
 
-    it('clears all unused parameters', function () {
+    it('clears all unused parameters', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
       // Choose percentile, then failure_rate which has no parameters.
-      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'failure_rate()', {name: 'field', at: 0, control: true});
+      await selectByLabel('percentile(\u2026)', {
+        name: 'field',
+        at: 0,
+      });
+      await selectByLabel('failure_rate()', {
+        name: 'field',
+        at: 0,
+      });
 
       // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
       ]);
     });
 
-    it('clears all unused parameters with count_if to two parameter function', function () {
+    it('clears all unused parameters with count_if to two parameter function', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
       // Choose percentile, then failure_rate which has no parameters.
-      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
-      selectByLabel(wrapper, 'count_miserable(\u2026)', {
+      await selectByLabel('count_if(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
+      });
+      await selectByLabel('user', {name: 'parameter', at: 0});
+      await selectByLabel('count_miserable(\u2026)', {
+        name: 'field',
+        at: 0,
       });
 
       // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_miserable', 'user', '300', undefined]},
       ]);
     });
 
-    it('clears all unused parameters with count_if to one parameter function', function () {
+    it('clears all unused parameters with count_if to one parameter function', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
       // Choose percentile, then failure_rate which has no parameters.
-      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
-      selectByLabel(wrapper, 'count_unique(\u2026)', {
+      await selectByLabel('count_if(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
+      });
+      await selectByLabel('user', {name: 'parameter', at: 0});
+      await selectByLabel('count_unique(\u2026)', {
+        name: 'field',
+        at: 0,
       });
 
       // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+        {kind: 'function', function: ['count_unique', '300', undefined, undefined]},
       ]);
     });
 
-    it('clears all unused parameters with count_if to parameterless function', function () {
+    it('clears all unused parameters with count_if to parameterless function', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+        },
+        initialData
+      );
       // Choose percentile, then failure_rate which has no parameters.
-      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'count()', {
+      await selectByLabel('count_if(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
+      });
+      await selectByLabel('count()', {
+        name: 'field',
+        at: 0,
       });
 
       // Apply the changes so we can see the new columns.
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
       ]);
     });
 
-    it('updates equation errors when they change', function () {
-      const newWrapper = mountModal(
+    it('updates equation errors when they change', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -354,24 +484,26 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
-      expect(newWrapper.find('QueryField ArithmeticError').prop('title')).toBe(
-        'Division by 0 is not allowed'
-      );
 
-      const field = newWrapper.find('QueryField input[type="text"]');
-      changeInputValue(field, '1+1+1+1+1+1+1+1+1+1+1+1');
-      newWrapper.update();
-      field.simulate('blur');
+      userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
+      expect(await screen.findByText('Division by 0 is not allowed')).toBeInTheDocument();
 
-      expect(newWrapper.find('QueryField ArithmeticError').prop('title')).toBe(
-        'Maximum operators exceeded'
-      );
+      const input = screen.getAllByRole('textbox')[0];
+      expect(input).toHaveValue('1 / 0');
+
+      userEvent.clear(input);
+      userEvent.type(input, '1+1+1+1+1+1+1+1+1+1+1+1');
+      userEvent.click(document.body);
+
+      await waitFor(() => expect(input).toHaveValue('1+1+1+1+1+1+1+1+1+1+1+1'));
+
+      userEvent.hover(screen.getByTestId('arithmeticErrorWarning'));
+      expect(await screen.findByText('Maximum operators exceeded')).toBeInTheDocument();
     });
 
     it('resets required field to previous value if cleared', function () {
       const initialColumnVal = '0.6';
-      const newWrapper = mountModal(
+      mountModal(
         {
           columns: [
             {
@@ -389,16 +521,14 @@ describe('EventsV2 -> ColumnEditModal', function () {
         initialData
       );
 
-      const field = newWrapper.find('QueryField input[name="refinement"]');
-      changeInputValue(field, '');
-      newWrapper.update();
-      field.simulate('blur');
+      const input = screen.getAllByRole('textbox')[2]; // The numeric input
+      expect(input).toHaveValue(initialColumnVal);
+      userEvent.clear(input);
+      userEvent.click(document.body); // Unfocusing the input should revert it to the previous value
 
-      expect(newWrapper.find('QueryField input[name="refinement"]').prop('value')).toBe(
-        initialColumnVal
-      );
+      expect(input).toHaveValue(initialColumnVal);
 
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {
           kind: 'function',
@@ -413,8 +543,8 @@ describe('EventsV2 -> ColumnEditModal', function () {
     beforeEach(function () {
       onApply = jest.fn();
     });
-    it('update simple equation columns when they change', function () {
-      const newWrapper = mountModal(
+    it('update simple equation columns when they change', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -434,22 +564,21 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      selectByLabel(newWrapper, 'count_if(\u2026)', {
+      await selectByLabel('count_if(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
       });
 
       // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_if', 'user', 'equals', '300']},
         {kind: 'function', function: ['p95', '']},
         {kind: 'equation', field: '(p95() / count_if(user,equals,300)  ) *   100'},
       ]);
     });
-    it('update equation with repeated columns when they change', function () {
-      const newWrapper = mountModal(
+    it('update equation with repeated columns when they change', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -466,21 +595,20 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      selectByLabel(newWrapper, 'count()', {
+      await selectByLabel('count()', {
         name: 'field',
         at: 0,
-        control: true,
       });
 
       // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() +  (count() - count()) * 5'},
       ]);
     });
-    it('handles equations with duplicate fields', function () {
-      const newWrapper = mountModal(
+    it('handles equations with duplicate fields', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -500,14 +628,13 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      selectByLabel(newWrapper, 'count()', {
+      await selectByLabel('count()', {
         name: 'field',
         at: 0,
-        control: true,
       });
 
       // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       // Because spans.db is still a selected column it isn't swapped
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
@@ -515,8 +642,8 @@ describe('EventsV2 -> ColumnEditModal', function () {
         {kind: 'equation', field: 'spans.db - spans.db'},
       ]);
     });
-    it('handles equations with duplicate functions', function () {
-      const newWrapper = mountModal(
+    it('handles equations with duplicate functions', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -536,22 +663,21 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      selectByLabel(newWrapper, 'count_unique(\u2026)', {
+      await selectByLabel('count_unique(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
       });
 
       // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() - count()'},
       ]);
     });
-    it('handles incomplete equations', function () {
-      const newWrapper = mountModal(
+    it('handles incomplete equations', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -567,15 +693,14 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
-      selectByLabel(newWrapper, 'count_unique(\u2026)', {
+      expect(await screen.findByTestId('arithmeticErrorWarning')).toBeInTheDocument();
+      await selectByLabel('count_unique(\u2026)', {
         name: 'field',
         at: 0,
-        control: true,
       });
 
       // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       // With the way the parser works only tokens up to the error will be updated
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
@@ -588,51 +713,48 @@ describe('EventsV2 -> ColumnEditModal', function () {
   });
 
   describe('adding rows', function () {
-    const wrapper = mountModal(
-      {
-        columns: [columns[0]],
-        onApply: () => void 0,
-      },
-      initialData
-    );
-    it('allows rows to be added, but only up to 20', function () {
+    it('allows rows to be added, but only up to 20', async function () {
+      mountModal(
+        {
+          columns: [columns[0]],
+          onApply: () => void 0,
+        },
+        initialData
+      );
+      expect(await screen.findByTestId('queryField')).toBeInTheDocument();
       for (let i = 2; i <= 20; i++) {
-        wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-        expect(wrapper.find('QueryField')).toHaveLength(i);
+        userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+        expect(await screen.findAllByTestId('queryField')).toHaveLength(i);
       }
-      expect(
-        wrapper.find('button[aria-label="Add a Column"]').prop('aria-disabled')
-      ).toBe(true);
+
+      expect(screen.getByRole('button', {name: 'Add a Column'})).toBeDisabled();
     });
   });
 
   describe('removing rows', function () {
-    const wrapper = mountModal(
-      {
-        columns: [columns[0], columns[1]],
-        onApply: () => void 0,
-      },
-      initialData
-    );
-    it('allows rows to be removed, but not the last one', function () {
-      expect(wrapper.find('QueryField')).toHaveLength(2);
-      wrapper
-        .find('RowContainer button[aria-label="Remove column"]')
-        .first()
-        .simulate('click');
+    it('allows rows to be removed, but not the last one', async function () {
+      mountModal(
+        {
+          columns: [columns[0], columns[1]],
+          onApply: () => void 0,
+        },
+        initialData
+      );
 
-      expect(wrapper.find('QueryField')).toHaveLength(1);
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
+      userEvent.click(screen.getByTestId('remove-column-0'));
 
-      // Last row cannot be removed or dragged.
+      expect(await screen.findByTestId('queryField')).toBeInTheDocument();
+
       expect(
-        wrapper.find('RowContainer button[aria-label="Remove column"]')
-      ).toHaveLength(0);
+        screen.queryByRole('button', {name: 'Remove column'})
+      ).not.toBeInTheDocument();
       expect(
-        wrapper.find('RowContainer button[aria-label="Drag to reorder"]')
-      ).toHaveLength(0);
+        screen.queryByRole('button', {name: 'Drag to reorder'})
+      ).not.toBeInTheDocument();
     });
-    it('does not count equations towards the count of rows', function () {
-      const newWrapper = mountModal(
+    it('does not count equations towards the count of rows', async function () {
+      mountModal(
         {
           columns: [
             columns[0],
@@ -646,25 +768,16 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      expect(newWrapper.find('QueryField')).toHaveLength(3);
-      newWrapper
-        .find('RowContainer button[aria-label="Remove column"]')
-        .first()
-        .simulate('click');
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(3);
+      userEvent.click(screen.getByTestId('remove-column-0'));
 
-      expect(newWrapper.find('QueryField')).toHaveLength(2);
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
-      // Can still remove the equation
-      expect(
-        newWrapper.find('RowContainer button[aria-label="Remove column"]')
-      ).toHaveLength(1);
-      // And both are draggable
-      expect(
-        newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
-      ).toHaveLength(2);
+      expect(screen.queryByRole('button', {name: 'Remove column'})).toBeInTheDocument();
+      expect(screen.queryAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(2);
     });
-    it('handles equations being deleted', function () {
-      const newWrapper = mountModal(
+    it('handles equations being deleted', async function () {
+      mountModal(
         {
           columns: [
             {
@@ -678,38 +791,38 @@ describe('EventsV2 -> ColumnEditModal', function () {
         },
         initialData
       );
-      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
-      expect(newWrapper.find('QueryField')).toHaveLength(3);
-      newWrapper
-        .find('RowContainer button[aria-label="Remove column"]')
-        .first()
-        .simulate('click');
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(3);
+      expect(screen.getByTestId('arithmeticErrorWarning')).toBeInTheDocument();
 
-      expect(newWrapper.find('QueryField')).toHaveLength(2);
+      userEvent.click(screen.getByTestId('remove-column-0'));
 
-      expect(newWrapper.find('ArithmeticError')).toHaveLength(0);
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
+
+      expect(screen.queryByTestId('arithmeticErrorWarning')).not.toBeInTheDocument();
     });
   });
 
   describe('apply action', function () {
     const onApply = jest.fn();
-    const wrapper = mountModal(
-      {
-        columns: [columns[0], columns[1]],
-        onApply,
-      },
-      initialData
-    );
-    it('reflects added and removed columns', function () {
+    it('reflects added and removed columns', async function () {
+      mountModal(
+        {
+          columns: [columns[0], columns[1]],
+          onApply,
+        },
+        initialData
+      );
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
       // Remove a column, then add a blank one an select a value in it.
-      wrapper.find('button[aria-label="Remove column"]').first().simulate('click');
+      userEvent.click(screen.getByTestId('remove-column-0'));
 
-      wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
 
-      selectByLabel(wrapper, 'title', {name: 'field', at: 1, control: true});
+      expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
-      wrapper.find('button[aria-label="Apply"]').simulate('click');
+      await selectByLabel('title', {name: 'field', at: 1});
+
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       expect(onApply).toHaveBeenCalledWith([columns[1], {kind: 'field', field: 'title'}]);
     });
