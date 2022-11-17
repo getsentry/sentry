@@ -178,11 +178,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
                         )
                     active_rules.append(rule)
 
-            config = {"rules": active_rules}
-
-            if features.has("organizations:dynamic-sampling-deprecated", project.organization):
-                config["mode"] = "total"
-            return config
+            return {"rules": active_rules, "mode": "total"}
 
     return None
 
