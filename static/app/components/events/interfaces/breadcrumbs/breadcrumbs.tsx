@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,6 +7,7 @@ import {
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -55,44 +56,30 @@ function Breadcrumbs({
   route,
   router,
 }: Props) {
-  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
   const entryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.BREADCRUMBS
   );
 
-  let listRef: List | null = null;
+  const listRef = useRef<List>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    updateGrid();
+  const updateGrid = useCallback(() => {
+    if (listRef.current) {
+      cache.clearAll();
+      listRef.current.forceUpdateGrid();
+    }
   }, []);
 
   useEffect(() => {
-    if (!!breadcrumbs.length && !scrollToIndex) {
-      setScrollToIndex(breadcrumbs.length - 1);
-      return;
-    }
-
     updateGrid();
-  }, [breadcrumbs]);
+  }, [breadcrumbs, updateGrid]);
 
-  useEffect(() => {
-    if (scrollToIndex !== undefined) {
-      updateGrid();
-    }
-  }, [scrollToIndex]);
-
-  function updateGrid() {
-    if (listRef) {
-      cache.clearAll();
-      listRef.forceUpdateGrid();
-    }
-  }
+  const sortedBreadcrumbs = orderBy(breadcrumbs, 'timestamp', 'desc');
 
   function renderRow({index, key, parent, style}: ListRowProps) {
-    const breadcrumb = breadcrumbs[index];
-    const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+    const breadcrumb = sortedBreadcrumbs[index];
+    const isLastItem = sortedBreadcrumbs[0].id === breadcrumb.id;
     const {height} = style;
     return (
       <CellMeasurer
@@ -150,27 +137,22 @@ function Breadcrumbs({
         </Time>,
         '',
       ]}
-      isEmpty={!breadcrumbs.length}
+      isEmpty={!sortedBreadcrumbs.length}
       {...emptyMessage}
     >
       <Content ref={contentRef}>
         <AutoSizer disableHeight onResize={updateGrid}>
           {({width}) => (
             <StyledList
-              ref={(el: List | null) => {
-                listRef = el;
-              }}
+              ref={listRef}
               deferredMeasurementCache={cache}
               height={PANEL_MAX_HEIGHT}
               overscanRowCount={5}
-              rowCount={breadcrumbs.length}
+              rowCount={sortedBreadcrumbs.length}
               rowHeight={cache.rowHeight}
               rowRenderer={renderRow}
               width={width}
               onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-              // when the component mounts, it scrolls to the last item
-              scrollToIndex={scrollToIndex}
-              scrollToAlignment={scrollToIndex ? 'end' : undefined}
             />
           )}
         </AutoSizer>
