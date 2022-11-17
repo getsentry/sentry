@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useCallback} from 'react';
+import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,12 +6,10 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
-import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
+import useButtonClick from 'sentry/utils/buttonClick/useButtonClick';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -34,9 +32,18 @@ interface BaseButtonProps
    */
   align?: 'center' | 'left' | 'right';
   /**
+   * Used when you want to overwrite the default Reload event key for analytics
+   */
+  analyticsEventKey?: string;
+  /**
+   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
+   * you must pass in a eventName to send an Amplitude event.
+   */
+  analyticsEventName?: string;
+  /**
    * Adds extra parameters to the analytics tracking
    */
-  analyticsParams?: {};
+  analyticsParams?: Record<string, any>;
   /**
    * Used by ButtonBar to determine active status.
    */
@@ -65,15 +72,6 @@ interface BaseButtonProps
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    */
   download?: HTMLAnchorElement['download'];
-  /**
-   * Used when you want to overwrite the default Reload event key for analytics
-   */
-  eventKey?: string;
-  /**
-   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
-   * you must pass in a eventName to send an Amplitude event.
-   */
-  eventName?: string;
   /**
    * The button is an external link. Similar to the `Link` `external` property.
    */
@@ -149,8 +147,6 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-export const trackButtonClick = HookStore.get('analytics:track-button-clicks')[0];
-
 function BaseButton({
   size = 'md',
   to,
@@ -167,75 +163,32 @@ function BaseButton({
   disabled = false,
   tooltipProps,
   onClick,
-  eventName,
-  eventKey,
+  analyticsEventName,
+  analyticsEventKey,
   analyticsParams,
   ...buttonProps
 }: ButtonProps) {
-  const organization = useOrganization();
-  const routes = useRoutes();
-
-  // Intercept onClick and propagate
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Don't allow clicks when disabled or busy
-      if (disabled || busy) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      if (typeof onClick !== 'function') {
-        return;
-      }
-
-      const iconType = icon?.type.displayName;
-      const buttonLabel =
-        typeof children === 'string' ? children : children?.type.displayName;
-
-      trackButtonClick({
-        eventName,
-        eventKey,
-        organization,
-        routes,
-        data: {
-          priority,
-          text: buttonLabel,
-          icon: iconType,
-          name: buttonProps.name,
-          id: buttonProps['data-test-id'],
-          link: href,
-          ...analyticsParams,
-        },
-      });
-
-      onClick(e);
-    },
-    [
-      onClick,
-      busy,
-      disabled,
-      buttonProps,
-      children,
-      href,
-      icon?.type.displayName,
-      eventName,
-      eventKey,
-      organization,
-      priority,
-      routes,
-      analyticsParams,
-    ]
-  );
-
-  function getUrl<T extends Url>(prop: T): T | undefined {
-    return disabled ? undefined : prop;
-  }
-
   // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
   // Leaving it here for a bunch of our tests that query by aria-label.
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
+
+  // Intercept onClick and propagate
+  const handleClick = useButtonClick({
+    disabled,
+    busy,
+    onClick,
+    analyticsEventName,
+    analyticsEventKey,
+    priority,
+    href,
+    analyticsParams,
+    'aria-label': screenReaderLabel || '',
+  });
+
+  function getUrl<T extends Url>(prop: T): T | undefined {
+    return disabled ? undefined : prop;
+  }
 
   const hasChildren = Array.isArray(children)
     ? children.some(child => !!child)
