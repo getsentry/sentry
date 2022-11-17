@@ -74,9 +74,13 @@ def preview(
             event_map = get_events(project, group_activity, event_columns)
 
         if frequency_conditions:
-            group_activity = get_top_groups(project, start, end, group_activity)
             group_activity = apply_frequency_conditions(
-                project, start, end, group_activity, frequency_conditions, condition_match
+                project,
+                start,
+                end,
+                get_top_groups(project, start, end, group_activity),
+                frequency_conditions,
+                condition_match,
             )
 
         frequency = timedelta(minutes=frequency_minutes)
@@ -97,14 +101,14 @@ def categorize_conditions(conditions: Conditions) -> Tuple[Conditions, Condition
     Also deduplicates conditions, mainly for issue state conditions since they don't have params
     so there can be at most 3, and some of the preview logic after assumes they are unique.
     """
-    issue_state_conditions = {}
+    issue_state_conditions = set()
     frequency_conditions = []
     for condition in conditions:
         if condition["id"] in ISSUE_STATE_CONDITIONS:
-            issue_state_conditions[condition["id"]] = condition
+            issue_state_conditions.add(condition["id"])
         else:
             frequency_conditions.append(condition)
-    return list(issue_state_conditions.values()), frequency_conditions
+    return [{"id": condition_id} for condition_id in issue_state_conditions], frequency_conditions
 
 
 def get_issue_state_activity(

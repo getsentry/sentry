@@ -18,6 +18,8 @@ from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.issues import GroupType
 
+MATCH_ARGS = ("all", "all", 0)
+
 
 def get_hours(time: timedelta) -> int:
     return time.days * 24 + time.seconds // (60 * 60)
@@ -112,7 +114,7 @@ class ProjectRulePreviewTest(TestCase):
             else:
                 older.append(group)
 
-        result = preview(self.project, conditions, filters, "all", "all", 0)
+        result = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert all(g in result for g in newer)
         assert all(g not in result for g in older)
 
@@ -144,7 +146,7 @@ class ProjectRulePreviewTest(TestCase):
             }
         ]
 
-        result = preview(self.project, conditions, filters, "all", "all", 0)
+        result = preview(self.project, conditions, filters, *MATCH_ARGS)
         for i in range(threshold + 1):
             assert groups[i] not in result
         for i in range(threshold + 1, hours):
@@ -178,7 +180,7 @@ class ProjectRulePreviewTest(TestCase):
                 "value": GroupType.ERROR.value,
             }
         ]
-        result = preview(self.project, conditions, filters, "all", "all", 0)
+        result = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert all(group in result for group in errors)
         assert all(group not in result for group in n_plus_one)
 
@@ -187,16 +189,16 @@ class ProjectRulePreviewTest(TestCase):
 
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [{"id": "sentry.rules.filters.level.LevelFilter", "level": "40", "match": "eq"}]
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group in results
 
         filters[0]["match"] = "gte"
         filters[0]["level"] = "50"
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group not in results
 
         filters[0]["match"] = "lte"
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group in results
 
     def test_tagged(self):
@@ -211,11 +213,11 @@ class ProjectRulePreviewTest(TestCase):
             }
         ]
 
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group in results
 
         filters[0]["value"] = "baz"
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group not in results
 
     def test_unsupported_conditions(self):
@@ -300,7 +302,7 @@ class ProjectRulePreviewTest(TestCase):
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
             {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
         ]
-        result = preview(self.project, conditions, [], "all", "all", 0)
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert result.count() == 0
 
 
@@ -356,15 +358,15 @@ class FrequencyConditionTest(TestCase):
                 "interval": "5m",
             },
         ]
-        result = preview(self.project, conditions, [], "all", "all", 0)
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group in result
 
         conditions[1]["value"] = 5
-        result = preview(self.project, conditions, [], "all", "all", 0)
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group not in result
 
         conditions[1]["interval"] = "1d"
-        result = preview(self.project, conditions, [], "all", "all", 0)
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group in result
 
 

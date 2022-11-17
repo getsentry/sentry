@@ -111,22 +111,19 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def _get_options(self) -> Tuple[float, str] | None:
-        interval = self.get_option("interval")
+    def _get_options(self) -> Tuple[str | None, float | None]:
+        interval, value = None, None
         try:
             value = float(self.get_option("value"))
+            interval = self.get_option("interval")
         except (TypeError, ValueError):
-            return None
-
-        if not interval:
-            return None
-        return value, interval
+            pass
+        return interval, value
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        options = self._get_options()
-        if options is None:
+        interval, value = self._get_options()
+        if not (interval and value):
             return False
-        value, interval = options
 
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
@@ -136,15 +133,14 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def passes_activity_frequency(
         self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
-        options = self._get_options()
-        if options is None:
+        interval, value = self._get_options()
+        if not (interval and value):
             return False
-        value, interval = options
         interval_delta = self.intervals[interval][1]
 
         # extrapolate if interval less than bucket size
         if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
-            value *= FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta
+            value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
             interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
 
         interval_end = round_to_five_minute(activity.timestamp)
