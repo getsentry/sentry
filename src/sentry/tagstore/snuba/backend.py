@@ -1,3 +1,4 @@
+import datetime
 import functools
 import os
 import re
@@ -1142,6 +1143,14 @@ class SnubaTagStorage(TagStorage):
 
         if dataset == Dataset.Events:
             conditions.append(DEFAULT_TYPE_CONDITION)
+        elif dataset == Dataset.Replays:
+            now = datetime.datetime.now()
+            conditions.extend(
+                [
+                    ["timestamp", ">=", now - datetime.timedelta(days=90)],
+                    ["timestamp", "<", now],
+                ]
+            )
 
         results = snuba.query(
             dataset=dataset,
