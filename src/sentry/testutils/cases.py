@@ -120,6 +120,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1440,7 +1441,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         )
 
 
-class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
+class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
@@ -1520,6 +1521,43 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
                 subvalue,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
+
+    def wait_for_metric_count(
+        self,
+        project,
+        total,
+        metric="transaction.duration",
+        mri=TransactionMRI.DURATION.value,
+        attempts=2,
+    ):
+        attempt = 0
+        metrics_query = self.build_metrics_query(
+            before_now="1d",
+            granularity="1d",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=mri,
+                ),
+            ],
+            include_series=False,
+        )
+        while attempt < attempts:
+            data = get_series(
+                [project],
+                metrics_query=metrics_query,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+            count = data["groups"][0]["totals"][f"count({metric})"]
+            if count >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+
+        if attempt == attempts:
+            assert (
+                False
+            ), f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
 
 
 class BaseIncidentsTest(SnubaTestCase):
