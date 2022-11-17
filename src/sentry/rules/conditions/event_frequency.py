@@ -133,21 +133,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def passes_activity_frequency(
         self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
-        interval, value = self._get_options()
-        if not (interval and value):
-            return False
-        interval_delta = self.intervals[interval][1]
-
-        # extrapolate if interval less than bucket size
-        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
-            value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
-            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
-
-        interval_end = round_to_five_minute(activity.timestamp)
-        interval_start = interval_end - interval_delta
-        count = buckets[interval_end] - buckets.get(interval_start, 0)
-
-        return count > value
+        raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
         query_result = self.query_hook(event, start, end, environment_id)
@@ -228,6 +214,25 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             jitter_value=event.group_id,
         )
         return sums[event.group_id]
+
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        interval, value = self._get_options()
+        if not (interval and value):
+            return False
+        interval_delta = self.intervals[interval][1]
+
+        # extrapolate if interval less than bucket size
+        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
+            value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
+            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
+
+        interval_end = round_to_five_minute(activity.timestamp)
+        interval_start = interval_end - interval_delta
+        count = buckets[interval_end] - buckets.get(interval_start, 0)
+
+        return count > value
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
