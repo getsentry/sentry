@@ -163,7 +163,7 @@ function CompactSelect<
   position = 'bottom-start',
   shouldCloseOnBlur = true,
   isDismissable = true,
-  maxMenuHeight = 400,
+  maxMenuHeight: maxMenuHeightProp = 400,
   ...props
 }: Props<OptionType, MultipleType>) {
   // Manage the dropdown menu's open state
@@ -275,12 +275,17 @@ function CompactSelect<
   }
 
   const theme = useTheme();
-  const menuHeight = useMemo(
+  const maxMenuHeight = useMemo(
     () =>
       overlayProps.style?.maxHeight
-        ? Math.min(+overlayProps.style?.maxHeight, maxMenuHeight)
-        : maxMenuHeight,
-    [overlayProps, maxMenuHeight]
+        ? Math.min(
+            typeof overlayProps.style?.maxHeight === 'number'
+              ? overlayProps.style?.maxHeight
+              : Infinity,
+            maxMenuHeightProp
+          )
+        : maxMenuHeightProp,
+    [overlayProps, maxMenuHeightProp]
   );
   function renderMenu() {
     if (!isOpen) {
@@ -292,7 +297,12 @@ function CompactSelect<
         <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
           <StyledOverlay minWidth={triggerWidth}>
             <SelectControl
-              components={{Control: CompactSelectControl, ClearIndicator: null}}
+              components={{
+                // Skip menu component since we already have StyledOverlay
+                Menu: ({children}) => children,
+                Control: CompactSelectControl,
+                ClearIndicator: null,
+              }}
               {...props}
               options={options}
               value={valueProp ?? internalValue}
@@ -302,7 +312,7 @@ function CompactSelect<
               menuTitle={menuTitle}
               placeholder={placeholder}
               isSearchable={isSearchable}
-              menuHeight={menuHeight}
+              maxMenuHeight={maxMenuHeight}
               menuPlacement="bottom"
               menuIsOpen
               isCompact
@@ -345,7 +355,6 @@ const StyledBadge = styled(Badge)`
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{minWidth?: number}>`
-  max-width: calc(100vw - ${space(2)} * 2);
   overflow: hidden;
   ${p => p.minWidth && `min-width: ${p.minWidth}px;`}
 `;

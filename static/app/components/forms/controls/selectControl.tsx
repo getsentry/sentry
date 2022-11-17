@@ -168,7 +168,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
+  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -188,6 +188,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const defaultStyles = useMemo<StylesConfig>(
     () => ({
+      container: provided => ({
+        ...provided,
+        ...(isCompact && {
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: maxMenuHeight,
+        }),
+      }),
       control: (_, state: any) => ({
         display: 'flex',
         // @ts-ignore Ignore merge errors as only defining the property once
@@ -243,23 +251,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
-        ...(isCompact && {
-          position: 'relative',
-          margin: 0,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          zIndex: 'initial',
-          ...(isSearchable && {paddingTop: 0}),
-        }),
       }),
 
       menuList: provided => ({
         ...provided,
         ...(isCompact && {
-          ...(menuHeight && {
-            maxHeight: menuHeight,
-          }),
           ...(isSearchable && {
             paddingTop: 0,
           }),
@@ -405,7 +401,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
-    [theme, size, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
+    [theme, size, maxMenuWidth, maxMenuHeight, indicatorStyles, isSearchable, isCompact]
   );
 
   const getFieldLabelStyle = (label?: string) => ({
