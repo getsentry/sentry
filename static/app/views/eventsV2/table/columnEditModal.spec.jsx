@@ -337,8 +337,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
         at: 0,
       });
 
-      const input = screen.getAllByRole('textbox')[1];
-      expect(input).toHaveValue('300');
+      expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
     });
 
     it('clears unused parameters', async function () {
