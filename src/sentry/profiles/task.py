@@ -253,7 +253,6 @@ def _process_symbolicator_results(
     profile["debug_meta"]["images"] = modules
 
     if "version" in profile:
-        profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
         return
 
@@ -267,11 +266,14 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
-    if profile["platform"] == "rust":
-        for frame in stacktraces[0]["frames"]:
+    profile["profile"]["frames"] = stacktraces[0]["frames"]
+    if profile["platform"] in SHOULD_SYMBOLICATE:
+        for frame in profile["profile"]["frames"]:
             frame.pop("pre_context", None)
             frame.pop("context_line", None)
             frame.pop("post_context", None)
+
+    if profile["platform"] == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
             # remove top frames related to the profiler (top of the stack)
@@ -571,7 +573,9 @@ def _get_event_instance_for_legacy(profile: Profile) -> Any:
         "platform": profile["platform"],
         "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "release": f"{profile['version_name']} ({profile['version_code']})"
+        if profile["version_code"]
+        else profile["version_name"],
         "retention_days": profile["retention_days"],
         "timestamp": profile["received"],
         "transaction_name": profile["transaction_name"],

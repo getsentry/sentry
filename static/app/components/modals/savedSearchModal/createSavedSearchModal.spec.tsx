@@ -75,8 +75,11 @@ describe('CreateSavedSearchModal', function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
     userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
-    userEvent.clear(screen.getByTestId('smart-search-input'));
-    userEvent.type(screen.getByTestId('smart-search-input'), 'is:resolved{enter}');
+    userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
+    userEvent.type(
+      screen.getByRole('textbox', {name: /filter issues/i}),
+      'is:resolved{enter}'
+    );
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
 

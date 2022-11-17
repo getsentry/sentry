@@ -75,12 +75,12 @@ function EventOrGroupHeader({
         )}
         {!hideIcons && status === 'ignored' && (
           <IconWrapper>
-            <IconMute color="red300" />
+            <IconMute color="red400" />
           </IconWrapper>
         )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="yellow300" />
+            <IconStar isSolid color="yellow400" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={<EventTitleError />} mini>

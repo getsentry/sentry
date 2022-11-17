@@ -30,13 +30,17 @@ class TestDerivedCodeMappings(TestCase):
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
                 self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
-                self.bar_repo.name: RepoTree(self.bar_repo, files=["getsentry/web/urls.py"]),
+                self.bar_repo.name: RepoTree(self.bar_repo, files=["sentry/web/urls.py"]),
             }
         )
 
         self.expected_code_mappings = [
-            CodeMapping(self.foo_repo, "sentry", "src/sentry"),
-            CodeMapping(self.foo_repo, "sentry_plugins", "src/sentry_plugins"),
+            CodeMapping(repo=self.foo_repo, stacktrace_root="sentry/", source_path="src/sentry/"),
+            CodeMapping(
+                repo=self.foo_repo,
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
+            ),
         ]
 
     def test_frame_filename_package_and_more_than_one_level(self):
@@ -109,6 +113,25 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
+    def test_matches_top_src_file(self):
+        stacktraces = ["setup.py"]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        assert code_mappings == []
+
+        assert self._caplog.records[0].message == "We do not support top level files."
+        assert self._caplog.records[0].levelname == "INFO"
+        assert self._caplog.records[0].stackframes == [FrameFilename("setup.py")]
+
+    def test_no_dir_depth_match(self):
+        code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
+        assert code_mappings == [
+            CodeMapping(
+                repo=Repo(name="Test-Organization/foo", branch="master"),
+                stacktrace_root="sentry/",
+                source_path="src/sentry/",
+            )
+        ]
+
     def test_more_than_one_match_does_derive(self):
         stacktraces = [
             # More than one file matches for this, however, the package name is taken into account
@@ -120,8 +143,8 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == [
             CodeMapping(
                 repo=self.foo_repo,
-                stacktrace_root="sentry_plugins",
-                source_path="src/sentry_plugins",
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
             )
         ]
 
@@ -150,7 +173,7 @@ class TestDerivedCodeMappings(TestCase):
     def test_more_than_one_repo_match(self):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
-        # repo 2: getsentry/web/urls.py
+        # repo 2: sentry/web/urls.py
         stacktraces = ["sentry/web/urls.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
