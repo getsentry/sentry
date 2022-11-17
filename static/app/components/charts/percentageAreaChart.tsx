@@ -3,6 +3,7 @@ import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/toArray';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
@@ -70,7 +71,7 @@ export default class PercentageAreaChart extends Component<Props> {
         tooltip={{
           formatter: seriesParams => {
             // `seriesParams` can be an array or an object :/
-            const series = Array.isArray(seriesParams) ? seriesParams : [seriesParams];
+            const series = toArray(seriesParams);
 
             // Filter series that have 0 counts
             const date =

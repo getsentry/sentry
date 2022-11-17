@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
+import toArray from 'sentry/utils/toArray';
+
 import {getKeyCode} from './getKeyCode';
 
 const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
@@ -54,7 +56,7 @@ export function useHotkeys(hotkeys: Hotkey[], deps: React.DependencyList): void 
     (evt: KeyboardEvent) => {
       for (const hotkey of memoizedHotkeys) {
         const preventDefault = !hotkey.skipPreventDefault;
-        const keysets = Array.isArray(hotkey.match) ? hotkey.match : [hotkey.match];
+        const keysets = toArray(hotkey.match);
 
         for (const keyset of keysets) {
           const keys = keyset.split('+');

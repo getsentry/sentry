@@ -12,6 +12,7 @@ import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCoun
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 
 interface Props {
   event: EventError;
@@ -52,7 +53,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
     const colors = [theme.charts.previousPeriod, ...theme.charts.getColorPalette(4)];
     const tooltip = {
       formatter(series) {
-        const seriesData = Array.isArray(series) ? series : [series];
+        const seriesData = toArray(series);
         let contents: string[] = [];
 
         contents = seriesData.map(item => {

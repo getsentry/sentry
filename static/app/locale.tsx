@@ -6,6 +6,7 @@ import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
 import localStorage from 'sentry/utils/localStorage';
+import toArray from 'sentry/utils/toArray';
 
 const markerStyles = {
   background: '#ff801790',
@@ -285,7 +286,7 @@ function mark(node: React.ReactNode): string {
     ref: null,
     props: {
       style: markerStyles,
-      children: Array.isArray(node) ? node : [node],
+      children: toArray(node),
     },
     _owner: null,
     _store: {},

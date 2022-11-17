@@ -19,6 +19,7 @@ import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'sentry/utils/queryString';
+import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
@@ -327,9 +328,7 @@ export function getSelectedProjectPlatformsArray(
   projects: Project[]
 ) {
   const projectQuery = location.query.project;
-  const selectedProjectIdSet = Array.isArray(projectQuery)
-    ? new Set(projectQuery)
-    : new Set([projectQuery]);
+  const selectedProjectIdSet = new Set(toArray(projectQuery));
 
   const selectedProjectPlatforms = projects.reduce((acc: string[], project) => {
     if (selectedProjectIdSet.has(project.id)) {

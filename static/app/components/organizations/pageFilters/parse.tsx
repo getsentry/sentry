@@ -6,6 +6,7 @@ import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import toArray from 'sentry/utils/toArray';
 
 import {PageFiltersState} from './types';
 
@@ -146,11 +147,7 @@ function getEnvironment(maybe: ParamValue) {
     return undefined;
   }
 
-  if (Array.isArray(maybe)) {
-    return maybe;
-  }
-
-  return [maybe];
+  return toArray(maybe);
 }
 
 type InputParams = {

@@ -19,6 +19,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
 interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
@@ -200,7 +201,7 @@ function CompactSelect<
   // Keep track of the default trigger label when the value changes
   const defaultTriggerLabel = useMemo(() => {
     const newValue = valueProp ?? internalValue;
-    const valueSet = Array.isArray(newValue) ? newValue : [newValue];
+    const valueSet = toArray(newValue);
     const selectedOptions = valueSet
       .map(val => getSelectedOptions<OptionType, MultipleType>(options, val))
       .flat();
