@@ -92,6 +92,7 @@ function EventOrGroupExtraDetails({
                 subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
               }
             />
+            <span>{numComments}</span>
           </CommentsLink>
         )}
         {showReplayCount && <ReplayCount groupId={id} />}
