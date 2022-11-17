@@ -1,6 +1,11 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.repository import Repository
+
 from .repo import Repo, RepoTree
 
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
@@ -12,14 +17,6 @@ NO_TOP_DIR = "NO_TOP_DIR"
 
 class CodeMapping(NamedTuple):
     repo: Repo
-    stacktrace_root: str
-    source_path: str
-
-
-class CodeMappingMatch(NamedTuple):
-    filename: str
-    repo_name: str
-    repo_branch: str
     stacktrace_root: str
     source_path: str
 
@@ -132,7 +129,7 @@ class CodeMappingTreesHelper:
 
         return _code_mappings[0]
 
-    def list_file_matches(self, frame_filename: FrameFilename) -> List[CodeMappingMatch]:
+    def list_file_matches(self, frame_filename: FrameFilename) -> List[Dict[str, str]]:
         file_matches = []
         for repo_full_name in self.trees.keys():
             repo_tree = self.trees[repo_full_name]
@@ -144,13 +141,13 @@ class CodeMappingTreesHelper:
 
             for file in matches:
                 file_matches.append(
-                    CodeMappingMatch(
-                        filename=file,
-                        repo_name=repo_tree.repo.name,
-                        repo_branch=repo_tree.repo.branch,
-                        stacktrace_root=f"{frame_filename.root}/",
-                        source_path=self._get_code_mapping_source_path(file, frame_filename),
-                    )
+                    {
+                        "filename": file,
+                        "repo_name": repo_tree.repo.name,
+                        "repo_branch": repo_tree.repo.branch,
+                        "stacktrace_root": f"{frame_filename.root}/",
+                        "source_path": self._get_code_mapping_source_path(file, frame_filename),
+                    }
                 )
         return file_matches
 
@@ -224,3 +221,38 @@ class CodeMappingTreesHelper:
             match = split[0].rfind(f"{frame_filename.root}/") > -1
 
         return match
+
+
+def create_code_mapping(
+    organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
+) -> RepositoryProjectPathConfig:
+    repository, _ = Repository.objects.get_or_create(
+        name=code_mapping.repo.name,
+        organization_id=organization_integration.organization_id,
+        defaults={
+            "integration_id": organization_integration.integration_id,
+        },
+    )
+
+    new_code_mapping, created = RepositoryProjectPathConfig.objects.update_or_create(
+        project=project,
+        stack_root=code_mapping.stacktrace_root,
+        defaults={
+            "repository": repository,
+            "organization_integration": organization_integration,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            "automatically_generated": True,
+        },
+    )
+
+    if created:
+        logger.info(
+            f"Created a code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+        )
+    else:
+        logger.info(
+            f"Updated existing code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+        )
+
+    return new_code_mapping

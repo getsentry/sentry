@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.integrations.utils.code_mapping import CodeMappingMatch
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -33,16 +32,16 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_single_match(self, mock_get_trees_for_org):
         config_data = {
-            "filename": "/stack/root/file.py",
+            "stacktraceFilename": "/stack/root/file.py",
         }
         expected_matches = [
-            CodeMappingMatch(
-                filename="stack/root/file.py",
-                repo_name="getsentry/codemap",
-                repo_branch="master",
-                stacktrace_root="/stack/root",
-                source_path="/source/root/",
-            )
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "/stack/root",
+                "source_path": "/source/root/",
+            }
         ]
         with patch(
             "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.list_file_matches",
@@ -56,23 +55,23 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org):
         config_data = {
-            "filename": "/stack/root/file.py",
+            "stacktraceFilename": "/stack/root/file.py",
         }
         expected_matches = [
-            CodeMappingMatch(
-                filename="stack/root/file.py",
-                repo_name="getsentry/codemap",
-                repo_branch="master",
-                stacktrace_root="/stack/root",
-                source_path="/source/root/",
-            ),
-            CodeMappingMatch(
-                filename="stack/root/file.py",
-                repo_name="getsentry/codemap",
-                repo_branch="master",
-                stacktrace_root="/stack/root",
-                source_path="/source/root/",
-            ),
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "/stack/root",
+                "source_path": "/source/root/",
+            },
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "/stack/root",
+                "source_path": "/source/root/",
+            },
         ]
         with patch(
             "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.list_file_matches",
@@ -86,7 +85,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_get_no_installation(self):
         config_data = {
             "projectId": self.project.id,
-            "filename": "/stack/root/file.py",
+            "stacktraceFilename": "/stack/root/file.py",
         }
         Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
@@ -140,7 +139,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="/stack/root",
-            source_root="/source/root",
+            source_root="/source/root/wrong",
             default_branch="master",
             repository=self.repo,
             organization_integration=self.organization_integration,
@@ -154,4 +153,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "repoName": "name",
         }
         response = self.client.post(self.url, data=config_data, format="json")
-        assert response.status_code == 400, response.content
+        assert response.status_code == 201, response.content
+
+        new_code_mapping = RepositoryProjectPathConfig.objects.get(
+            project=self.project, stack_root="/stack/root"
+        )
+        assert new_code_mapping.source_root == "/source/root"
