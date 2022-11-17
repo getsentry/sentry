@@ -12,7 +12,8 @@ import ReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {ReplayCountContextProvider} from 'sentry/components/replays/replayCountContext';
+import ReplayCountContext from 'sentry/components/replays/replayCountContext';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -56,12 +57,14 @@ function EventOrGroupExtraDetails({
   const showReplayCount =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
+  const counts = useReplaysCount({
+    groupIds: id,
+    organization,
+    project,
+  });
+
   return (
-    <ReplayCountContextProvider
-      groupIds={id}
-      organization={organization}
-      project={project}
-    >
+    <ReplayCountContext.Provider value={counts}>
       <GroupExtra>
         {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
         {shortId && (
@@ -123,7 +126,7 @@ function EventOrGroupExtraDetails({
           <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
         )}
       </GroupExtra>
-    </ReplayCountContextProvider>
+    </ReplayCountContext.Provider>
   );
 }
 

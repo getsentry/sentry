@@ -1,22 +1,22 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
-import {useReplaysCountContext} from 'sentry/components/replays/replayCountContext';
+import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 
 jest.mock('sentry/components/replays/replayCountContext');
-
-const MockUseReplaysCountContext = useReplaysCountContext as jest.MockedFunction<
-  typeof useReplaysCountContext
->;
 
 describe('IssueReplayCount', function () {
   const groupId = '3363325111';
   const organization = TestStubs.Organization();
 
   it('does not render when a group has no replays', async function () {
-    MockUseReplaysCountContext.mockReturnValue({});
+    const mockReplaysCount = {};
 
-    const {container} = render(<IssueReplayCount groupId={groupId} />);
+    const {container} = render(
+      <ReplayCountContext.Provider value={mockReplaysCount}>
+        <IssueReplayCount groupId={groupId} />
+      </ReplayCountContext.Provider>
+    );
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -24,11 +24,15 @@ describe('IssueReplayCount', function () {
   });
 
   it('renders the correct replay count', async function () {
-    MockUseReplaysCountContext.mockReturnValue({
+    const mockReplaysCount = {
       [groupId]: 2,
-    });
+    };
 
-    const {container} = render(<IssueReplayCount groupId={groupId} />);
+    const {container} = render(
+      <ReplayCountContext.Provider value={mockReplaysCount}>
+        <IssueReplayCount groupId={groupId} />
+      </ReplayCountContext.Provider>
+    );
 
     await waitFor(() => {
       expect(container).not.toBeEmptyDOMElement();

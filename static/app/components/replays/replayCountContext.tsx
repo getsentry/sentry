@@ -1,20 +1,21 @@
-import {createContext, ReactNode, useContext} from 'react';
+import {createContext} from 'react';
 
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
+import type useReplaysCount from 'sentry/components/replays/useReplaysCount';
 
-const ReplayCountContext = createContext<ReturnType<typeof useReplaysCount>>({});
-
-export function ReplayCountContextProvider({
-  children,
-  ...opts
-}: Parameters<typeof useReplaysCount>[0] & {children: ReactNode}) {
-  const counts = useReplaysCount(opts);
-  return (
-    <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
-  );
-}
-
-export function useReplaysCountContext() {
-  const context = useContext(ReplayCountContext);
-  return context;
-}
+/**
+ * To set things up:
+ * ```
+ * const counts = useReplaysCount({
+ *   groupIds: [id],
+ *   organization,
+ *   project,
+ * });
+ * return <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
+ * ```
+ *
+ * And then read the data later:
+ * ```
+ * const count = useContext(ReplayCountContext)[groupId];
+ * ```
+ */
+export default createContext<ReturnType<typeof useReplaysCount>>({});
