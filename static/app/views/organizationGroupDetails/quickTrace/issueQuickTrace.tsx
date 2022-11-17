@@ -35,7 +35,7 @@ function IssueQuickTrace({
   isPerformanceIssue,
 }: Props) {
   const {shouldShowPrompt, snoozePrompt} = usePromptCheck({
-    event,
+    projectId: event.projectID,
     feature: 'quick_trace_missing',
     organization,
   });
