@@ -27,7 +27,7 @@ class AuthView(BaseView):
         return f"{cls.__module__}.{cls.__name__}"
 
 
-class ConfigureView(BaseView, PluggableViewMixin):  # type: ignore[misc]
+class ConfigureView(BaseView, PluggableViewMixin):
     def dispatch(
         self, request: Request, organization: Organization, auth_provider: AuthProvider
     ) -> str:
