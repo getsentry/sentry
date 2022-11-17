@@ -45,6 +45,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.testutils.helpers import override_options
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -450,13 +451,11 @@ def digest(request):
 
     # TODO: Refactor all of these into something more manageable.
     org = Organization(id=1, slug="example", name="Example Organization")
-
     project = Project(id=1, slug="example", name="Example Project", organization=org)
-
+    project.update_option("sentry:performance_issue_creation_rate", 1.0)
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-
     state = {
         "project": project,
         "groups": {},
@@ -464,9 +463,7 @@ def digest(request):
         "event_counts": {},
         "user_counts": {},
     }
-
     records = []
-
     group_generator = make_group_generator(random, project)
 
     for _ in range(random.randint(1, 30)):
@@ -508,6 +505,49 @@ def digest(request):
 
             state["event_counts"][group.id] = random.randint(10, 1e4)
             state["user_counts"][group.id] = random.randint(10, 1e4)
+
+    # add in performance issues
+    for i in range(random.randint(1, 3)):
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ):
+            perf_data = dict(
+                load_data(
+                    "transaction-n-plus-one",
+                )
+            )
+            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+            perf_event_manager = EventManager(perf_data)
+            perf_event_manager.normalize()
+            perf_data = perf_event_manager.get_data()
+            perf_event = perf_event_manager.save(project.id)
+
+        perf_event = perf_event.for_group(perf_event.groups[0])
+        # don't clobber error issue ids
+        perf_event.group.id = i + 100
+
+        perf_group = perf_event.group
+
+        records.append(
+            Record(
+                perf_event.event_id,
+                Notification(
+                    perf_event,
+                    random.sample(
+                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                    ),
+                ),
+                # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
+                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+            )
+        )
+        state["groups"][perf_group.id] = perf_group
+        state["event_counts"][perf_group.id] = random.randint(10, 1e4)
+        state["user_counts"][perf_group.id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
