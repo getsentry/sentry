@@ -157,12 +157,12 @@ export function SpanGroupBar(props: Props) {
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
   // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
+
   const setTransformCallback = useCallback(
     ref => {
       generateContentSpanBarRef()(ref);
-
       if (ref) {
-        const left = getScrollLeftValue();
+        const left = -getScrollLeftValue();
         ref.style.transform = `translateX(${left}px)`;
         ref.style.transformOrigin = 'left';
       }
