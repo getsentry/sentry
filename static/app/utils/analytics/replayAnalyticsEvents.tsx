@@ -24,6 +24,17 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
+  'replay.render-player': {
+    aspect_ratio: 'portrait' | 'landscape';
+    /*
+     * What scale is the video as a percent, bucketed into ranges of 10% increments
+     * example:
+     *  - The video is shown at 25% the normal size
+     *  - in CSS we use the statement `transform: scale(0.25);`
+     *  - The logged value is `20`, because the scale is in the range of 20% to 30%.
+     */
+    scale_bucket: 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
+  };
   'replay.toggle-fullscreen': {
     fullscreen: boolean;
     user_email: string;
@@ -39,5 +50,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.details-viewed': 'Viewed Replay Details',
   'replay.play-pause': 'Played/Paused Replay',
+  'replay.render-player': 'Rendered ReplayPlayer',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
 };
