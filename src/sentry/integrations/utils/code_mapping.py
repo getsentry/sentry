@@ -116,10 +116,13 @@ class CodeMappingTreesHelper:
                         self.trees[repo_full_name], frame_filename
                     )
                 )
-            except Exception:
-                logger.exception(
-                    f"Code mapping failed for {frame_filename} in {repo_full_name}. Processing continues."
+            except NotImplementedError:
+                logger.warning(
+                    "Code mapping failed for module with no package name. Processing continues.",
+                    extra={"frame_filename": frame_filename, "repo_full_name": repo_full_name},
                 )
+            except Exception:
+                logger.exception("Unexpected error. Processing continues.")
 
         if len(_code_mappings) == 0:
             logger.warning(f"No files matched for {frame_filename.full_path}")
@@ -133,12 +136,15 @@ class CodeMappingTreesHelper:
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
         """Generate the source path of a code mapping
-        e.g. src/sentry/identity/oauth2.py -> src/sentry
+        e.g. src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry
+        e.g. src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry
         e.g. ssl.py -> raise NotImplementedError
         """
         if frame_filename.dir_path != "":
             source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
             return f"{source_path}/"
+        elif frame_filename.root != "":
+            return src_file.rsplit(frame_filename.file_name)[0]
         else:
             raise NotImplementedError("We do not support top level files.")
 
@@ -193,11 +199,16 @@ class CodeMappingTreesHelper:
         # For instance:
         #  src_file: "src/sentry/integrations/slack/client.py"
         #  frame_filename.full_path: "sentry/integrations/slack/client.py"
-        split = src_file.split(frame_filename.file_and_dir_path)
+        # This should not match:
+        #  src_file: "src/sentry/utils/uwsgi.py"
+        #  frame_filename: "sentry/wsgi.py"
+        split = src_file.split(f"/{frame_filename.file_and_dir_path}")
         if any(split) and len(split) > 1:
             # This is important because we only want stack frames to match when they
             # include the exact package name
             # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
-            match = split[0].rfind(f"{frame_filename.root}/") > -1
+            match = (
+                split[0].rfind(f"/{frame_filename.root}") > -1 or split[0] == frame_filename.root
+            )
 
         return match
