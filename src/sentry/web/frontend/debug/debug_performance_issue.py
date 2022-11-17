@@ -50,6 +50,7 @@ class DebugPerformanceIssueEmailView(View):
             perf_event = perf_event_manager.save(project.id)
 
         perf_event = perf_event.for_group(perf_event.groups[0])
+        perf_event.group.id = 1  # hard code to 1 for acceptance tests
         perf_group = perf_event.group
 
         rule = Rule(id=1, label="Example performance rule")

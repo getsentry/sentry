@@ -88,9 +88,10 @@ function EventOrGroupExtraDetails({
           <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
             <IconChat
               size="xs"
-              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+              color={
+                subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
+              }
             />
-            <span>{numComments}</span>
           </CommentsLink>
         )}
         {showReplayCount && <ReplayCount groupId={id} />}

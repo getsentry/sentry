@@ -69,7 +69,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Replay Sessions')}</Heading>
+        <Heading>{t('Getting Started with Replays')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
@@ -225,7 +225,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
@@ -247,27 +247,27 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t("Waiting for this project's first replay event")}
+    {t("Waiting for this project's first user session")}
   </div>
 ))`
   display: flex;
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t("We've received this project's first replay event!")}
+    {t("We've received this project's first user session!")}
   </div>
 ))`
   display: flex;
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.successText};
 `;
 
 export default ReplaysOnboardingSidebar;

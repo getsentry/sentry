@@ -39,11 +39,11 @@ function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {
     case 'good':
-      return p.theme.green300;
+      return p.theme.successText;
     case 'bad':
-      return p.theme.red300;
+      return p.theme.errorText;
     default:
-      return p.theme.gray300;
+      return p.theme.subText;
   }
 }
 

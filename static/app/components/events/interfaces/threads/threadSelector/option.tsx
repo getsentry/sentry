@@ -5,7 +5,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {EntryData} from 'sentry/types';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';
 
@@ -40,10 +40,10 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
                 disabled={!crashedInfo}
                 position="top"
               >
-                <IconFire color="red300" />
+                <IconFire color="errorText" />
               </Tooltip>
             ) : (
-              <IconFire color="red300" />
+              <IconFire color="errorText" />
             )}
           </InnerCell>
         )}
@@ -63,7 +63,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="blue300">
+        <InnerCell color="linkColor">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
@@ -75,7 +75,11 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
 
 export default Option;
 
-const InnerCell = styled('div')<{color?: Color; isBold?: boolean; isCentered?: boolean}>`
+const InnerCell = styled('div')<{
+  color?: ColorOrAlias;
+  isBold?: boolean;
+  isCentered?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

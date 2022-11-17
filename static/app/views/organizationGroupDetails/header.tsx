@@ -11,7 +11,6 @@ import Count from 'sentry/components/count';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
-import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -383,23 +382,7 @@ function GroupHeader({
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}
               {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage
-                message={message}
-                annotations={
-                  group.logger && (
-                    <EventAnnotation>
-                      <Link
-                        to={{
-                          pathname: `/organizations/${organization.slug}/issues/`,
-                          query: {query: 'logger:' + group.logger},
-                        }}
-                      >
-                        {group.logger}
-                      </Link>
-                    </EventAnnotation>
-                  )
-                }
-              />
+              <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
           <StatsWrapper numItems={hasIssueDetailsOwners ? '2' : '3'}>
