@@ -205,4 +205,4 @@ runs:
 
         docker ps -a
 
-        ./$WORKDIR/scripts/devservices-healthcheck.sh
+        python3 -u -S -m tools.devservices_healthcheck
