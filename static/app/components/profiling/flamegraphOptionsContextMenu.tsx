@@ -4,6 +4,7 @@ import {IconCopy, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
@@ -116,14 +117,22 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
     if (githubLink.type !== 'resolved') {
       return;
     }
+
     if (
       !githubLink.data.sourceUrl ||
       githubLink.data.config?.provider?.key !== 'github'
     ) {
       return;
     }
-    window.open(githubLink.data.sourceUrl, '_blank', 'noopener,noreferrer');
-  }, [githubLink]);
+
+    // make a best effort to link to the exact line if we can
+    const url =
+      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
+        ? `${githubLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
+        : githubLink.data.sourceUrl;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [props.hoveredNode, githubLink]);
 
   return props.contextMenu.open ? (
     <Fragment>
