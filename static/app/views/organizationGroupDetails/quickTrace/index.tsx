@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 import {Location} from 'history';
 
+import Placeholder from 'sentry/components/placeholder';
 import ReplayNode from 'sentry/components/quickTrace/replayNode';
 import {ReplayOnlyTrace} from 'sentry/components/quickTrace/styles';
 import {Group, Organization} from 'sentry/types';
@@ -26,25 +27,30 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
     event.entries?.some(({type}) => type === 'breadcrumbs') &&
     event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
   const isReplayEnabled = organization.features.includes('session-replay-ui');
-  const showQuickTrace = hasPerformanceView && hasTraceContext;
 
-  if (showQuickTrace) {
-    return (
-      <IssueQuickTrace
-        organization={organization}
-        event={event}
-        location={location}
-        isPerformanceIssue={isPerformanceIssue}
-        quickTrace={quickTrace!}
-      />
-    );
+  if (!hasPerformanceView || !hasTraceContext || !hasReplay || !isReplayEnabled) {
+    return null;
   }
 
-  return hasReplay && isReplayEnabled ? (
+  if (quickTrace?.isLoading) {
+    return <Placeholder height="24px" />;
+  }
+
+  if (!hasPerformanceView || !hasTraceContext) {
     <ReplayOnlyTrace>
       <ReplayNode event={event} />
-    </ReplayOnlyTrace>
-  ) : null;
+    </ReplayOnlyTrace>;
+  }
+
+  return (
+    <IssueQuickTrace
+      organization={organization}
+      event={event}
+      location={location}
+      isPerformanceIssue={isPerformanceIssue}
+      quickTrace={quickTrace}
+    />
+  );
 }
 
 export default QuickTrace;

@@ -94,7 +94,7 @@ class GroupEventToolbar extends Component<Props> {
                 fixed: 'Dummy timestamp',
               })}
             />
-            {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
+            {isOverLatencyThreshold && <StyledIconWarning color="warningText" />}
           </Tooltip>
           <StyledGlobalAppStoreConnectUpdateAlert
             project={project}

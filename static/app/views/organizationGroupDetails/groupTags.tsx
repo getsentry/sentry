@@ -160,7 +160,7 @@ const StyledPanel = styled(Panel)`
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: 0;
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.linkColor};
 `;
 
 const UnstyledUnorderedList = styled('ul')`

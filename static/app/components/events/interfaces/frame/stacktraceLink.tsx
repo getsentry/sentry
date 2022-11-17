@@ -123,7 +123,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   onRequestSuccess(resp: {data: StacktraceLinkResult; stateKey: 'match'}) {
-    const {config, sourceUrl} = resp.data;
+    const {error, integrations, sourceUrl} = resp.data;
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
       organization: this.props.organization,
@@ -131,9 +131,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       project_id: this.project?.id,
       state:
         // Should follow the same logic in render
-        config && sourceUrl
+        sourceUrl
           ? 'match'
-          : config
+          : error || integrations.length > 0
           ? 'no_match'
           : !this.state.isDismissed
           ? 'prompt'
@@ -165,24 +165,6 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
-          organization: this.props.organization,
-          ...getAnalyicsDataForEvent(this.props.event),
-        },
-        {startSession: true}
-      );
-    }
-  };
-
-  onReconfigureMapping = () => {
-    const provider = this.state.match.config?.provider;
-    const error = this.state.match.error;
-    if (provider) {
-      trackIntegrationAnalytics(
-        'integrations.reconfigure_stacktrace_setup',
-        {
-          view: 'stacktrace_issue_details',
-          provider: provider.key,
-          error_reason: error,
           organization: this.props.organization,
           ...getAnalyicsDataForEvent(this.props.event),
         },
@@ -294,7 +276,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {config, sourceUrl, integrations} = this.state.match || {};
+    const {config, error, sourceUrl, integrations} = this.state.match || {};
     const {isDismissed, promptLoaded} = this.state;
 
     // Success state
@@ -304,7 +286,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     // Code mapping does not match
     // Has integration but no code mappings
-    if (config || (integrations.length > 0 && !config)) {
+    if (error || integrations.length > 0) {
       return this.renderNoMatch();
     }
 

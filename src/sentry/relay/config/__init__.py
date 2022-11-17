@@ -178,7 +178,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
                         )
                     active_rules.append(rule)
 
-            return {"rules": active_rules}
+            return {"rules": active_rules, "mode": "total"}
 
     return None
 
