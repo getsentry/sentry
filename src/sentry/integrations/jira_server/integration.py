@@ -352,10 +352,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "name": self.issues_ignored_fields_key,
                 "label": "Ignored Fields",
                 "type": "textarea",
-                "placeholder": _('e.g. "components, security, customfield_10006"'),
-                "help": _(
-                    "Comma-separated list of Jira Server fields that you don't want to show in issue creation form"
-                ),
+                "placeholder": _("components, security, customfield_10006"),
+                "help": _("Comma-separated Jira field IDs that you want to hide."),
             },
         ]
 
