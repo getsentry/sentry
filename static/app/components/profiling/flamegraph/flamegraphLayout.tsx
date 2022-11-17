@@ -14,8 +14,8 @@ import {
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
 interface FlamegraphLayoutProps {
-  flamechart: React.ReactElement;
-  flamechartDrawer: React.ReactElement;
+  flamegraph: React.ReactElement;
+  flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
 }
 
@@ -78,9 +78,9 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
           {props.minimap}
         </MinimapContainer>
-        <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
+        <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
         <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
-          {cloneElement(props.flamechartDrawer, {onResize: onMouseDown})}
+          {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
         </FLAMEGRAPH_DRAWERContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>

@@ -408,7 +408,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             setFlamegraphMiniMapOverlayCanvasRef={setFlamegraphMiniMapOverlayCanvasRef}
           />
         }
-        flamechart={
+        flamegraph={
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
@@ -425,7 +425,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             />
           </ProfileDragDropImport>
         }
-        flamechartDrawer={
+        flamegraphDrawer={
           <FlamegraphDrawer
             profileGroup={props.profiles}
             flamegraph={flamegraph}
