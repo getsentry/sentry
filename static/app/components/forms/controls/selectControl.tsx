@@ -20,6 +20,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+import PanelProvider from 'sentry/utils/panelProvider';
 import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
@@ -89,6 +90,15 @@ const SingleValueWrap = styled('div')`
 const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
+
+const Menu = (props: React.ComponentProps<typeof selectComponents.Menu>) => {
+  const {children, ...otherProps} = props;
+  return (
+    <selectComponents.Menu {...otherProps}>
+      <PanelProvider>{children}</PanelProvider>
+    </selectComponents.Menu>
+  );
+};
 
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
@@ -483,6 +493,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
+    Menu,
     Option,
   };
 
