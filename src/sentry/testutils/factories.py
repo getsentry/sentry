@@ -81,6 +81,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    SavedSearch,
     SentryAppInstallation,
     SentryFunction,
     Team,
@@ -1348,3 +1349,7 @@ class Factories:
             external_id=slugify(name) + "-" + uuid4().hex,
             **kwargs,
         )
+
+    @staticmethod
+    def create_saved_search(name: str, **kwargs):
+        return SavedSearch.objects.create(name=name, **kwargs)
