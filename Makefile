@@ -69,13 +69,13 @@ compile-locale:
 	cd src/sentry && sentry django compilemessages
 
 install-transifex:
-	curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
+	[ -f ./tx ] || curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
 
 push-transifex: merge-locale-catalogs install-transifex
 	./tx push -s
 
 pull-transifex: install-transifex
-	./tx pull -a
+	./tx pull -a -t
 
 # Update transifex with new strings that need to be translated
 update-transifex: push-transifex
