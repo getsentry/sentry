@@ -252,7 +252,7 @@ class MonitorForm extends Component<Props> {
                               disabled={!hasAccess}
                               options={INTERVALS}
                               help={t(
-                                'The interval on which the frequency will be applied. 1 time every X (minutes, hours, days)'
+                                'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
                               )}
                               required
                             />
