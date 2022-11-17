@@ -49,9 +49,7 @@ const openMenu = async (row, column = 0) => {
     userEvent.click(labels[column]);
   } else {
     // For test adding a new column, no existing label.
-    const placeholder = screen.getByText('(Required)');
-    expect(placeholder).toBeInTheDocument();
-    userEvent.click(placeholder);
+    userEvent.click(screen.getByText('(Required)'));
   }
 };
 
