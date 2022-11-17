@@ -106,9 +106,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             future.result()
 
             self.__queue.popleft()
-            self.__offsets_to_be_committed[partition] = position
-
-        self.__commit_function(self.__offsets_to_be_committed)
+            self.__commit_function({partition: position})
 
     def submit(self, message: Message[RoutingPayload]) -> None:
         """
@@ -162,5 +160,3 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
 
             logger.info("Committing offset: %r", offset)
             self.__commit_function(offset, force=True)
-
-        self.__message_router.shutdown()

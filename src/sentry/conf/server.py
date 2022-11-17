@@ -2906,11 +2906,11 @@ SHOW_SESSION_REPLAY_BANNER = False
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
 # Example:
 # SLICED_KAFKA_TOPICS = {
-#   ("generic_metrics", 0): {
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
 #       "topic": "generic_metrics_0",
 #       "cluster": "cluster_1",
 #   },
-#   ("generic_metrics", 1): {
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
 #       "topic": "generic_metrics_1",
 #       "cluster": "cluster_2",
 # }
