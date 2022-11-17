@@ -15,6 +15,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
+from sentry_sdk.tracing import Transaction
 
 from sentry.replays.cache import RecordingSegmentParts
 from sentry.replays.usecases.ingest import (
@@ -58,12 +59,21 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
-    def _store(self, message_dict: RecordingSegmentMessage, parts: RecordingSegmentParts) -> None:
-        ingest_chunked_recording(message_dict, parts)
+    def _store(
+        self,
+        message_dict: RecordingSegmentMessage,
+        parts: RecordingSegmentParts,
+        current_transaction: Transaction,
+    ) -> None:
+        ingest_chunked_recording(message_dict, parts, current_transaction)
 
     def _process_recording(
-        self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
+        self,
+        message_dict: RecordingSegmentMessage,
+        message: Message[KafkaPayload],
+        current_transaction: Transaction,
     ) -> None:
+
         cache_prefix = replay_recording_segment_cache_id(
             project_id=message_dict["project_id"],
             replay_id=message_dict["replay_id"],
@@ -81,6 +91,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     self._store,
                     message_dict=message_dict,
                     parts=parts,
+                    current_transaction=current_transaction,
                 ),
             )
         )
@@ -89,33 +100,41 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
+        current_transaction = sentry_sdk.start_transaction(
+            name="replays.consumer.process_recording",
+            op="replays.consumer",
+            sampled=random.random()
+            < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        )
+
         try:
-            with sentry_sdk.start_transaction(
-                name="replays.consumer.process_recording",
-                op="replays.consumer",
-                sampled=random.random()
-                < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
-            ):
+
+            with current_transaction.start_child(op="msg_unpack"):
                 message_dict = msgpack.unpackb(message.payload.value)
 
-                if message_dict["type"] == "replay_recording_chunk":
-                    if type(message_dict["payload"]) is str:
-                        # if the payload is uncompressed, we need to encode it as bytes
-                        # as msgpack will decode it as a utf-8 python string
-                        message_dict["payload"] = message_dict["payload"].encode("utf-8")
+            if message_dict["type"] == "replay_recording_chunk":
+                if type(message_dict["payload"]) is str:
+                    # if the payload is uncompressed, we need to encode it as bytes
+                    # as msgpack will decode it as a utf-8 python string
+                    message_dict["payload"] = message_dict["payload"].encode("utf-8")
 
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
-                        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict))
+                        ingest_chunk(
+                            cast(RecordingSegmentChunkMessage, message_dict), current_transaction
+                        )
                 elif message_dict["type"] == "replay_recording":
                     with sentry_sdk.start_span(op="replay_recording"):
                         self._process_recording(
-                            cast(RecordingSegmentMessage, message_dict), message
+                            cast(RecordingSegmentMessage, message_dict),
+                            message,
+                            current_transaction,
                         )
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
                 "Failed to process replay recording message", extra={"offset": message.offset}
             )
+            current_transaction.finish()
 
     def close(self) -> None:
         self.__closed = True

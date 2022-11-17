@@ -8,6 +8,7 @@ from typing import TypedDict
 import sentry_sdk
 from django.conf import settings
 from django.db.utils import IntegrityError
+from sentry_sdk.tracing import Transaction
 
 from sentry.constants import DataCategory
 from sentry.models import File
@@ -58,8 +59,11 @@ class MissingRecordingSegmentHeaders(ValueError):
 def ingest_chunked_recording(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
+    current_transaction: Transaction,
 ) -> None:
-    with sentry_sdk.start_transaction(op="replays.consumer", name="replays.consumer.flush_batch"):
+    with current_transaction.start_child(
+        op="replays.process_recording.store_recording", description="store_recording"
+    ):
         try:
             recording_segment_with_headers = collate_segment_chunks(parts)
         except ValueError:
@@ -158,18 +162,25 @@ def ingest_chunked_recording(
                 quantity=1,
             )
 
+    current_transaction.finish()
+
 
 @metrics.wraps("replays.usecases.ingest.ingest_chunk")
-def ingest_chunk(message_dict: RecordingSegmentChunkMessage) -> None:
+def ingest_chunk(
+    message_dict: RecordingSegmentChunkMessage, current_transaction: Transaction
+) -> None:
     """Ingest chunked message part."""
-    cache_prefix = replay_recording_segment_cache_id(
-        project_id=message_dict["project_id"],
-        replay_id=message_dict["replay_id"],
-        segment_id=message_dict["id"],
-    )
+    with current_transaction.start_child(op="replays.process_recording.store_chunk"):
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["id"],
+        )
 
-    part = RecordingSegmentCache(cache_prefix)
-    part[message_dict["chunk_index"]] = message_dict["payload"]
+        part = RecordingSegmentCache(cache_prefix)
+        part[message_dict["chunk_index"]] = message_dict["payload"]
+
+    current_transaction.finish()
 
 
 @metrics.wraps("replays.usecases.ingest.collate_segment_chunks")
