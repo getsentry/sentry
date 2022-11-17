@@ -484,8 +484,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       );
 
       userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
-      const tooltipEl = await screen.findByText('Division by 0 is not allowed');
-      expect(tooltipEl).toBeInTheDocument();
+      expect(await screen.findByText('Division by 0 is not allowed');).toBeInTheDocument();
 
       const input = screen.getAllByRole('textbox')[0];
       expect(input).toHaveValue('1 / 0');
