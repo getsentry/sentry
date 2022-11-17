@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {ColorOrAlias, Theme} from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
@@ -225,9 +226,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             tooltip={{
               formatter: seriesParams => {
                 // `seriesParams` can be an array or an object :/
-                const [series] = Array.isArray(seriesParams)
-                  ? seriesParams
-                  : [seriesParams];
+                const [series] = toArray(seriesParams);
 
                 const dateFormat = 'MMM D';
                 const startDate = moment(series.data[0]).format(dateFormat);
