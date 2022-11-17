@@ -222,6 +222,19 @@ def record_first_transaction(project, event, **kwargs):
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
+    try:
+        default_user_id = project.organization.get_default_owner().id
+    except IndexError:
+        default_user_id = None
+
+    analytics.record(
+        "first_profile.sent",
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
 
 @first_replay_received.connect(weak=False)
 def record_first_replay(project, **kwargs):

@@ -130,7 +130,7 @@ pytest==7.2.0
 pytest-cov==4.0.0
 pytest-django==4.4.0
 pytest-rerunfailures==10.2
-pytest-sentry==0.1.9
+pytest-sentry==0.1.10
 pytest-xdist==3.0.2
 python-dateutil==2.8.1
 python-memcached==1.59
@@ -157,7 +157,7 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==1.1.0
 sentry-relay==0.8.15
-sentry-sdk==1.10.1
+sentry-sdk==1.11.0
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0

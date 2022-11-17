@@ -56,10 +56,10 @@ export default class Sidebar extends PureComponent<Props> {
 
     const statusIconColor =
       label === AlertRuleTriggerType.CRITICAL
-        ? 'red300'
+        ? 'errorText'
         : label === AlertRuleTriggerType.WARNING
-        ? 'yellow300'
-        : 'green300';
+        ? 'warningText'
+        : 'successText';
 
     const defaultAction = t('Change alert status to %s', status);
 

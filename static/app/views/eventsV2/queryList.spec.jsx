@@ -1,10 +1,13 @@
-import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
-import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -12,7 +15,6 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/type
 import QueryList from 'sentry/views/eventsV2/queryList';
 
 jest.mock('sentry/actionCreators/modal');
-jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
   let location,
@@ -22,7 +24,10 @@ describe('EventsV2 > QueryList', function () {
     duplicateMock,
     queryChangeMock,
     updateHomepageMock,
+    eventsStatsMock,
     wrapper;
+
+  const {router, routerContext} = initializeOrg();
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -41,7 +46,7 @@ describe('EventsV2 > QueryList', function () {
       TestStubs.DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
     ];
 
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       statusCode: 200,
@@ -84,7 +89,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders an empty list', function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={[]}
@@ -94,14 +99,12 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const content = wrapper.find('QueryCard');
-    // No queries
-    expect(content).toHaveLength(0);
-    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+
+    expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
   it('renders pre-built queries and saved ones', function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -112,13 +115,11 @@ describe('EventsV2 > QueryList', function () {
       />
     );
 
-    const content = wrapper.find('QueryCard');
-    // pre built + saved queries
-    expect(content).toHaveLength(5);
+    expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
   });
 
   it('can duplicate and trigger change callback', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -127,13 +128,19 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'duplicate',
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
+    expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Duplicate Query'));
+
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: location.pathname,
+        query: {},
+      });
     });
 
     expect(duplicateMock).toHaveBeenCalled();
@@ -141,7 +148,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can delete and trigger change callback', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -150,70 +157,74 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'delete',
+    const card = screen.getAllByTestId(/card-*/).at(1);
+    const withinCard = within(card);
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Delete Query'));
+
+    await waitFor(() => {
+      expect(queryChangeMock).toHaveBeenCalled();
     });
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(queryChangeMock).toHaveBeenCalled();
   });
 
-  it('returns short url location for saved query', function () {
-    wrapper = mountWithTheme(
+  it('redirects to Discover on card click', function () {
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('QueryCard').last();
-    const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(link.query).toEqual({
-      id: '2',
-      statsPeriod: '14d',
+
+    userEvent.click(screen.getAllByTestId(/card-*/).at(0));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: {id: '1', statsPeriod: '14d'},
     });
   });
 
   it('can redirect on last query deletion', async function () {
-    wrapper = mountWithTheme(
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'QueryCard', last: true},
-      itemKey: 'delete',
-    });
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
+
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
     expect(queryChangeMock).not.toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: {cursor: undefined, statsPeriod: '14d'},
+
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: location.pathname,
+        query: {cursor: undefined, statsPeriod: '14d'},
+      });
     });
   });
 
-  it('renders Add to Dashboard in context menu with feature flag', async function () {
+  it('renders Add to Dashboard in context menu with feature flag', function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
-    wrapper = mountWithTheme(
+
+    render(
       <QueryList
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
@@ -222,26 +233,26 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    let card = wrapper.find('QueryCard').last();
 
-    await act(async () => {
-      triggerPress(card.find('DropdownTrigger'));
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
 
-      await tick();
-      wrapper.update();
-    });
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
 
-    card = wrapper.find('QueryCard').last();
-    const menuItems = card.find('MenuItemWrap');
-
-    expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(2).text()).toEqual('Delete Query');
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('only renders Delete Query and Duplicate Query in context menu', async function () {
-    wrapper = mountWithTheme(
+  it('only renders Delete Query and Duplicate Query in context menu', function () {
+    render(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -250,25 +261,25 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
-    let card = wrapper.find('QueryCard').last();
 
-    await act(async () => {
-      triggerPress(card.find('DropdownTrigger'));
+    const card = screen.getAllByTestId(/card-*/).at(0);
+    const withinCard = within(card);
 
-      await tick();
-      wrapper.update();
-    });
+    userEvent.click(withinCard.getByTestId('menu-trigger'));
 
-    card = wrapper.find('QueryCard').last();
-    const menuItems = card.find('MenuItemWrap');
-
-    expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Set as Default');
-    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(2).text()).toEqual('Delete Query');
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Set as Default'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('passes yAxis from the savedQuery to MiniGraph', function () {
+  it('passes yAxis from the savedQuery to MiniGraph', async function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
@@ -277,7 +288,8 @@ describe('EventsV2 > QueryList', function () {
       ...savedQueries.slice(1)[0],
       yAxis,
     };
-    wrapper = mountWithTheme(
+
+    render(
       <QueryList
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
@@ -287,8 +299,16 @@ describe('EventsV2 > QueryList', function () {
       />
     );
 
-    const miniGraph = wrapper.find('MiniGraph');
-    expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
+    const chart = await screen.findByTestId('area-chart');
+    expect(chart).toBeInTheDocument();
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
   });
 
   it('Set as Default updates the homepage query', function () {
@@ -317,7 +337,7 @@ describe('EventsV2 > QueryList', function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      wrapper = mountWithTheme(
+      render(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -333,61 +353,54 @@ describe('EventsV2 > QueryList', function () {
           location={location}
         />
       );
-      let card = wrapper.find('QueryCard').last();
 
-      await act(async () => {
-        triggerPress(card.find('DropdownTrigger'));
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
 
-        await tick();
-        wrapper.update();
+      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+
+      userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+
+      userEvent.click(addToDashboardMenuItem);
+
+      waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.AREA,
+              limit: 5,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: ['test'],
+                  conditions: '',
+                  fields: ['test', 'count()', 'count()'],
+                  name: '',
+                  orderby: 'test',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              displayType: DisplayType.AREA,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
       });
-
-      card = wrapper.find('QueryCard').last();
-      const menuItems = card.find('MenuItemWrap');
-
-      expect(menuItems.length).toEqual(3);
-      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-      await act(async () => {
-        triggerPress(menuItems.at(0));
-
-        await tick();
-        wrapper.update();
-      });
-
-      expect(openAddToDashboardModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: {
-            title: 'Saved query #1',
-            displayType: DisplayType.AREA,
-            limit: 5,
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: ['test'],
-                conditions: '',
-                fields: ['test', 'count()', 'count()'],
-                name: '',
-                orderby: 'test',
-              },
-            ],
-          },
-          widgetAsQueryParams: expect.objectContaining({
-            defaultTableColumns: ['test', 'count()'],
-            defaultTitle: 'Saved query #1',
-            defaultWidgetQuery:
-              'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-            displayType: DisplayType.AREA,
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
-        })
-      );
     });
 
     it('opens a modal with the correct params for other chart', async function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      wrapper = mountWithTheme(
+      render(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -403,55 +416,48 @@ describe('EventsV2 > QueryList', function () {
           location={location}
         />
       );
-      let card = wrapper.find('QueryCard').last();
 
-      await act(async () => {
-        triggerPress(card.find('DropdownTrigger'));
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
 
-        await tick();
-        wrapper.update();
+      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+
+      userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+
+      userEvent.click(addToDashboardMenuItem);
+
+      waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: ['count()'],
+                  name: '',
+                  // Orderby gets dropped because ordering only applies to
+                  // Top-N and tables
+                  orderby: '',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+              displayType: DisplayType.LINE,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
       });
-
-      card = wrapper.find('QueryCard').last();
-      const menuItems = card.find('MenuItemWrap');
-
-      expect(menuItems.length).toEqual(3);
-      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
-      await act(async () => {
-        triggerPress(menuItems.at(0));
-
-        await tick();
-        wrapper.update();
-      });
-
-      expect(openAddToDashboardModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: {
-            title: 'Saved query #1',
-            displayType: DisplayType.LINE,
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: [],
-                conditions: '',
-                fields: ['count()'],
-                name: '',
-                // Orderby gets dropped because ordering only applies to
-                // Top-N and tables
-                orderby: '',
-              },
-            ],
-          },
-          widgetAsQueryParams: expect.objectContaining({
-            defaultTableColumns: ['test', 'count()'],
-            defaultTitle: 'Saved query #1',
-            defaultWidgetQuery:
-              'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-            displayType: DisplayType.LINE,
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
-        })
-      );
     });
   });
 });

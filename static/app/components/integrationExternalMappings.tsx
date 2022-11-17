@@ -333,5 +333,5 @@ const ButtonColumn = styled(Column)`
 `;
 
 const RedText = styled('span')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;

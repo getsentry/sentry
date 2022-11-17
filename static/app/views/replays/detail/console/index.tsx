@@ -33,7 +33,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     });
 
   const currentUserAction = getPrevReplayEvent({
-    items: breadcrumbs,
+    items,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
     allowEqual: true,
@@ -42,7 +42,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const closestUserAction =
     currentHoverTime !== undefined
       ? getPrevReplayEvent({
-          items: breadcrumbs,
+          items,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
           allowEqual: true,

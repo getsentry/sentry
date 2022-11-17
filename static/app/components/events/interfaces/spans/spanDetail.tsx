@@ -296,7 +296,7 @@ class SpanDetail extends Component<Props, State> {
       <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
         <ErrorMessageTitle>
           {tn(
-            'An error event occurred in this span.',
+            '%s error event occurred in this span.',
             '%s error events occurred in this span.',
             relatedErrors.length
           )}

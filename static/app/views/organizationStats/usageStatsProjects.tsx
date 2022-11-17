@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
@@ -33,6 +34,7 @@ type Props = {
   ) => LocationDescriptorObject;
   loadingProjects: boolean;
   organization: Organization;
+  projectIds: number[];
   projects: Project[];
   tableCursor?: string;
   tableQuery?: string;
@@ -57,15 +59,24 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   static MAX_ROWS_USAGE_TABLE = 25;
 
   componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime, dataCategory: prevDataCategory} = prevProps;
-    const {dataDatetime: currDateTime, dataCategory: currDataCategory} = this.props;
+    const {
+      dataDatetime: prevDateTime,
+      dataCategory: prevDataCategory,
+      projectIds: prevProjectIds,
+    } = prevProps;
+    const {
+      dataDatetime: currDateTime,
+      dataCategory: currDataCategory,
+      projectIds: currProjectIds,
+    } = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
-      currDataCategory !== prevDataCategory
+      prevDataCategory !== currDataCategory ||
+      !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }
@@ -81,7 +92,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime, dataCategory} = this.props;
+    const {dataDatetime, dataCategory, projectIds} = this.props;
 
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
@@ -100,7 +111,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
-      project: '-1', // get all project user has access to
+      project: projectIds,
       category: dataCategory.slice(0, -1), // backend is singular
     };
   }
@@ -172,14 +183,27 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }"; cursor="0:${nextOffset}:0"`;
   }
 
+  get projectSelectionFilter(): (p: Project) => boolean {
+    const {projectIds} = this.props;
+    const selectedProjects = new Set(projectIds.map(id => `${id}`));
+
+    // If 'My Projects' or 'All Projects' are selected
+    return selectedProjects.size === 0 || selectedProjects.has('-1')
+      ? _p => true
+      : p => selectedProjects.has(p.id);
+  }
+
   /**
    * Filter projects if there's a query
    */
   get filteredProjects() {
     const {projects, tableQuery} = this.props;
     return tableQuery
-      ? projects.filter(p => p.slug.includes(tableQuery) && p.hasAccess)
-      : projects.filter(p => p.hasAccess);
+      ? projects.filter(
+          p =>
+            p.slug.includes(tableQuery) && p.hasAccess && this.projectSelectionFilter(p)
+        )
+      : projects.filter(p => p.hasAccess && this.projectSelectionFilter(p));
   }
 
   get tableHeader() {
