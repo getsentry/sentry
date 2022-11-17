@@ -254,6 +254,7 @@ class BaseTestCase(Fixtures, Exam):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
+        # TODO: Remove!  Force login to work in the target silo.
         with exempt_from_silo_limits():
             login(request, user)
         request.user = user

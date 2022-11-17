@@ -94,7 +94,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
         """This is overridden by the activity subclasses."""
-        user = user_service.get_user(self.activity.user_id)
+        user = user_service.get_user(user_id=self.activity.user_id, serialize_detailed=False)
         return get_participants_for_group(self.group, user)
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:

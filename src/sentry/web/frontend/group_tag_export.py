@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
-from sentry.models import Environment
+from sentry.models import Environment, Organization, Project
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 
@@ -21,7 +21,14 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         item_dict = IssuesByTagProcessor.serialize_row(item, key)
         return (item_dict[field] for field in fields)
 
-    def get(self, request: Request, organization, project, group_id, key) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        group_id: str,
+        key: str,
+    ) -> Response:
 
         # If the environment doesn't exist then the tag can't possibly exist
         try:

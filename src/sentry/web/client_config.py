@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -10,9 +12,13 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
-from sentry.auth.access import get_cached_organization_member
+from sentry.auth.access import ApiBackedAccess
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization import (
+    ApiOrganization,
+    ApiUserOrganizationContext,
+    organization_service,
+)
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
@@ -101,20 +107,27 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user):
+def _resolve_last_org(request, session, user) -> ApiOrganization | None:
+    if user is None or isinstance(user, AnonymousUser):
+        return None
+
     last_org_slug = session["activeorg"] if session and "activeorg" in session else None
     if not last_org_slug:
         return None
-    try:
-        last_org = Organization.objects.get_from_cache(slug=last_org_slug)
-        if user is not None and not isinstance(user, AnonymousUser):
-            try:
-                get_cached_organization_member(user.id, last_org.id)
-                return last_org
-            except OrganizationMember.DoesNotExist:
-                return None
-    except Organization.DoesNotExist:
-        pass
+
+    context: ApiUserOrganizationContext
+    # Happy fast pass -- most views should already have loaded this data via the api backed access.
+    if hasattr(request, "access") and isinstance(request.access, ApiBackedAccess):
+        context = request.access.api_user_organization_context
+    else:
+        # TODO: Remove if tests all pass (and all views have migrated successfully with stable=True)
+        context = organization_service.get_organization_by_slug(
+            user_id=user.id, slug=last_org_slug, only_visible=False
+        )
+
+    if context.member is not None:
+        return context.organization
+
     return None
 
 
@@ -167,7 +180,7 @@ def get_client_config(request=None):
     public_dsn = _get_public_dsn()
 
     last_org_slug = None
-    last_org = _resolve_last_org(session, user)
+    last_org: ApiOrganization | None = _resolve_last_org(request, session, user)
     if last_org:
         last_org_slug = last_org.slug
     if last_org is None:
@@ -235,9 +248,13 @@ def get_client_config(request=None):
         },
     }
     if user and user.is_authenticated:
-        context.update(
-            {"isAuthenticated": True, "user": serialize(user, user, DetailedSelfUserSerializer())}
-        )
+        # For APIUsers that are rendered before hand.
+        if detail_serialized_f := getattr(user, "detail_serialized", None):
+            detail_serialized = detail_serialized_f()
+        else:
+            detail_serialized = serialize(user, user, DetailedSelfUserSerializer())
+
+        context.update({"isAuthenticated": True, "user": detail_serialized})
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as

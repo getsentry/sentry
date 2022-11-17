@@ -1,8 +1,10 @@
+from __future__ import annotations
+
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
-from typing import Any, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
-from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
@@ -14,7 +16,7 @@ from sentry.services.hybrid_cloud import (
 from sentry.silo import SiloMode
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(eq=True)
 class APIUser:
     id: int = -1
     pk: int = -1
@@ -27,6 +29,13 @@ class APIUser:
     is_authenticated: bool = False
     is_anonymous: bool = False
     is_active: bool = False
+    is_sentry_app: bool = False
+    is_staff: bool = False
+    session_nonce: str | None = None
+    last_active: datetime.datetime | None = None
+
+    # This has to be lazy until we can refactor Superuser out from the detail serializer logic.
+    detail_serialized: Callable[[], Any] | None = None
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
@@ -82,18 +91,13 @@ class UserService(InterfaceWithLifecycle):
         """
         pass
 
-    def get_user(self, user_id: int) -> Optional[APIUser]:
+    @abstractmethod
+    def get_user(self, *, user_id: int, serialize_detailed: bool) -> Optional[APIUser]:
         """
-        This method returns a User object given an ID
-        :param user_id:
-        A user ID to fetch
-        :return:
+        This method returns a User object given an ID.  Optionally, a detailed serialization can be given
+        for auth related requests that render to the react context.
         """
-        users = self.get_many([user_id])
-        if len(users) > 0:
-            return users[0]
-        else:
-            return None
+        pass
 
     # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
@@ -122,6 +126,25 @@ class UserService(InterfaceWithLifecycle):
 
 
 class DatabaseBackedUserService(UserService):
+    def get_user(self, *, user_id: int, serialize_detailed: bool) -> Optional[APIUser]:
+        try:
+            user = User.objects.get(id=user_id)
+            result = self.serialize_user(user)
+
+            if serialize_detailed:
+
+                def do_serialization() -> Any:
+                    from sentry.api.serializers import DetailedSelfUserSerializer, serialize
+                    from sentry.testutils.silo import exempt_from_silo_limits
+
+                    with exempt_from_silo_limits():
+                        return dict(serialize(user, user, DetailedSelfUserSerializer()))
+
+                result.detail_serialized = do_serialization
+            return result
+        except User.DoesNotExist:
+            return None
+
     def get_many_by_email(self, email: str) -> List[APIUser]:
         return [
             UserService.serialize_user(user)
@@ -131,6 +154,8 @@ class DatabaseBackedUserService(UserService):
         ]
 
     def serialize_users(self, user_ids: List[int]) -> List[Any]:
+        from sentry.api.serializers import serialize
+
         result: List[Any] = []
         for user in User.objects.filter(id__in=user_ids):
             result.append(serialize(user))

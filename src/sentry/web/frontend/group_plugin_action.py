@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
-from sentry.models import Group, GroupMeta
+from sentry.models import Group, GroupMeta, Organization, Project
 from sentry.plugins.base import plugins
 from sentry.web.frontend.base import ProjectView
 
@@ -13,7 +13,9 @@ from sentry.web.frontend.base import ProjectView
 class GroupPluginActionView(ProjectView):
     required_scope = "event:read"
 
-    def handle(self, request: Request, organization, project, group_id, slug) -> Response:
+    def handle(
+        self, request: Request, organization: Organization, project: Project, group_id, slug
+    ) -> Response:
         group = get_object_or_404(Group, pk=group_id, project=project)
 
         try:

@@ -61,6 +61,10 @@ class SiloModeTest:
             yield modified_name, replacement_test_method
 
         for mode in self.silo_modes:
+            # We don't need to duplicate the default silo mode tests for now, but in the future this may need to
+            # exist if we change testing defaults.
+            if mode == SiloMode.MONOLITH:
+                continue
             yield from method_for_mode(mode)
 
     def _add_silo_modes_to_methods(self, test_class: type) -> type:

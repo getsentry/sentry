@@ -6,6 +6,8 @@ from django.apps import apps
 from django.conf import settings
 from django.db import models
 
+from sentry.silo import SiloMode
+
 from .fields import JSONField
 from .utils import setting
 
@@ -19,6 +21,8 @@ ASSOCIATION_HANDLE_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH", 255
 CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
 
 
+# Ideally we'd mark this as a control silo model, but unfortunately it is not supported due to subclassing
+# django.models.Model directly.
 class UserSocialAuth(models.Model):
     """Social Auth association model"""
 
@@ -142,6 +146,10 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def get_user(cls, pk):
+        from sentry.services.hybrid_cloud.user import user_service
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return user_service.get_user(user_id=pk, serialize_detailed=True)
         try:
             return cls.user_model().objects.get(pk=pk)
         except cls.user_model().DoesNotExist:

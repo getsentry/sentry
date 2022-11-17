@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Container, Dict, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, Collection, Container, Dict, Mapping, Sequence, cast
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -16,8 +16,12 @@ from django.utils.http import is_safe_url
 
 from sentry.models import Authenticator, Organization, User
 from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.silo import SiloMode
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger("sentry.auth")
 
@@ -403,8 +407,20 @@ class EmailAuthBackend(ModelBackend):  # type: ignore
                     continue
         return None
 
-    def user_can_authenticate(self, user: User) -> bool:
+    def user_can_authenticate(self, user: User | APIUser) -> bool:
         return True
+
+    def get_user(self, user_id) -> User | APIUser | None:
+        from sentry.services.hybrid_cloud.user import user_service
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            user = user_service.get_user(user_id=user_id, serialize_detailed=True)
+            # this replicates the inner logic of get_user, although in practice
+            # in this implementation, this is always True
+            if user and self.user_can_authenticate(user):
+                return user
+            return None
+        return super().get_user(user_id)
 
 
 def make_login_link_with_redirect(path: str, redirect: str) -> str:

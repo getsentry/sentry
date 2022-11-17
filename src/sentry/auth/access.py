@@ -11,7 +11,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, cast
+from typing import TYPE_CHECKING, Any, Collection, FrozenSet, Iterable, Mapping, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -39,13 +39,20 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 @request_cache
 def get_cached_organization_member(user_id: int, organization_id: int) -> OrganizationMember:
+    """
+    Deprecated function that attempts to fetch the given organization member orm object by user_id and organization_id.
+    This function will continue to work in SaaS deployments, but will not work with future silo deployments.
+    Please considering discussing with hybrid cloud team about new uses of this function.
+    """
     return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
 
 
@@ -176,9 +183,6 @@ class Access(abc.ABC):
     @abc.abstractmethod
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         pass
-
-    def to_django_context(self) -> Mapping[str, bool]:
-        return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
 
 
 @dataclass

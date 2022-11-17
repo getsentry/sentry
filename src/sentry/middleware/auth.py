@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from django.contrib.auth import get_user as auth_get_user
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import get_authorization_header
@@ -8,13 +10,14 @@ from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.models import UserIP
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 
 
 def get_user(request):
     if not hasattr(request, "_cached_user"):
-        user = auth_get_user(request)
+        user: User | APIUser | AnonymousUser = auth_get_user(request)
         # If the user bound to this request matches a real user,
         # we need to validate the session's nonce. This nonce is
         # to make sure that the session is valid for effectively the
@@ -54,6 +57,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
             request.user_from_signed_request = True
         elif auth and auth[0].lower() == TokenAuthentication.token_name:
             try:
+                # TODO: Support hybrid cloud!
                 result = TokenAuthentication().authenticate(request=request)
             except AuthenticationFailed:
                 result = None
@@ -64,6 +68,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 request.user = SimpleLazyObject(lambda: get_user(request))
         elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
             try:
+                # TODO: Support hybrid cloud!
                 result = ApiKeyAuthentication().authenticate(request=request)
             except AuthenticationFailed:
                 result = None

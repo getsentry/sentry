@@ -294,7 +294,9 @@ def get_send_to(
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
-def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
+def get_user_from_identifier(
+    project: Project, target_identifier: str | int | None
+) -> APIUser | None:
     if target_identifier is None:
         return None
 
@@ -316,7 +318,7 @@ def get_user_from_identifier(project: Project, target_identifier: str | int | No
     ).first()
     if omt is None:
         return None
-    return user_service.get_user(ident)
+    return user_service.get_user(user_id=ident, serialize_detailed=False)
 
 
 def get_team_from_identifier(project: Project, target_identifier: str | int | None) -> Team | None:

@@ -4,8 +4,6 @@ import logging
 from typing import Iterable, Mapping
 
 from sentry.models import Project, UserEmail
-from sentry.services.hybrid_cloud.user import user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
 
 from .faker import is_fake_email
 
@@ -19,6 +17,9 @@ def get_email_addresses(
     Find the best email addresses for a collection of users. If a project is
     provided, prefer their project-specific notification preferences.
     """
+    from sentry.services.hybrid_cloud.user import user_service
+    from sentry.services.hybrid_cloud.user_option import user_option_service
+
     pending = set(user_ids)
     results = {}
 

@@ -6,7 +6,7 @@ from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.models import UserOption
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils.safe import safe_execute
 
 
@@ -40,11 +40,15 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if not request.user.is_authenticated:
             return
 
-        language = UserOption.objects.get_value(user=request.user, key="language")
+        language = user_option_service.get_value(
+            user_id=request.user.id, key="language", project=None
+        )
         if language:
             request.session[LANGUAGE_SESSION_KEY] = language
 
-        timezone = UserOption.objects.get_value(user=request.user, key="timezone")
+        timezone = user_option_service.get_value(
+            user_id=request.user.id, key="timezone", project=None
+        )
         if timezone:
             request.timezone = pytz.timezone(timezone)
 

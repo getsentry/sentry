@@ -47,7 +47,7 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "APIUser"]:
     if cls is User:
         from sentry.services.hybrid_cloud.user import user_service
 
-        user = user_service.get_user(id)
+        user = user_service.get_user(user_id=id, serialize_detailed=False)
         if user is None:
             raise User.DoesNotExist()
         return user

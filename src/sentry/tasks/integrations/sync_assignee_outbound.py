@@ -31,7 +31,7 @@ def sync_assignee_outbound(external_issue_id: int, user_id: Optional[int], assig
 
     integration = Integration.objects.get(id=external_issue.integration_id)
     # Assume unassign if None.
-    user = user_service.get_user(user_id) if user_id else None
+    user = user_service.get_user(user_id, serialize_detailed=False) if user_id else None
 
     installation = integration.get_installation(organization_id=external_issue.organization_id)
 

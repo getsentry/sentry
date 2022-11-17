@@ -295,6 +295,10 @@ class Browser:
         """
         Capture a screenshot of the current state of the page.
         """
+        from sentry.silo import SiloMode
+
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            name = f"{name}-{SiloMode.get_current_mode()}"
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1":

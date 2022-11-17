@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from sentry.models.options.user_option import UserOption
 from sentry.models.project import Project
@@ -30,6 +32,11 @@ class UserOptionService(InterfaceWithLifecycle):
         :return:
         """
         pass
+
+    def get_value(self, *, user_id: int, key: str, project: Project | None) -> Any:
+        for option in self.get([user_id], key=key, project=project):
+            return option.value
+        return None
 
 
 class DatabaseBackedUserOptionService(UserOptionService):

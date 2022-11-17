@@ -5,6 +5,8 @@ from django.urls import reverse
 
 from sentry import options
 from sentry.models import User
+from sentry.services.hybrid_cloud.user import user_service
+from sentry.silo import SiloMode
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base36_decode, base36_encode
 
@@ -55,6 +57,14 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
         return None
 
     try:
-        return User.objects.get(pk=base36_decode(user_id))
-    except (ValueError, User.DoesNotExist):
+        user_pk = base36_decode(user_id)
+    except ValueError:
+        return None
+
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        return user_service.get_user(user_id=user_pk, serialize_detailed=True)
+
+    try:
+        return User.objects.get(pk=user_pk)
+    except User.DoesNotExist:
         return None

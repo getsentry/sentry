@@ -1,6 +1,9 @@
+from sentry.silo import SiloMode
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class SplunkTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -14,6 +17,7 @@ class SplunkTest(AcceptanceTestCase):
 
     def test_simple(self):
         self.browser.get(self.path)
+        self.browser.snapshot(f"splunk settings {SiloMode.get_current_mode()}")
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("splunk settings")
         assert self.browser.element_exists(".ref-plugin-config-splunk")
