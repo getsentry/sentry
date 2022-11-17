@@ -214,12 +214,12 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   p75: {
     key: 'p75',
-    name: t('P75 Duration'),
+    name: t('P75 Total Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99: {
     key: 'p99',
-    name: t('P99 Duration'),
+    name: t('P99 Total Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   count: {
