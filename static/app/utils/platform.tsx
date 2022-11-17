@@ -18,8 +18,8 @@ desktop.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.ba
 
 /**
  *
- * @param platform - a SDK platform, for example javacsript
- * @returns - the platform category
+ * @param platform - a SDK platform, for example `node-express`, `javascript-react`
+ * @returns - the platform category, for example `backend`, `serverless`
  */
 export function platformToCategory(platform: string | undefined): PlatformCategory {
   if (!platform || !platformCategoryMap[platform]) {
