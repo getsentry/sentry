@@ -193,10 +193,6 @@ build-platform-assets() {
     test -f src/sentry/integration-docs/android.json
 }
 
-done-bootstraping() {
-    echo "--> Finished bootstrapping!"
-}
-
 bootstrap() {
     develop
     init-config
@@ -208,6 +204,7 @@ bootstrap() {
     bin/load-mocks
     build-platform-assets
     done-bootstraping
+    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
