@@ -4,6 +4,20 @@ import {Location, LocationDescriptor} from 'history';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
+  DropdownContainer,
+  DropdownItem,
+  DropdownItemSubContainer,
+  DropdownMenuHeader,
+  ErrorNodeContent,
+  EventNode,
+  ExternalDropdownLink,
+  QuickTraceContainer,
+  QuickTraceValue,
+  SectionSubtext,
+  SingleEventHoverText,
+  TraceConnector,
+} from 'sentry/components/quickTrace/styles';
+import {
   ErrorDestination,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
@@ -28,25 +42,13 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {Theme} from 'sentry/utils/theme';
+
+import ReplayNode from './replayNode';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
-
-import {
-  DropdownContainer,
-  DropdownItem,
-  DropdownItemSubContainer,
-  DropdownMenuHeader,
-  ErrorNodeContent,
-  EventNode,
-  ExternalDropdownLink,
-  QuickTraceContainer,
-  QuickTraceValue,
-  SectionSubtext,
-  SingleEventHoverText,
-  TraceConnector,
-} from './styles';
 
 const TOOLTIP_PREFIX = {
   root: 'root',
@@ -87,6 +89,24 @@ export default function QuickTrace({
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
+
+  if (organization.features.includes('session-replay-ui')) {
+    nodes.push(
+      <Projects
+        key="replay-projects"
+        orgId={organization.slug}
+        slugs={[current.project_slug]}
+      >
+        {({projects}) => {
+          if (!projectSupportsReplay(projects[0])) {
+            return null;
+          }
+
+          return <ReplayNode event={event} />;
+        }}
+      </Projects>
+    );
+  }
 
   if (root) {
     nodes.push(

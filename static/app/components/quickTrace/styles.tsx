@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Tag, {Background} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
+import {IconPlay} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
@@ -53,6 +54,11 @@ export const EventNode = styled(Tag)`
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
+`;
+
+export const EventNodeReplay = styled(EventNode)`
+  display: inline-flex;
+  margin-right: ${space(1)};
 `;
 
 export const TraceConnector = styled('div')`
@@ -150,6 +156,10 @@ export const ExternalDropdownLink = styled(ExternalLink)`
   }
 `;
 
+export const StyledIconPlay = styled(IconPlay)`
+  fill: ${p => p.theme.background};
+`;
+
 export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
   return (
     <div>
@@ -170,3 +180,7 @@ export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
     </div>
   );
 }
+
+export const ReplayOnlyTrace = styled('div')`
+  margin-top: ${space(0.25)};
+`;

@@ -8,6 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
+import ReplayNode from 'sentry/components/quickTrace/replayNode';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tct, tn} from 'sentry/locale';
 import {AvatarProject, OrganizationSummary} from 'sentry/types';
@@ -19,6 +20,7 @@ import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetaData} from './styles';
@@ -64,6 +66,12 @@ export default function QuickTraceMeta({
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
+  const hasReplay =
+    event.entries?.some(({type}) => type === 'breadcrumbs') &&
+    event.tags?.some(({key, value}) => key === 'replayId' && Boolean(value));
+  const isReplayEnabled =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+
   let body: React.ReactNode;
   let footer: React.ReactNode;
 
@@ -73,7 +81,8 @@ export default function QuickTraceMeta({
       return null;
     }
 
-    body = t('Missing Trace');
+    body =
+      isReplayEnabled && hasReplay ? <ReplayNode event={event} /> : t('Missing Trace');
 
     // need to configure tracing
     footer = <ExternalLink href={docsLink}>{t('Read the docs')}</ExternalLink>;
