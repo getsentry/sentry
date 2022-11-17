@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class AuthView(BaseView):  # type: ignore[misc]
+class AuthView(BaseView):
     """
     A segment of Provider's auth pipeline.
 
