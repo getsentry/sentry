@@ -263,7 +263,7 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     if active:
         assert dynamic_sampling == dyn_sampling_data(active)
     else:
-        assert dynamic_sampling == {"rules": []}
+        assert dynamic_sampling == {"mode": "total", "rules": []}
 
 
 @pytest.mark.django_db
@@ -346,7 +346,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         (
             True,
             True,
-            {"rules": []},
+            {"mode": "total", "rules": []},
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
@@ -365,6 +365,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             True,
             {
+                "mode": "total",
                 "rules": [
                     {
                         "sampleRate": 0.1,
@@ -373,7 +374,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "condition": {"op": "and", "inner": []},
                         "id": 1000,
                     }
-                ]
+                ],
             },
             {
                 "rules": [
@@ -393,7 +394,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             False,
             {"rules": []},
-            {"rules": []},
+            {"mode": "total", "rules": []},
         ),
         (
             True,
@@ -413,7 +414,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                 ]
             },
         ),
-        (False, False, {"rules": []}, None),
+        (False, False, {"mode": "total", "rules": []}, None),
     ],
 )
 def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
