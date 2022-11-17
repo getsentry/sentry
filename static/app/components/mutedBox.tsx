@@ -59,7 +59,7 @@ function MutedBox({statusDetails}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <IconMute color="red300" size="sm" />
+        <IconMute color="dangerText" size="sm" />
         <span>
           {renderReason()}&nbsp;&mdash;&nbsp;
           {t(

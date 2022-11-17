@@ -68,9 +68,9 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        from sentry.services.hybrid_cloud.authprovider import auth_provider_service
+        from sentry.services.hybrid_cloud.auth import auth_service
 
-        orgs_with_scim = auth_provider_service.get_org_ids_with_scim()
+        orgs_with_scim = auth_service.get_org_ids_with_scim()
         self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
