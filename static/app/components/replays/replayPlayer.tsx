@@ -11,9 +11,10 @@ import PlayerDOMAlert from './playerDOMAlert';
 
 interface Props {
   className?: string;
+  isPreview?: boolean;
 }
 
-function BasePlayerRoot({className}: Props) {
+function BasePlayerRoot({className, isPreview = false}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -74,7 +75,7 @@ function BasePlayerRoot({className}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
-      <PlayerDOMAlert />
+      {!isPreview ? <PlayerDOMAlert /> : null}
     </SizingWindow>
   );
 }
