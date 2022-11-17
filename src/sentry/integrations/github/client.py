@@ -356,6 +356,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path="/graphql",
             data={"query": query},
         )
+        sentry_sdk.add_breadcrumb(
+            category="sentry.integrations.client.github",
+            message="get_blame_for_file query results",
+            level="info",
+            data=contents,
+        )
         try:
             results: Sequence[Mapping[str, Any]] = (
                 contents.get("data", {})
