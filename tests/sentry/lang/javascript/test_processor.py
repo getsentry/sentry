@@ -38,6 +38,7 @@ from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils import TestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
@@ -1545,3 +1546,48 @@ class CacheSourceTest(TestCase):
         # now we have an error
         assert len(processor.cache.get_errors(abs_path)) == 1
         assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}
+
+
+class CacheSideEffects(TestCase):
+    def test_e2e(self):
+        """
+        In case we only have the minified file, we fall back to giving source content from it.
+        """
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        minified_file_fixture = get_fixture_path("sourcemaps", "minified.js")
+        minified_file_abs_path = "minified.js"
+
+        # TODO: what is the name and headers?
+        file = self.create_file_from_path(minified_file_fixture, name="", headers="")
+        self.create_release_file(release_id=release.id, name=minified_file_abs_path, file=file)
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version}, stacktrace_infos=None, project=project
+        )
+        processor.preprocess_step()
+
+        frame = {
+            "abs_path": minified_file_abs_path,
+            "lineno": 1,
+            "colno": 24,
+        }
+        # TODO: what is processable frame here?
+        processable_frame = None
+
+        processor.preprocess_frame(processable_frame)
+        new_frames, raw_frames, all_errors = processor.process_frame(processable_frame)
+
+        print(frame)
+        print(new_frames)
+        print(raw_frames)
+        print(all_errors)
+
+        # TODO: assert file/line/column + function + source context
+        # for these conditions:
+        # 1. we only have a minified source
+        # 2. we have a sourcemap *without* source content but no release files
+        # 3. we have a sourcemap *without* source content but *with* release files
+        # 4. we have a sourcemap *with* source content
