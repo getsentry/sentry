@@ -316,8 +316,9 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       const input = screen.getAllByRole('textbox')[1];
       expect(input).toHaveValue('300');
+      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(onApply).toHaveBeenCalledWith([
           {kind: 'function', function: ['apdex', '300', undefined, undefined]},
         ]);
@@ -491,11 +492,15 @@ describe('EventsV2 -> ColumnEditModal', function () {
       const input = screen.getAllByRole('textbox')[0];
       expect(input).toHaveValue('1 / 0');
 
-      userEvent.type(input, '{selectall}1+1+1+1+1+1+1+1+1+1+1+1');
+      userEvent.clear(input);
+      userEvent.type(input, '1+1+1+1+1+1+1+1+1+1+1+1');
+      userEvent.click(document.body);
+
+      await waitFor(() => expect(input).toHaveValue('1+1+1+1+1+1+1+1+1+1+1+1'));
 
       userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
-      waitFor(() => {
-        expect(tooltipEl).toHaveTextContent('Maximum operators exceeded');
+      await waitFor(() => {
+        expect(screen.getByText('Maximum operators exceeded')).toBeInTheDocument();
       });
     });
 
