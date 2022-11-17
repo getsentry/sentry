@@ -13,6 +13,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
+    KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -157,6 +158,29 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
             )
         ],
     )
+
+
+def generate_boost_key_transaction_rule(
+    sample_rate: float, key_transactions: List[str]
+) -> BaseRule:
+
+    return {
+        "sampleRate": sample_rate * KEY_TRANSACTION_BOOST_FACTOR,
+        "type": "transaction",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "glob",
+                    "name": "event.transaction",
+                    "value": key_transactions,
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
+    }
 
 
 def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
