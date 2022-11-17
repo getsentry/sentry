@@ -1,4 +1,6 @@
+import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {Location} from 'history';
 
 import {
   render,
@@ -100,7 +102,8 @@ const queryClient = new QueryClient();
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
-  contextType: ContextType = ContextType.ISSUE
+  contextType: ContextType = ContextType.ISSUE,
+  location?: Location
 ) => {
   const organization = TestStubs.Organization();
   render(
@@ -109,6 +112,7 @@ const renderQuickContextContent = (
         dataRow={dataRow}
         contextType={contextType}
         organization={organization}
+        location={location}
       >
         Text from Child
       </QuickContextHoverWrapper>
@@ -472,19 +476,88 @@ describe('Quick Context', function () {
   });
 
   describe('Quick Context Content: Event ID Column', function () {
-    it('Renders NO context message for events that are not errors', async () => {
+    it('Renders transaction duration context', async () => {
+      browserHistory.push = jest.fn();
+      const currentTime = Date.now();
+      const location = TestStubs.location();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
       });
-
-      renderQuickContextContent(defaultRow, ContextType.EVENT);
+      renderQuickContextContent(defaultRow, ContextType.EVENT, location);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(
-        await screen.findByText(/There is no context available./i)
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: 'transaction.duration',
+          }),
+        })
+      );
+    });
+
+    it('Renders transaction status context', async () => {
+      browserHistory.push = jest.fn();
+      const currentTime = Date.now();
+      const location = TestStubs.location();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+          contexts: {
+            trace: {
+              status: 'ok',
+            },
+          },
+          tags: [
+            {
+              key: 'http.status_code',
+              value: '200',
+            },
+          ],
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT, location);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Status/i)).toBeInTheDocument();
+      expect(screen.getByText(/ok/i)).toBeInTheDocument();
+      expect(screen.getByText(/HTTP 200/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-http-status-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: 'tags[http.status_code]',
+          }),
+        })
+      );
     });
 
     it('Renders NO stack trace message for error events without stackTraces', async () => {

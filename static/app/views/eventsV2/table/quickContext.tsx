@@ -1,5 +1,7 @@
 import {Fragment, useEffect} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -16,19 +18,27 @@ import {Body, Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
+import {SectionSubtext} from 'sentry/components/quickTrace/styles';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
 import {VersionHoverHeader} from 'sentry/components/versionHoverCard';
-import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
+import {IconAdd, IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Event, Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
+import {Event, Group, Organization, Project, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
+import {getDuration} from 'sentry/utils/formatters';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-
+import {
+  getStatusBodyText,
+  HttpStatus,
+} from 'sentry/views/performance/transactionDetails/eventMetas';
 // Will extend this enum as we add contexts for more columns
 export enum ContextType {
   ISSUE = 'issue',
@@ -46,7 +56,9 @@ function getHoverBody(
   api: Client,
   dataRow: EventData,
   contextType: ContextType,
-  organization?: Organization
+  organization?: Organization,
+  location?: Location,
+  projects?: Project[]
 ) {
   const noContext = (
     <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
@@ -62,7 +74,13 @@ function getHoverBody(
       );
     case ContextType.EVENT:
       return organization ? (
-        <EventContext api={api} dataRow={dataRow} organization={organization} />
+        <EventContext
+          api={api}
+          dataRow={dataRow}
+          organization={organization}
+          location={location}
+          projects={projects}
+        />
       ) : (
         noContext
       );
@@ -77,6 +95,22 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
     <VersionHoverHeader releaseVersion={dataRow.release} />
   ) : null;
 }
+
+const addFieldAsColumn = (fieldName: string, location?: Location) => {
+  const oldField = location?.query.field;
+  const newField = Array.isArray(oldField)
+    ? oldField.concat(fieldName)
+    : oldField
+    ? [oldField, fieldName]
+    : fieldName;
+  browserHistory.push({
+    ...location,
+    query: {
+      ...location?.query,
+      field: newField,
+    },
+  });
+};
 
 const fiveMinutesInMs = 5 * 60 * 1000;
 
@@ -111,10 +145,10 @@ function IssueContext(props: IssueContextProps) {
   const renderStatus = () =>
     data && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextTitle>
+        <ContextHeader>
           {statusTitle}
           <FeatureBadge type="alpha" />
-        </ContextTitle>
+        </ContextHeader>
         <ContextBody>
           {data.status === 'ignored' ? (
             <IconMute
@@ -252,10 +286,10 @@ function ReleaseContext(props: BaseContextProps) {
     const statusText = data?.status === 'open' ? t('Active') : t('Archived');
     return (
       <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-        <ContextTitle>
+        <ContextHeader>
           {t('Release Details')}
           <FeatureBadge type="alpha" />
-        </ContextTitle>
+        </ContextHeader>
         <ContextBody>
           <StyledKeyValueTable>
             <KeyValueTableRow keyName={t('Status')} value={statusText} />
@@ -287,7 +321,7 @@ function ReleaseContext(props: BaseContextProps) {
     data &&
     data.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
-        <ContextTitle>{t('Last Commit')}</ContextTitle>
+        <ContextHeader>{t('Last Commit')}</ContextHeader>
         <DataSection>
           <Panel>
             <QuickContextCommitRow commit={data.lastCommit} />
@@ -301,7 +335,7 @@ function ReleaseContext(props: BaseContextProps) {
       <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
         <ContextRow>
           <div>
-            <ContextTitle>{t('New Issues')}</ContextTitle>
+            <ContextHeader>{t('New Issues')}</ContextHeader>
             <ReleaseStatusBody>{data.newGroups}</ReleaseStatusBody>
           </div>
           <div>
@@ -331,7 +365,12 @@ function ReleaseContext(props: BaseContextProps) {
   );
 }
 
-function EventContext(props: BaseContextProps) {
+interface EventContextProps extends BaseContextProps {
+  location?: Location;
+  projects?: Project[];
+}
+
+function EventContext(props: EventContextProps) {
   const {isLoading, isError, data} = useQuery<Event>(
     [
       `/organizations/${props.organization.slug}/events/${props.dataRow['project.name']}:${props.dataRow.id}/`,
@@ -345,8 +384,85 @@ function EventContext(props: BaseContextProps) {
     return <NoContext isLoading={isLoading} />;
   }
 
-  if (data?.type !== 'error') {
-    return <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>;
+  if (data.type === 'transaction') {
+    const traceId = data.contexts?.trace?.trace_id ?? '';
+    const {start, end} = getTraceTimeRangeFromEvent(data);
+    const project = props.projects?.find(p => p.slug === data.projectID);
+
+    return (
+      <Wrapper data-test-id="quick-context-hover-body">
+        <EventContextContainer>
+          <ContextHeader>
+            <Title>
+              {t('Transaction Duration')}
+              {!('transaction.duration' in props.dataRow) && (
+                <Tooltip
+                  skipWrapper
+                  title={t('Add transaction duration as a column')}
+                  position="right"
+                >
+                  <IconAdd
+                    data-test-id="quick-context-transaction-duration-add-button"
+                    cursor="pointer"
+                    onClick={() =>
+                      addFieldAsColumn('transaction.duration', props.location)
+                    }
+                    color="gray300"
+                    size="xs"
+                    isCircled
+                  />
+                </Tooltip>
+              )}
+            </Title>
+            <FeatureBadge type="alpha" />
+          </ContextHeader>
+          <EventContextBody>
+            {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
+          </EventContextBody>
+        </EventContextContainer>
+        {props.location && (
+          <EventContextContainer>
+            <ContextHeader>
+              <Title>
+                {t('Status')}
+                {!('tags[http.status_code]' in props.dataRow) && (
+                  <Tooltip
+                    skipWrapper
+                    title={t('Add http status as a column')}
+                    position="right"
+                  >
+                    <IconAdd
+                      data-test-id="quick-context-http-status-add-button"
+                      cursor="pointer"
+                      onClick={() =>
+                        addFieldAsColumn('tags[http.status_code]', props.location)
+                      }
+                      color="gray300"
+                      size="xs"
+                      isCircled
+                    />
+                  </Tooltip>
+                )}
+              </Title>
+            </ContextHeader>
+            <EventContextBody>
+              <TraceMetaQuery
+                location={props.location}
+                orgSlug={props.organization.slug}
+                traceId={traceId}
+                start={start}
+                end={end}
+              >
+                {metaResults => getStatusBodyText(project, data, metaResults?.meta)}
+              </TraceMetaQuery>
+              <SectionSubtext>
+                <HttpStatus event={data} />
+              </SectionSubtext>
+            </EventContextBody>
+          </EventContextContainer>
+        )}
+      </Wrapper>
+    );
   }
 
   const stackTrace = getStacktrace(data);
@@ -366,7 +482,9 @@ type ContextProps = {
   children: React.ReactNode;
   contextType: ContextType;
   dataRow: EventData;
+  location?: Location;
   organization?: Organization;
+  projects?: Project[];
 };
 
 export function QuickContextHoverWrapper(props: ContextProps) {
@@ -386,7 +504,14 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         showUnderline
         delay={HOVER_DELAY}
         header={getHoverHeader(props.dataRow, props.contextType)}
-        body={getHoverBody(api, props.dataRow, props.contextType, props.organization)}
+        body={getHoverBody(
+          api,
+          props.dataRow,
+          props.contextType,
+          props.organization,
+          props.location,
+          props.projects
+        )}
       >
         {props.children}
       </StyledHovercard>
@@ -438,7 +563,7 @@ const IssueContextContainer = styled(ContextContainer)`
   }
 `;
 
-const ContextTitle = styled('h6')`
+const ContextHeader = styled('h6')`
   color: ${p => p.theme.subText};
   display: flex;
   justify-content: space-between;
@@ -453,6 +578,13 @@ const ContextBody = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
+`;
+
+const EventContextBody = styled(ContextBody)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: 0;
+  align-items: flex-start;
+  flex-direction: column;
 `;
 
 const StatusText = styled('span')`
@@ -498,7 +630,13 @@ const ReleaseContextContainer = styled(ContextContainer)`
   }
 `;
 
-const ReleaseAuthorsTitle = styled(ContextTitle)`
+const EventContextContainer = styled(ContextContainer)`
+  & + & {
+    margin-top: ${space(2)};
+  }
+`;
+
+const ReleaseAuthorsTitle = styled(ContextHeader)`
   max-width: 200px;
   text-align: right;
 `;
@@ -526,4 +664,11 @@ const StackTraceWrapper = styled('div')`
     border: 0;
     box-shadow: none;
   }
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
