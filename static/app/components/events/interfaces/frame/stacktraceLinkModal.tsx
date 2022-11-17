@@ -104,7 +104,12 @@ function StacktraceLinkModal({
       closeModal();
       onSubmit();
     } catch (err) {
-      setError(err?.responseJSON?.sourceUrl?.[0] ?? t('Unable to save configuration'));
+      const errorJson = err?.responseJSON || {};
+      setError(
+        errorJson.sourceUrl?.[0] ??
+          errorJson.nonFieldErrors?.[0] ??
+          t('Unable to save configuration')
+      );
     }
   };
 
