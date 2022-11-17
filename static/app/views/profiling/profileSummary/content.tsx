@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
@@ -29,6 +30,18 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const fields = useMemo(() => {
+    if (mobile.includes(props.project.platform as any)) {
+      return FIELDS;
+    }
+
+    // these are mobile only fields, so if it's not a mobile platform,
+    // make sure we remove them from the table
+    return FIELDS.filter(
+      field => field !== 'device.model' && field !== 'device.classification'
+    );
+  }, [props.project]);
+
   const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
     [props.location.query.cursor]
@@ -44,14 +57,14 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.functionsSort]
   );
 
-  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), FIELDS, {
+  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), fields, {
     key: 'timestamp',
     order: 'desc',
   });
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields: FIELDS,
+    fields,
     query: props.query,
     sort,
     limit: 5,
@@ -108,7 +121,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         />
       </TableHeader>
       <ProfileEventsTable
-        columns={FIELDS}
+        columns={fields}
         data={profiles.status === 'success' ? profiles.data[0] : null}
         error={profiles.status === 'error' ? t('Unable to load profiles') : null}
         isLoading={profiles.status === 'loading'}
@@ -157,6 +170,7 @@ const FIELDS = [
   'release',
   'device.model',
   'device.classification',
+  'device.arch',
   'profile.duration',
 ] as const;
 
