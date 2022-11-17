@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry import integrations
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Repository
@@ -92,8 +92,19 @@ class PathMappingSerializer(CamelSnakeSerializer):
         return source_url
 
 
+class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
+    """
+    Similar to the code_mappings endpoint, loosen permissions to all users
+    """
+
+    scope_map = {
+        "POST": ["org:read", "project:write", "project:admin"],
+    }
+
+
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """
     Returns the parameters associated with the RepositoryProjectPathConfig
     we would create based on a particular stack trace and source code URL.
