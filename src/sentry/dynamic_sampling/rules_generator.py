@@ -16,6 +16,8 @@ from sentry.dynamic_sampling.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
+    Condition,
+    Inner,
     ReleaseRule,
     RuleType,
 )
@@ -32,6 +34,23 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthz",
 ]
+
+ALL_ENVIRONMENTS = "*"
+
+
+def _generate_environment_condition(environment: Optional[str]) -> Union[Condition, Inner]:
+    environment_condition = {
+        "op": "glob",
+        "name": "trace.environment",
+        "value": [environment if environment is not None else ALL_ENVIRONMENTS],
+    }
+
+    # In case we want to generate a rule for a trace without an environment we can use negations to express it as
+    # a trace that has an environment that doesn't match any environment.
+    if environment is None:
+        environment_condition = {"op": "not", "inner": environment_condition}
+
+    return environment_condition
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -120,13 +139,7 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             "name": "trace.release",
                             "value": [release_version],
                         },
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            # If the environment is None, the array will contain [None] which is interpreted by Relay
-                            # as having no value.
-                            "value": [environment],
-                        },
+                        _generate_environment_condition(environment),
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,

@@ -149,10 +149,12 @@ class LatestReleaseTest(TestCase):
         for release, environment in (
             (Release.get_or_create(project=self.project, version="1.0"), "prod"),
             (Release.get_or_create(project=self.project, version="1.0"), "dev"),
+            (Release.get_or_create(project=self.project, version="1.0"), None),
         ):
+            env_postfix = f":e:{environment}" if environment is not None else ""
             self.redis_client.hset(
                 f"ds::p:{self.project.id}:boosted_releases",
-                f"ds::r:{release.id}:e:{environment}",
+                f"ds::r:{release.id}{env_postfix}",
                 ts,
             )
 
@@ -186,6 +188,30 @@ class LatestReleaseTest(TestCase):
                     ],
                 },
                 "id": 1501,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["1.0"]},
+                        {
+                            "op": "not",
+                            "inner": {
+                                "op": "glob",
+                                "name": "trace.environment",
+                                "value": ["*"],
+                            },
+                        },
+                    ],
+                },
+                "id": 1502,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
@@ -266,9 +292,12 @@ class LatestReleaseTest(TestCase):
                         "inner": [
                             {"op": "glob", "name": "trace.release", "value": [release.version]},
                             {
-                                "op": "glob",
-                                "name": "trace.environment",
-                                "value": [None],
+                                "op": "not",
+                                "inner": {
+                                    "op": "glob",
+                                    "name": "trace.environment",
+                                    "value": ["*"],
+                                },
                             },
                         ],
                     },
