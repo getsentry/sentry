@@ -273,6 +273,8 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
+    if profile["platform"] == "rust":
+
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
             # remove top frames related to the profiler (top of the stack)
             if frames[stack[0]].get("function", "") == "perf_signal_handler":
