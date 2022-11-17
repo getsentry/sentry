@@ -92,9 +92,10 @@ describe('Chart Utils', function () {
 
       expect(getSeriesApiInterval({period: '29d'})).toBe('1h');
       expect(getSeriesApiInterval({period: '7h'})).toBe('1h');
-
       expect(getSeriesApiInterval({period: '6h'})).toBe('1h');
-      expect(getSeriesApiInterval({period: '1h'})).toBe('1h');
+
+      expect(getSeriesApiInterval({period: '3h'})).toBe('5m');
+      expect(getSeriesApiInterval({period: '1h'})).toBe('5m');
     });
   });
 

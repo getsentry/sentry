@@ -136,6 +136,11 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
     return '4h';
   }
 
+  if (diffInMinutes < SIX_HOURS) {
+    // Less than 6 hours
+    return '5m';
+  }
+
   return '1h';
 }
 
