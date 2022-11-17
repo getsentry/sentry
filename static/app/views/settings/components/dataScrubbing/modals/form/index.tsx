@@ -108,6 +108,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
         </FieldGroup>
         <FieldGroup hasTwoColumns={values.type === RuleType.PATTERN}>
           <Field
+            data-test-id="type-field"
             label={t('Data Type')}
             help={t(
               'What to look for. Use an existing pattern or define your own using regular expressions.'
@@ -133,6 +134,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
               inline={false}
+              id="regex-matches"
               error={errors?.pattern}
               flexibleControlStateSize
               stacked
@@ -146,7 +148,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onChange={this.handleChange('pattern')}
                 value={values.pattern}
                 onBlur={onValidate('pattern')}
-                aria-label={t('Regular expression')}
+                id="regex-matches"
               />
             </Field>
           )}

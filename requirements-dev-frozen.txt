@@ -130,7 +130,7 @@ pytest==7.2.0
 pytest-cov==4.0.0
 pytest-django==4.4.0
 pytest-rerunfailures==10.2
-pytest-sentry==0.1.9
+pytest-sentry==0.1.10
 pytest-xdist==3.0.2
 python-dateutil==2.8.1
 python-memcached==1.59

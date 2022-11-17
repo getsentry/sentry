@@ -114,12 +114,14 @@ declare namespace Profiling {
     key: string | number;
     name: string;
     file?: string;
+    path?: string;
     line?: number;
     column?: number;
     is_application?: boolean;
     image?: string;
     resource?: string;
     threadId?: number;
+    inline?: boolean;
 
     // nodejs only
     columnNumber?: number;
