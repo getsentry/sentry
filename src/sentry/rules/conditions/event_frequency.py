@@ -17,11 +17,7 @@ from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GRO
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.condition_activity import (
-    FREQUENCY_CONDITION_BUCKET_SIZE,
-    ConditionActivity,
-    round_to_five_minute,
-)
+from sentry.types.condition_activity import FREQUENCY_CONDITION_BUCKET_SIZE, ConditionActivity
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
 
@@ -228,9 +224,12 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
             interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
 
-        interval_end = round_to_five_minute(activity.timestamp)
-        interval_start = interval_end - interval_delta
-        count = buckets[interval_end] - buckets.get(interval_start, 0)
+        end = activity.timestamp
+        start = end - interval_delta
+        count = 0
+        for bucket in buckets:
+            if start <= bucket["roundedTime"] < end:
+                count += bucket["bucketCount"]
 
         return count > value
 

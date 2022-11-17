@@ -20,10 +20,3 @@ class ConditionActivity:
     type: ConditionActivityType
     timestamp: datetime
     data: Dict[str, Any] | None = None
-
-
-def round_to_five_minute(date: datetime) -> datetime:
-    floor = date - timedelta(
-        minutes=date.minute % 5, seconds=date.second, microseconds=date.microsecond
-    )
-    return floor

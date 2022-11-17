@@ -15,7 +15,6 @@ from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
     ConditionActivityType,
-    round_to_five_minute,
 )
 from sentry.utils.snuba import parse_snuba_datetime, raw_query
 
@@ -343,22 +342,10 @@ def get_frequency_buckets(
         selected_columns=["roundedTime", "bucketCount"],
         limit=PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
     ).get("data", [])
+
     for bucket in bucket_counts:
         bucket["roundedTime"] = parse_snuba_datetime(bucket["roundedTime"])
-
-    rounded_time = round_to_five_minute(start)
-    rounded_end = round_to_five_minute(end)
-    cumulative_sum = 0
-    buckets = {}
-    # the query result only contains buckets that have a positive count
-    # here we fill in the empty buckets and accumulate the sum
-    while rounded_time <= rounded_end:
-        if bucket_counts and bucket_counts[-1]["roundedTime"] == rounded_time:
-            cumulative_sum += bucket_counts.pop()["bucketCount"]
-
-        buckets[rounded_time] = cumulative_sum
-        rounded_time += FREQUENCY_CONDITION_BUCKET_SIZE
-    return buckets
+    return bucket_counts
 
 
 class PreviewException(Exception):
