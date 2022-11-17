@@ -132,8 +132,8 @@ class MessageBuilder:
         self,
         to: str,
         reply_to: Iterable[str] | None = None,
-        cc: Iterable[str] | None = None,
-        bcc: Iterable[str] | None = None,
+        cc: Sequence[str] | None = None,
+        bcc: Sequence[str] | None = None,
     ) -> EmailMultiAlternatives:
         headers = {**self.headers}
 
@@ -187,8 +187,8 @@ class MessageBuilder:
     def get_built_messages(
         self,
         to: Iterable[str] | None = None,
-        cc: Iterable[str] | None = None,
-        bcc: Iterable[str] | None = None,
+        cc: Sequence[str] | None = None,
+        bcc: Sequence[str] | None = None,
     ) -> Sequence[EmailMultiAlternatives]:
         send_to = set(to or ())
         send_to.update(self._send_to)
@@ -209,8 +209,8 @@ class MessageBuilder:
     def send(
         self,
         to: Iterable[str] | None = None,
-        cc: Iterable[str] | None = None,
-        bcc: Iterable[str] | None = None,
+        cc: Sequence[str] | None = None,
+        bcc: Sequence[str] | None = None,
         fail_silently: bool = False,
     ) -> int:
         return send_messages(
@@ -220,8 +220,8 @@ class MessageBuilder:
     def send_async(
         self,
         to: Iterable[str] | None = None,
-        cc: Iterable[str] | None = None,
-        bcc: Iterable[str] | None = None,
+        cc: Sequence[str] | None = None,
+        bcc: Sequence[str] | None = None,
     ) -> None:
         from sentry.tasks.email import send_email
 
