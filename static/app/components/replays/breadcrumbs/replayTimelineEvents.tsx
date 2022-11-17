@@ -165,6 +165,8 @@ const IconPosition = styled('div')`
   margin-left: ${EVENT_STICK_MARKER_WIDTH / 2}px;
   align-self: center;
   display: grid;
+  /* We need to add the height here so safari recongnize the height */
+  height: 100%;
 `;
 
 const IconNode = styled('div')<{
