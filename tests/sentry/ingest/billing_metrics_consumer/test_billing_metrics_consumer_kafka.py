@@ -10,7 +10,8 @@ from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
 )
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -22,6 +23,9 @@ def test_outcomes_consumed():
 
     time = datetime(1985, 10, 26, 21, 00, 00)
     metrics_topic = Topic("snuba-generic-metrics")
+    counter_metric_id = indexer.resolve(
+        UseCaseKey.PERFORMANCE, 1, "d:transactions/duration@millisecond"
+    )
 
     buckets = [
         {  # Counter metric with wrong ID will not generate an outcome
@@ -42,7 +46,7 @@ def test_outcomes_consumed():
         },
         {  # Empty distribution will not generate an outcome
             # NOTE: Should not be emitted by Relay anyway
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "metric_id": counter_metric_id,
             "type": "d",
             "org_id": 1,
             "project_id": 2,
@@ -50,7 +54,7 @@ def test_outcomes_consumed():
             "value": [],
         },
         {  # Valid distribution bucket emits an outcome
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "metric_id": counter_metric_id,
             "type": "d",
             "org_id": 1,
             "project_id": 2,
