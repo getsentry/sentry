@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
-from sentry.db.models.fields.bounded import BoundedIntegerField
+from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositiveIntegerField
 
 
 # Based heavily on EventAttachment
@@ -18,6 +18,7 @@ class ReplayRecordingSegment(Model):
     file_id = BoundedBigIntegerField(db_index=True)
     segment_id = BoundedIntegerField(db_column="sequence_id")
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    size = BoundedPositiveIntegerField(null=True)
 
     class Meta:
         app_label = "replays"

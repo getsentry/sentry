@@ -11,6 +11,8 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
+import RequestError from 'sentry/utils/requestError/requestError';
+import toArray from 'sentry/utils/toArray';
 
 import SelectedGroupStore from './selectedGroupStore';
 import {CommonStoreDefinition} from './types';
@@ -60,7 +62,7 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   loadInitialData: (items: Item[]) => void;
 
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
-  onAssignToError: (changeId: string, itemId: string, error: Error) => void;
+  onAssignToError: (changeId: string, itemId: string, error: RequestError) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
@@ -146,9 +148,7 @@ const storeConfig: GroupStoreDefinition = {
    * If any items already exist, they will merged into the existing item index.
    */
   add(items) {
-    if (!Array.isArray(items)) {
-      items = [items];
-    }
+    items = toArray(items);
     const newItems = this.mergeItems(items);
 
     this.items = [...this.items, ...newItems];
@@ -161,9 +161,7 @@ const storeConfig: GroupStoreDefinition = {
    * If any items already exist, they will be moved to the front in the order provided.
    */
   addToFront(items) {
-    if (!Array.isArray(items)) {
-      items = [items];
-    }
+    items = toArray(items);
     const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
@@ -315,9 +313,13 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   // TODO(dcramer): This is not really the best place for this
-  onAssignToError(_changeId, itemId, _error) {
+  onAssignToError(_changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    showAlert(t('Unable to change assignee. Please try again.'), 'error');
+    if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
+      showAlert(t('Cannot assign to non-team member'), 'error');
+    } else {
+      showAlert(t('Unable to change assignee. Please try again.'), 'error');
+    }
   },
 
   onAssignToSuccess(_changeId, itemId, response) {

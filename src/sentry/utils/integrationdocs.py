@@ -35,7 +35,8 @@ class Platform(TypedDict):
     integrations: list[dict[str, str]]
 
 
-BASE_URL = "https://docs.sentry.io/_platforms/{}"
+INTEGRATION_DOCS_URL = os.environ.get("INTEGRATION_DOCS_URL", "https://docs.sentry.io/_platforms/")
+BASE_URL = INTEGRATION_DOCS_URL + "{}"
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
 DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
@@ -80,7 +81,7 @@ def dump_doc(path: str, data: dict[str, Any]) -> None:
         os.makedirs(directory)
     except OSError:
         pass
-    with open(doc_path, "wt", encoding="utf-8") as f:
+    with open(doc_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")
 

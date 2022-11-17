@@ -5,6 +5,7 @@ from functools import partial, reduce
 import sentry_sdk
 from django.db.models import Count
 from django.utils import dateformat, timezone
+from sentry_sdk import set_tag
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -99,7 +100,7 @@ class ProjectContext:
     max_retries=5,
     acks_late=True,
 )
-def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_flag_check=False):
+def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
@@ -109,12 +110,11 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_fl
         duration = ONE_DAY * 7
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    for i, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
+    for organization in RangeQuerySetWrapper(
+        organizations, step=10000, result_value_getter=lambda item: item.id
     ):
-        if skip_flag_check or features.has("organizations:weekly-email-refresh", organization):
-            # Create a celery task per organization
-            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        # Create a celery task per organization
+        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 # This task is launched per-organization.
@@ -128,6 +128,7 @@ def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     organization = Organization.objects.get(id=organization_id)
+    set_tag("org.slug", organization.slug)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes

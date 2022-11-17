@@ -24,7 +24,7 @@ type FlamegraphCandidate = {
 
 function scoreFlamegraph(
   flamegraph: Flamegraph,
-  focusFrame: FlamegraphProfiles['highlightFrame']
+  focusFrame: FlamegraphProfiles['highlightFrames']
 ): number {
   if (focusFrame === null) {
     return 0;
@@ -51,8 +51,8 @@ function scoreFlamegraph(
 }
 
 function isValidHighlightFrame(
-  frame: Partial<FlamegraphProfiles['highlightFrame']> | null | undefined
-): frame is NonNullable<FlamegraphProfiles['highlightFrame']> {
+  frame: Partial<FlamegraphProfiles['highlightFrames']> | null | undefined
+): frame is NonNullable<FlamegraphProfiles['highlightFrames']> {
   return !!frame && typeof frame.name === 'string';
 }
 
@@ -69,13 +69,13 @@ export function FlamegraphStateProvider(
     flamegraphStateReducer,
     {
       profiles: {
-        highlightFrame: isValidHighlightFrame(
-          props.initialState?.profiles?.highlightFrame
+        highlightFrames: isValidHighlightFrame(
+          props.initialState?.profiles?.highlightFrames
         )
           ? (props.initialState?.profiles
-              ?.highlightFrame as FlamegraphProfiles['highlightFrame'])
-          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame)
-          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame
+              ?.highlightFrames as FlamegraphProfiles['highlightFrames'])
+          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames)
+          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames
           : null,
         selectedRoot: null,
         threadId:
@@ -112,7 +112,7 @@ export function FlamegraphStateProvider(
 
   useEffect(() => {
     if (state.profiles.threadId === null) {
-      if (state.profiles.highlightFrame && profileGroup.type === 'resolved') {
+      if (state.profiles.highlightFrames && profileGroup.type === 'resolved') {
         const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
           (prevCandidate, profile) => {
             const flamegraph = new Flamegraph(profile, profile.threadId, {
@@ -121,7 +121,7 @@ export function FlamegraphStateProvider(
               configSpace: undefined,
             });
 
-            const score = scoreFlamegraph(flamegraph, state.profiles.highlightFrame);
+            const score = scoreFlamegraph(flamegraph, state.profiles.highlightFrames);
 
             return score <= prevCandidate.score
               ? prevCandidate
@@ -159,7 +159,7 @@ export function FlamegraphStateProvider(
     profileGroup,
     state,
     dispatch,
-    state.profiles.highlightFrame,
+    state.profiles.highlightFrames,
   ]);
 
   return (

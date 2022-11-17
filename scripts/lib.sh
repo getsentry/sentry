@@ -18,10 +18,6 @@ fi
 
 venv_name=".venv"
 
-pip-install() {
-    pip install $(grep ^-- requirements-base.txt) "$@"
-}
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -79,8 +75,12 @@ sudo-askpass() {
     fi
 }
 
+pip-install() {
+    pip install --constraint requirements-dev-frozen.txt "$@"
+}
+
 upgrade-pip() {
-    pip-install $(grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt)
+    pip-install pip setuptools wheel
 }
 
 install-py-dev() {
@@ -108,6 +108,14 @@ setup-git-config() {
 
 setup-git() {
     setup-git-config
+
+    # if hooks are explicitly turned off do nothing
+    if [[ "$(git config core.hooksPath)" == '/dev/null' ]]; then
+        echo "--> core.hooksPath set to /dev/null. Skipping git hook setup"
+        echo ""
+        return
+    fi
+
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
     # shellcheck disable=SC2016
@@ -116,7 +124,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip-install -r requirements-dev-only-frozen.txt
+        pip-install -r requirements-dev.txt
     fi
     pre-commit install --install-hooks
     echo ""
@@ -170,6 +178,7 @@ apply-migrations() {
 }
 
 create-user() {
+    echo "--> Creating a superuser account"
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else

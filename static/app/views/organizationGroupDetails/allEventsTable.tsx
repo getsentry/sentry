@@ -14,6 +14,7 @@ export interface Props {
   location: Location;
   organization: Organization;
   projectId: string;
+  projectSlug: string;
   excludedTags?: string[];
   totalEventCount?: string;
 }
@@ -25,11 +26,15 @@ const AllEventsTable = (props: Props) => {
     issueId,
     isPerfIssue,
     excludedTags,
+    projectSlug,
     projectId,
     totalEventCount,
   } = props;
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
+
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
+
   const fields: string[] = [
     'id',
     'transaction',
@@ -39,6 +44,7 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
+    ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -53,6 +59,7 @@ const AllEventsTable = (props: Props) => {
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId} event.type:transaction`
     : `issue.id:${issueId}`;
+  eventView.project = [parseInt(projectId, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
 
@@ -65,6 +72,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    ...(isReplayEnabled ? [t('replay')] : []),
     t('minidump'),
   ];
 
@@ -80,12 +88,10 @@ const AllEventsTable = (props: Props) => {
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
-      projectId={projectId}
+      projectSlug={projectSlug}
       totalEventCount={totalEventCount}
       customColumns={['minidump']}
-      setError={() => {
-        (msg: string) => setError(msg);
-      }}
+      setError={(msg: string | undefined) => setError(msg ?? '')}
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"

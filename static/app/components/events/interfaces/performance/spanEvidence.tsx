@@ -4,7 +4,7 @@ import * as SpanContext from 'sentry/components/events/interfaces/spans/spanCont
 import {t} from 'sentry/locale';
 import {EventTransaction, Organization} from 'sentry/types';
 
-import DataSection from '../../eventTagsAndScreenshot/dataSection';
+import {DataSection} from '../../eventTagsAndScreenshot/dataSection';
 import TraceView from '../spans/traceView';
 import {TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';

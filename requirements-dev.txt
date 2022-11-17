@@ -9,7 +9,7 @@ pytest>=7.2
 pytest-cov>=4.0.0
 pytest-django>=4.4.0
 pytest-rerunfailures>=10
-pytest-sentry>=0.1.9
+pytest-sentry>=0.1.10
 pytest-xdist>=3
 responses>=0.21.0
 
@@ -18,7 +18,7 @@ pre-commit>=2.18.1
 black>=22.3.0
 flake8>=5.0.2
 flake8-bugbear>=22.7.1
-pyupgrade>=2.37.2
+pyupgrade>=3
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
@@ -39,3 +39,4 @@ types-pytz
 types-pyyaml
 types-redis
 types-requests
+types-simplejson>=3.17.7.2

@@ -6,16 +6,12 @@ type Props = {
   size?: number;
 };
 
-const getSize = (p: Props) => `
-  height: ${p.size}px;
-  width: ${p.size}px;
-`;
-
 const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
-  ${getSize};
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
   background: ${p => p.color ?? (p.enabled ? p.theme.success : p.theme.error)};
 `;
 

@@ -12,6 +12,7 @@ __all__ = (
     "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
+    "FILTERABLE_TAGS",
     "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
@@ -83,7 +84,6 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
-    "transform_null_to_unparameterized",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -144,6 +144,20 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
 }
 
+# This set contains all the operations that require the "rhs" condition to be resolved
+# in a "MetricConditionField". This solution is the simplest one and doesn't require any
+# changes in the transformer, however it requires this list to be discovered and updated
+# in case new operations are added, which is not ideal but given the fact that we already
+# define operations in this file, it is not a deal-breaker.
+REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
+    """
+    Checks whether a given operation requires its right operand to be resolved.
+    """
+    return op in REQUIRES_RHS_CONDITION_RESOLUTION
+
 
 def generate_operation_regex():
     """
@@ -183,6 +197,14 @@ FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
 NON_RESOLVABLE_TAG_VALUES = (
     {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
 )
+FILTERABLE_TAGS = {
+    "tags[environment]",
+    "tags[transaction]",
+    "tags[transaction.op]",
+    "tags[transaction.status]",
+    "tags[browser.name]",
+    "tags[os.name]",
+}
 
 
 class Tag(TypedDict):

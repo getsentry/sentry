@@ -33,6 +33,7 @@ type TableProps = {
   showTags: boolean;
   title: string;
   isHomepage?: boolean;
+  setTips?: (tips: string[]) => void;
 };
 
 type TableState = {
@@ -98,7 +99,8 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError, confirmedQuery} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery, setTips} =
+      this.props;
 
     if (!eventView.isValid() || !confirmedQuery) {
       return;
@@ -111,6 +113,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
     );
+
     const url = shouldUseEvents
       ? `/organizations/${organization.slug}/events/`
       : `/organizations/${organization.slug}/eventsv2/`;
@@ -162,6 +165,16 @@ class Table extends PureComponent<TableProps, TableState> {
           pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
           tableData,
         }));
+
+        const tips: string[] = [];
+        const {query, columns} = tableData?.meta?.tips ?? {};
+        if (query) {
+          tips.push(query);
+        }
+        if (columns) {
+          tips.push(columns);
+        }
+        setTips?.(tips);
       })
       .catch(err => {
         metric.measure({

@@ -1,8 +1,7 @@
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import (
@@ -11,52 +10,15 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, SnubaTSResult
-
-
-def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
-    """Go through the results of a metrics query and reverse resolve its tags"""
-    if query_definition.use_metrics_layer:
-        return results
-    tags: List[str] = []
-    cached_resolves: Dict[int, str] = {}
-    # no-op if they're already strings
-    if query_definition.tag_values_are_strings:
-        return results
-
-    with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-        for column in query_definition.columns:
-            if (
-                isinstance(column, AliasedExpression)
-                and column.exp.subscriptable == "tags"
-                and column.alias
-            ):
-                tags.append(column.alias)
-            # transaction is a special case since we use a transform null & unparam
-            if column.alias in ["transaction", "title"]:
-                tags.append(column.alias)
-
-        for tag in tags:
-            for row in results["data"]:
-                if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(
-                        UseCaseKey.PERFORMANCE, query_definition.organization_id, row[tag]
-                    )
-                    cached_resolves[row[tag]] = resolved_tag
-                row[tag] = cached_resolves[row[tag]]
-            if tag in results["meta"]:
-                results["meta"][tag] = "string"
-
-    return results
 
 
 def query(
     selected_columns,
     query,
     params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -76,6 +38,7 @@ def query(
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=[],
@@ -90,6 +53,7 @@ def query(
             offset=offset,
             dry_run=dry_run,
             dataset=Dataset.PerformanceMetrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
             use_metrics_layer=use_metrics_layer,
         )
         if dry_run:
@@ -102,19 +66,7 @@ def query(
             sentry_sdk.set_tag("query.mep_compatible", True)
             return {}
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-        translated_columns = {}
-        if transform_alias_to_input_format:
-            translated_columns = {
-                column: function_details.field
-                for column, function_details in metrics_query.function_alias_map.items()
-            }
-            metrics_query.function_alias_map = {
-                translated_columns.get(column): function_details
-                for column, function_details in metrics_query.function_alias_map.items()
-            }
-
-        results = discover.transform_results(results, metrics_query, translated_columns)
-        results = resolve_tags(results, metrics_query)
+        results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")
         return results
@@ -132,6 +84,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     dry_run: bool = False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -153,6 +106,7 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 allow_metric_aggregates=allow_metric_aggregates,
                 dry_run=dry_run,
+                use_metrics_layer=use_metrics_layer,
             )
             if dry_run:
                 metrics_referrer = referrer + ".dry-run"
@@ -164,7 +118,7 @@ def timeseries_query(
                 sentry_sdk.set_tag("query.mep_compatible", True)
                 return
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = discover.transform_results(result, metrics_query, {})
+            result = metrics_query.process_results(result)
             result["data"] = (
                 discover.zerofill(
                     result["data"],
@@ -207,6 +161,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -257,6 +212,7 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
+        use_metrics_layer=use_metrics_layer,
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)

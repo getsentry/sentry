@@ -233,8 +233,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
         <StatusMessage>
           <LoadingIndicator mini relative hideMessage size={16} />
           {this.willInvite
-            ? t('Sending organization invitations...')
-            : t('Sending invite requests...')}
+            ? t('Sending organization invitations\u2026')
+            : t('Sending invite requests\u2026')}
         </StatusMessage>
       );
     }
@@ -354,23 +354,25 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           <div>{t('Add to team')}</div>
         </InviteeHeadings>
 
-        {pendingInvites.map(({emails, role, teams}, i) => (
-          <StyledInviteRow
-            key={i}
-            disabled={disableInputs}
-            emails={[...emails]}
-            role={role}
-            teams={[...teams]}
-            roleOptions={member ? member.roles : ORG_ROLES}
-            roleDisabledUnallowed={this.willInvite}
-            inviteStatus={inviteStatus}
-            onRemove={() => this.removeInviteRow(i)}
-            onChangeEmails={opts => this.setEmails(opts?.map(v => v.value) ?? [], i)}
-            onChangeRole={value => this.setRole(value?.value, i)}
-            onChangeTeams={opts => this.setTeams(opts ? opts.map(v => v.value) : [], i)}
-            disableRemove={disableInputs || pendingInvites.length === 1}
-          />
-        ))}
+        <Rows>
+          {pendingInvites.map(({emails, role, teams}, i) => (
+            <StyledInviteRow
+              key={i}
+              disabled={disableInputs}
+              emails={[...emails]}
+              role={role}
+              teams={[...teams]}
+              roleOptions={member ? member.roles : ORG_ROLES}
+              roleDisabledUnallowed={this.willInvite}
+              inviteStatus={inviteStatus}
+              onRemove={() => this.removeInviteRow(i)}
+              onChangeEmails={opts => this.setEmails(opts?.map(v => v.value) ?? [], i)}
+              onChangeRole={value => this.setRole(value?.value, i)}
+              onChangeTeams={opts => this.setTeams(opts ? opts.map(v => v.value) : [], i)}
+              disableRemove={disableInputs || pendingInvites.length === 1}
+            />
+          ))}
+        </Rows>
 
         <AddButton
           disabled={disableInputs}
@@ -463,6 +465,7 @@ const inviteRowGrid = css`
   display: grid;
   gap: ${space(1.5)};
   grid-template-columns: 3fr 180px 2fr max-content;
+  align-items: start;
 `;
 
 const InviteeHeadings = styled('div')`
@@ -472,6 +475,12 @@ const InviteeHeadings = styled('div')`
   font-weight: 600;
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Rows = styled('ul')`
+  list-style: none;
+  padding: 0;
+  margin: 0;
 `;
 
 const StyledInviteRow = styled(InviteRowControl)`
@@ -496,10 +505,10 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};
+  color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
+    ${p => p.status === 'success' && `color: ${p.theme.successText}`};
   }
 `;
 

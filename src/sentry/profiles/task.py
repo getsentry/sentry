@@ -82,6 +82,7 @@ def process_profile(
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
         _track_outcome(
             profile=profile,
             project=project,
@@ -239,10 +240,6 @@ def _symbolicate(
                 )
                 sleep(sleep_time)
                 continue
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-            break
 
     # returns the unsymbolicated data to avoid errors later
     return (modules, stacktraces)
@@ -304,12 +301,30 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
+    if profile["platform"] in SHOULD_SYMBOLICATE:
+        idx_map = get_frame_index_map(profile["profile"]["frames"])
+
+        def get_stack(stack: List[int]) -> List[int]:
+            new_stack: List[int] = []
+            for index in stack:
+                # the new stack extends the older by replacing
+                # a specific frame index with the indices of
+                # the frames originated from the original frame
+                # should inlines be present
+                new_stack.extend(idx_map[index])
+            return new_stack
+
+    else:
+
+        def get_stack(stack: List[int]) -> List[int]:
+            return stack
+
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
-        stack = profile["profile"]["stacks"][stack_id]
+        stack = get_stack(profile["profile"]["stacks"][stack_id])
+        profile["profile"]["stacks"][stack_id] = stack
 
         if len(stack) < 2:
-            profile["profile"]["stacks"] = stack
             continue
 
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
@@ -345,6 +360,46 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
+
+
+"""
+This function returns a map {index: [indexes]} that will let us replace a specific
+frame index with (potentially) a list of frames indices that originated from that frame.
+
+The reason for this is that the frame from the SDK exists "physically",
+and symbolicator then synthesizes other frames for calls that have been inlined
+into the physical frame.
+
+Example:
+
+`
+fn a() {
+b()
+}
+fb b() {
+fn c_inlined() {}
+c_inlined()
+}
+`
+
+this would yield the following from the SDK:
+b -> a
+
+after symbolication you would have:
+c_inlined -> b -> a
+
+The sorting order is callee to caller (child to parent)
+"""
+
+
+def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
+    index_map: dict[int, List[int]] = {}
+    for i, frame in enumerate(frames):
+        original_idx = frame["original_index"]
+        idx_list = index_map.get(original_idx, [])
+        idx_list.append(i)
+        index_map[original_idx] = idx_list
+    return index_map
 
 
 @metrics.wraps("process_profile.deobfuscate")
@@ -516,7 +571,9 @@ def _get_event_instance_for_legacy(profile: Profile) -> Any:
         "platform": profile["platform"],
         "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "release": f"{profile['version_name']} ({profile['version_code']})"
+        if profile["version_code"]
+        else profile["version_name"],
         "retention_days": profile["retention_days"],
         "timestamp": profile["received"],
         "transaction_name": profile["transaction_name"],

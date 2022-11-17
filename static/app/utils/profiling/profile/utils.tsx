@@ -8,17 +8,36 @@ import {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 
+export function createSentrySampleProfileFrameIndex(
+  frames: Profiling.SentrySampledProfile['profile']['frames']
+): FrameIndex {
+  const frameIndex: FrameIndex = {};
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+
+    frameIndex[i] = new Frame({
+      key: i,
+      name: frame.function ?? 'unknown',
+      line: frame.lineno,
+      column: frame.colno,
+    });
+  }
+
+  return frameIndex;
+}
+
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: Profiling.Schema['shared']['frames']
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: JSSelfProfiling.Frame[],
   trace: JSSelfProfiling.Trace
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'web',
+  type: 'mobile' | 'node' | 'web',
   frames: Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[],
   trace?: JSSelfProfiling.Trace
 ): FrameIndex {

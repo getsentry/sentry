@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import ApiToken
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ApiTokenTest(TestCase):
     def test_is_expired(self):
         token = ApiToken(expires_at=None)

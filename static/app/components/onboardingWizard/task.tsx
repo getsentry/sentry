@@ -11,9 +11,11 @@ import LetterAvatar from 'sentry/components/letterAvatar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -64,6 +66,10 @@ function Task(props: Props) {
   const handleClick = (e: React.MouseEvent) => {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
+
+    if (isDemoWalkthrough()) {
+      DemoWalkthroughStore.activateGuideAnchor(task.task);
+    }
 
     if (task.actionType === 'external') {
       window.open(task.location, '_blank');
@@ -116,7 +122,7 @@ function Task(props: Props) {
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink300" isSolid />
+      <IconLock color="pink400" isSolid />
     </Tooltip>
   );
 
@@ -218,7 +224,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -254,7 +260,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'pink300',
+  color: 'pink400',
 };
 
 const completedItemAnimation = {

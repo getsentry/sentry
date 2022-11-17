@@ -20,18 +20,17 @@ import {
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -50,17 +49,20 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
-import IssueListSidebar from './sidebar';
 import {
   getTabs,
   getTabsWithCounts,
@@ -93,7 +95,8 @@ type Props = {
   savedSearches: SavedSearch[];
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}>;
+} & RouteComponentProps<{searchId?: string}, {}> &
+  WithRouteAnalyticsProps;
 
 type State = {
   actionTaken: boolean;
@@ -102,7 +105,7 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
-  isSidebarVisible: boolean;
+  isSavedSearchesOpen: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -120,7 +123,6 @@ type State = {
   // TODO(Kelly): remove reviewedIds once issue-list-removal-action feature is stable
   reviewedIds: string[];
   selectAllActive: boolean;
-  tagsLoading: boolean;
   undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
@@ -172,9 +174,8 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
-      isSidebarVisible: false,
+      isSavedSearchesOpen: false,
       issuesLoading: true,
-      tagsLoading: true,
       memberList: {},
     };
   }
@@ -187,9 +188,16 @@ class IssueListOverview extends Component<Props, State> {
 
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
-    this.fetchSavedSearches();
+    // But if searches are already there, we can go right to fetching issues
+    if (this.props.savedSearchLoading) {
+      this.fetchSavedSearches();
+    } else {
+      this.fetchData();
+    }
     this.fetchTags();
     this.fetchMemberList();
+    // let custom analytics take control
+    this.props.setDisableRouteAnalytics?.();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -239,7 +247,8 @@ class IssueListOverview extends Component<Props, State> {
       prevQuery.query !== newQuery.query ||
       prevQuery.statsPeriod !== newQuery.statsPeriod ||
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
-      prevProps.savedSearch !== this.props.savedSearch
+      prevProps.savedSearch?.query !== this.props.savedSearch?.query ||
+      prevProps.savedSearch?.sort !== this.props.savedSearch?.sort
     ) {
       this.fetchData(selectionChanged);
     } else if (
@@ -371,16 +380,15 @@ class IssueListOverview extends Component<Props, State> {
 
   fetchTags() {
     const {api, organization, selection} = this.props;
-    this.setState({tagsLoading: true});
-    loadOrganizationTags(api, organization.slug, selection).then(() =>
-      this.setState({tagsLoading: false})
-    );
+    loadOrganizationTags(api, organization.slug, selection);
   }
 
   fetchSavedSearches() {
     const {organization, api} = this.props;
 
-    fetchSavedSearches(api, organization.slug);
+    if (!organization.features.includes('issue-list-saved-searches-v2')) {
+      fetchSavedSearches(api, organization.slug);
+    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -859,16 +867,6 @@ class IssueListOverview extends Component<Props, State> {
     this.transitionTo({cursor, page: nextPage});
   };
 
-  onSidebarToggle = () => {
-    const {organization} = this.props;
-    this.setState({
-      isSidebarVisible: !this.state.isSidebarVisible,
-    });
-    trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
-      organization,
-    });
-  };
-
   paginationAnalyticsEvent = (direction: string) => {
     trackAdvancedAnalyticsEvent('issues_stream.paginate', {
       organization: this.props.organization,
@@ -963,6 +961,9 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+      is_global: savedSearch.isGlobal,
+      query: savedSearch.query,
+      visibility: savedSearch.visibility,
     });
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
@@ -1110,19 +1111,25 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchData(true);
   };
 
+  onToggleSavedSearches = (isOpen: boolean) => {
+    this.setState({
+      isSavedSearchesOpen: isOpen,
+    });
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(
-      this.props.api,
-      orgId,
-      key,
+    return fetchTagValues({
+      api: this.props.api,
+      orgSlug: orgId,
+      tagKey: key,
       search,
       projectIds,
-      endpointParams as any
-    );
+      endpointParams: endpointParams as any,
+    });
   };
 
   render() {
@@ -1131,8 +1138,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
-      isSidebarVisible,
-      tagsLoading,
+      isSavedSearchesOpen,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1143,7 +1149,7 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+    const {organization, savedSearch, savedSearches, selection, location, router} =
       this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
@@ -1184,13 +1190,11 @@ class IssueListOverview extends Component<Props, State> {
       query
     );
 
-    const layoutProps = {
-      fullWidth: !isSidebarVisible,
-    };
-
     return (
       <StyledPageContent>
         <IssueListHeader
+          isSavedSearchesOpen={isSavedSearchesOpen}
+          onToggleSavedSearches={this.onToggleSavedSearches}
           organization={organization}
           query={query}
           sort={this.getSort()}
@@ -1203,20 +1207,17 @@ class IssueListOverview extends Component<Props, State> {
           onSavedSearchSelect={this.onSavedSearchSelect}
           onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
+          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
-        <Layout.Body {...layoutProps}>
-          <Layout.Main {...layoutProps}>
+        <StyledBody>
+          <StyledMain>
             <IssueListFilters
               organization={organization}
               query={query}
               savedSearch={savedSearch}
               sort={this.getSort()}
               onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
             />
 
             <Panel>
@@ -1235,6 +1236,7 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
+                isSavedSearchesOpen={isSavedSearchesOpen}
               />
               <PanelBody>
                 <ProcessingIssueList
@@ -1257,6 +1259,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    isSavedSearchesOpen={isSavedSearchesOpen}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>
@@ -1269,33 +1272,59 @@ class IssueListOverview extends Component<Props, State> {
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
-          </Layout.Main>
-          {/* Avoid rendering sidebar until first accessed */}
-          {isSidebarVisible && (
-            <Layout.Side>
-              <IssueListSidebar
-                loading={tagsLoading}
-                tags={tags}
-                query={query}
-                parsedQuery={parseSearch(query) || []}
-                onQueryChange={this.onIssueListSidebarSearch}
-                tagValueLoader={this.tagValueLoader}
-              />
-            </Layout.Side>
-          )}
-        </Layout.Body>
+          </StyledMain>
+          <SavedIssueSearches
+            {...{organization, query}}
+            isOpen={isSavedSearchesOpen}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+            sort={this.getSort()}
+          />
+        </StyledBody>
       </StyledPageContent>
     );
   }
 }
 
-export default withApi(
-  withPageFilters(
-    withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+export default withRouteAnalytics(
+  withApi(
+    withPageFilters(
+      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+    )
   )
 );
 
 export {IssueListOverview};
+
+const StyledBody = styled('div')`
+  background-color: ${p => p.theme.background};
+
+  flex: 1;
+  display: grid;
+  gap: 0;
+  padding: 0;
+
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(max-content, 1fr);
+  grid-template-areas:
+    'saved-searches'
+    'content';
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'content saved-searches';
+  }
+`;
+
+const StyledMain = styled('section')`
+  grid-area: content;
+  padding: ${space(2)};
+  overflow: hidden;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(3)} ${space(4)};
+  }
+`;
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;

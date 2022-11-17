@@ -114,7 +114,7 @@ const ExtraDetail = styled('div')`
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purple300 : null)};
+  color: ${p => (p.highlighted ? p.theme.activeText : null)};
 `;
 
 const Wrapper = styled('div')`

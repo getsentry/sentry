@@ -2,14 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Spinner from 'sentry/components/forms/spinner';
+import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 export interface ControlStateProps {
   /**
    * Display the  error indicator
    */
   error?: string | boolean;
+  /**
+   * Should hide error message?
+   */
+  hideErrorMessage?: boolean;
   /**
    * Display the "was just saved" state
    */
@@ -23,7 +29,12 @@ export interface ControlStateProps {
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-const ControlState = ({isSaving, isSaved, error}: ControlStateProps) => (
+const ControlState = ({
+  isSaving,
+  isSaved,
+  error,
+  hideErrorMessage,
+}: ControlStateProps) => (
   <Fragment>
     {isSaving ? (
       <ControlStateWrapper>
@@ -31,46 +42,43 @@ const ControlState = ({isSaving, isSaved, error}: ControlStateProps) => (
       </ControlStateWrapper>
     ) : isSaved ? (
       <ControlStateWrapper>
-        <FieldIsSaved>
-          <IconCheckmark size="18px" />
-        </FieldIsSaved>
+        <StyledIconCheckmark color="success" size="sm" />
       </ControlStateWrapper>
     ) : null}
 
     {error ? (
       <ControlStateWrapper>
-        <FieldError>
-          <IconWarning size="18px" />
-        </FieldError>
+        <Tooltip
+          position="bottom"
+          offset={8}
+          title={!hideErrorMessage && error}
+          forceVisible
+          skipWrapper
+        >
+          <StyledIconWarning color="error" size="sm" />
+        </Tooltip>
       </ControlStateWrapper>
     ) : null}
   </Fragment>
 );
 
 const ControlStateWrapper = styled('div')`
-  line-height: 0;
-  padding: 0 8px;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
-const FieldIsSaved = styled('div')`
-  color: ${p => p.theme.green300};
+const StyledIconCheckmark = styled(IconCheckmark)`
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
 
-const FieldError = styled('div')`
-  color: ${p => p.theme.red300};
-  animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
 export default ControlState;

@@ -3,10 +3,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
-    if (localStorage.getItem('new-walkthrough') === '1') {
+    if (isDemoWalkthrough()) {
       return getDemoModeGuidesV2();
     }
     return getDemoModeGuides();
@@ -458,7 +459,7 @@ function getDemoModeGuidesV2(): GuidesContent {
   return [
     {
       guide: 'sidebar_v2',
-      requiredTargets: ['projects', 'issues'],
+      requiredTargets: ['projects'],
       priority: 1,
       markOthersAsSeen: true,
       steps: [
@@ -473,7 +474,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           title: t('Issues'),
           target: 'issues',
           description: t(
-            `Here's a list of what's broken with your application. Sentry automatically groups similar events together into an issue.`
+            `Here's a list of what's broken and slow. Sentry automatically groups similar events together into an issue.`
           ),
         },
         {
@@ -501,8 +502,22 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
+      guide: 'issue_stream_v3',
+      requiredTargets: ['issue_stream'],
+      steps: [
+        {
+          title: t('Issues'),
+          target: 'issue_stream',
+          description: t(
+            `Sentry automatically groups similar events together into an issue. Similarity is
+            determined by stack trace and other factors. Click on an issue to learn more.`
+          ),
+        },
+      ],
+    },
+    {
       guide: 'issues_v3',
-      requiredTargets: ['tags', 'stack_trace', 'breadcrumbs'],
+      requiredTargets: ['tags'],
       steps: [
         {
           title: t('Metadata and metrics'),
@@ -523,7 +538,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           title: t('Retrace your steps'),
           target: 'breadcrumbs',
           description: t(
-            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events so you can see the sequence of events leading up to the error.`
+            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
           ),
           nextText: t('Got it'),
         },
@@ -561,7 +576,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       requiredTargets: ['release_states'],
       steps: [
         {
-          title: t('New and regresses issues'),
+          title: t('New and regressed issues'),
           target: 'release_states',
           description: t(
             `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
@@ -612,7 +627,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           target: 'span_tree',
           description: t(
             `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
-            did before encountering the performance.`
+            did before encountering the performance issue.`
           ),
         },
       ],

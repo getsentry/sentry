@@ -46,10 +46,6 @@ export type MenuItemProps = MenuListItemProps & {
    */
   onAction?: (key: MenuItemProps['key']) => void;
   /**
-   * Whether to show a line divider below this menu item
-   */
-  showDividers?: boolean;
-  /**
    * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
    * if `children` is defined and `isSubmenu` is true)
    */
@@ -65,10 +61,6 @@ type Props = {
    * Whether to close the menu when an item has been clicked/selected
    */
   closeOnSelect: boolean;
-  /**
-   * Whether this is the last node in the collection
-   */
-  isLastNode: boolean;
   /**
    * Node representation (from @react-aria) of the item
    */
@@ -91,6 +83,10 @@ type Props = {
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
+  /**
+   * Whether to show a divider below this item
+   */
+  showDivider?: boolean;
 };
 
 /**
@@ -101,10 +97,10 @@ type Props = {
 const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props> = (
   {
     node,
-    isLastNode,
     state,
     onClose,
     closeOnSelect,
+    showDivider,
     isSubmenuTrigger = false,
     renderAs = 'li' as React.ElementType,
     ...submenuTriggerProps
@@ -114,7 +110,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
+  const {key, onAction, to, label, ...itemProps} = node.value;
   const {size} = node.props;
 
   const actionHandler = () => {
@@ -194,11 +190,11 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
-  const showDivider = showDividers && !isLastNode;
   const innerWrapProps = {as: to ? Link : 'div', to};
 
   return (
     <MenuListItem
+      aria-haspopup={isSubmenuTrigger}
       ref={mergeRefs([ref, forwardedRef])}
       as={renderAs}
       data-test-id={key}
@@ -213,7 +209,6 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
       {...props}
       {...itemProps}
       {...(isSubmenuTrigger && {
-        role: 'menuitemradio',
         trailingItems: (
           <Fragment>
             {itemProps.trailingItems}

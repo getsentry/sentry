@@ -68,7 +68,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import ConditionGroup
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -120,6 +120,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -134,7 +135,14 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, OrderBy, get_date_range
+from ..snuba.metrics import (
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricsQuery,
+    OrderBy,
+    get_date_range,
+)
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from . import assert_status_code
 from .factories import Factories
@@ -1402,7 +1410,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        where: Optional[ConditionGroup] = None,
+        where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[OrderBy]] = None,
         limit: Optional[Limit] = None,
@@ -1433,7 +1441,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         )
 
 
-class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
+class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
@@ -1513,6 +1521,43 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
                 subvalue,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
+
+    def wait_for_metric_count(
+        self,
+        project,
+        total,
+        metric="transaction.duration",
+        mri=TransactionMRI.DURATION.value,
+        attempts=2,
+    ):
+        attempt = 0
+        metrics_query = self.build_metrics_query(
+            before_now="1d",
+            granularity="1d",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=mri,
+                ),
+            ],
+            include_series=False,
+        )
+        while attempt < attempts:
+            data = get_series(
+                [project],
+                metrics_query=metrics_query,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+            count = data["groups"][0]["totals"][f"count({metric})"]
+            if count >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+
+        if attempt == attempts:
+            assert (
+                False
+            ), f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
 
 
 class BaseIncidentsTest(SnubaTestCase):

@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Tuple
+from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -588,7 +588,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
-    "sentry.tasks.reports",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -601,10 +600,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.profiles.task",
-    "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -678,7 +677,6 @@ CELERY_QUEUES = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
-    Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
@@ -782,26 +780,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
-    "schedule-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60 * 3},
-    },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
-    },
-    "schedule-verify-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.verify_prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
@@ -962,6 +946,10 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": False,
+    # Enables automatically deriving of code mappings as a dry run for early adopters
+    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1012,6 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling on-boarding checklist
+    "organizations:profiling-onboarding-checklist": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1030,8 +1020,12 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert incompatible rule check
+    "organizations:issue-alert-incompatible-rules": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
+    # Enable issue alert test notifications
+    "organizations:issue-alert-test-notifications": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1059,6 +1053,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics-report": False,
     # True if the metrics data should be returned as API response (if possible with current data)
     "organizations:release-health-return-metrics": False,
+    # True if Relay should drop raw session payloads after extracting metrics from them.
+    "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1088,8 +1084,6 @@ SENTRY_FEATURES = {
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1098,8 +1092,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable release health widgets in dashboards
-    "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
     "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
@@ -1122,33 +1114,33 @@ SENTRY_FEATURES = {
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable new saved searches sidebar and visibility features
+    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": False,
-    # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable autogrouping of sibling spans
-    "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
-    # Enable automatic horizontal scrolling on the span tree
-    "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable transaction name only search on indexed
+    "organizations:performance-transaction-name-only-search-indexed": False,
+    # Re-enable histograms for Metrics Enhanced Performance Views
+    "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
     "organizations:performance-issues-post-process-group": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1162,6 +1154,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
@@ -1213,6 +1206,10 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable org member role provisioning through scim
+    "organizations:scim-orgmember-roles": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1226,8 +1223,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1236,8 +1231,6 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
-    "projects:sourcemapcache-processor": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -1423,6 +1416,24 @@ SENTRY_CACHE_OPTIONS = {}
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS = {}
+
+# Replays blob cache backend.
+#
+# To ease first time setup, we default to whatever SENTRY_CACHE is configured as. If you're
+# handling a large amount of replays you should consider setting up an isolated cache provider.
+
+# To override the default configuration you need to provide the string path of a function or
+# class as the `SENTRY_REPLAYS_CACHE` value and optionally provide keyword arguments on the
+# `SENTRY_REPLAYS_CACHE_OPTIONS` value.  Its expected that you will use one of the classes
+# defined within `sentry/cache/` but it is not required.
+
+# For reference, this cache will store binary blobs of data up to 1MB in size.  This data is
+# ephemeral and will be deleted as soon as the ingestion pipeline finishes processing a replay
+# recording segment. You can determine the average size of the chunks being cached by running
+# queries against the ReplayRecordingSegment model with the File model joined. The File model has
+# a size attribute.
+SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
+SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
@@ -1723,7 +1734,6 @@ SENTRY_ROLES = (
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
-        "is_global": True,
         "scopes": {
             "event:read",
             "event:write",
@@ -1744,6 +1754,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
     {
         "id": "owner",
@@ -1755,7 +1766,6 @@ SENTRY_ROLES = (
             billing and plan changes.
             """
         ),
-        "is_global": True,
         "scopes": {
             "org:read",
             "org:write",
@@ -1777,6 +1787,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
 )
 
@@ -2748,6 +2759,41 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     "backoff_timer": 5 * 60,
 }
 
+# Tunable knobs for automatic LPQ eligibility.
+# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
+# This sampling rate needs to be considered when tuning any of the cutoff rates.
+#
+# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
+# event processing times.
+#
+# A project is eligible for the LPQ based on event rate if
+# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
+# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
+# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+#
+# A project is eligible for the LPQ based on processing duration if it averages more than
+# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
+# of event processing durations in that window exceeds `min_p75_duration` seconds. See
+# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+SENTRY_LPQ_OPTIONS = {
+    # The period that is considered for "recent events".
+    # Has to be a multiple of `counter_bucket_size` above.
+    "recent_event_period": 60,
+    # The minimum rate of events *per second* a project needs to have
+    # in the `recent_event_period` to be eligible for the LPQ.
+    "min_recent_event_rate": 5,
+    # The ratio of recent event rate over average event rate above which a project is eligible
+    # for the LPQ.
+    "recent_event_multiple": 4,
+    # The minimum rate of events *per minute* a project needs to have
+    # in the `duration_time_window` to be eligible for the LPQ.
+    "min_events_per_minute": 15,
+    # A project is considered for the LPQ if the p75 event processing time
+    # exceeds configured value.
+    # This considers events that *finished* during the last `duration_time_window`.
+    "min_p75_duration": 30,
+}
+
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
@@ -2860,6 +2906,7 @@ SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS"
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
@@ -2874,3 +2921,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+
+# Show session replay banner on login page
+SHOW_SESSION_REPLAY_BANNER = False

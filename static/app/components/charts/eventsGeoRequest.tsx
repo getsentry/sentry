@@ -6,6 +6,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import toArray from 'sentry/utils/toArray';
 
 interface ChildrenRenderProps {
   errored: boolean;
@@ -47,7 +48,7 @@ const EventsGeoRequest = ({
     id: undefined,
     name: '',
     version: 2,
-    fields: Array.isArray(yAxis) ? yAxis : [yAxis],
+    fields: toArray(yAxis),
     query,
     orderby: orderby ?? '',
     projects,

@@ -40,16 +40,8 @@ function ShareIssueModal({
   const [loading, setLoading] = useState(false);
   const urlRef = useRef<UrlRef>(null);
   const groups = useLegacyStore(GroupStore);
-  const group = (groups as Group[]).find(item => item.id === groupId)!;
-  const isShared = group.isPublic;
-
-  function getShareUrl() {
-    const path = `/share/issue/${group.shareId}/`;
-    const {host, protocol} = window.location;
-    return `${protocol}//${host}${path}`;
-  }
-
-  const shareUrl = group.shareId ? getShareUrl() : null;
+  const group = (groups as Group[]).find(item => item.id === groupId);
+  const isShared = group?.isPublic;
 
   const handleShare = useCallback(
     (e: React.MouseEvent<HTMLButtonElement> | null, reshare?: boolean) => {
@@ -92,6 +84,14 @@ function ShareIssueModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want to run this on open
   }, []);
 
+  function getShareUrl() {
+    const path = `/share/issue/${group!.shareId}/`;
+    const {host, protocol} = window.location;
+    return `${protocol}//${host}${path}`;
+  }
+
+  const shareUrl = group?.shareId ? getShareUrl() : null;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -112,13 +112,13 @@ function ShareIssueModal({
             />
           </SwitchWrapper>
 
-          {loading && (
+          {(!group || loading) && (
             <LoadingContainer>
               <LoadingIndicator mini />
             </LoadingContainer>
           )}
 
-          {!loading && isShared && shareUrl && (
+          {group && !loading && isShared && shareUrl && (
             <UrlContainer>
               <TextContainer>
                 <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>

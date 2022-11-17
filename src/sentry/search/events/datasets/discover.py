@@ -15,7 +15,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import builder
 from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
@@ -86,7 +86,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     }
     non_nullable_keys = {"event.type"}
 
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property
@@ -982,11 +982,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         }
 
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
-        project_ids = {
-            project_id
-            for project_id in self.builder.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
+        project_ids = {project_id for project_id in self.builder.params.project_ids}
 
         # Try to reduce the size of the transform by using any existing conditions on projects
         # Do not optimize projects list if conditions contain OR operator
@@ -1035,10 +1031,14 @@ class DiscoverDatasetConfig(DatasetConfig):
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )
 
-    @cached_property
+    @cached_property  # type: ignore
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
+        org_id = (
+            self.builder.params.organization.id
+            if self.builder.params.organization is not None
+            else None
+        )
+        project_ids = self.builder.params.project_ids
 
         project_threshold_configs = (
             ProjectTransactionThreshold.objects.filter(
@@ -1307,6 +1307,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         column = args["column"]
         quality = args["quality"].lower()
 
+        assert isinstance(column, Column), "first arg to count_web_vitals must be a column"
         if column.subscriptable != "measurements":
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
         elif column.key not in VITAL_THRESHOLDS:
@@ -1362,6 +1363,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
+        return None
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
@@ -1482,10 +1484,10 @@ class DiscoverDatasetConfig(DatasetConfig):
         error_groups = []
         performance_groups = []
 
-        if group_short_ids and self.builder.params and "organization_id" in self.builder.params:
+        if group_short_ids and self.builder.params.organization is not None:
             try:
                 groups = Group.objects.by_qualified_short_id_bulk(
-                    self.builder.params["organization_id"],
+                    self.builder.params.organization.id,
                     group_short_ids,
                 )
             except Exception:
@@ -1529,6 +1531,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                 )
             )
+
+        return None
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
@@ -1600,6 +1604,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         value_list_as_ints = []
 
+        lhs = self.builder.column(name)
+
         for v in value:
             if isinstance(v, str) and v.isdigit():
                 value_list_as_ints.append(int(v))
@@ -1612,19 +1618,22 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         if search_filter.is_in_filter:
             return Condition(
-                Function("hasAny", [self.builder.column(name), value_list_as_ints]),
+                Function("hasAny", [lhs, value_list_as_ints]),
                 Op.EQ if operator == "IN" else Op.NEQ,
                 1,
             )
         elif search_filter.value.raw_value == "":
             return Condition(
-                Function("notEmpty", [self.builder.column(name)]),
+                Function("notEmpty", [lhs]),
                 Op.EQ if operator == "!=" else Op.NEQ,
                 1,
             )
         else:
-            lhs = self.builder.column(name)
-            return Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
+            return Condition(
+                Function("has", [lhs, value_list_as_ints[0]]),
+                Op(search_filter.operator),
+                1,
+            )
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name

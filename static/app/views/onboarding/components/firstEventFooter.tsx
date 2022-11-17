@@ -48,7 +48,7 @@ export default function FirstEventFooter({
     return null;
   };
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+  const getPrimaryCta = ({firstIssue}: {firstIssue: null | boolean | Group}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
@@ -65,7 +65,9 @@ export default function FirstEventFooter({
     return (
       <Button
         to={`/organizations/${organization.slug}/issues/${
-          firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
+          firstIssue && firstIssue !== true && 'id' in firstIssue
+            ? `${firstIssue.id}/`
+            : ''
         }?referrer=onboarding-first-event-footer`}
         priority="primary"
       >
@@ -131,7 +133,7 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
 `;
 
 const indicatorAnimation: Variants = {

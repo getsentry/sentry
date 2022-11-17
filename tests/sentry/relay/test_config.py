@@ -5,13 +5,16 @@ from unittest.mock import patch
 import pytest
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
+from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import get_project_config
+from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -57,6 +60,32 @@ DEFAULT_ENVIRONMENT_RULE = {
     "id": 1001,
 }
 
+DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
+    "sampleRate": 0.02,
+    "type": "transaction",
+    "condition": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "event.transaction",
+                "value": HEALTH_CHECK_GLOBS,
+                "options": {"ignoreCase": True},
+            }
+        ],
+    },
+    "active": True,
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
+}
+
+
+@pytest.mark.django_db
+def test_get_project_config_non_visible(default_project):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update(status=ObjectStatus.PENDING_DELETION)
+    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    assert cfg.to_dict() == {"disabled": True}
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
@@ -88,7 +117,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @pytest.mark.django_db
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
-def test_get_experimental_config(mock_sentry_sdk, _, default_project):
+def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature(
         {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
@@ -101,12 +130,41 @@ def test_get_experimental_config(mock_sentry_sdk, _, default_project):
 
 
 @pytest.mark.django_db
+@mock.patch("sentry.relay.config.capture_exception")
+def test_get_experimental_config_transaction_metrics_exception(
+    mock_capture_exception, default_project
+):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
+    # wrong type
+    default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
+
+    with Feature({"organizations:transaction-metrics-extraction": True}):
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+
+    # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
+    assert (
+        "breakdowns.span_ops.ops"
+        not in cfg.to_dict()["config"]["transactionMetrics"]["extractMetrics"]
+    )
+    assert cfg.to_dict()["config"]["transactionMetrics"]["extractCustomTags"] == []
+    assert mock_capture_exception.call_count == 2
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("has_custom_filters", [False, True])
-def test_project_config_uses_filter_features(default_project, has_custom_filters):
+@pytest.mark.parametrize("has_blacklisted_ips", [False, True])
+def test_project_config_uses_filter_features(
+    default_project, has_custom_filters, has_blacklisted_ips
+):
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
+    blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
+
+    if has_blacklisted_ips:
+        default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
         cfg = get_project_config(default_project, full_config=True)
@@ -114,6 +172,7 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
     cfg = cfg.to_dict()
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
+    cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
 
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
@@ -121,6 +180,34 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
+
+    if has_blacklisted_ips:
+        assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
+    else:
+        assert cfg_client_ips is None
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:custom-inbound-filters"])
+def test_project_config_exposed_features(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    cfg_features = get_path(cfg, "config", "features")
+    assert cfg_features == ["projects:custom-inbound-filters"]
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
+def test_project_config_exposed_features_raise_exc(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        with pytest.raises(RuntimeError) as exc_info:
+            get_project_config(default_project, full_config=True)
+        assert (
+            str(exc_info.value)
+            == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
+        )
 
 
 @pytest.mark.django_db
@@ -176,7 +263,7 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     if active:
         assert dynamic_sampling == dyn_sampling_data(active)
     else:
-        assert dynamic_sampling == {"rules": []}
+        assert dynamic_sampling == {"mode": "total", "rules": []}
 
 
 @pytest.mark.django_db
@@ -259,10 +346,11 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         (
             True,
             True,
-            {"rules": []},
+            {"mode": "total", "rules": []},
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -277,6 +365,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             True,
             {
+                "mode": "total",
                 "rules": [
                     {
                         "sampleRate": 0.1,
@@ -285,11 +374,12 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "condition": {"op": "and", "inner": []},
                         "id": 1000,
                     }
-                ]
+                ],
             },
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -304,7 +394,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             False,
             {"rules": []},
-            {"rules": []},
+            {"mode": "total", "rules": []},
         ),
         (
             True,
@@ -313,6 +403,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -323,7 +414,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                 ]
             },
         ),
-        (False, False, {"rules": []}, None),
+        (False, False, {"mode": "total", "rules": []}, None),
     ],
 )
 def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
@@ -398,6 +489,40 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     assert dynamic_sampling == {
         "rules": [
             {
+                "sampleRate": 1,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["*dev*", "*test*"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
+            },
+            {
+                "sampleRate": 0.02,
+                "type": "transaction",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "event.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1002,
+            },
+            {
                 "sampleRate": 0.5,
                 "type": "trace",
                 "active": True,
@@ -468,23 +593,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
             },
             {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
-            },
-            {
                 "sampleRate": 0.1,
                 "type": "trace",
                 "active": True,
@@ -500,7 +608,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(
         {
-            "organizations:performance-ops-breakdown": True,
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
@@ -514,6 +621,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_metrics_extraction", (True, False))
+def test_project_config_with_organizations_metrics_extraction(
+    default_project, has_metrics_extraction
+):
+    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    session_metrics = get_path(cfg, "config", "sessionMetrics")
+    if has_metrics_extraction:
+        assert session_metrics == {"drop": False, "version": 1}
+    else:
+        assert session_metrics is None
 
 
 @pytest.mark.django_db
@@ -559,12 +682,6 @@ def test_project_config_satisfaction_thresholds(
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
-    cfg = cfg.to_dict()
-    assert "spanAttributes" not in cfg["config"]
-
-    with Feature("projects:performance-suspect-spans-ingestion"):
-        cfg = get_project_config(default_project, full_config=True)
-
     cfg = cfg.to_dict()
     insta_snapshot(cfg["config"]["spanAttributes"])
 
@@ -620,3 +737,49 @@ def test_accept_transaction_names(default_project, org_sample):
             if org_sample
             else "strict"
         )
+
+
+@pytest.mark.django_db
+def test_project_config_setattr(default_project):
+    project_cfg = ProjectConfig(default_project)
+    with pytest.raises(Exception) as exc_info:
+        project_cfg.foo = "bar"
+    assert str(exc_info.value) == "Trying to change read only ProjectConfig object"
+
+
+@pytest.mark.django_db
+def test_project_config_getattr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.foo == "bar"
+
+
+@pytest.mark.django_db
+def test_project_config_str(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert str(project_cfg) == '{"foo":"bar"}'
+
+    with mock.patch.object(ProjectConfig, "to_dict") as fake_to_dict:
+        fake_to_dict.side_effect = ValueError("bad data")
+        project_cfg1 = ProjectConfig(default_project)
+        assert str(project_cfg1) == "Content Error:bad data"
+
+
+@pytest.mark.django_db
+def test_project_config_repr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_to_json_string(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.to_json_string() == '{"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_get_at_path(default_project):
+    project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
+    assert project_cfg.get_at_path("b") == "The b"
+    assert project_cfg.get_at_path("bb") is None
+    assert project_cfg.get_at_path("b", "c") is None
+    assert project_cfg.get_at_path() == project_cfg

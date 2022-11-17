@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 import CompressionPlugin from 'compression-webpack-plugin';
+import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
@@ -383,6 +384,20 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
+
+    /**
+     * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
+     * the backend
+     */
+    new CopyPlugin({
+      patterns: [
+        {
+          from: `${staticPrefix}/images/logo-sentry.svg`,
+          to: 'entrypoints/logo-sentry.svg',
+          toType: 'file',
+        },
+      ],
+    }),
   ],
 
   resolve: {
@@ -520,7 +535,7 @@ if (
 
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
-    const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
     const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
@@ -603,7 +618,7 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
       ...(IS_UI_DEV_ONLY
-        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),

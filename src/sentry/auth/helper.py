@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Dict, Mapping, Optional, Tuple, Union
+from typing import Any, Collection, Dict, Mapping, Sequence, Tuple, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -12,14 +14,14 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, HttpResponseBase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -40,6 +42,7 @@ from sentry.models import (
     User,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
+from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -73,16 +76,16 @@ class AuthHelperSessionStore(PipelineSessionStore):
     redis_namespace = "auth"
 
     @property
-    def session_key(self):
+    def session_key(self) -> str:
         return "auth_key"
 
     flow = redis_property("flow")
 
-    def mark_session(self):
+    def mark_session(self) -> None:
         super().mark_session()
         self.request.session.modified = True
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return super().is_valid() and self.flow in (
             AuthHelper.FLOW_LOGIN,
             AuthHelper.FLOW_SETUP_PROVIDER,
@@ -93,14 +96,14 @@ class AuthHelperSessionStore(PipelineSessionStore):
 class AuthIdentityHandler:
     # SSO auth handler
 
-    auth_provider: Optional[AuthProvider]
+    auth_provider: AuthProvider
     provider: Provider
     organization: Organization
     request: HttpRequest
     identity: Mapping[str, Any]
 
     @cached_property
-    def user(self) -> Union[User, AnonymousUser]:
+    def user(self) -> User | AnonymousUser:
         email = self.identity.get("email")
         if email:
             try:
@@ -113,7 +116,7 @@ class AuthIdentityHandler:
         return self.request.user
 
     @staticmethod
-    def warn_about_ambiguous_email(email: str, users: Tuple[User], chosen_user: User):
+    def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.push_scope() as scope:
             scope.level = "warning"
             scope.set_tag("email", email)
@@ -208,20 +211,20 @@ class AuthIdentityHandler:
             auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
-    def _get_login_redirect(self, subdomain):
+    def _get_login_redirect(self, subdomain: str | None) -> str:
         login_redirect_url = auth.get_login_redirect(self.request)
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
+    def _handle_new_membership(self, auth_identity: AuthIdentity) -> OrganizationMember | None:
         user = auth_identity.user
 
         # If the user is either currently *pending* invite acceptance (as indicated
-        # from the pending-invite cookie) OR an existing invite exists on this
+        # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_cookie_or_email(
+        invite_helper = ApiInviteHelper.from_session_or_email(
             request=self.request, organization=self.organization, email=user.email
         )
 
@@ -266,14 +269,14 @@ class AuthIdentityHandler:
 
         return om
 
-    def _get_auth_identity(self, **params) -> Optional[AuthIdentity]:
+    def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
             return AuthIdentity.objects.get(auth_provider=self.auth_provider, **params)
         except AuthIdentity.DoesNotExist:
             return None
 
-    @transaction.atomic
-    def handle_attach_identity(self, member: Optional[OrganizationMember] = None) -> AuthIdentity:
+    @transaction.atomic  # type: ignore
+    def handle_attach_identity(self, member: OrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
@@ -384,7 +387,7 @@ class AuthIdentityHandler:
     def _respond(
         self,
         template: str,
-        context: Mapping[str, Any] = None,
+        context: Mapping[str, Any] | None = None,
         status: int = 200,
     ) -> HttpResponse:
         default_context = {"organization": self.organization}
@@ -406,33 +409,33 @@ class AuthIdentityHandler:
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
-        remove_invite_cookie(self.request, response)
+        remove_invite_details_from_session(self.request)
 
         return response
 
     def has_verified_account(self, verification_value: Dict[str, Any]) -> bool:
-        return (
+        return bool(
             verification_value["email"] == self.identity["email"]
             and verification_value["user_id"] == self.user.id
         )
 
     @property
-    def _logged_in_user(self) -> Optional[User]:
+    def _logged_in_user(self) -> User | None:
         """The user, if they have authenticated on this session."""
         return self.request.user if self.request.user.is_authenticated else None
 
     @property
-    def _app_user(self) -> Optional[User]:
+    def _app_user(self) -> User | None:
         """The user, if they are represented persistently in our app."""
         return self.user if isinstance(self.user, User) else None
 
-    def _has_usable_password(self):
-        return self._app_user and self._app_user.has_usable_password()
+    def _has_usable_password(self) -> bool:
+        return bool(self._app_user and self._app_user.has_usable_password())
 
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponse:
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
         not present.
@@ -504,6 +507,7 @@ class AuthIdentityHandler:
             auth_identity = self.handle_new_user()
         elif op == "login" and not self._logged_in_user:
             # confirm authentication, login
+            assert login_form is not None
             op = None
             if login_form.is_valid():
                 # This flow is special.  If we are going through a 2FA
@@ -536,6 +540,7 @@ class AuthIdentityHandler:
                 context["login_form"] = login_form
             return self._respond(f"sentry/{template}.html", context)
 
+        assert auth_identity is not None
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
@@ -552,14 +557,14 @@ class AuthIdentityHandler:
         return self._post_login_redirect()
 
     @property
-    def provider_name(self):
+    def provider_name(self) -> str:
         if self.auth_provider:
-            return self.auth_provider.provider_name
+            return cast(str, self.auth_provider.provider_name)
         else:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[Optional[User], str]:
+    def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[User | None, str]:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 
@@ -645,7 +650,7 @@ class AuthHelper(Pipeline):
     session_store_cls = AuthHelperSessionStore
 
     @classmethod
-    def get_for_request(cls, request):
+    def get_for_request(cls, request: HttpRequest) -> AuthHelper | None:
         req_state = cls.unpack_state(request)
         if not req_state:
             return None
@@ -663,20 +668,39 @@ class AuthHelper(Pipeline):
             provider_key=req_state.provider_key,
         )
 
-    def __init__(self, request, organization, flow, auth_provider=None, provider_key=None):
+    def __init__(
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        flow: int,
+        auth_provider: AuthProvider | None = None,
+        provider_key: str | None = None,
+    ) -> None:
         assert provider_key or auth_provider
         self.flow = flow
-        super().__init__(request, provider_key, organization, auth_provider)
 
-    def get_provider(self, provider_key):
+        # TODO: Resolve inconsistency with nullable provider_key.
+        # Tagging with "type: ignore" because the superclass requires provider_key to
+        # be non-nullable. We get away with it because super().__init__ only passes
+        # provider_key to get_provider, and our get_provider override accepts a null
+        # provider_key. But it technically violates the type contract and we'll need
+        # to change the superclass to accommodate this one.
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+
+        # Override superclass's type hints to be narrower
+        self.organization: Organization = self.organization
+        self.provider: Provider = self.provider
+
+    def get_provider(self, provider_key: str | None) -> PipelineProvider:
         if self.provider_model:
-            return self.provider_model.get_provider()
+            return cast(PipelineProvider, self.provider_model.get_provider())
         elif provider_key:
             return super().get_provider(provider_key)
         else:
             raise NotImplementedError
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[View]:
+        assert isinstance(self.provider, Provider)
         if self.flow == self.FLOW_LOGIN:
             return self.provider.get_auth_pipeline()
         elif self.flow == self.FLOW_SETUP_PROVIDER:
@@ -684,21 +708,21 @@ class AuthHelper(Pipeline):
         else:
             raise NotImplementedError
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return super().is_valid() and self.state.flow in (self.FLOW_LOGIN, self.FLOW_SETUP_PROVIDER)
 
-    def get_initial_state(self):
-        state = super().get_initial_state()
+    def get_initial_state(self) -> Mapping[str, Any]:
+        state = dict(super().get_initial_state())
         state.update({"flow": self.flow})
         return state
 
-    def get_redirect_url(self):
+    def get_redirect_url(self) -> str:
         return absolute_uri(reverse("sentry-auth-sso"))
 
-    def dispatch_to(self, step: View):
+    def dispatch_to(self, step: View) -> HttpResponseBase:
         return step.dispatch(request=self.request, helper=self)
 
-    def finish_pipeline(self):
+    def finish_pipeline(self) -> HttpResponseBase:
         data = self.fetch_state()
 
         # The state data may have expired, in which case the state data will
@@ -721,13 +745,13 @@ class AuthHelper(Pipeline):
 
         return response
 
-    def auth_handler(self, identity: Mapping[str, Any]):
+    def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         return AuthIdentityHandler(
             self.provider_model, self.provider, self.organization, self.request, identity
         )
 
-    @transaction.atomic
-    def _finish_login_pipeline(self, identity: Mapping[str, Any]):
+    @transaction.atomic  # type: ignore
+    def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:
         """
         The login flow executes both with anonymous and authenticated users.
 
@@ -742,6 +766,7 @@ class AuthHelper(Pipeline):
         their account.
         """
         auth_provider = self.provider_model
+        assert auth_provider is not None
         user_id = identity["id"]
 
         lock = locks.get(
@@ -783,8 +808,8 @@ class AuthHelper(Pipeline):
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
-    @transaction.atomic
-    def _finish_setup_pipeline(self, identity: Mapping[str, Any]):
+    @transaction.atomic  # type: ignore
+    def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
         The setup flow creates the auth provider as well as an identity linked
         to the active user.
@@ -843,7 +868,7 @@ class AuthHelper(Pipeline):
         )
         return HttpResponseRedirect(next_uri)
 
-    def error(self, message):
+    def error(self, message: str) -> HttpResponseRedirect:
         redirect_uri = "/"
 
         if self.state.flow == self.FLOW_LOGIN:
@@ -896,7 +921,7 @@ class AuthHelper(Pipeline):
 
         return HttpResponseRedirect(redirect_uri)
 
-    def disable_2fa_required(self):
+    def disable_2fa_required(self) -> None:
         require_2fa = self.organization.flags.require_2fa
 
         if not require_2fa or not require_2fa.is_set:

@@ -1,10 +1,10 @@
-import {forwardRef as reactForwardRef} from 'react';
+import {forwardRef as reactForwardRef, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
+import domId from 'sentry/utils/domId';
 import {FormSize, Theme} from 'sentry/utils/theme';
 
 /**
@@ -43,10 +43,6 @@ export type MenuListItemProps = {
    */
   priority?: Priority;
   /**
-   * Whether to show a line divider below this item
-   */
-  showDivider?: boolean;
-  /**
    * Determines the item's font sizes and internal paddings.
    */
   size?: FormSize;
@@ -78,6 +74,7 @@ interface OtherProps {
   innerWrapProps?: object;
   isFocused?: boolean;
   labelProps?: object;
+  showDivider?: boolean;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
@@ -105,8 +102,19 @@ function BaseMenuListItem({
   forwardRef,
   ...props
 }: Props) {
+  const labelId = useMemo(() => domId('menuitem-label-'), []);
+  const detailId = useMemo(() => domId('menuitem-details-'), []);
+
   return (
-    <MenuItemWrap as={as} ref={forwardRef} {...props}>
+    <MenuItemWrap
+      role="menuitem"
+      aria-disabled={disabled}
+      aria-labelledby={labelId}
+      aria-describedby={detailId}
+      as={as}
+      ref={forwardRef}
+      {...props}
+    >
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
         <InnerWrap
           isFocused={isFocused}
@@ -124,17 +132,23 @@ function BaseMenuListItem({
               {leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap
-            isFocused={isFocused}
-            showDivider={defined(details) || showDivider}
-            size={size}
-          >
+          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
             <LabelWrap>
-              <Label aria-hidden="true" {...labelProps}>
+              <Label
+                id={labelId}
+                data-test-id="menu-list-item-label"
+                aria-hidden="true"
+                {...labelProps}
+              >
                 {label}
               </Label>
               {details && (
-                <Details disabled={disabled} priority={priority} {...detailsProps}>
+                <Details
+                  id={detailId}
+                  disabled={disabled}
+                  priority={priority}
+                  {...detailsProps}
+                >
                   {details}
                 </Details>
               )}
@@ -198,7 +212,18 @@ function getTextColor({
   }
 }
 
-function getFocusBackground({theme, priority}: {priority: Priority; theme: Theme}) {
+function getFocusBackground({
+  theme,
+  priority,
+  disabled,
+}: {
+  disabled: boolean;
+  priority: Priority;
+  theme: Theme;
+}) {
+  if (disabled) {
+    return theme.hover;
+  }
   switch (priority) {
     case 'primary':
       return theme.purple100;
@@ -344,7 +369,6 @@ const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;

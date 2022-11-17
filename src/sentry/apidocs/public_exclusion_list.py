@@ -237,7 +237,6 @@ from sentry.api.endpoints.organization_pinned_searches import OrganizationPinned
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
-    OrganizationProfilingProfilesEndpoint,
 )
 from sentry.api.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -357,8 +356,6 @@ from sentry.api.endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from sentry.api.endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from sentry.api.endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from sentry.api.endpoints.project_searches import ProjectSearchesEndpoint
 from sentry.api.endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from sentry.api.endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from sentry.api.endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -598,7 +595,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     SentryAppInteractionEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationTransactionAnomalyDetectionEndpoint,
-    OrganizationProfilingProfilesEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
     JiraDescriptorEndpoint,
@@ -840,8 +836,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     ProjectRulesConfigurationEndpoint,
     ProjectRuleDetailsEndpoint,
     ProjectRuleTaskDetailsEndpoint,
-    ProjectSearchesEndpoint,
-    ProjectSearchDetailsEndpoint,
     ProjectTagsEndpoint,
     ProjectTagKeyDetailsEndpoint,
     ProjectTeamsEndpoint,

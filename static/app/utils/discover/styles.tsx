@@ -2,8 +2,7 @@ import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
-import ShortId from 'sentry/components/shortId';
-import {IconPlay} from 'sentry/icons';
+import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
 import space from 'sentry/styles/space';
 
@@ -15,6 +14,7 @@ export const Container = styled('div')`
 
 export const VersionContainer = styled('div')`
   display: flex;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const NumberContainer = styled('div')`
@@ -36,6 +36,14 @@ export const OverflowLink = styled(Link)`
 export const FieldShortId = styled(ShortId)`
   justify-content: flex-start;
   display: block;
+`;
+
+export const OverflowFieldShortId = styled(FieldShortId)`
+  max-width: 100%;
+
+  ${StyledAutoSelectText} {
+    ${p => p.theme.overflowEllipsis};
+  }
 `;
 
 export const BarContainer = styled('div')`
@@ -61,10 +69,4 @@ export const ActorContainer = styled('div')`
   :hover {
     cursor: default;
   }
-`;
-
-export const StyledIconPlay = styled(IconPlay)`
-  position: relative;
-  top: -1px;
-  margin-right: ${space(0.5)};
 `;

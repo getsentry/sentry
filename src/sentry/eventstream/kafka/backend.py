@@ -22,8 +22,8 @@ from sentry.eventstream.kafka.postprocessworker import (
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
 from sentry.utils import json, kafka, metrics
+from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
