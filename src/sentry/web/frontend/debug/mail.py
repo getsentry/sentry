@@ -47,6 +47,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.testutils.helpers import override_options
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -448,8 +449,6 @@ def release_alert(request):
 
 @login_required
 def digest(request):
-    from sentry.testutils.helpers import override_options
-
     random = get_random(request)
 
     # TODO: Refactor all of these into something more manageable.
@@ -510,7 +509,7 @@ def digest(request):
             state["user_counts"][group.id] = random.randint(10, 1e4)
 
     # add in performance issues
-    for i in range(random.randint(1, 10)):
+    for i in range(random.randint(1, 3)):
         with override_options(
             {
                 "performance.issues.all.problem-creation": 1.0,
@@ -518,11 +517,11 @@ def digest(request):
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ):
-            # make this consistent for acceptance tests
+            # make times consistent for acceptance tests
             perf_data = dict(
                 load_data(
                     "transaction-n-plus-one",
-                    timestamp=datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    timestamp=datetime.now(),
                 )
             )
             perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -532,7 +531,7 @@ def digest(request):
             perf_event = perf_event_manager.save(project.id)
 
         perf_event = perf_event.for_group(perf_event.groups[0])
-        perf_event.group.id = i
+        perf_event.group.id = i + 100
         perf_group = perf_event.group
 
         records.append(
