@@ -251,14 +251,26 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
+        ...(isCompact && {
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'static',
+          minHeight: 0,
+          maxHeight: '100%',
+          margin: 0,
+          borderRadius: 0,
+          border: 'none',
+          boxShadow: 'none',
+          zIndex: 'initial',
+          ...(isSearchable && {paddingTop: 0}),
+        }),
       }),
 
       menuList: provided => ({
         ...provided,
         ...(isCompact && {
-          ...(isSearchable && {
-            paddingTop: 0,
-          }),
+          paddingTop: isSearchable ? 0 : `calc(${space(0.5)} + 1px)`,
+          paddingBottom: space(0.5),
         }),
       }),
 
