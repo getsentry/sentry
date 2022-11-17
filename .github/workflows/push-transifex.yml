@@ -1,12 +1,12 @@
-name: push transifex
+name: transifex
 on:
-  pull_request:
-  # workflow_dispatch:
-  # schedule:
-  #   - cron: '0 0 1,15 * *'
+  # pull_request:
+  schedule:
+    - cron: '0 0 1,15 * *'
 
 jobs:
   push-transifex:
+    name: push to transifex
     timeout-minutes: 30
     runs-on: ubuntu-20.04
     steps:
@@ -29,5 +29,21 @@ jobs:
           TX_TOKEN: ${{ secrets.TRANSIFEX_TOKEN }}
           SENTRY_NO_VENV_CHECK: 1
         run: |
-          make push-transifex
-          git status
+          make update-transifex
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
+        with:
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          add-paths: |
+            src/sentry/locale/en/LC_MESSAGES/django.po
+          commit-message: 'meta(i18n): Update source message file'
+          branch: 'meta/i18n/auto-update-translations'
+          reviewers: ${{ github.triggering_actor }}
+          team-reviewers: |
+            getsentry/app-frontend
+          delete-branch: true
+          base: master
+          title: 'meta(i18n): Update source message file'
+          body: |
+            This PR was auto-generated - it updates the source message file for translations.
