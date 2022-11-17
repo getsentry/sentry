@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {
+  AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
@@ -735,25 +736,27 @@ class SpanTree extends Component<PropType> {
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         <WindowScroller>
-          {({height, isScrolling, onChildScroll, scrollTop}) => {
-            return (
-              <ReactVirtualizedList
-                autoHeight
-                isScrolling={isScrolling}
-                onScroll={onChildScroll}
-                scrollTop={scrollTop}
-                deferredMeasurementCache={cache}
-                width={this.props.traceViewRef.current?.clientWidth ?? 1000} // TODO: You may need to use AutoSizer to get the real width
-                height={height}
-                rowHeight={cache.rowHeight}
-                rowCount={spanTree.length}
-                rowRenderer={props => this.renderRow(props, spanTree)}
-                overscanRowCount={10}
-                overscanIndicesGetter={this.overscanIndicesGetter}
-                ref={listRef}
-              />
-            );
-          }}
+          {({height, isScrolling, onChildScroll, scrollTop}) => (
+            <AutoSizer disableHeight>
+              {({width}) => (
+                <ReactVirtualizedList
+                  autoHeight
+                  isScrolling={isScrolling}
+                  onScroll={onChildScroll}
+                  scrollTop={scrollTop}
+                  deferredMeasurementCache={cache}
+                  height={height}
+                  width={width}
+                  rowHeight={cache.rowHeight}
+                  rowCount={spanTree.length}
+                  rowRenderer={props => this.renderRow(props, spanTree)}
+                  overscanRowCount={10}
+                  overscanIndicesGetter={this.overscanIndicesGetter}
+                  ref={listRef}
+                />
+              )}
+            </AutoSizer>
+          )}
         </WindowScroller>
       </TraceViewContainer>
     );
