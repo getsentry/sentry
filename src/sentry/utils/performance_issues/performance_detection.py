@@ -920,7 +920,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
         """
-        for span in spans:
+        for span in spans[1:]:
             query: str = span.get("description", None)
             if not query:
                 return False
