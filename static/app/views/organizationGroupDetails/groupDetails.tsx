@@ -173,6 +173,7 @@ class GroupDetails extends Component<Props, State> {
     const {params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
 
+    this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
