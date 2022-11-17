@@ -10,17 +10,14 @@ def run_cmd(
     *,
     retries: int = 3,
     timeout: int = 5,
-) -> int:
+) -> None:
     for retry in range(1, retries + 1):
-        try:
-            returncode = subprocess.call(args)
-        except OSError:
-            raise SystemExit(1)
+        returncode = subprocess.call(args)
 
         if returncode != 0:
             sleep(timeout)
         else:
-            return 0
+            return
 
     raise SystemExit(1)
 
@@ -38,8 +35,7 @@ def main() -> None:
         "--list",
     ]
 
-    healthchecks = list()
-    healthchecks.append(postgres_healthcheck)
+    healthchecks = [postgres_healthcheck]
     if os.getenv("NEED_KAFKA") == "true":
         healthchecks.append(kafka_healthcheck)
 
@@ -48,4 +44,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
