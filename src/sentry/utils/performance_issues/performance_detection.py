@@ -952,6 +952,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         ).hexdigest()
         return f"1-{problem_class}-{full_fingerprint}"
 
+    def on_complete(self) -> None:
+        self._validate_and_store_performance_problem()
+
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
     """
