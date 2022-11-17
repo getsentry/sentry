@@ -53,7 +53,7 @@ function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean
     return false;
   }
 
-  return /node|python/.test(platform);
+  return platform === 'node' || platform === 'python';
 }
 
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
