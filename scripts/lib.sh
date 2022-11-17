@@ -193,6 +193,10 @@ build-platform-assets() {
     test -f src/sentry/integration-docs/android.json
 }
 
+done-bootstraping() {
+    echo "--> Finished bootstrapping!"
+}
+
 bootstrap() {
     develop
     init-config
@@ -203,6 +207,7 @@ bootstrap() {
     # Load mocks requires a super user to exist, thus, we execute after create-user
     bin/load-mocks
     build-platform-assets
+    done-bootstraping
 }
 
 clean() {
