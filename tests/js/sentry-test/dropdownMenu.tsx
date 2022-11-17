@@ -3,6 +3,8 @@ import {ReactWrapper} from 'enzyme'; // eslint-disable-line no-restricted-import
 
 import {triggerPress} from 'sentry-test/utils';
 
+import toArray from 'sentry/utils/toArray';
+
 type SelectDropdownItemProps = {
   /**
    * They key(s) of menu item(s) to select. If the item is nested inside a
@@ -81,7 +83,7 @@ export async function selectDropdownMenuItem({
 
   // Select menu item(s) via itemKey
   await act(async () => {
-    const keys = Array.isArray(itemKey) ? itemKey : [itemKey];
+    const keys = toArray(itemKey);
 
     for (const key of keys) {
       triggerPress(
