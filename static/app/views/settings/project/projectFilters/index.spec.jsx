@@ -272,4 +272,28 @@ describe('ProjectFilters', function () {
       )
     ).toBeInTheDocument(0);
   });
+
+  it('disables undiscard tombstone for users without project:write', async () => {
+    const discardProject = TestStubs.Project({
+      ...project,
+      features: ['discard-groups'],
+    });
+    const discardOrg = TestStubs.Organization({access: [], features: ['discard-groups']});
+    const context = TestStubs.routerContext([{organization: discardOrg}]);
+
+    render(
+      <ProjectFilters
+        params={{
+          projectId: discardProject.slug,
+          orgId: discardOrg.slug,
+          filterType: 'discarded-groups',
+        }}
+        location={{}}
+        project={discardProject}
+      />,
+      {context}
+    );
+
+    expect(await screen.findByRole('button', {name: 'Undiscard'})).toBeDisabled();
+  });
 });

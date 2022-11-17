@@ -1,38 +1,41 @@
-from typing import Any, Sequence
+from typing import Any, Dict, Sequence
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.snuba.events import Columns
+from sentry.types.condition_activity import ConditionActivity
 
-ATTR_CHOICES = [
-    "message",
-    "platform",
-    "environment",
-    "type",
-    "error.handled",
-    "error.unhandled",
-    "exception.type",
-    "exception.value",
-    "user.id",
-    "user.email",
-    "user.username",
-    "user.ip_address",
-    "http.method",
-    "http.url",
-    "http.status_code",
-    "sdk.name",
-    "stacktrace.code",
-    "stacktrace.module",
-    "stacktrace.filename",
-    "stacktrace.abs_path",
-    "stacktrace.package",
-]
+# Maps attributes to snuba columns
+ATTR_CHOICES = {
+    "message": Columns.MESSAGE,
+    "platform": Columns.PLATFORM,
+    "environment": Columns.MESSAGE,
+    "type": Columns.TYPE,
+    "error.handled": Columns.ERROR_HANDLED,
+    "error.unhandled": Columns.ERROR_HANDLED,
+    "exception.type": Columns.ERROR_TYPE,
+    "exception.value": Columns.ERROR_VALUE,
+    "user.id": Columns.USER_ID,
+    "user.email": Columns.USER_EMAIL,
+    "user.username": Columns.USER_USERNAME,
+    "user.ip_address": Columns.USER_IP_ADDRESS,
+    "http.method": Columns.HTTP_METHOD,
+    "http.url": Columns.HTTP_URL,
+    "http.status_code": Columns.HTTP_STATUS_CODE,
+    "sdk.name": Columns.SDK_NAME,
+    "stacktrace.code": None,
+    "stacktrace.module": Columns.STACK_MODULE,
+    "stacktrace.filename": Columns.STACK_FILENAME,
+    "stacktrace.abs_path": Columns.STACK_ABS_PATH,
+    "stacktrace.package": Columns.STACK_PACKAGE,
+}
 
 
 class EventAttributeForm(forms.Form):  # type: ignore
-    attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES])
+    attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES.keys()])
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
@@ -60,7 +63,7 @@ class EventAttributeCondition(EventCondition):
         "attribute": {
             "type": "choice",
             "placeholder": "i.e. exception.type",
-            "choices": [[a, a] for a in ATTR_CHOICES],
+            "choices": [[a, a] for a in ATTR_CHOICES.keys()],
         },
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
         "value": {"type": "string", "placeholder": "value"},
@@ -189,21 +192,14 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        attr = self.get_option("attribute")
+    def _passes(self, attribute_values: Sequence[Any]) -> bool:
         match = self.get_option("match")
         value = self.get_option("value")
 
-        if not (attr and match and value):
+        if not ((match and value) or (match in (MatchType.IS_SET, MatchType.NOT_SET))):
             return False
 
         value = value.lower()
-        attr = attr.lower()
-
-        try:
-            attribute_values = self._get_attribute_values(event, attr)
-        except KeyError:
-            attribute_values = []
 
         attribute_values = [str(v).lower() for v in attribute_values if v is not None]
 
@@ -262,3 +258,38 @@ class EventAttributeCondition(EventCondition):
             return not attribute_values
 
         raise RuntimeError("Invalid Match")
+
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
+        attr = self.get_option("attribute", "")
+        try:
+            attribute_values = self._get_attribute_values(event, attr.lower())
+        except KeyError:
+            attribute_values = []
+
+        return self._passes(attribute_values)
+
+    def passes_activity(
+        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+    ) -> bool:
+        try:
+            attr = self.get_option("attribute").lower()
+            column = ATTR_CHOICES[attr].value.event_name
+            attribute_values = event_map[condition_activity.data["event_id"]][column]
+
+            if isinstance(attribute_values, str):
+                attribute_values = [attribute_values]
+
+            # flip values, since the queried column is "error.handled"
+            if attr == "error.unhandled":
+                attribute_values = [not value for value in attribute_values]
+
+            return self._passes(attribute_values)
+        except (TypeError, KeyError):
+            return False
+
+    def get_event_columns(self) -> Sequence[str]:
+        attr = self.get_option("attribute")
+        column = ATTR_CHOICES[attr]
+        if column is None:
+            raise NotImplementedError
+        return [column.value.event_name]

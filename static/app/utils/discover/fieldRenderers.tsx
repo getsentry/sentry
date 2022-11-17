@@ -39,6 +39,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
+import toArray from 'sentry/utils/toArray';
 import {
   ContextType,
   QuickContextHoverWrapper,
@@ -288,7 +289,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   array: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      const value = toArray(data[field]);
       return <ArrayValue value={value} />;
     },
   },
@@ -597,7 +598,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               contextType={ContextType.RELEASE}
               organization={organization}
             >
-              <Version version={data.release} tooltipRawVersion truncate />
+              <Version version={data.release} truncate />
             </QuickContextHoverWrapper>
           ) : (
             <Version version={data.release} tooltipRawVersion truncate />

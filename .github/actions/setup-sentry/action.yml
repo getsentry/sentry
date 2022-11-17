@@ -69,16 +69,26 @@ runs:
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
-        echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
-        ### pytest-sentry configuration ###
-        echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+        ### pytest configuration ###
+        echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "PYTEST_ADDOPTS=--reruns=5 --durations=10" >> $GITHUB_ENV
+
+        ### pytest-sentry configuration ###
+        if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
+          echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+
+          # This records failures on master to sentry in order to detect flakey tests, as it's
+          # expected that people have failing tests on their PRs
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
+          fi
+        fi
 
         # Configure a different release version, otherwise it defaults to the
         # commit sha which will conflict with our actual prod releases. This is a
@@ -96,10 +106,6 @@ runs:
           echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
-
-        # This records failures on master to sentry in order to detect flakey tests, as it's
-        # expected that people have failing tests on their PRs
-        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
       uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
@@ -199,4 +205,8 @@ runs:
 
         docker ps -a
 
-        ./$WORKDIR/scripts/devservices-healthcheck.sh
+        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
+        # without needing to fork it. The path needed is the one where tools are located
+        cd "$WORKDIR"
+        python3 -u -S -m tools.devservices_healthcheck
+        cd -

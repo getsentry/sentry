@@ -34,6 +34,7 @@ import VitalsCardsDiscoverQuery, {
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
@@ -390,7 +391,7 @@ export function VitalBar(props: VitalBarProps) {
     good: 0,
     total: 0,
   };
-  const vitals = Array.isArray(vital) ? vital : [vital];
+  const vitals = toArray(vital);
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     Object.keys(counts).forEach(countKey => (counts[countKey] += c[countKey]));

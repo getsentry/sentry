@@ -8,18 +8,23 @@ import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import {
+  getStacktrace,
+  StackTracePreviewContent,
+} from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCheckmark, IconInfo, IconMute, IconNot} from 'sentry/icons';
+import {VersionHoverHeader} from 'sentry/components/versionHoverCard';
+import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
+import {Event, Group, Organization, ReleaseWithHealth, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -28,16 +33,49 @@ import useApi from 'sentry/utils/useApi';
 export enum ContextType {
   ISSUE = 'issue',
   RELEASE = 'release',
+  EVENT = 'event',
 }
 
 const HOVER_DELAY: number = 400;
 
-function isIssueContext(contextType: ContextType): boolean {
-  return contextType === ContextType.ISSUE;
-}
-
 function isReleaseContext(contextType: ContextType): boolean {
   return contextType === ContextType.RELEASE;
+}
+
+function getHoverBody(
+  api: Client,
+  dataRow: EventData,
+  contextType: ContextType,
+  organization?: Organization
+) {
+  const noContext = (
+    <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
+  );
+  switch (contextType) {
+    case ContextType.ISSUE:
+      return <IssueContext api={api} dataRow={dataRow} eventID={dataRow.id} />;
+    case ContextType.RELEASE:
+      return organization ? (
+        <ReleaseContext api={api} dataRow={dataRow} organization={organization} />
+      ) : (
+        noContext
+      );
+    case ContextType.EVENT:
+      return organization ? (
+        <EventContext api={api} dataRow={dataRow} organization={organization} />
+      ) : (
+        noContext
+      );
+    default:
+      return noContext;
+  }
+}
+
+// NOTE: Will be adding switch cases as more contexts require headers.
+function getHoverHeader(dataRow: EventData, contextType: ContextType) {
+  return isReleaseContext(contextType) ? (
+    <VersionHoverHeader releaseVersion={dataRow.release} />
+  ) : null;
 }
 
 const fiveMinutesInMs = 5 * 60 * 1000;
@@ -61,7 +99,6 @@ function IssueContext(props: IssueContextProps) {
         },
       },
     ],
-    undefined,
     {
       onSuccess: group => {
         GroupStore.add([group]);
@@ -123,11 +160,11 @@ function IssueContext(props: IssueContextProps) {
   }
 
   return (
-    <Fragment>
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderStatus()}
       {renderAssigneeSelector()}
       {renderSuspectCommits()}
-    </Fragment>
+    </Wrapper>
   );
 }
 
@@ -149,16 +186,15 @@ function NoContext({isLoading}: NoContextProps) {
   );
 }
 
-type ReleaseContextProps = {
+type BaseContextProps = {
   api: Client;
   dataRow: EventData;
   organization: Organization;
 };
 
-function ReleaseContext(props: ReleaseContextProps) {
+function ReleaseContext(props: BaseContextProps) {
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
     [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
-    undefined,
     {
       staleTime: fiveMinutesInMs,
       retry: false,
@@ -287,11 +323,42 @@ function ReleaseContext(props: ReleaseContextProps) {
   }
 
   return (
-    <Fragment>
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
       {renderIssueCountAndAuthors()}
       {renderLastCommit()}
-    </Fragment>
+    </Wrapper>
+  );
+}
+
+function EventContext(props: BaseContextProps) {
+  const {isLoading, isError, data} = useQuery<Event>(
+    [
+      `/organizations/${props.organization.slug}/events/${props.dataRow['project.name']}:${props.dataRow.id}/`,
+    ],
+    {
+      staleTime: fiveMinutesInMs,
+    }
+  );
+
+  if (isLoading || isError) {
+    return <NoContext isLoading={isLoading} />;
+  }
+
+  if (data?.type !== 'error') {
+    return <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>;
+  }
+
+  const stackTrace = getStacktrace(data);
+
+  return stackTrace ? (
+    <StackTraceWrapper>
+      <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+    </StackTraceWrapper>
+  ) : (
+    <NoContextWrapper>
+      {t('There is no stack trace available for this event.')}
+    </NoContextWrapper>
   );
 }
 
@@ -315,34 +382,13 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   return (
     <HoverWrapper>
-      {props.children}
       <StyledHovercard
-        skipWrapper
+        showUnderline
         delay={HOVER_DELAY}
-        body={
-          <Wrapper data-test-id="quick-context-hover-body">
-            {isIssueContext(props.contextType) ? (
-              <IssueContext
-                api={api}
-                dataRow={props.dataRow}
-                eventID={props.dataRow.id}
-              />
-            ) : isReleaseContext(props.contextType) && props.organization ? (
-              <ReleaseContext
-                api={api}
-                dataRow={props.dataRow}
-                organization={props.organization}
-              />
-            ) : (
-              <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
-            )}
-          </Wrapper>
-        }
+        header={getHoverHeader(props.dataRow, props.contextType)}
+        body={getHoverBody(api, props.dataRow, props.contextType, props.organization)}
       >
-        <StyledIconInfo
-          data-test-id="quick-context-hover-trigger"
-          onClick={e => e.preventDefault()}
-        />
+        {props.children}
       </StyledHovercard>
     </HoverWrapper>
   );
@@ -357,16 +403,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0;
   }
-  min-width: 300px;
-`;
-
-const StyledIconInfo = styled(IconInfo)`
-  color: ${p => p.theme.gray200};
   min-width: max-content;
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
 `;
 
 const HoverWrapper = styled('div')`
@@ -477,4 +514,16 @@ const ReleaseAuthorsBody = styled(ContextBody)`
 
 const ReleaseStatusBody = styled('h4')`
   margin-bottom: 0;
+`;
+
+const StackTraceWrapper = styled('div')`
+  overflow: hidden;
+  max-height: 300px;
+  width: 500px;
+  overflow-y: auto;
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+    box-shadow: none;
+  }
 `;
