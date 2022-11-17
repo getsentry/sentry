@@ -32,14 +32,12 @@ interface ProfileSummaryContentProps {
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   const fields = useMemo(() => {
     if (mobile.includes(props.project.platform as any)) {
-      return FIELDS;
+      return MOBILE_FIELDS;
     }
 
     // these are mobile only fields, so if it's not a mobile platform,
     // make sure we remove them from the table
-    return FIELDS.filter(
-      field => field !== 'device.model' && field !== 'device.classification'
-    );
+    return DEFAULT_FIELDS;
   }, [props.project]);
 
   const profilesCursor = useMemo(
@@ -164,7 +162,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 }
 
-const FIELDS = [
+const ALL_FIELDS = [
   'id',
   'timestamp',
   'release',
@@ -173,6 +171,18 @@ const FIELDS = [
   'device.arch',
   'profile.duration',
 ] as const;
+
+type FieldType = typeof ALL_FIELDS[number];
+
+const MOBILE_FIELDS: FieldType[] = [...ALL_FIELDS];
+
+const DEFAULT_FIELDS: FieldType[] = [
+  'id',
+  'timestamp',
+  'release',
+  'device.model',
+  'profile.duration',
+];
 
 const FILTER_OPTIONS = [
   {
@@ -188,8 +198,6 @@ const FILTER_OPTIONS = [
     value: 'profile.duration',
   },
 ];
-
-type FieldType = typeof FIELDS[number];
 
 const TableHeader = styled('div')`
   display: flex;
