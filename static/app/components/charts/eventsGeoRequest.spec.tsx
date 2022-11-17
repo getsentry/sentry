@@ -7,7 +7,7 @@ import EventsGeoRequest, {
 } from 'sentry/components/charts/eventsGeoRequest';
 import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
-describe('EventsRequest', function () {
+describe('EventsGeoRequest', function () {
   const project = TestStubs.Project();
   const organization = TestStubs.Organization();
   const makeProps = (

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {DateString, OrganizationSummary} from 'sentry/types';
@@ -7,6 +7,7 @@ import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import toArray from 'sentry/utils/toArray';
+import usePrevious from 'sentry/utils/usePrevious';
 
 interface ChildrenRenderProps {
   errored: boolean;
@@ -44,28 +45,42 @@ const EventsGeoRequest = ({
   referrer,
   children,
 }: EventsGeoRequestProps) => {
-  const eventView = EventView.fromSavedQuery({
-    id: undefined,
-    name: '',
-    version: 2,
-    fields: toArray(yAxis),
-    query,
-    orderby: orderby ?? '',
-    projects,
-    range: period ?? '',
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-    environment: environments,
-  });
+  const eventView = useMemo(
+    () =>
+      EventView.fromSavedQuery({
+        id: undefined,
+        name: '',
+        version: 2,
+        fields: toArray(yAxis),
+        query,
+        orderby: orderby ?? '',
+        projects,
+        range: period ?? '',
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+        environment: environments,
+      }),
+    [yAxis, query, orderby, projects, period, start, end, environments]
+  );
   const [results, setResults] = useState(undefined as ChildrenRenderProps['tableData']);
   const [reloading, setReloading] = useState(false);
   const [errored, setErrored] = useState(false);
+
+  const prevApi = usePrevious(api);
+  const prevEventView = usePrevious(eventView);
+  const prevOrgSlug = usePrevious(organization.slug);
+  const prevReferrer = usePrevious(referrer);
 
   useEffect(() => {
     let mounted = true;
     setErrored(false);
 
-    if (results) {
+    if (
+      prevApi !== api ||
+      prevEventView !== eventView ||
+      prevOrgSlug !== organization.slug ||
+      prevReferrer !== referrer
+    ) {
       setReloading(true);
     }
 
@@ -90,7 +105,16 @@ const EventsGeoRequest = ({
       // Prevent setState leaking on unmounted component
       mounted = false;
     };
-  }, [query, yAxis, start, end, period, environments, projects, api]);
+  }, [
+    api,
+    eventView,
+    organization.slug,
+    referrer,
+    prevApi,
+    prevEventView,
+    prevOrgSlug,
+    prevReferrer,
+  ]);
 
   return children({
     errored,
