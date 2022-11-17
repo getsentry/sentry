@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
-import useApiRequests from 'sentry/utils/useApiRequests';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
@@ -24,10 +24,6 @@ type SpanEvidencePreviewBodyProps = {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
-};
-
-type Response = {
-  event: EventTransaction;
 };
 
 const makeGroupPreviewRequestUrl = ({
@@ -58,19 +54,20 @@ const SpanEvidencePreviewBody = ({
   onRequestEnd,
   onUnmount,
 }: SpanEvidencePreviewBodyProps) => {
-  const {data, isLoading, hasError} = useApiRequests<Response>({
-    endpoints: [
-      ['event', endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
-    ],
-    onRequestError: onRequestEnd,
-    onRequestSuccess: onRequestEnd,
-  });
+  const {data, isLoading, isError} = useQuery<EventTransaction>(
+    [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
+    {staleTime: 60000}
+  );
 
   useEffect(() => {
-    onRequestBegin();
+    if (isLoading) {
+      onRequestBegin();
+    } else {
+      onRequestEnd();
+    }
 
     return onUnmount;
-  }, [onRequestBegin, onUnmount]);
+  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
 
   if (isLoading) {
     return (
@@ -80,17 +77,17 @@ const SpanEvidencePreviewBody = ({
     );
   }
 
-  if (hasError) {
+  if (isError) {
     return <EmptyWrapper>{t('Failed to load preview')}</EmptyWrapper>;
   }
 
-  const spanInfo = data.event && getSpanInfoFromTransactionEvent(data.event);
+  const spanInfo = data && getSpanInfoFromTransactionEvent(data);
 
-  if (spanInfo && data.event) {
+  if (spanInfo && data) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
         <SpanEvidenceKeyValueList
-          transactionName={data.event.title}
+          transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
           repeatingSpan={spanInfo.repeatingSpan}
         />
