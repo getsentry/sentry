@@ -224,7 +224,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   count: {
     key: 'count',
-    name: t('Count'),
+    name: t('Total Occurrences'),
     width: COL_WIDTH_UNDEFINED,
   },
   examples: {
