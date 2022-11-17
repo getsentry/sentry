@@ -12,6 +12,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry import features, quotas
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
@@ -329,6 +330,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         if "issue" in fields:  # Look up the short ID and return that in the results
             self.handle_issues(results, project_ids, organization)
 
+        if "device" in fields and request.GET.get("readable"):
+            self.handle_readable_device(results, project_ids, organization)
+
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
 
@@ -347,6 +351,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for result in results:
             if "issue.id" in result:
                 result["issue"] = issues.get(result["issue.id"], "unknown")
+
+    def handle_readable_device(
+        self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
+    ) -> None:
+        for result in results:
+            if "device" in result:
+                readable_value = get_readable_device_name(result["device"])
+                if readable_value:
+                    result["readable"] = readable_value
 
     def get_event_stats_data(
         self,
