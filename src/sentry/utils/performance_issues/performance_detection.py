@@ -864,6 +864,12 @@ class NPlusOneSpanDetector(PerformanceDetector):
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
+    """
+    The detector first looks for X number of consecutive db query spans,
+    each being at least Y in length, where X and Y are defined in the detector threshold settings.
+    Once these set of spans are found, the detector will compare each db span in the consecutive list
+    to determine if they are dependant on one another, if so a performance issue is found.
+    """
 
     __slots__ = "stored_problems"
 
@@ -871,44 +877,49 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def init(self):
         self.stored_problems: dict[str, PerformanceProblem] = {}
-        self.problem_spans: dict[str, list[Span]] = {}
-        self.consecutive_count = 0
+        self.consecutive_db_spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         span_duration = get_span_duration(span)
+        is_above_duration_threshold = span_duration > timedelta(
+            milliseconds=self.settings["duration_threshold"]
+        )
+
         if not span_id or not op or not self._is_db_op(op):
+            self._validate_and_store_performance_problem()
             self._reset_variables()
             return
 
-        if span_duration > timedelta(
-            milliseconds=self.settings["duration_threshold"]
-        ) and not self._overlaps_last_span(span):
+        if is_above_duration_threshold and not self._overlaps_last_span(span):
             self._add_problem_span(span)
-            self.consecutive_count += 1
 
-        if self.consecutive_count > self.settings["consecutive_count_threshold"]:
-            self._store_performance_problem(span)
+    def _add_problem_span(self, span: Span) -> None:
+        self.spans_involved.push(span)
 
-    def _add_problem_span(self, span: Span):
-        span_op_fingerprint = fingerprint_span_op(span)
-        if span_op_fingerprint not in self.spans_involved:
-            self.spans_involved[span_op_fingerprint] = []
+    def _validate_and_store_performance_problem(self):
+        is_above_count_threshold = len(self.consecutive_db_spans) > self.settings.get(
+            "consecutive_count_threshold"
+        )
+        if is_above_count_threshold and self._are_db_spans_independant_(self.consecutive_db_spans):
+            self._store_performance_problem()
 
-    def _store_performance_problem(self, span: Span):
-        span_op_fingerprint = fingerprint_span_op(span)
-        problem_spans = self.problem_spans[span_op_fingerprint]
-        self._are_spans_independant_(problem_spans)
-        self.stored_problems[span_op_fingerprint] = PerformanceProblem(
-            span_op_fingerprint,
+    def _store_performance_problem(self, span: Span) -> None:
+        fingerprint = self._fingerprint()
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint,
             "db",
             "consecutive db",
             GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
-            offender_span_ids=self.problem_spans[span_op_fingerprint],
+            offender_span_ids=self.consecutive_db_spans,
         )
 
     def _are_db_spans_independant_(self, spans: list[Span]) -> bool:
+        """
+        Given a list of spans, checks if there is at least a single span that is independent of the rest.
+        To start, we are just checking for a span in a list of consecutive span without a WHERE clause
+        """
         for span in spans:
             query: str = span.get("description", None)
             if not query:
@@ -926,15 +937,20 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
         return last_span_ends > current_span_begins
 
-    def _reset_variables(self):
+    def _reset_variables(self) -> None:
         self.consecutive_count = 0
-        self.problem_spans = {}
+        self.consecutive_db_spans = {}
 
     def _is_db_span(self, op: str) -> bool:
         return op.startswith("db") and not op.startswith("db.redis")
 
-    def on_complete(self) -> None:
-        pass
+    def _fingerprint(self) -> str:
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        transaction_name = self._event.transaction
+        full_fingerprint = hashlib.sha1(
+            (transaction_name).encode("utf8"),
+        ).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
