@@ -109,6 +109,7 @@ describe('GroupReplays', () => {
             project: ['2'],
             environment: [],
             field: [
+              'activity',
               'countErrors',
               'duration',
               'finishedAt',
@@ -470,6 +471,62 @@ describe('GroupReplays', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-countErrors',
+          }),
+        })
+      );
+    });
+  });
+
+  it('should be able to click the `Activity` column and request data sorted by startedAt query', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
+
+    const {rerender} = renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith(
+        mockUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: '-startedAt',
+          }),
+        })
+      );
+    });
+
+    // Click on the activity header and expect the sort to be activity
+    userEvent.click(screen.getByRole('columnheader', {name: 'Activity'}));
+
+    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/replays/',
+      query: {
+        sort: '-activity',
+      },
+    });
+
+    // Need to simulate a rerender to get the new sort
+    rerender(
+      getComponent({
+        location: {
+          query: {
+            sort: '-activity',
+          },
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(2);
+      expect(mockApi).toHaveBeenCalledWith(
+        mockUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: '-activity',
           }),
         })
       );

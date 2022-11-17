@@ -453,6 +453,68 @@ describe('TransactionReplays', () => {
     });
   });
 
+  it('should be able to click the `Activity` column and request data sorted by startedAt query', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
+
+    const {rerender} = renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith(
+        mockUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: '-startedAt',
+          }),
+        })
+      );
+    });
+
+    // Click on the activity header and expect the sort to be activity
+    userEvent.click(screen.getByRole('columnheader', {name: 'Activity'}));
+
+    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/replays/',
+      query: {
+        sort: '-activity',
+        project: '1',
+        transaction: 'transaction',
+      },
+    });
+
+    // Need to simulate a rerender to get the new sort
+    act(() => {
+      rerender(
+        getComponent({
+          location: {
+            query: {
+              sort: '-activity',
+              project: '1',
+              transaction: 'transaction',
+            },
+          },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(2);
+      expect(mockApi).toHaveBeenCalledWith(
+        mockUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: '-activity',
+          }),
+        })
+      );
+    });
+  });
+
   it("should show a message when the organization doesn't have access to the replay feature", async () => {
     renderComponent({
       organizationProps: {
