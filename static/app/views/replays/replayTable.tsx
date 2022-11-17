@@ -92,7 +92,9 @@ function SortableHeader({
       >
         {label} {sort?.field === fieldName && sortArrow}
       </SortLink>
-      {tooltip ? <QuestionTooltip size="xs" position="top" title={tooltip} /> : null}
+      {tooltip ? (
+        <StyledQuestionTooltip size="xs" position="top" title={tooltip} />
+      ) : null}
     </Header>
   );
 }
@@ -125,7 +127,7 @@ function ReplayTable({
     showSlowestTxColumn && minWidthIsSmall && (
       <Header key="slowestTransaction">
         {t('Slowest Transaction')}
-        <QuestionTooltip
+        <StyledQuestionTooltip
           size="xs"
           position="top"
           title={t(
@@ -363,8 +365,11 @@ const StyledAlert = styled(Alert)`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  gap: ${space(0.5)};
   align-items: center;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;
 
 export default ReplayTable;
