@@ -471,7 +471,7 @@ export function UniformRateModal({
                     containerDisplayMode="inline-flex"
                   >
                     <IconWarning
-                      color="red300"
+                      color="errorText"
                       size="sm"
                       data-test-id="invalid-client-rate"
                     />
@@ -507,7 +507,7 @@ export function UniformRateModal({
                     containerDisplayMode="inline-flex"
                   >
                     <IconWarning
-                      color="red300"
+                      color="errorText"
                       size="sm"
                       data-test-id="invalid-server-rate"
                     />
@@ -521,7 +521,7 @@ export function UniformRateModal({
                       containerDisplayMode="inline-flex"
                     >
                       <IconWarning
-                        color="red300"
+                        color="errorText"
                         size="sm"
                         data-test-id="invalid-server-rate"
                       />

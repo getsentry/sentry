@@ -13,6 +13,7 @@ import time
 from typing import Literal
 
 import sentry_sdk
+from django.conf import settings
 
 from sentry import options
 from sentry.killswitches import normalize_value
@@ -107,23 +108,27 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 
 def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
     """Whether the project is sending too many symbolication requests."""
-    total_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
-    recent_rate = event_counts.rate(period=60)
+    options = settings.SENTRY_LPQ_OPTIONS
+
+    average_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
+    recent_rate = event_counts.rate(period=options["recent_event_period"])
 
     # Note, We had these tagged with tags={"project_id": project_id} during our initial
     # evaluation, however the cardinality for this is really too high to leave that on
     # forever in production.
-    metrics.gauge("symbolication.lpq.computation.rate.total", total_rate)
+    metrics.gauge("symbolication.lpq.computation.rate.total", average_rate)
     metrics.gauge("symbolication.lpq.computation.rate.recent", recent_rate)
 
-    if recent_rate > 50 and recent_rate > 5 * total_rate:
-        return True
-    else:
-        return False
+    return bool(
+        recent_rate > options["min_recent_event_rate"]
+        and recent_rate > options["recent_event_multiple"] * average_rate
+    )
 
 
 def excessive_event_duration(project_id: int, durations: BucketedDurationsHistograms) -> bool:
     """Whether the project's symbolication requests are taking too long to process."""
+    options = settings.SENTRY_LPQ_OPTIONS
+
     total_histogram = DurationsHistogram(bucket_size=durations.histograms[0].bucket_size)
     for histogram in durations.histograms:
         total_histogram.incr_from(histogram)
@@ -140,10 +145,10 @@ def excessive_event_duration(project_id: int, durations: BucketedDurationsHistog
     metrics.gauge("symbolication.lpq.computation.durations.p75", p75_duration)
     metrics.gauge("symbolication.lpq.computation.durations.events_per_minutes", events_per_minute)
 
-    if events_per_minute > 15 and p75_duration > 6 * 60:
-        return True
-    else:
-        return False
+    return bool(
+        events_per_minute > options["min_events_per_minute"]
+        and p75_duration > options["min_p75_duration"]
+    )
 
 
 def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
