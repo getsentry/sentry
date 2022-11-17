@@ -129,7 +129,7 @@ function Modal({
     };
   } else if (
     memoizedAttachments &&
-    memoizedAttachments.length &&
+    memoizedAttachments.length > 1 &&
     defined(currentAttachmentIndex)
   ) {
     paginationProps = {
@@ -152,9 +152,9 @@ function Modal({
 
   return (
     <Fragment>
-      <StyledHeaderWrapper>
+      <StyledHeaderWrapper hasPagination={defined(paginationProps)}>
         <Header closeButton>{t('Screenshot')}</Header>
-        {paginationProps && (
+        {defined(paginationProps) && (
           <Header>
             <ScreenshotPagination {...paginationProps} />
           </Header>
@@ -234,7 +234,10 @@ function Modal({
 
 export default Modal;
 
-const StyledHeaderWrapper = styled('div')`
+const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
+  ${p =>
+    p.hasPagination &&
+    `
   header {
     margin-bottom: 0;
   }
@@ -243,6 +246,7 @@ const StyledHeaderWrapper = styled('div')`
     margin-top: 0;
     margin-bottom: ${space(3)};
   }
+  `}
 `;
 
 const GeneralInfo = styled('div')`
