@@ -35,8 +35,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       return MOBILE_FIELDS;
     }
 
-    // these are mobile only fields, so if it's not a mobile platform,
-    // make sure we remove them from the table
     return DEFAULT_FIELDS;
   }, [props.project]);
 
