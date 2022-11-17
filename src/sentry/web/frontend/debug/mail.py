@@ -517,11 +517,9 @@ def digest(request):
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ):
-            # make times consistent for acceptance tests
             perf_data = dict(
                 load_data(
                     "transaction-n-plus-one",
-                    timestamp=datetime.now(),
                 )
             )
             perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -531,7 +529,9 @@ def digest(request):
             perf_event = perf_event_manager.save(project.id)
 
         perf_event = perf_event.for_group(perf_event.groups[0])
+        # don't clobber error issue ids
         perf_event.group.id = i + 100
+
         perf_group = perf_event.group
 
         records.append(
@@ -543,7 +543,8 @@ def digest(request):
                         list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                     ),
                 ),
-                to_timestamp(perf_event.datetime),
+                # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
+                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
             )
         )
         state["groups"][perf_group.id] = perf_group

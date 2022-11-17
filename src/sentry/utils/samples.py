@@ -286,7 +286,6 @@ def load_data(
             "method": "GET",
         },
     )
-
     return data
 
 
