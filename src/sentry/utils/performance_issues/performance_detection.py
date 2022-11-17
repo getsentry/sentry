@@ -295,9 +295,8 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            "duration_threshold": 100,
-            "occurence_count": 1,
-            "consecutive_span_count": 1,
+            "duration_threshold": 5000,  # ms
+            "consecutive_count_threshold": 5,
         },
     }
 
@@ -871,32 +870,67 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
-        self.stored_problems = {}
+        self.stored_problems: dict[str, PerformanceProblem] = {}
+        self.problem_spans: dict[str, list[Span]] = {}
+        self.consecutive_count = 0
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         span_duration = get_span_duration(span)
-        fingerprint = fingerprint_span(span)
-        if not span_id or not op:
+        if not span_id or not op or not self._is_db_op(op):
+            self._reset_variables()
             return
 
-        if not self._is_db_op(op):
-            return
+        if span_duration > timedelta(
+            milliseconds=self.settings["duration_threshold"]
+        ) and not self._overlaps_last_span(span):
+            self._add_problem_span(span)
+            self.consecutive_count += 1
 
-        if span_duration > timedelta(seconds=5):
-            span_id = span.get("span_id", None)
-            self.stored_problems[fingerprint] = PerformanceProblem(
-                fingerprint=fingerprint,
-                op=op,
-                desc="desc",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                parent_span_ids=[span_id],
-                cause_span_ids=[span_id],
-                offender_span_ids=[span_id],
-            )
+        if self.consecutive_count > self.settings["consecutive_count_threshold"]:
+            self._store_performance_problem(span)
 
-    def _is_db_op(self, op: str) -> bool:
+    def _add_problem_span(self, span: Span):
+        span_op_fingerprint = fingerprint_span_op(span)
+        if span_op_fingerprint not in self.spans_involved:
+            self.spans_involved[span_op_fingerprint] = []
+
+    def _store_performance_problem(self, span: Span):
+        span_op_fingerprint = fingerprint_span_op(span)
+        problem_spans = self.problem_spans[span_op_fingerprint]
+        self._are_spans_independant_(problem_spans)
+        self.stored_problems[span_op_fingerprint] = PerformanceProblem(
+            span_op_fingerprint,
+            "db",
+            "consecutive db",
+            GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
+            offender_span_ids=self.problem_spans[span_op_fingerprint],
+        )
+
+    def _are_db_spans_independant_(self, spans: list[Span]) -> bool:
+        for span in spans:
+            query: str = span.get("description", None)
+            if not query:
+                return False
+            if "WHERE" not in query:
+                return True
+        return False
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        last_span = self.source_span
+        if self.n_spans:
+            last_span = self.n_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _reset_variables(self):
+        self.consecutive_count = 0
+        self.problem_spans = {}
+
+    def _is_db_span(self, op: str) -> bool:
         return op.startswith("db") and not op.startswith("db.redis")
 
     def on_complete(self) -> None:

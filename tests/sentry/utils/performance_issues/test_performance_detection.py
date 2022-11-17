@@ -924,12 +924,20 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     def test_consecutive_db_span(self):
         SECOND = 1000
-        consecutive_db_event = create_event([create_span("db", 50 * SECOND, "Db span")], "a" * 16)
+        consecutive_db_event = create_event(
+            [
+                create_span("db", 50 * SECOND, "Db span"),
+                create_span("db", 50 * SECOND, "Db span"),
+                create_span("db", 50 * SECOND, "Db span"),
+                create_span("db", 50 * SECOND, "Db span"),
+                create_span("db", 50 * SECOND, "Db span"),
+            ],
+            "a" * 16,
+        )
 
         sdk_span_mock = Mock()
 
-        perf_problems = _detect_performance_problems(consecutive_db_event, sdk_span_mock)
-        assert perf_problems == []
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
 
 
 class PrepareProblemForGroupingTest(unittest.TestCase):
