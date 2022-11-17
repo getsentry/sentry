@@ -21,22 +21,23 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
 
-  if (hasPerformanceView && hasTraceContext) {
-    if (quickTrace?.isLoading) {
-      return <Placeholder height="24px" />;
-    }
-
-    return (
-      <IssueQuickTrace
-        organization={organization}
-        event={event}
-        location={location}
-        isPerformanceIssue={isPerformanceIssue}
-        quickTrace={quickTrace}
-      />
-    );
+  if (!hasPerformanceView || !hasTraceContext) {
+    return null;
   }
-  return null;
+
+  if (quickTrace?.isLoading) {
+    return <Placeholder height="24px" />;
+  }
+
+  return (
+    <IssueQuickTrace
+      organization={organization}
+      event={event}
+      location={location}
+      isPerformanceIssue={isPerformanceIssue}
+      quickTrace={quickTrace}
+    />
+  );
 }
 
 export default QuickTrace;
