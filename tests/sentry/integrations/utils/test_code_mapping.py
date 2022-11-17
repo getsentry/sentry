@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.utils.code_mapping import (
     CodeMapping,
+    CodeMappingMatch,
     CodeMappingTreesHelper,
     FrameFilename,
     Repo,
@@ -161,3 +162,38 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == []
         assert self._caplog.records[0].message == "More than one repo matched sentry/web/urls.py"
         assert self._caplog.records[0].levelname == "WARNING"
+
+    def test_list_file_matches_single(self):
+        frame_filename = FrameFilename("sentry_plugins/slack/client.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            CodeMappingMatch(
+                filename="src/sentry_plugins/slack/client.py",
+                repo_name="Test-Organization/foo",
+                repo_branch="master",
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
+            )
+        ]
+        assert sorted(matches) == expected_matches
+
+    def test_list_file_matches_multiple(self):
+        frame_filename = FrameFilename("sentry/web/urls.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            CodeMappingMatch(
+                filename="src/sentry/web/urls.py",
+                repo_name="Test-Organization/foo",
+                repo_branch="master",
+                stacktrace_root="sentry/",
+                source_path="src/sentry/",
+            ),
+            CodeMappingMatch(
+                filename="getsentry/web/urls.py",
+                repo_name="Test-Organization/bar",
+                repo_branch="main",
+                stacktrace_root="sentry/",
+                source_path="getsentry/",
+            ),
+        ]
+        assert sorted(matches) == sorted(expected_matches)

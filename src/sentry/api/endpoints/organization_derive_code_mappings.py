@@ -32,14 +32,13 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :param int projectId:
         :param string filename:
         :auth: required
         """
-        filename = request.data.get("filename")
         if not features.has("organizations:derive-code-mappings", organization):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        filename = request.GET.get("filename")
         installation, _ = get_installation(organization)
         if not installation:
             return self.respond(
@@ -50,11 +49,10 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         trees = installation.get_trees_for_org()
         trees_helper = CodeMappingTreesHelper(trees)
         frame_filename = FrameFilename(filename)
-        possible_code_mappings: List[CodeMappingMatch] = trees_helper.list_all_file_matches(
+        possible_code_mappings: List[CodeMappingMatch] = trees_helper.list_file_matches(
             frame_filename
         )
-
-        return Response(serialize(possible_code_mappings))
+        return Response(serialize(possible_code_mappings), status=status.HTTP_200_OK)
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -64,9 +62,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
         :param int projectId:
-        :param string repo:
-        :param string branch:
-        :param string stacktraceRoot:
+        :param string repoName:
+        :param string defaultBranch:
+        :param string stackRoot:
         :param string sourceRoot:
         :auth: required
         """
@@ -81,37 +79,38 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             )
 
         project = Project.objects.get(id=request.data.get("projectId"))
+        repo_name = request.data.get("repoName")
         repository, _ = Repository.objects.get_or_create(
-            name=request.data.get("repo"),
+            name=repo_name,
             organization_id=organization.id,
             defaults={
-                "name": request.data.get("repo"),
-                "organization_id": organization.id,
                 "integration_id": organization_integration.integration_id,
             },
         )
 
-        stacktrace_root = request.data.get("stacktraceRoot")
-        if RepositoryProjectPathConfig.objects.filter(
+        stack_root = request.data.get("stackRoot")
+        exists = RepositoryProjectPathConfig.objects.filter(
             project=project,
-            stack_root=stacktrace_root,
-        ).exists():
+            stack_root=stack_root,
+        )
+        if exists.exists():
             return self.respond(
                 "Code mapping already exists for this project", status=status.HTTP_400_BAD_REQUEST
             )
 
         source_root = request.data.get("sourceRoot")
-        branch = request.data.get("branch")
-        RepositoryProjectPathConfig.objects.create(
+        branch = request.data.get("defaultBranch")
+        new_code_mapping = RepositoryProjectPathConfig.objects.create(
             project=project,
-            stack_root=stacktrace_root,
-            defaults={
-                "repository": repository,
-                "organization_integration": organization_integration,
-                "source_root": source_root,
-                "default_branch": branch,
-                "automatically_generated": True,
-            },
+            stack_root=stack_root,
+            repository=repository,
+            organization_integration=organization_integration,
+            source_root=source_root,
+            default_branch=branch,
+            automatically_generated=True,
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        return self.respond(
+            serialize(new_code_mapping, request.user),
+            status=status.HTTP_201_CREATED,
+        )

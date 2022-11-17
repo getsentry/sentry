@@ -132,26 +132,26 @@ class CodeMappingTreesHelper:
 
         return _code_mappings[0]
 
-    def list_all_file_matches(
-        self, repo_tree: RepoTree, frame_filename: FrameFilename
-    ) -> Dict[str, List[CodeMappingMatch]]:
-        file_matches = {}
+    def list_file_matches(self, frame_filename: FrameFilename) -> List[CodeMappingMatch]:
+        file_matches = []
         for repo_full_name in self.trees.keys():
-            matched_files = [
+            repo_tree = self.trees[repo_full_name]
+            matches = [
                 src_path
                 for src_path in repo_tree.files
                 if self._potential_match(src_path, frame_filename)
             ]
 
-            for file in matched_files:
-                possible_code_mapping = CodeMappingMatch(
-                    filename=file,
-                    repo_name=repo_tree.repo.name,
-                    repo_branch=repo_tree.repo.branch,
-                    stacktrace_root=f"{frame_filename.root}/",  # sentry
-                    source_path=self._get_code_mapping_source_path(file, frame_filename),
+            for file in matches:
+                file_matches.append(
+                    CodeMappingMatch(
+                        filename=file,
+                        repo_name=repo_tree.repo.name,
+                        repo_branch=repo_tree.repo.branch,
+                        stacktrace_root=f"{frame_filename.root}/",
+                        source_path=self._get_code_mapping_source_path(file, frame_filename),
+                    )
                 )
-                file_matches.append(possible_code_mapping)
         return file_matches
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
