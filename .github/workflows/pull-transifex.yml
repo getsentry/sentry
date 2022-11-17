@@ -23,7 +23,7 @@ jobs:
           TX_TOKEN: ${{ secrets.TRANSIFEX_TOKEN }}
           SENTRY_NO_VENV_CHECK: 1
         run: |
-          make update-locale-locales
+          make update-local-locales
           git status
 
       # - name: Create Pull Request
