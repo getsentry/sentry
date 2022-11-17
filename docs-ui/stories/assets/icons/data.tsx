@@ -677,7 +677,12 @@ export const icons: IconData[] = [
   },
   {
     id: 'profiling',
-    groups: ['chart'],
+    groups: ['product', 'chart'],
     keywords: ['performance', 'span', 'flame', 'icicle'],
+  },
+  {
+    id: 'timer',
+    groups: ['product'],
+    keywords: ['cron', 'monitors', 'clock', 'cycle'],
   },
 ];
