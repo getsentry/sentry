@@ -17,6 +17,8 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useParams} from 'sentry/utils/useParams';
 
+import {useLocalStorageState} from '../../../utils/useLocalStorageState';
+
 import {FrameStackTable} from './frameStackTable';
 import {ProfileDetails} from './profileDetails';
 
@@ -36,7 +38,10 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [tab, setTab] = useState<'bottom up' | 'top down'>('bottom up');
+  const [tab, setTab] = useLocalStorageState<'bottom up' | 'top down'>(
+    'profiling-drawer-view',
+    'bottom up'
+  );
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
@@ -69,11 +74,11 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
   const onBottomUpClick = useCallback(() => {
     setTab('bottom up');
-  }, []);
+  }, [setTab]);
 
   const onCallOrderClick = useCallback(() => {
     setTab('top down');
-  }, []);
+  }, [setTab]);
 
   const onAllApplicationsClick = useCallback(() => {
     setTreeType('all');
