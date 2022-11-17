@@ -84,9 +84,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 segment_id=message_dict["id"],
             )
 
-            part = RecordingSegmentCache(cache_prefix)
-            with current_transaction.start_child(op="replays.process_recording.store_chunk"):
-                part[message_dict["chunk_index"]] = message_dict["payload"]
+        part = RecordingSegmentCache(cache_prefix)
+        with current_transaction.start_child(op="replays.process_recording.store_chunk"):
+            part[message_dict["chunk_index"]] = message_dict["payload"]
+
         current_transaction.finish()
 
     @metrics.wraps("replays.process_recording.store_recording.process_headers")
