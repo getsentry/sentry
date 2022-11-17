@@ -1,6 +1,5 @@
 name: transifex
 on:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -26,19 +25,19 @@ jobs:
           make update-local-locales
           git status
 
-      # - name: Create Pull Request
-      #   uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
-      #   with:
-      #     token: ${{ secrets.BUMP_SENTRY_TOKEN }}
-      #     add-paths: |
-      #       src/sentry/locale
-      #     commit-message: 'meta(i18n): Update translated message files'
-      #     branch: 'meta/i18n/auto-update-translations'
-      #     reviewers: ${{ github.triggering_actor }}
-      #     team-reviewers: |
-      #       getsentry/app-frontend
-      #     delete-branch: true
-      #     base: master
-      #     title: 'meta(i18n): Update translated message files'
-      #     body: |
-      #       This PR was auto-generated - it updates translations from Transifex
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
+        with:
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          add-paths: |
+            src/sentry/locale
+          commit-message: 'meta(i18n): Update translated message files'
+          branch: 'meta/i18n/auto-update-translations'
+          reviewers: ${{ github.triggering_actor }}
+          team-reviewers: |
+            getsentry/app-frontend
+          delete-branch: true
+          base: master
+          title: 'meta(i18n): Update translated message files'
+          body: |
+            This PR was auto-generated - it updates translations from Transifex
