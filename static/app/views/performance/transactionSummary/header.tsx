@@ -11,7 +11,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
-import useReplaysCounts from 'sentry/components/replays/useReplaysCount';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -101,7 +101,7 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const replaysCount = useReplaysCounts({
+  const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
     project,

@@ -1,14 +1,14 @@
 import {createContext, ReactNode, useContext} from 'react';
 
-import useReplaysCounts from 'sentry/components/replays/useReplaysCount';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 
-const ReplayCountContext = createContext<ReturnType<typeof useReplaysCounts>>({});
+const ReplayCountContext = createContext<ReturnType<typeof useReplaysCount>>({});
 
 export function ReplayCountContextProvider({
   children,
   ...opts
-}: Parameters<typeof useReplaysCounts>[0] & {children: ReactNode}) {
-  const counts = useReplaysCounts(opts);
+}: Parameters<typeof useReplaysCount>[0] & {children: ReactNode}) {
+  const counts = useReplaysCount(opts);
   return (
     <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
   );

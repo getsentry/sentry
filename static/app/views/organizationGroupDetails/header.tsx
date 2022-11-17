@@ -19,7 +19,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
-import useReplaysCounts from 'sentry/components/replays/useReplaysCount';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
@@ -85,7 +85,7 @@ function GroupHeader({
 }: Props) {
   const location = useLocation();
 
-  const replaysCount = useReplaysCounts({
+  const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
     project,
