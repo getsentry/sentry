@@ -109,8 +109,6 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // prevent duplicate analytics
-    this.props.setDisableRouteAnalytics();
     // only track the view if we are loading the event early
     this.fetchData(this.canLoadEventEarly(this.props));
     if (this.props.organization.features.includes('session-replay-ui')) {
@@ -172,10 +170,10 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {organization, params, location} = this.props;
+    const {params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAdvancedAnalyticsEvent('issue_details.viewed', {
-      organization,
+
+    this.props.setRouteAnalyticsParams({
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
       // group properties
