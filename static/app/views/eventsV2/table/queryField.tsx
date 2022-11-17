@@ -557,7 +557,7 @@ class QueryField extends Component<Props> {
     const requiredInputs = (gridColumns ?? inputs.length + 1) - inputs.length - 1;
     if (gridColumns !== undefined && requiredInputs > 0) {
       for (let i = 0; i < requiredInputs; i++) {
-        inputs.push(<BlankSpace key={i} />);
+        inputs.push(<BlankSpace key={i} data-test-id="blankSpace" />);
       }
     }
 
@@ -653,6 +653,7 @@ class QueryField extends Component<Props> {
           gridColumns={1}
           tripleLayout={false}
           error={error !== undefined}
+          data-test-id="queryField"
         >
           <ArithmeticInput
             name="arithmetic"
@@ -666,7 +667,7 @@ class QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" />
+              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -705,6 +706,7 @@ class QueryField extends Component<Props> {
         className={className}
         gridColumns={gridColumnsQuantity ?? containerColumns}
         tripleLayout={gridColumns === 3 && parameters.length > 2}
+        data-test-id="queryField"
       >
         {!hidePrimarySelector && (
           <SelectControl
