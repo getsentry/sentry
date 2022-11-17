@@ -682,7 +682,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'timer',
-    groups: ['product'],
+    groups: ['product', 'action'],
     keywords: ['cron', 'monitors', 'clock', 'cycle'],
   },
 ];
