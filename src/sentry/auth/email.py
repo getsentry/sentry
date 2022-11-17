@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Collection, Iterable, Tuple, Type
+from typing import Collection, Iterable, Type
 
 from sentry.models import Organization, OrganizationMember, User, UserEmail
 from sentry.utils import metrics
@@ -11,8 +11,8 @@ from sentry.utils import metrics
 class AmbiguousUserFromEmail(Exception):
     def __init__(self, email: str, users: Collection[User]) -> None:
         super().__init__(f"Resolved {email!r} to {[user.id for user in users]}")
-        self.email: str = email
-        self.users: Tuple[User, ...] = tuple(users)
+        self.email = email
+        self.users = tuple(users)
 
 
 def resolve_email_to_user(email: str, organization: Organization | None = None) -> User | None:
