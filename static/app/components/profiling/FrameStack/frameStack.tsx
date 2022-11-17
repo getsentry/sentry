@@ -36,7 +36,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('bottom up');
+  const [tab, setTab] = useState<'bottom up' | 'top down'>('bottom up');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
@@ -53,7 +53,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         ? filterFlamegraphTree(props.rootNodes, skipFunction)
         : props.rootNodes;
 
-    if (tab === 'call order') {
+    if (tab === 'top down') {
       return maybeFilteredRoots;
     }
 
@@ -72,7 +72,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   }, []);
 
   const onCallOrderClick = useCallback(() => {
-    setTab('call order');
+    setTab('top down');
   }, []);
 
   const onAllApplicationsClick = useCallback(() => {
@@ -114,15 +114,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
           margin="none"
-          className={tab === 'call order' ? 'active' : undefined}
+          className={tab === 'top down' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Call Order')}
+            data-title={t('Top Down')}
             priority="link"
             size="zero"
             onClick={onCallOrderClick}
           >
-            {t('Call Order')}
+            {t('Top Down')}
           </Button>
         </ProfilingDetailsListItem>
         <Separator />
@@ -228,7 +228,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
       <FrameStackTable
         {...props}
-        expanded={tab === 'call order'}
+        expanded={tab === 'top down'}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
