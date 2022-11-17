@@ -71,6 +71,12 @@ class CodeMappingTreesHelper:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
+            if stackframe_root == NO_TOP_DIR:
+                logger.info(
+                    "We do not support top level files.",
+                    extra={"stackframes": stackframes},
+                )
+                continue
             if not self.code_mappings.get(stackframe_root):
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
@@ -188,7 +194,7 @@ class CodeMappingTreesHelper:
         #  src_file: "src/sentry/integrations/slack/client.py"
         #  frame_filename.full_path: "sentry/integrations/slack/client.py"
         split = src_file.split(frame_filename.file_and_dir_path)
-        if len(split) > 1:
+        if any(split) and len(split) > 1:
             # This is important because we only want stack frames to match when they
             # include the exact package name
             # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
