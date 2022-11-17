@@ -28,11 +28,15 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
   );
 }
 
+// Get all queryField components which represent a row in the column editor.
 const findAllQueryFields = () => screen.findAllByTestId('queryField');
+
+// Get the nth label (value) within the row of the column editor.
 const findAllQueryFieldNthCell = async nth =>
   (await findAllQueryFields())
     .map(f => within(f).getAllByTestId('label')[nth])
     .filter(Boolean);
+
 const getAllQueryFields = () => screen.getAllByTestId('queryField');
 const getAllQueryFieldsNthCell = nth =>
   getAllQueryFields()
@@ -55,7 +59,7 @@ const openMenu = async (row, column = 0) => {
 
 const selectByLabel = async (label, options) => {
   await openMenu(options.at);
-  const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+  const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
   const opt = menuOptions.find(e => e.textContent.includes(label));
   userEvent.click(opt);
 };
@@ -482,7 +486,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       );
 
       userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
-      expect(await screen.findByText('Division by 0 is not allowed');).toBeInTheDocument();
+      expect(await screen.findByText('Division by 0 is not allowed')).toBeInTheDocument();
 
       const input = screen.getAllByRole('textbox')[0];
       expect(input).toHaveValue('1 / 0');
@@ -494,9 +498,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       await waitFor(() => expect(input).toHaveValue('1+1+1+1+1+1+1+1+1+1+1+1'));
 
       userEvent.hover(screen.getByTestId('arithmeticErrorWarning'));
-      await waitFor(() => {
-        expect(screen.getByText('Maximum operators exceeded')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('Maximum operators exceeded')).toBeInTheDocument();
     });
 
     it('resets required field to previous value if cleared', function () {
@@ -519,10 +521,10 @@ describe('EventsV2 -> ColumnEditModal', function () {
         initialData
       );
 
-      const input = screen.getAllByRole('textbox')[2];
+      const input = screen.getAllByRole('textbox')[2]; // The numeric input
       expect(input).toHaveValue(initialColumnVal);
       userEvent.clear(input);
-      userEvent.click(document.body);
+      userEvent.click(document.body); // Unfocusing the input should revert it to the previous value
 
       expect(input).toHaveValue(initialColumnVal);
 
