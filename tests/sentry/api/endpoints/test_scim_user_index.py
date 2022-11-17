@@ -18,6 +18,8 @@ CREATE_USER_POST_DATA = {
 
 
 class SCIMMemberIndexTests(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-member-index"
+
     def test_get_users_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
@@ -68,6 +70,62 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "detail": "User already exists in the database.",
         }
+
+    def test_post_users_with_role_valid(self):
+        with self.feature({"organizations:scim-orgmember-roles": True}):
+            CREATE_USER_POST_DATA["sentryOrgRole"] = "manager"
+            resp = self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
+            member = OrganizationMember.objects.get(
+                organization=self.organization, email="test.user@okta.local"
+            )
+
+            correct_post_data = {
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                "id": str(member.id),
+                "userName": "test.user@okta.local",
+                "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                "active": True,
+                "name": {"familyName": "N/A", "givenName": "N/A"},
+                "meta": {"resourceType": "User"},
+            }
+            assert correct_post_data == resp.data
+            assert member.role == "manager"
+            member.delete()
+
+            # check role is case insensitive
+            CREATE_USER_POST_DATA["sentryOrgRole"] = "mAnaGer"
+            self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
+            member = OrganizationMember.objects.get(
+                organization=self.organization, email="test.user@okta.local"
+            )
+            assert member.role == "manager"
+            member.delete()
+
+            # no sentry org role -> default
+            del CREATE_USER_POST_DATA["sentryOrgRole"]
+            self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
+            member = OrganizationMember.objects.get(
+                organization=self.organization, email="test.user@okta.local"
+            )
+            assert member.role == self.organization.default_role
+
+    def test_post_users_with_role_invalid(self):
+        with self.feature({"organizations:scim-orgmember-roles": True}):
+            # Non-existant role
+            CREATE_USER_POST_DATA["sentryOrgRole"] = "nonexistant"
+            resp = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
+            )
+            assert resp.data == {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                "detail": "Invalid organization role.",
+            }
 
     def test_users_get_populated(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")

@@ -84,6 +84,7 @@ from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
+from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
     Commit,
@@ -1914,7 +1915,8 @@ class SCIMTestCase(APITestCase):
         self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
-        self.login_as(user=self.user)
+        self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
+        self.login_as(user=self.scim_user)
 
 
 class SCIMAzureTestCase(SCIMTestCase):
