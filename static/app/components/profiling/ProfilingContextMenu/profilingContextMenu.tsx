@@ -1,6 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
@@ -83,21 +84,26 @@ const MenuItemCheckbox = forwardRef(
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
 interface MenuItemButtonProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+  extends React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLButtonElement>,
+    HTMLButtonElement
+  > {
+  disabled?: boolean;
   icon?: React.ReactNode;
+  tooltip?: string;
 }
 
 const MenuItemButton = forwardRef(
-  (props: MenuItemButtonProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-    const {children, ...rest} = props;
+  (props: MenuItemButtonProps, ref: React.Ref<HTMLButtonElement> | undefined) => {
+    const {children, tooltip, ...rest} = props;
     return (
       <MenuContentOuterContainer>
-        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-          <MenuContent>
-            <MenuButton>{children}</MenuButton>
-          </MenuContent>
-        </MenuContentContainer>
+        <Tooltip title={tooltip}>
+          <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
+            {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
+            {children}
+          </MenuButton>
+        </Tooltip>
       </MenuContentOuterContainer>
     );
   }
@@ -106,8 +112,26 @@ const MenuItemButton = forwardRef(
 export {MenuItemButton as ProfilingContextMenuItemButton};
 
 const MenuButton = styled('button')`
-  background: transparent;
   border: none;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  box-sizing: border-box;
+  background: ${p => (p.tabIndex === 0 ? p.theme.hover : 'transparent')} !important;
+  pointer-events: ${p => (p.disabled ? 'none' : undefined)};
+  opacity: ${p => (p.disabled ? 0.7 : undefined)};
+
+  &:focus {
+    color: ${p => p.theme.textColor};
+    background: ${p => p.theme.hover};
+    outline: none;
+  }
+
+  svg {
+    margin-right: ${space(0.5)};
+  }
 `;
 
 const MenuLeadingItem = styled('div')`
@@ -194,6 +218,17 @@ export {MenuItem as ProfilingContextMenuItem};
 
 const MenuContentOuterContainer = styled('div')`
   padding: 0 ${space(0.5)};
+  display: flex;
+
+  > span {
+    display: flex;
+  }
+
+  > div,
+  > span,
+  button {
+    flex: 1;
+  }
 `;
 
 const MenuGroup = styled('div')`

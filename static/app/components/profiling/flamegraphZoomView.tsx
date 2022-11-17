@@ -795,6 +795,7 @@ function FlamegraphZoomView({
       />
       <FlamegraphOptionsContextMenu
         contextMenu={contextMenu}
+        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}

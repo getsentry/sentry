@@ -79,6 +79,9 @@ export function useKeyboardNavigation() {
           items[idx].node = node;
         }
       },
+      onMouseOver: () => {
+        setTabIndex(idx);
+      },
       onMouseEnter: () => {
         setTabIndex(idx);
       },
