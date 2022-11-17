@@ -394,7 +394,7 @@ const appConfig: Configuration = {
         {
           from: `${staticPrefix}/images/logo-sentry.svg`,
           to: 'entrypoints/logo-sentry.svg',
-          toType: 'template',
+          toType: 'file',
         },
       ],
     }),
