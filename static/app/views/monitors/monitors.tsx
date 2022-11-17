@@ -9,12 +9,13 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -126,25 +127,32 @@ class Monitors extends AsyncView<Props, State> {
             </Filters>
             {monitorList?.length ? (
               <Fragment>
-                <Panel>
-                  <PanelBody>
-                    {monitorList?.map(monitor => (
-                      <PanelItemCentered key={monitor.id}>
+                <StyledPanelTable
+                  headers={[t('Monitor Name'), t('Last Check-In'), t('Project')]}
+                >
+                  {monitorList?.map(monitor => (
+                    <Fragment key={monitor.id}>
+                      <MonitorName>
                         <MonitorIcon status={monitor.status} size={16} />
                         <StyledLink
                           to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
                         >
                           {monitor.name}
                         </StyledLink>
-                        {monitor.nextCheckIn ? (
-                          <StyledTimeSince date={monitor.lastCheckIn} />
-                        ) : (
-                          t('n/a')
-                        )}
-                      </PanelItemCentered>
-                    ))}
-                  </PanelBody>
-                </Panel>
+                      </MonitorName>
+                      {monitor.nextCheckIn ? (
+                        <StyledTimeSince date={monitor.lastCheckIn} />
+                      ) : (
+                        <div>{t('n/a')}</div>
+                      )}
+                      <IdBadge
+                        project={monitor.project}
+                        avatarSize={18}
+                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+                      />
+                    </Fragment>
+                  ))}
+                </StyledPanelTable>
                 {monitorListPageLinks && (
                   <Pagination pageLinks={monitorListPageLinks} {...this.props} />
                 )}
@@ -171,16 +179,9 @@ const HeaderTitle = styled(Layout.Title)`
   margin-top: 0;
 `;
 
-const PanelItemCentered = styled(PanelItem)`
-  align-items: center;
-  padding: 0;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
 const StyledLink = styled(Link)`
   flex: 1;
-  padding: ${space(2)};
+  margin-left: ${space(2)};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
@@ -192,6 +193,15 @@ const Filters = styled('div')`
   grid-template-columns: minmax(auto, 300px) 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+`;
+
+const MonitorName = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr max-content max-content;
 `;
 
 export default withRouteAnalytics(withRouter(withOrganization(Monitors)));
