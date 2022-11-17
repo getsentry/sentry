@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -113,14 +114,16 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
-    def test_matches_top_src_file(self):
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_matches_top_src_file(self, logger):
         stacktraces = ["setup.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
-        assert self._caplog.records[0].message == "We do not support top level files."
-        assert self._caplog.records[0].levelname == "INFO"
-        assert self._caplog.records[0].stackframes == [FrameFilename("setup.py")]
+        assert logger.info.called_with(
+            "We do not support top level files.",
+            extra={"stackframes": [FrameFilename("setup.py")]},
+        )
 
     def test_no_dir_depth_match(self):
         code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
@@ -170,7 +173,8 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
-    def test_more_than_one_repo_match(self):
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_more_than_one_repo_match(self, logger):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
         # repo 2: sentry/web/urls.py
@@ -178,8 +182,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert self._caplog.records[0].message == "More than one repo matched sentry/web/urls.py"
-        assert self._caplog.records[0].levelname == "WARNING"
+        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
 
     def test_list_file_matches_single(self):
         frame_filename = FrameFilename("sentry_plugins/slack/client.py")
@@ -207,11 +210,11 @@ class TestDerivedCodeMappings(TestCase):
                 "source_path": "src/sentry/",
             },
             {
-                "filename": "getsentry/web/urls.py",
+                "filename": "sentry/web/urls.py",
                 "repo_name": "Test-Organization/bar",
                 "repo_branch": "main",
                 "stacktrace_root": "sentry/",
-                "source_path": "getsentry/",
+                "source_path": "sentry/",
             },
         ]
         assert matches == expected_matches
