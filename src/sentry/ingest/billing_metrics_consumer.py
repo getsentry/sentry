@@ -16,6 +16,7 @@ from arroyo.backends.kafka.configuration import (
 from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Commit, Message, Partition, Position
 from django.conf import settings
 
@@ -73,7 +74,7 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit)
+        return BillingTxCountMetricConsumerStrategy(commit, max_buffer_size=10_000)
 
 
 class MetricsBucket(TypedDict):
@@ -108,6 +109,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: Commit,
+        max_buffer_size: int,
     ) -> None:
         self._closed: bool = False
         self._commit = commit
@@ -118,6 +120,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # time on removing items from the beginning; while a regular list takes
         # O(n).
         self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
+        self._max_buffer_size = max_buffer_size
 
     def poll(self) -> None:
         while self._ongoing_billing_outcomes:
@@ -192,6 +195,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self._closed
+
+        if len(self._ongoing_billing_outcomes) >= self._max_buffer_size:
+            raise MessageRejected
 
         bucket_payload = self._get_bucket_payload(message)
         org_id = bucket_payload["org_id"]

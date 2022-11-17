@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Message, Partition, Position, Topic
 from freezegun import freeze_time
 
@@ -74,6 +75,7 @@ def test_outcomes_consumed():
     fake_commit = mock.MagicMock()
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
+        max_buffer_size=5,
     )
     strategy._produce = mock.MagicMock()
     assert not fake_commit.mock_calls
@@ -146,3 +148,20 @@ def test_outcomes_consumed():
     with pytest.raises(AssertionError):
         strategy.poll()
         strategy.submit(generate_kafka_message(buckets[0]))
+
+
+def test_consumer_backpressure():
+    bucket = {
+        "metric_id": indexer.resolve(
+            UseCaseKey.PERFORMANCE, 1, "d:transactions/duration@millisecond"
+        ),
+        "type": "d",
+        "org_id": 1,
+        "project_id": 2,
+        "timestamp": 123456,
+        "value": [1.0, 2.0, 3.0],
+    }
+    consumer = BillingTxCountMetricConsumerStrategy(commit=mock.Mock(), max_buffer_size=0)
+
+    with pytest.raises(MessageRejected):
+        consumer.submit(bucket)
