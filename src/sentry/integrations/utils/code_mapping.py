@@ -117,9 +117,8 @@ class CodeMappingTreesHelper:
                     )
                 )
             except NotImplementedError:
-                logger.warning(
-                    "Code mapping failed for module with no package name. Processing continues.",
-                    extra={"frame_filename": frame_filename, "repo_full_name": repo_full_name},
+                logger.exception(
+                    "Code mapping failed for module with no package name. Processing continues."
                 )
             except Exception:
                 logger.exception("Unexpected error. Processing continues.")
