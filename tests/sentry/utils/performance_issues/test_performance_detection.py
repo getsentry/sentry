@@ -924,14 +924,16 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     def test_consecutive_db_span(self):
         SECOND = 1000
+        spans = [
+            create_span("db", 5 * SECOND, "SELECT `customer`.`id` FROM `customers`"),
+            create_span("db", 5 * SECOND, "SELECT `order`.`id` FROM `books_author`"),
+            create_span("db", 5 * SECOND, "SELECT `product`.`id` FROM `products`"),
+        ]
+        spans = list(
+            map(lambda span: modify_span_start(span, 5 * SECOND * spans.index(span)), spans)
+        )
         consecutive_db_event = create_event(
-            [
-                create_span("db", 50 * SECOND, "Db span"),
-                create_span("db", 50 * SECOND, "Db span"),
-                create_span("db", 50 * SECOND, "Db span"),
-                create_span("db", 50 * SECOND, "Db span"),
-                create_span("db", 50 * SECOND, "Db span"),
-            ],
+            spans,
             "a" * 16,
         )
 
