@@ -28,7 +28,6 @@ from sentry.dynamic_sampling.latest_release_booster import (
     get_boosted_releases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -3025,10 +3024,7 @@ class DSLatestReleaseBoostTest(TestCase):
         Tests the case when we have already too many boosted releases, in this case we want to skip the
         boosting of anymore releases.
         """
-        releases = [
-            Release.get_or_create(self.project, f"{x}.0")
-            for x in range(1, BOOSTED_RELEASES_LIMIT + 1)
-        ]
+        releases = [Release.get_or_create(self.project, f"{x}.0") for x in range(1, 3)]
         expected_releases = {}
         for release in releases:
             self.redis_client.set(
@@ -3048,7 +3044,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 "dynamic-sampling:boost-latest-release": True,
             }
         ):
-            new_release = Release.get_or_create(self.project, f"{BOOSTED_RELEASES_LIMIT + 1}.0")
+            new_release = Release.get_or_create(self.project, "3.0")
             self.make_release_transaction(
                 release_version=new_release.version,
                 environment_name=self.environment1.name,

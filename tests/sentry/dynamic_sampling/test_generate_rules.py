@@ -226,7 +226,9 @@ class LatestReleaseTest(TestCase):
         get_blended_sample_rate,
     ):
         get_blended_sample_rate.return_value = 1.0
-        self.redis_client.hset(f"ds::p:{self.project.id}:boosted_releases", 34345, time.time())
+        self.redis_client.hset(
+            f"ds::p:{self.project.id}:boosted_releases", f"ds::r:{1234}", time.time()
+        )
         assert generate_rules(self.project) == [
             {
                 "active": True,
@@ -239,36 +241,45 @@ class LatestReleaseTest(TestCase):
 
     @freeze_time("2022-10-21 18:50:25.000000+00:00")
     @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-    @mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 1)
+    @mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 2)
     def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
         self,
         get_blended_sample_rate,
     ):
         get_blended_sample_rate.return_value = 0.1
-        release_2 = self.create_release(self.project, version="foo-2.0")
 
-        self.redis_client.hset(
-            f"ds::p:{self.project.id}:boosted_releases", self.release.id, time.time()
-        )
-        self.redis_client.hset(
-            f"ds::p:{self.project.id}:boosted_releases", release_2.id, time.time()
-        )
+        releases = [Release.get_or_create(self.project, f"{x}.0") for x in range(1, 4)]
+
+        for release in releases:
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
+            )
 
         expected = [
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["foo-2.0"]}],
-                },
-                "id": 1500,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            },
+            *[
+                {
+                    "sampleRate": 0.5,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "trace.release", "value": [release.version]},
+                            {
+                                "op": "glob",
+                                "name": "trace.environment",
+                                "value": [None],
+                            },
+                        ],
+                    },
+                    "id": 1500 + index,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                }
+                for index, release in enumerate(releases[-2:])
+            ],
             {
                 "active": True,
                 "condition": {"inner": [], "op": "and"},

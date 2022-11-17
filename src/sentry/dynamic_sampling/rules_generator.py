@@ -123,6 +123,8 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                         {
                             "op": "glob",
                             "name": "trace.environment",
+                            # If the environment is None, the array will contain [None] which is interpreted by Relay
+                            # as having no value.
                             "value": [environment],
                         },
                     ],
