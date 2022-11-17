@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry")
 
 
 def get_default_context(
-    request: HttpRequest,
+    request: HttpRequest | None,
     existing_context: Mapping[str, Any] | None = None,
     team: Team | None = None,
 ) -> dict[str, Any]:

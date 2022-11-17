@@ -6,8 +6,6 @@ from enum import Enum
 from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
 from urllib.request import Request
 
-from django.views import View
-
 from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
@@ -20,6 +18,7 @@ from sentry.models import (
     Team,
 )
 from sentry.pipeline import PipelineProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -201,7 +200,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(self) -> Sequence[View]:
+    def get_pipeline_views(self) -> Sequence[PipelineView]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.

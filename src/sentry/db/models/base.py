@@ -47,7 +47,7 @@ class BaseModel(models.Model):  # type: ignore
 
     update = update
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         d = self.__dict__.copy()
         # we can't serialize weakrefs
         d.pop("_Model__data", None)

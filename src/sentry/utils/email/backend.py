@@ -5,7 +5,7 @@ import tempfile
 from typing import Any, Sequence
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMessage
 from django.core.mail.backends.base import BaseEmailBackend
 
 from sentry import options
@@ -36,7 +36,7 @@ class PreviewBackend(BaseEmailBackend):  # type: ignore
     Probably only works on OS X.
     """
 
-    def send_messages(self, email_messages: Sequence[EmailMultiAlternatives]) -> int:
+    def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         for message in email_messages:
             content = bytes(message.message())
             with tempfile.NamedTemporaryFile(

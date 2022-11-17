@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -141,7 +140,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         )
         return self.reply(slack_request, UNLINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: Request) -> Response:
         try:
             slack_request = SlackCommandRequest(request)
             slack_request.validate()
