@@ -496,7 +496,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       await waitFor(() => expect(input).toHaveValue('1+1+1+1+1+1+1+1+1+1+1+1'));
 
-      userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
+      userEvent.hover(screen.getByTestId('arithmeticErrorWarning'));
       await waitFor(() => {
         expect(screen.getByText('Maximum operators exceeded')).toBeInTheDocument();
       });
