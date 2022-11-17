@@ -198,8 +198,9 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               }
             }
 
-            if (key === 'release' && props.profileGroup.metadata.release) {
-              const release = props.profileGroup.metadata.release;
+            if (key === 'release' && value) {
+              const release = value;
+
               // If a release only contains a version key, then we cannot link to it and
               // fallback to just displaying the raw version value.
               if (
@@ -232,6 +233,8 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               );
             }
 
+            // This final fallback is only capabable of rendering a string/undefined/null.
+            // If the value is some other type, make sure not to let it reach here.
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
