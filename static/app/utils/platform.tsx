@@ -7,26 +7,25 @@ import {
   serverless,
 } from 'sentry/data/platformCategories';
 
+const platformCategoryMap = {};
+mobile.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.mobile));
+frontend.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.frontend));
+backend.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.backend));
+serverless.forEach(
+  platform => (platformCategoryMap[platform] = PlatformCategory.backend)
+);
+desktop.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.backend));
+
+/**
+ *
+ * @param platform - a SDK platform, for example javacsript
+ * @returns - the platform category
+ */
 export function platformToCategory(platform: string | undefined): PlatformCategory {
-  if (!platform) {
+  if (!platform || !platformCategoryMap[platform]) {
     return PlatformCategory.other;
   }
-  if (([...mobile] as string[]).includes(platform)) {
-    return PlatformCategory.mobile;
-  }
-  if (([...frontend] as string[]).includes(platform)) {
-    return PlatformCategory.frontend;
-  }
-  if (([...backend] as string[]).includes(platform)) {
-    return PlatformCategory.backend;
-  }
-  if (([...serverless] as string[]).includes(platform)) {
-    return PlatformCategory.serverless;
-  }
-  if (([...desktop] as string[]).includes(platform)) {
-    return PlatformCategory.desktop;
-  }
-  return PlatformCategory.other;
+  return platformCategoryMap[platform];
 }
 
 export function isNativePlatform(platform: string | undefined) {
