@@ -234,11 +234,11 @@ class ProjectRulePreviewTest(TestCase):
             }
         ]
 
-        results = preview(self.project, conditions, filters, MATCH_ARGS)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group in results
 
         filters[0]["value"] = "goodbye world"
-        results = preview(self.project, conditions, filters, MATCH_ARGS)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group not in results
 
     def test_unsupported_conditions(self):

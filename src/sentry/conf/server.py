@@ -1023,7 +1023,7 @@ SENTRY_FEATURES = {
     # Enable issue alert incompatible rule check
     "organizations:issue-alert-incompatible-rules": False,
     # Enable issue alert previews
-    "organizations:issue-alert-preview": True,
+    "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
     "organizations:issue-alert-test-notifications": False,
     # Whether to allow issue only search on the issue list
