@@ -6,9 +6,7 @@ describe('NumberInput', function () {
   it('renders input', function () {
     render(<NumberInput value={5} aria-label="Test Number Input" />);
 
-    const input = screen.getByRole('spinbutton');
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveValue(5);
+    expect(screen.getByRole('spinbutton')).toHaveValue(5);
   });
 
   it('responds to key presses', function () {
