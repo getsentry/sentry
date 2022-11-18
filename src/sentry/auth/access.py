@@ -993,6 +993,7 @@ def from_api_member(
 def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
+    assert not isinstance(auth, SystemToken)
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
             auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True

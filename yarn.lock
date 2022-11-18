@@ -2027,6 +2027,20 @@
     "@react-types/shared" "^3.14.1"
     clsx "^1.1.1"
 
+"@react-aria/i18n@^3.3.2", "@react-aria/i18n@^3.6.2":
+  version "3.6.2"
+  resolved "https://registry.yarnpkg.com/@react-aria/i18n/-/i18n-3.6.2.tgz#74fa50f4b13ca7efe7738fd1960732a076ed049d"
+  integrity sha512-/G22mZQcISX6DcKLBn4j/X53y2SOnFfiD4wOEuY7sIZZDryktd+3I/QHukCnNlf0tKK3PdixQLvWa9Q1RqTSaw==
+  dependencies:
+    "@babel/runtime" "^7.6.2"
+    "@internationalized/date" "^3.0.1"
+    "@internationalized/message" "^3.0.9"
+    "@internationalized/number" "^3.1.1"
+    "@internationalized/string" "^3.0.0"
+    "@react-aria/ssr" "^3.4.0"
+    "@react-aria/utils" "^3.14.1"
+    "@react-types/shared" "^3.16.0"
+
 "@react-aria/i18n@^3.3.3", "@react-aria/i18n@^3.6.0":
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/@react-aria/i18n/-/i18n-3.6.0.tgz#0caf4d2173de411839ee55c1d4591aaf3919d6dc"
@@ -2040,20 +2054,6 @@
     "@react-aria/ssr" "^3.3.0"
     "@react-aria/utils" "^3.13.3"
     "@react-types/shared" "^3.14.1"
-
-"@react-aria/i18n@^3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@react-aria/i18n/-/i18n-3.6.2.tgz#74fa50f4b13ca7efe7738fd1960732a076ed049d"
-  integrity sha512-/G22mZQcISX6DcKLBn4j/X53y2SOnFfiD4wOEuY7sIZZDryktd+3I/QHukCnNlf0tKK3PdixQLvWa9Q1RqTSaw==
-  dependencies:
-    "@babel/runtime" "^7.6.2"
-    "@internationalized/date" "^3.0.1"
-    "@internationalized/message" "^3.0.9"
-    "@internationalized/number" "^3.1.1"
-    "@internationalized/string" "^3.0.0"
-    "@react-aria/ssr" "^3.4.0"
-    "@react-aria/utils" "^3.14.1"
-    "@react-types/shared" "^3.16.0"
 
 "@react-aria/interactions@^3.11.0", "@react-aria/interactions@^3.5.1", "@react-aria/interactions@^3.6.0", "@react-aria/interactions@^3.7.0":
   version "3.11.0"
@@ -2083,7 +2083,7 @@
     "@react-types/label" "^3.7.1"
     "@react-types/shared" "^3.16.0"
 
-"@react-aria/live-announcer@^3.1.1":
+"@react-aria/live-announcer@^3.0.1", "@react-aria/live-announcer@^3.1.1":
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/@react-aria/live-announcer/-/live-announcer-3.1.1.tgz#40f340f6794fca42682fb308fe750ff56bf7c07f"
   integrity sha512-e7b+dRh1SUTla42vzjdbhGYkeLD7E6wIYjYaHW9zZ37rBkSqLHUhTigh3eT3k5NxFlDD/uRxTYuwaFnWQgR+4g==
@@ -2107,23 +2107,23 @@
     "@react-types/menu" "^3.3.0"
     "@react-types/shared" "^3.10.0"
 
-"@react-aria/numberfield@^3.3.3":
-  version "3.3.3"
-  resolved "https://registry.yarnpkg.com/@react-aria/numberfield/-/numberfield-3.3.3.tgz#6a4861eb43abb4d9fcb06de256ee1ecc6047b3f1"
-  integrity sha512-DxVhoD+RsgN385f2OsOg5J1RYo1yZt0AUfIJdHn7FDWYCxruUVmEhzy1ovDxpXkseK0Gh3IdkfHvOfgiqE+pXg==
+"@react-aria/numberfield@~3.0.1":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@react-aria/numberfield/-/numberfield-3.0.1.tgz#b6723ecf986e6a547f247fe0d7ada344b7aa4887"
+  integrity sha512-vS7qtLGNQy/r/omEuTB1ziSyX+J51R77r10V7C/zBbMtUM6cnbGfxFZ2fDWqGtqrQvnfYzTZtPbtNNtuYmVPRQ==
   dependencies:
     "@babel/runtime" "^7.6.2"
-    "@react-aria/i18n" "^3.6.2"
-    "@react-aria/interactions" "^3.13.0"
-    "@react-aria/live-announcer" "^3.1.1"
-    "@react-aria/spinbutton" "^3.2.0"
-    "@react-aria/textfield" "^3.8.0"
-    "@react-aria/utils" "^3.14.1"
-    "@react-stately/numberfield" "^3.3.0"
-    "@react-types/button" "^3.7.0"
-    "@react-types/numberfield" "^3.3.5"
-    "@react-types/shared" "^3.16.0"
-    "@react-types/textfield" "^3.6.1"
+    "@react-aria/i18n" "^3.3.2"
+    "@react-aria/interactions" "^3.5.1"
+    "@react-aria/live-announcer" "^3.0.1"
+    "@react-aria/spinbutton" "^3.0.1"
+    "@react-aria/textfield" "^3.3.1"
+    "@react-aria/utils" "^3.8.2"
+    "@react-stately/numberfield" "^3.0.2"
+    "@react-types/button" "^3.4.1"
+    "@react-types/numberfield" "^3.0.1"
+    "@react-types/shared" "^3.8.0"
+    "@react-types/textfield" "^3.2.3"
 
 "@react-aria/overlays@^3.7.3":
   version "3.7.3"
@@ -2163,7 +2163,7 @@
     "@react-aria/utils" "^3.8.2"
     "@react-types/shared" "^3.8.0"
 
-"@react-aria/spinbutton@^3.2.0":
+"@react-aria/spinbutton@^3.0.1":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@react-aria/spinbutton/-/spinbutton-3.2.0.tgz#f1e12954c3ca20c298f71494e371cec99781de1a"
   integrity sha512-6pbfC/uOz1k+D6NL7l/o855yr3hMBaiLdZpKdGu4N/vybnyS5ZcjX9Y1VswBZjYgvZ3Ojp8fSu/buZMU/zAISw==
@@ -2205,7 +2205,7 @@
     "@react-types/shared" "^3.14.1"
     "@react-types/tabs" "^3.1.3"
 
-"@react-aria/textfield@^3.8.0":
+"@react-aria/textfield@^3.3.1":
   version "3.8.0"
   resolved "https://registry.yarnpkg.com/@react-aria/textfield/-/textfield-3.8.0.tgz#1bc1cd93af82861a789b1bc1c4cd7c1b549f564e"
   integrity sha512-PRU8q1gK0auDMH1YekJScZ4EZMrLrL3QJEHMNDdp2GDQlVISbPeTRy2On20DXfiG8GlXAtCWj9BiZhK2OE71DQ==
@@ -2301,7 +2301,7 @@
     "@react-types/menu" "^3.7.2"
     "@react-types/shared" "^3.15.0"
 
-"@react-stately/numberfield@^3.3.0":
+"@react-stately/numberfield@^3.0.2":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@react-stately/numberfield/-/numberfield-3.3.0.tgz#e1926996772440ea3c9d65ca9b0b9d1914ee9409"
   integrity sha512-UYw8KpLEG7F6U3lHvrqWLdyiWmEeYwvwLlUPErIy+/heoBUW22FRjTIfOANmvVQoeSmd8aGIBWbCVRrbjU6Q5A==
@@ -2432,12 +2432,19 @@
     "@react-types/overlays" "^3.6.4"
     "@react-types/shared" "^3.15.0"
 
-"@react-types/numberfield@^3.3.5":
+"@react-types/numberfield@^3.0.1", "@react-types/numberfield@^3.3.5":
   version "3.3.5"
   resolved "https://registry.yarnpkg.com/@react-types/numberfield/-/numberfield-3.3.5.tgz#423aced559f7431e88b7988bf7e2cb3870fcdb1c"
   integrity sha512-qBhUSkahiIeTW5IvKvyfLtVHgzyqwKfuDIOlJQiBwgrOPR96X8KDDsOib4r5SFv0lhibv0gQ5L5ucXbmwLyQ8A==
   dependencies:
     "@react-types/shared" "^3.16.0"
+
+"@react-types/numberfield@~3.0.1":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@react-types/numberfield/-/numberfield-3.0.1.tgz#1099733924b5379d85bb75d56fa706242ea747ad"
+  integrity sha512-0rXwbyP1PvrZkyWRHH9DgI7G4dqG6uS7XZSD3M4vdkUwzDkJritlwjB4MlKuNwYwx8mL2bXKZdrqlihgP4zIvg==
+  dependencies:
+    "@react-types/shared" "^3.8.0"
 
 "@react-types/overlays@^3.5.1":
   version "3.5.1"
@@ -2477,7 +2484,7 @@
   dependencies:
     "@react-types/shared" "^3.15.0"
 
-"@react-types/textfield@^3.6.1":
+"@react-types/textfield@^3.2.3", "@react-types/textfield@^3.6.1":
   version "3.6.1"
   resolved "https://registry.yarnpkg.com/@react-types/textfield/-/textfield-3.6.1.tgz#70494412144ddbe4e2ae37ba8ef63922e2a9f413"
   integrity sha512-V3EyYw82GVJQbNN0OAWpOLs/UQij+AgUuJpxh8192p/q0B3/9lqepZ9b+Qts2XgMsA+3Db+KgFMWm2IdjaZbpQ==
