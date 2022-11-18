@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
@@ -28,37 +29,28 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-type State = {
-  error: boolean;
-  filteredSimilarItems: SimilarItem[];
-  loading: boolean;
-  similarItems: SimilarItem[];
-  similarLinks: string | null;
-  v2: boolean;
-};
-
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
-  const [state, setState] = useState<State>({
-    similarItems: [],
-    filteredSimilarItems: [],
-    similarLinks: null,
-    loading: true,
-    error: false,
-    v2: false,
-  });
+  const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
+  const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
+  const [filteredSimilarItems, setFilteredSimilarItems] = useState<SimilarItem[]>([]);
+  const [similarLinks, setSimilarLinks] = useState<string | null>(null);
+  const [isLoading, setLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
 
+  const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
 
   const fetchData = useCallback(() => {
-    setState(prevState => ({...prevState, loading: true, error: false}));
+    setLoading(true);
+    setHasError(false);
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
     if (hasSimilarityFeature) {
-      const version = state.v2 ? '2' : '1';
+      const version = isUsingSimilarityViewV2 ? '2' : '1';
 
       reqs.push({
         endpoint: `/issues/${groupId}/similar/?${qs.stringify({
@@ -71,35 +63,32 @@ function SimilarStackTrace({params, location, project}: Props) {
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, state.v2, hasSimilarityFeature]);
+  }, [location.query, groupId, isUsingSimilarityViewV2, hasSimilarityFeature]);
 
   const onGroupingChange = useCallback(
     ({
       mergedParent,
-      similarItems,
-      similarLinks,
-      filteredSimilarItems,
+      similarItems: updatedSimilarItems,
+      filteredSimilarItems: updatedFilteredSimilarItems,
+      similarLinks: updatedSimilarLinks,
       loading,
       error,
     }) => {
       if (similarItems) {
-        setState(prevState => ({
-          ...prevState,
-          similarItems,
-          similarLinks,
-          filteredSimilarItems,
-          loading: loading ?? false,
-          error: error ?? false,
-        }));
+        setSimilarItems(updatedSimilarItems);
+        setFilteredSimilarItems(updatedFilteredSimilarItems);
+        setSimilarLinks(updatedSimilarLinks);
+        setLoading(loading ?? false);
+        setHasError(error ?? false);
         return;
       }
 
       if (mergedParent && mergedParent !== groupId) {
         // Merge success, since we can't specify target, we need to redirect to new parent
-        browserHistory.push(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
+        navigate(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
       }
     },
-    [groupId, orgId]
+    [navigate, similarItems, groupId, orgId]
   );
 
   useEffect(() => {
@@ -120,7 +109,7 @@ function SimilarStackTrace({params, location, project}: Props) {
   }, [onGroupingChange]);
 
   const toggleSimilarityVersion = useCallback(() => {
-    setState(prevState => ({...prevState, v2: !prevState.v2}));
+    setIsUsingSimilarityViewV2(prev => !prev);
   }, []);
 
   const handleMerge = useCallback(() => {
@@ -134,22 +123,17 @@ function SimilarStackTrace({params, location, project}: Props) {
     // Similar issues API currently does not return issues across projects,
     // so we can assume that the first issues project slug is the project in
     // scope
-    const [firstIssue] = state.similarItems.length
-      ? state.similarItems
-      : state.filteredSimilarItems;
+    const [firstIssue] = similarItems.length ? similarItems : filteredSimilarItems;
 
     GroupingStore.onMerge({
       params,
       query: location.query,
       projectId: firstIssue.issue.project.slug,
     });
-  }, [params, location.query, state.similarItems, state.filteredSimilarItems]);
+  }, [params, location.query, similarItems, filteredSimilarItems]);
 
-  const {similarItems, filteredSimilarItems, loading, error, v2, similarLinks} = state;
-
-  const hasV2 = project.features.includes('similarity-view-v2');
-  const isLoading = loading;
-  const isError = error && !isLoading;
+  const hasSimilarityViewV2 = project.features.includes('similarity-view-v2');
+  const isError = hasError && !isLoading;
   const isLoadedSuccessfully = !isError && !isLoading;
   const hasSimilarItems =
     hasSimilarityFeature &&
@@ -166,8 +150,8 @@ function SimilarStackTrace({params, location, project}: Props) {
         </Alert>
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
-          {hasV2 && (
-            <ButtonBar merged active={v2 ? 'new' : 'old'}>
+          {hasSimilarityViewV2 && (
+            <ButtonBar merged active={isUsingSimilarityViewV2 ? 'new' : 'old'}>
               <Button barId="old" size="sm" onClick={toggleSimilarityVersion}>
                 {t('Old Algorithm')}
               </Button>
@@ -193,7 +177,7 @@ function SimilarStackTrace({params, location, project}: Props) {
             project={project}
             groupId={groupId}
             pageLinks={similarLinks}
-            v2={v2}
+            v2={isUsingSimilarityViewV2}
           />
         )}
       </Layout.Main>
