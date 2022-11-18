@@ -44,7 +44,6 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "APIUser"]:
         return Team.objects.get(id=id)
 
     if cls is User:
-        from sentry.services.hybrid_cloud.user_service.impl import user_service
 
         user = user_service.get_user(id)
         if user is None:
@@ -152,7 +151,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :return:
         """
         from sentry.models import User
-        from sentry.services.hybrid_cloud.user_service.impl import user_service
 
         if not actors:
             return []
