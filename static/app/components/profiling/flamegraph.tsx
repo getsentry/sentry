@@ -148,14 +148,17 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         // is larger than the previous one, meaning the new view could now be zoomed in even
         // though the user did not fire any zoom events.
         previousView?.flamegraph.profile === newView.flamegraph.profile &&
-        previousView.configSpace.equals(newView.configSpace) &&
-        // if we're still looking at the same profile but only a preference other than
-        // left heavy has changed, we do want to persist the config view
-        previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+        previousView.configSpace.equals(newView.configSpace)
       ) {
-        newView.setConfigView(
-          previousView.configView.withHeight(newView.configView.height)
-        );
+        if (
+          // if we're still looking at the same profile but only a preference other than
+          // left heavy has changed, we do want to persist the config view
+          previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+        ) {
+          newView.setConfigView(
+            previousView.configView.withHeight(newView.configView.height)
+          );
+        }
       } else if (defined(zoomIntoView)) {
         newView.setConfigView(zoomIntoView);
         return newView;
