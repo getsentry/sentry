@@ -14,11 +14,8 @@ import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import useReplayOnboardingSidebarPanel from 'sentry/utils/replays/hooks/useReplayOnboardingSidebarPanel';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-
-import ReplayOnboardingPanel from './replayOnboardingPanel';
 
 type Props = {
   event: Event;
@@ -27,7 +24,6 @@ type Props = {
 };
 
 function ReplayContent({orgSlug, replaySlug, event}: Props) {
-  const onboardingPanel = useReplayOnboardingSidebarPanel();
   const routes = useRoutes();
   const {fetching, replay, fetchError} = useReplayData({
     orgSlug,
@@ -55,10 +51,6 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
         {t('The replay associated with this event could not be found.')}
       </Alert>
     );
-  }
-
-  if (onboardingPanel.enabled && !replayRecord) {
-    return <ReplayOnboardingPanel {...onboardingPanel} />;
   }
 
   if (fetching || !replayRecord) {

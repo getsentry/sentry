@@ -143,7 +143,7 @@ describe('ReplayContent', () => {
       />
     );
 
-    const detailButtons = screen.getAllByLabelText('View Full Replay');
+    const detailButtons = screen.getAllByLabelText('Open Replay');
     // Expect the details buttons to have the correct href
     expect(detailButtons[0]).toHaveAttribute('href', mockButtonHref);
     expect(detailButtons[1]).toHaveAttribute('href', mockButtonHref);
