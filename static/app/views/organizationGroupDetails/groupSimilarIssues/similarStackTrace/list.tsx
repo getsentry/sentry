@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -52,11 +52,9 @@ function List({
 }: Props) {
   const [showAllItems, setShowAllItems] = useState<boolean>(false);
 
-  const handleShowAll = useCallback(() => setShowAllItems(true), []);
-
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
-  const itemsWithFiltered = items.concat((showAllItems && filteredItems) || []);
+  const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
 
   if (!hasResults) {
     return <Empty />;
@@ -85,7 +83,7 @@ function List({
 
           {hasHiddenItems && !showAllItems && (
             <Footer>
-              <Button onClick={handleShowAll}>
+              <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
               </Button>
             </Footer>
