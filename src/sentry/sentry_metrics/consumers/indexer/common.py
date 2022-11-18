@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, List, MutableMapping, Optional, Set
+from typing import Any, List, MutableMapping, Optional, Set, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -10,9 +10,10 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message
 from django.conf import settings
 
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
 
-MessageBatch = List[Message[KafkaPayload]]
+MessageBatch = List[Message[Union[KafkaPayload, RoutingPayload]]]
 
 logger = logging.getLogger(__name__)
 

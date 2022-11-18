@@ -18,6 +18,7 @@ from django.conf import settings
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -68,7 +69,9 @@ class TransformStep(ProcessingStep[MessageBatch]):
     """
 
     def __init__(
-        self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
+        self,
+        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
+        config: MetricsIngestConfiguration,
     ) -> None:
         self.__message_processor: MessageProcessor = MessageProcessor(config)
         self.__next_step = next_step
