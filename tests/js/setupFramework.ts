@@ -37,6 +37,16 @@ failOnConsole({
       return true;
     }
 
+    // This warning was removed in React 18, can be ignored in most cases
+    // https://github.com/reactwg/react-18/discussions/82
+    if (
+      /Warning: Can't perform a React state update on an unmounted component/.test(
+        errorMessage
+      )
+    ) {
+      return true;
+    }
+
     return false;
   },
 });

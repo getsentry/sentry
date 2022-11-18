@@ -321,6 +321,7 @@ const HeaderRow = styled('div')`
 
 const StyledProjectCard = styled(Panel)`
   min-height: 330px;
+  margin: 0;
 `;
 
 const FooterWrapper = styled('div')`
