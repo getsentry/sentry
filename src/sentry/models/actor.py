@@ -6,10 +6,10 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model, region_silo_only_model
+from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team
-    from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
