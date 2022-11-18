@@ -142,7 +142,7 @@ export class Provider extends Component<Props, State> {
       (prevProps.dragProps.viewWindowStart !== this.props.dragProps.viewWindowStart ||
         prevProps.dragProps.viewWindowEnd !== this.props.dragProps.viewWindowEnd);
 
-    if (dividerPositionChanged || viewWindowChanged) {
+    if (dividerPositionChanged || viewWindowChanged || this.contentSpanBar.size > 0) {
       this.initializeScrollState();
     }
   }
