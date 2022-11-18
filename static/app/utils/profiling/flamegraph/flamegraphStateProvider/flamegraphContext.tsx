@@ -14,6 +14,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     selectedRoot: null,
     threadId: null,
     highlightFrames: null,
+    zoomIntoView: null,
   },
   position: {
     view: Rect.Empty(),

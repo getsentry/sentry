@@ -21,6 +21,7 @@ import {
   ProfileDragDropImportProps,
 } from 'sentry/components/profiling/profileDragDropImport';
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
+import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -75,7 +76,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const flamegraphTheme = useFlamegraphTheme();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot} = useFlamegraphProfiles();
+  const {threadId, selectedRoot, zoomIntoView} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -141,26 +142,28 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         theme: flamegraphTheme,
       });
 
-      // if the profile or the config space of the flamegraph has changed, we do not
-      // want to persist the config view. This is to avoid a case where the new config space
-      // is larger than the previous one, meaning the new view could now be zoomed in even
-      // though the user did not fire any zoom events.
       if (
+        // if the profile or the config space of the flamegraph has changed, we do not
+        // want to persist the config view. This is to avoid a case where the new config space
+        // is larger than the previous one, meaning the new view could now be zoomed in even
+        // though the user did not fire any zoom events.
         previousView?.flamegraph.profile === newView.flamegraph.profile &&
-        previousView.configSpace.equals(newView.configSpace)
-      ) {
+        previousView.configSpace.equals(newView.configSpace) &&
         // if we're still looking at the same profile but only a preference other than
         // left heavy has changed, we do want to persist the config view
-        if (previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy) {
-          newView.setConfigView(
-            previousView.configView.withHeight(newView.configView.height)
-          );
-        }
+        previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+      ) {
+        newView.setConfigView(
+          previousView.configView.withHeight(newView.configView.height)
+        );
+      } else if (defined(zoomIntoView)) {
+        newView.setConfigView(zoomIntoView);
+        return newView;
       }
 
       return newView;
     },
-    [flamegraph, flamegraphCanvas, flamegraphTheme]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoView]
   );
 
   useEffect(() => {
