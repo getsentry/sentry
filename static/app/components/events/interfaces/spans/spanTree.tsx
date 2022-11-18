@@ -197,7 +197,7 @@ class SpanTree extends Component<PropType> {
         span2: EnhancedProcessedSpanType
       ) => {
         if (isGapSpan(span1.span) || isGapSpan(span2.span)) {
-          return false;
+          return isEqual(span1.span, span2.span);
         }
 
         return span1.span.span_id === span2.span.span_id;
@@ -211,11 +211,6 @@ class SpanTree extends Component<PropType> {
         );
 
         prevProps.spans.forEach((span, index) => {
-          if (isGapSpan(span.span)) {
-            cache.clear(index, 0);
-            return;
-          }
-
           // We only want to clear the cache for spans that are expanded.
           if (this.props.spanContextProps.isSpanExpanded(span.span)) {
             cache.clear(index, 0);
@@ -225,11 +220,6 @@ class SpanTree extends Component<PropType> {
         // This loop will ensure that any expanded spans after the spans which were removed
         // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
         this.props.spans.forEach(({span}, index) => {
-          if (isGapSpan(span)) {
-            cache.clear(index, 0);
-            return;
-          }
-
           if (this.props.spanContextProps.isSpanExpanded(span)) {
             // Since spans were removed, the index in the new state is offset by the num of spans removed
             cache.clear(index + diffLeft.size, 0);
@@ -244,11 +234,6 @@ class SpanTree extends Component<PropType> {
         );
 
         prevProps.spans.forEach(({span}, index) => {
-          if (isGapSpan(span)) {
-            cache.clear(index, 0);
-            return;
-          }
-
           // We only want to clear the cache for spans that are added.
           if (this.props.spanContextProps.isSpanExpanded(span)) {
             cache.clear(index, 0);
@@ -256,11 +241,6 @@ class SpanTree extends Component<PropType> {
         });
 
         this.props.spans.forEach(({span}, index) => {
-          if (isGapSpan(span)) {
-            cache.clear(index, 0);
-            return;
-          }
-
           if (this.props.spanContextProps.isSpanExpanded(span)) {
             cache.clear(index, 0);
           }
@@ -269,11 +249,6 @@ class SpanTree extends Component<PropType> {
         // This loop will ensure that any expanded spans after the spans which were removed
         // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
         prevProps.spans.forEach((span, index) => {
-          if (isGapSpan(span.span)) {
-            cache.clear(index, 0);
-            return;
-          }
-
           if (
             !diffRight.has(span) &&
             this.props.spanContextProps.isSpanExpanded(span.span)
