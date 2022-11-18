@@ -74,7 +74,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
-  'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
   };
@@ -82,23 +81,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
-  'issue_details.viewed': IssueDetailsWithAlert &
-    BaseEventAnalyticsParams & {
-      error_count: number;
-      error_has_replay: boolean;
-      event_errors: string;
-      group_has_replay: boolean;
-      has_owner: boolean;
-      is_assigned: boolean;
-      issue_age: number;
-      num_comments: number;
-      has_external_issue?: boolean;
-      integration_assignment_source?: string;
-      issue_level?: string;
-      issue_status?: string;
-      project_has_replay?: boolean;
-      project_platform?: string;
-    };
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -141,8 +123,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
-  'issue_details.viewed': 'Issue Details: Viewed',
-  'issue_details.suspect_commits': 'Issue Details: Suspect Commits',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
