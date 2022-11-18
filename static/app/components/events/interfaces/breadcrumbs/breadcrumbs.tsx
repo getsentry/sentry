@@ -7,7 +7,6 @@ import {
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import orderBy from 'lodash/orderBy';
 
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -75,11 +74,9 @@ function Breadcrumbs({
     updateGrid();
   }, [breadcrumbs, updateGrid]);
 
-  const sortedBreadcrumbs = orderBy(breadcrumbs, 'timestamp', 'desc');
-
   function renderRow({index, key, parent, style}: ListRowProps) {
-    const breadcrumb = sortedBreadcrumbs[index];
-    const isLastItem = sortedBreadcrumbs[0].id === breadcrumb.id;
+    const breadcrumb = breadcrumbs[index];
+    const isLastItem = breadcrumbs[0].id === breadcrumb.id;
     const {height} = style;
     return (
       <CellMeasurer
@@ -137,7 +134,7 @@ function Breadcrumbs({
         </Time>,
         '',
       ]}
-      isEmpty={!sortedBreadcrumbs.length}
+      isEmpty={!breadcrumbs.length}
       {...emptyMessage}
     >
       <Content ref={contentRef}>
@@ -148,7 +145,7 @@ function Breadcrumbs({
               deferredMeasurementCache={cache}
               height={PANEL_MAX_HEIGHT}
               overscanRowCount={5}
-              rowCount={sortedBreadcrumbs.length}
+              rowCount={breadcrumbs.length}
               rowHeight={cache.rowHeight}
               rowRenderer={renderRow}
               width={width}
