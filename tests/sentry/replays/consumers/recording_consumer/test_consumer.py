@@ -267,3 +267,59 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
             platform=self.project.platform,
             user_id=self.organization.default_owner_id,
         )
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    def test_nonchunked_basic_flow(self, mock_record, mock_onboarding_task):
+        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        segment_id = 0
+
+        processing_strategy.submit(
+            Message(
+                Partition(Topic("ingest-replay-recordings"), 1),
+                1,
+                KafkaPayload(
+                    b"key",
+                    msgpack.packb(
+                        {
+                            "type": "replay_recording_nonchunked",
+                            "replay_id": self.replay_id,
+                            "org_id": self.organization.id,
+                            "key_id": 123,
+                            "project_id": self.project.id,
+                            "received": time.time(),
+                            "payload": b'{"segment_id":0}\n' + b"test",
+                        }
+                    ),
+                    [("should_drop", b"1")],
+                ),
+                datetime.now(),
+            )
+        )
+        processing_strategy.poll()
+        processing_strategy.join(1)
+        processing_strategy.terminate()
+        recording_file_name = f"rr:{self.replay_id}:{segment_id}"
+        recording = File.objects.get(name=recording_file_name)
+
+        assert recording
+        assert recording.checksum == sha1(b"test").hexdigest()
+        assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+
+        mock_record.assert_called_with(
+            "first_replay.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
+        )
