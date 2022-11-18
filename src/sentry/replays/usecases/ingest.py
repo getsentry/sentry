@@ -66,15 +66,15 @@ class RecordingIngestMessage:
     payload_with_headers: bytes
 
 
-def ingest_chunked_recording(
+def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
     transaction: Transaction,
 ) -> None:
     """Ingest chunked recording messages."""
     with transaction.start_child(
-        op="replays.usecases.ingest.ingest_chunked_recording",
-        description="ingest_chunked_recording",
+        op="replays.usecases.ingest.ingest_recording_chunked",
+        description="ingest_recording_chunked",
     ):
         try:
             recording_segment_with_headers = collate_segment_chunks(parts)
@@ -97,11 +97,12 @@ def ingest_chunked_recording(
             parts.drop()
 
 
-def ingest_nonchunked_recording(message_dict: dict[str, Any], transaction: Transaction) -> None:
+@metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
+def ingest_recording_not_chunked(message_dict: dict[str, Any], transaction: Transaction) -> None:
     """Ingest non-chunked recording messages."""
     with transaction.start_child(
-        op="replays.usecases.ingest.ingest_nonchunked_recording",
-        description="ingest_nonchunked_recording",
+        op="replays.usecases.ingest.ingest_recording_not_chunked",
+        description="ingest_recording_not_chunked",
     ):
         message = RecordingIngestMessage(
             replay_id=message_dict["replay_id"],

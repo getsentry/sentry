@@ -22,8 +22,8 @@ from sentry.replays.usecases.ingest import (
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
     ingest_chunk,
-    ingest_chunked_recording,
-    ingest_nonchunked_recording,
+    ingest_recording_chunked,
+    ingest_recording_not_chunked,
 )
 from sentry.utils import metrics
 
@@ -67,7 +67,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         parts: RecordingSegmentParts,
         current_transaction: Transaction,
     ) -> None:
-        ingest_chunked_recording(message_dict, parts, current_transaction)
+        ingest_recording_chunked(message_dict, parts, current_transaction)
 
     def _process_recording(
         self,
@@ -127,7 +127,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     current_transaction,
                 )
             elif message_dict["type"] == "replay_recording_nonchunked":
-                ingest_nonchunked_recording(message_dict, current_transaction)
+                ingest_recording_not_chunked(message_dict, current_transaction)
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
