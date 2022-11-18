@@ -17,6 +17,8 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useParams} from 'sentry/utils/useParams';
 
+import {useLocalStorageState} from '../../../utils/useLocalStorageState';
+
 import {FrameStackTable} from './frameStackTable';
 import {ProfileDetails} from './profileDetails';
 
@@ -36,7 +38,10 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('bottom up');
+  const [tab, setTab] = useLocalStorageState<'bottom up' | 'top down'>(
+    'profiling-drawer-view',
+    'bottom up'
+  );
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
@@ -53,7 +58,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         ? filterFlamegraphTree(props.rootNodes, skipFunction)
         : props.rootNodes;
 
-    if (tab === 'call order') {
+    if (tab === 'top down') {
       return maybeFilteredRoots;
     }
 
@@ -69,11 +74,11 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
   const onBottomUpClick = useCallback(() => {
     setTab('bottom up');
-  }, []);
+  }, [setTab]);
 
   const onCallOrderClick = useCallback(() => {
-    setTab('call order');
-  }, []);
+    setTab('top down');
+  }, [setTab]);
 
   const onAllApplicationsClick = useCallback(() => {
     setTreeType('all');
@@ -114,15 +119,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
           margin="none"
-          className={tab === 'call order' ? 'active' : undefined}
+          className={tab === 'top down' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Call Order')}
+            data-title={t('Top Down')}
             priority="link"
             size="zero"
             onClick={onCallOrderClick}
           >
-            {t('Call Order')}
+            {t('Top Down')}
           </Button>
         </ProfilingDetailsListItem>
         <Separator />
@@ -228,7 +233,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
       <FrameStackTable
         {...props}
-        expanded={tab === 'call order'}
+        expanded={tab === 'top down'}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
