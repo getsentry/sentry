@@ -118,7 +118,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         interval, value = self._get_options()
-        if not (interval and value):
+        if not (interval and value is not None):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
@@ -215,7 +215,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, activity: ConditionActivity, buckets: Sequence[Dict[str, Any]]
     ) -> bool:
         interval, value = self._get_options()
-        if not (interval and value):
+        if not (interval and value is not None):
             return False
         interval_delta = self.intervals[interval][1]
 

@@ -16,6 +16,7 @@ from sentry.types.condition_activity import (
     ConditionActivity,
     ConditionActivityType,
 )
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
 from sentry.utils.snuba import parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
@@ -32,6 +33,11 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 ]
+
+GROUP_CATEGORY_TO_DATASET = {
+    GroupCategory.ERROR: Dataset.Events,
+    GroupCategory.PERFORMANCE: Dataset.Transactions,
+}
 
 
 def preview(
@@ -139,12 +145,12 @@ def get_issue_state_activity(
 
 def get_filters(
     project: Project, filters: Conditions, filter_match: str
-) -> Tuple[Sequence[RuleBase], ConditionFunc, List[str]]:
+) -> Tuple[Sequence[RuleBase], ConditionFunc, Dict[Dataset, List[str]]]:
     """
     Returns instantiated filter objects, the filter match function, and relevant snuba columns used for answering event filters
     """
     filter_objects = []
-    event_columns = set()
+    event_columns = defaultdict(list)
     for filter in filters:
         filter_cls = rules.get(filter["id"])
         if filter_cls is None:
@@ -152,7 +158,8 @@ def get_filters(
         filter_object = filter_cls(project, data=filter)
         filter_objects.append(filter_object)
         try:
-            event_columns.update(filter_object.get_event_columns())
+            for dataset, columns in filter_object.get_event_columns().items():
+                event_columns[dataset].extend(columns)
         except NotImplementedError:
             raise PreviewException
 
@@ -160,7 +167,7 @@ def get_filters(
     if filter_func is None:
         raise PreviewException
 
-    return filter_objects, filter_func, list(event_columns)
+    return filter_objects, filter_func, event_columns
 
 
 def get_fired_groups(
@@ -198,6 +205,8 @@ def get_top_groups(
 
     Since frequency conditions require one snuba query per groups, we need to limit the number groups we process.
     """
+    if not condition_activity:
+        return condition_activity
     # TODO: Also check other datasets for top groups
     groups = raw_query(
         dataset=Dataset.Events,
@@ -220,37 +229,62 @@ def get_top_groups(
 
 
 def get_events(
-    project: Project, group_activity: GroupActivityMap, columns: List[str]
+    project: Project,
+    group_activity: GroupActivityMap,
+    columns: Dict[Dataset, List[str]],
 ) -> Dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
-    group_ids = []
-    event_ids = []
+    group_ids = defaultdict(list)
+    event_ids = defaultdict(list)
+    group_categories = Group.objects.filter(id__in=group_activity.keys()).values_list("id", "type")
+    category_map = {
+        group[0]: GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])) for group in group_categories
+    }
     for group, activities in group_activity.items():
+        dataset = GROUP_CATEGORY_TO_DATASET.get(category_map[group], None)
         for activity in activities:
             if activity.type == ConditionActivityType.CREATE_ISSUE:
-                group_ids.append(activity.group_id)
+                group_ids[dataset].append(activity.group_id)
             elif activity.type in (
                 ConditionActivityType.REGRESSION,
                 ConditionActivityType.REAPPEARED,
             ):
                 event_id = activity.data.get("event_id", None)
                 if event_id is not None:
-                    event_ids.append(event_id)
+                    event_ids[dataset].append(event_id)
 
-    columns.append("event_id")
+            activity.data["dataset"] = dataset
+
+    columns = {k: v + ["event_id"] for k, v in columns.items()}
     events = []
-    if group_ids:
+
+    for dataset, ids in group_ids.items():
+        if dataset not in columns:
+            continue
+        kwargs = {
+            "dataset": dataset,
+            "filter_keys": {"project_id": [project.id]},
+            "conditions": [("group_id", "IN", ids)],
+            "orderby": ["group_id", "timestamp"],
+            "limitby": (1, "group_id"),
+            "selected_columns": columns[dataset] + ["group_id"],
+        }
+        if dataset.value == Dataset.Transactions.value:
+            # this query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
+            """
+            kwargs["aggregations"] = [("arrayJoin", ["group_ids"], "group_id")]
+            kwargs["having"] = kwargs.pop("conditions")
+            """
+            continue
+
         events.extend(
-            raw_query(  # retrieves the first event for each group
-                dataset=Dataset.Events,
-                filter_keys={"project_id": [project.id], "group_id": group_ids},
-                orderby=["group_id", "timestamp"],
-                limitby=(1, "group_id"),
-                selected_columns=columns + ["group_id"],
-            ).get("data", [])
+            # retrieves the first event for each group
+            raw_query(**kwargs).get("data", [])
         )
+
+    if group_ids:
         # store event_ids for CREATE_ISSUE condition activities
         group_map = {event["group_id"]: event["event_id"] for event in events}
         for group, activities in group_activity.items():
@@ -258,20 +292,23 @@ def get_events(
             if activities[0].type == ConditionActivityType.CREATE_ISSUE:
                 event_id = group_map.get(group, None)
                 if event_id is not None:
-                    activities[0].data = {"event_id": event_id}
+                    activities[0].data["event_id"] = event_id
 
-    if event_ids:
+    for dataset, ids in event_ids.items():
+        if dataset not in columns:
+            continue
         events.extend(
             raw_query(
-                dataset=Dataset.Events,
-                filter_keys={"project_id": [project.id], "event_id": event_ids},
-                selected_columns=columns,
+                dataset=dataset,
+                filter_keys={"project_id": [project.id]},
+                conditions=[("event_id", "IN", ids)],
+                selected_columns=columns[dataset],
             ).get("data", [])
         )
 
     # the keys and values of tags come in 2 separate lists, pair them up together
-    if "tags.key" in columns and "tags.value" in columns:
-        for event in events:
+    for event in events:
+        if "tags.key" in event and "tags.value" in event:
             keys = event.pop("tags.key")
             values = event.pop("tags.value")
             event["tags"] = {k: v for k, v in zip(keys, values)}
