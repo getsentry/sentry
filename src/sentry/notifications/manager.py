@@ -28,7 +28,7 @@ from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user_service import APIUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 

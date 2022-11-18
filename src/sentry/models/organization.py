@@ -36,8 +36,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
-
+    from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -253,7 +252,6 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[APIUser]:
-        from sentry.services.hybrid_cloud.user import user_service
 
         owner_memberships = OrganizationMember.objects.filter(
             role=roles.get_top_dog().id, organization=self

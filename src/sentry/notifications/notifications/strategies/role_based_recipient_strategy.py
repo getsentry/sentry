@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
 from sentry.models import OrganizationMember
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User

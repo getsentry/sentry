@@ -13,8 +13,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
-from sentry.services.hybrid_cloud import use_real_service
-from sentry.services.hybrid_cloud.organization import (
+from sentry.services.hybrid_cloud.organization_service import (
     ApiOrganization,
     ApiOrganizationMember,
     ApiProject,
@@ -24,6 +23,7 @@ from sentry.services.hybrid_cloud.organization import (
     unescape_flag_name,
 )
 from sentry.testutils.factories import Factories
+from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
 
 

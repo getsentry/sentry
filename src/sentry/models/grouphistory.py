@@ -17,7 +17,7 @@ from sentry.types.activity import ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user_service import APIUser
 
 
 class GroupHistoryStatus:

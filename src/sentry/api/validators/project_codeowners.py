@@ -16,7 +16,7 @@ from sentry.ownership.grammar import parse_code_owners
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user_service import APIUser
 
 
 def validate_association(

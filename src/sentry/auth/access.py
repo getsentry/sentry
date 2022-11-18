@@ -36,10 +36,13 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
-from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.app_service import app_service
+from sentry.services.hybrid_cloud.auth_service import ApiAuthState, ApiMemberSsoState, auth_service
+from sentry.services.hybrid_cloud.organization_service import (
+    ApiTeamMember,
+    ApiUserOrganizationContext,
+)
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 

@@ -8,7 +8,7 @@ from django.db.models import F
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 

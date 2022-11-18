@@ -14,7 +14,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,

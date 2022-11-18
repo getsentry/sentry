@@ -11,7 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, Team
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils.participants import get_send_to
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.types.integrations import ExternalProviders
 
 

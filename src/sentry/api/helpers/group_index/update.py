@@ -48,7 +48,7 @@ from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.signals import (
     issue_ignored,
     issue_mark_reviewed,

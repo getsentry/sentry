@@ -24,7 +24,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import (
+from sentry.services.hybrid_cloud.organization_service import (
     ApiOrganization,
     ApiUserOrganizationContext,
     organization_service,

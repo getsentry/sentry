@@ -11,8 +11,7 @@ from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
-    from sentry.services.hybrid_cloud.user import APIUser
-
+    from sentry.services.hybrid_cloud.user_service import APIUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 

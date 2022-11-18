@@ -28,8 +28,8 @@ from sentry.models.grouphistory import (
     record_group_history_from_activity_type,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option_service import user_option_service
+from sentry.services.hybrid_cloud.user_service import APIUser
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType

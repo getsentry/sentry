@@ -6,7 +6,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_mod
 from sentry.db.models.manager import BaseManager
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 
 class CommitAuthorManager(BaseManager):
@@ -39,7 +39,6 @@ class CommitAuthor(Model):
 
     def find_users(self) -> List["APIUser"]:
         from sentry.models import OrganizationMember
-        from sentry.services.hybrid_cloud.user import user_service
 
         users = user_service.get_many_by_email(self.email)
         org_member_user_ids = set(

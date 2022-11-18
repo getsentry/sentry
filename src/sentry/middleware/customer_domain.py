@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_service import organization_service
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
 

@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import audit_log
 from sentry.api import client
 from sentry.models import Organization, OrganizationStatus
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_service import organization_service
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 

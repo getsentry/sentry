@@ -1,7 +1,7 @@
 from sentry.models import ActorTuple, GroupAssignee, ProjectOwnership, Repository, Team, User
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
-from sentry.services.hybrid_cloud.user import UserService
+from sentry.services.hybrid_cloud.user_service import UserService
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

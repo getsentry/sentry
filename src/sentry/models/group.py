@@ -42,7 +42,7 @@ from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
     from sentry.models import Integration, Organization, Team
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user_service import APIUser
 
 logger = logging.getLogger(__name__)
 

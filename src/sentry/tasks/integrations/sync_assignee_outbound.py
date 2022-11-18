@@ -2,7 +2,7 @@ from typing import Optional
 
 from sentry import analytics, features
 from sentry.models import ExternalIssue, Integration, Organization, User
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user_service import user_service
 from sentry.tasks.base import instrumented_task, retry
 
 

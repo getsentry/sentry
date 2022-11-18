@@ -11,7 +11,7 @@ from sentry.notifications.types import (
 from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
+from sentry.services.hybrid_cloud.user_service import APIUser, UserService, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

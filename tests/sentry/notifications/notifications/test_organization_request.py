@@ -4,7 +4,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user_service import user_service
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
