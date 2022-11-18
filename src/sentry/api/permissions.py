@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rest_framework import permissions
 from rest_framework.request import Request
 
@@ -12,23 +16,26 @@ from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.utils import auth
 
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
-class RelayPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view):
+
+class RelayPermission(permissions.BasePermission):  # type: ignore[misc]
+    def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
 
-class SystemPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view):
+class SystemPermission(permissions.BasePermission):  # type: ignore[misc]
+    def has_permission(self, request: Request, view: object) -> bool:
         return is_system_auth(request.auth)
 
 
-class NoPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view):
+class NoPermission(permissions.BasePermission):  # type: ignore[misc]
+    def has_permission(self, request: Request, view: object) -> bool:
         return False
 
 
-class ScopedPermission(permissions.BasePermission):
+class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
     """
     Permissions work depending on the type of authentication:
 
@@ -41,21 +48,21 @@ class ScopedPermission(permissions.BasePermission):
 
     scope_map = {"HEAD": (), "GET": (), "POST": (), "PUT": (), "PATCH": (), "DELETE": ()}
 
-    def has_permission(self, request: Request, view):
+    def has_permission(self, request: Request, view: object) -> bool:
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
-            return request.user.is_authenticated
+            return request.user.is_authenticated  # type: ignore[no-any-return]
 
-        allowed_scopes = set(self.scope_map.get(request.method, []))
+        allowed_scopes: set[str] = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view, obj):
+    def has_object_permission(self, request: Request, view: object, obj: object) -> bool:
         return False
 
 
-class SuperuserPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view):
+class SuperuserPermission(permissions.BasePermission):  # type: ignore[misc]
+    def has_permission(self, request: Request, view: object) -> bool:
         if is_active_superuser(request):
             return True
         if request.user.is_authenticated and request.user.is_superuser:
@@ -64,16 +71,16 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, request: Request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return False
 
-    def needs_sso(self, request: Request, organization):
+    def needs_sso(self, request: Request, organization: Organization) -> bool:
         return False
 
-    def is_member_disabled_from_limit(self, request: Request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
         return False
 
-    def determine_access(self, request: Request, organization):
+    def determine_access(self, request: Request, organization: Organization) -> None:
         from sentry.api.base import logger
 
         if request.user and request.user.is_authenticated and request.auth:
