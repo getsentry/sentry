@@ -99,6 +99,7 @@ export {IconSync} from './iconSync';
 export {IconTag} from './iconTag';
 export {IconTelescope} from './iconTelescope';
 export {IconTerminal} from './iconTerminal';
+export {IconTimer} from './iconTimer';
 export {IconToggle} from './iconToggle';
 export {IconTrello} from './iconTrello';
 export {IconUnsubscribed} from './iconUnsubscribed';
