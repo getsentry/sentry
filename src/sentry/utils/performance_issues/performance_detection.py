@@ -295,8 +295,8 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            "duration_threshold": 1000,  # ms
-            "consecutive_count_threshold": 3,
+            "duration_threshold": 0,  # ms
+            "consecutive_count_threshold": 2,
         },
     }
 
@@ -868,7 +868,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     The detector first looks for X number of consecutive db query spans,
     each being at least Y in length, where X and Y are defined in the detector threshold settings.
     Once these set of spans are found, the detector will compare each db span in the consecutive list
-    to determine if they are dependant on one another, if so a performance issue is found.
+    to determine if they are dependant on one another, if they are not a performance issue is found.
 
     This detector assuming spans are ordered chronologically
     """
@@ -883,19 +883,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
-        op = span.get("op", None)
         span_duration = get_span_duration(span)
         exceeds_duration_threshold = span_duration > timedelta(
             milliseconds=self.settings["duration_threshold"]
         )
-        overlap = self._overlaps_last_span(span)
 
         if (
             not span_id
-            or not op
-            or not self._is_db_op(op)
+            or not self._is_db_query(span)
             or not exceeds_duration_threshold
-            or overlap
+            or self._overlaps_last_span(span)
         ):
             self._validate_and_store_performance_problem()
             self._reset_variables()
@@ -920,9 +917,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             "db",
             "consecutive db",
             GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
-            cause_span_ids=self.consecutive_db_spans,
+            cause_span_ids=None,
             parent_span_ids=None,
-            offender_span_ids=None,
+            offender_span_ids=self.consecutive_db_spans,
         )
 
     def _are_db_spans_independant(self, spans: list[Span]) -> bool:
@@ -934,7 +931,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             query: str = span.get("description", None)
             if not query:
                 return False
-            if "WHERE" not in query:
+            if "WHERE" not in query.upper():  # TODO - use better regex
                 return True
         return False
 
@@ -951,12 +948,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _reset_variables(self) -> None:
         self.consecutive_db_spans = []
 
-    def _is_db_op(self, op: str) -> bool:
-        return op.startswith("db") and not op.startswith("db.redis")
+    def _is_db_query(self, span: Span) -> bool:
+        op: str = span.get("op", "")
+        description: str = span.get("description", "")
+        is_db_op = op == "db" or op.startswith("db.sql")
+        is_query = "SELECT" in description.upper()  # TODO - make this more elegant
+        return is_db_op and is_query
 
     def _fingerprint(self) -> str:
         """
-        Todo - improve
+        TODO - improve fingerprinting
         """
         problem_class = GroupType.PERORMANCE_CONSECUTIVE_DB_OP
         return f"1-{problem_class}"

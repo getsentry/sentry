@@ -44,7 +44,7 @@
       "request": "launch",
       "module": "pytest",
       "args": [
-        "tests/sentry/utils/performance_issues/test_performance_detection.py::PerformanceDetectionTest::test_consecutive_db_span"
+        "tests/sentry/utils/performance_issues/test_performance_detection.py::PerformanceDetectionTest::test_detects_slow_span_but_not_n_plus_one_in_query_waterfall"
       ],
       "django": true
     }
