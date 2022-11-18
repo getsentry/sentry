@@ -6,68 +6,55 @@ import random
 import time
 from collections import deque
 from concurrent.futures import Future
-from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional
 
 import msgpack
 import sentry_sdk
-from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy
-from arroyo.types import Message, Position
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Message, Partition, Position
 from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
-from sentry.replays.cache import RecordingSegmentParts
-from sentry.replays.usecases.ingest import (
-    RecordingSegmentChunkMessage,
-    RecordingSegmentMessage,
-    ingest_chunk,
-    ingest_recording_chunked,
-    ingest_recording_not_chunked,
-)
+from sentry.replays.usecases.ingest import RecordingSegmentMessage, ingest_recording_not_chunked
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.replays")
 
-CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
 
 
-class MissingRecordingSegmentHeaders(ValueError):
-    pass
-
-
 class ReplayRecordingMessageFuture(NamedTuple):
-    """
-    Map a submitted message to a Future returned by the Producer.
-    This is useful for being able to commit the latest offset back
-    to the original consumer.
-    """
-
     message: Message[KafkaPayload]
     future: Future[None]
 
 
-class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
+class RecordingProcessorStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return RecordingProcessorStrategy(commit)
+
+
+class RecordingProcessorStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
     ) -> None:
         self.__closed = False
-        self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
-        self.__threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
+        self.setup()
 
-    @metrics.wraps("replays.process_recording.store_recording")
-    def _store(
-        self,
-        message_dict: RecordingSegmentMessage,
-        parts: RecordingSegmentParts,
-        current_transaction: Transaction,
-    ) -> None:
-        ingest_recording_chunked(message_dict, parts, current_transaction)
+    def setup(self):
+        self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
+        self.__threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
+
+    def teardown(self):
+        self.__threadpool.shutdown(wait=False)
 
     def _process_recording(
         self,
@@ -75,24 +62,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         message: Message[KafkaPayload],
         current_transaction: Transaction,
     ) -> None:
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["replay_recording"]["id"],
-        )
-        parts = RecordingSegmentParts(
-            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
-        )
-
-        # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
             ReplayRecordingMessageFuture(
                 message,
                 self.__threadpool.submit(
-                    self._store,
+                    ingest_recording_not_chunked,
                     message_dict=message_dict,
-                    parts=parts,
-                    current_transaction=current_transaction,
+                    transaction=current_transaction,
                 ),
             )
         )
@@ -109,25 +85,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
         try:
-
             with current_transaction.start_child(op="msg_unpack"):
                 message_dict = msgpack.unpackb(message.payload.value)
 
-            if message_dict["type"] == "replay_recording_chunk":
-                if type(message_dict["payload"]) is str:
-                    # if the payload is uncompressed, we need to encode it as bytes
-                    # as msgpack will decode it as a utf-8 python string
-                    message_dict["payload"] = message_dict["payload"].encode("utf-8")
-
-                ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), current_transaction)
-            elif message_dict["type"] == "replay_recording":
-                self._process_recording(
-                    cast(RecordingSegmentMessage, message_dict),
-                    message,
-                    current_transaction,
-                )
-            elif message_dict["type"] == "replay_recording_not_chunked":
-                ingest_recording_not_chunked(message_dict, current_transaction)
+            self._process_recording(message_dict, message, current_transaction)
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
@@ -137,7 +98,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
     def close(self) -> None:
         self.__closed = True
-        self.__threadpool.shutdown(wait=False)
+        self.teardown()
 
     def terminate(self) -> None:
         self.close()
@@ -194,7 +155,3 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__commit(self.__commit_data)
                 self.__last_committed = now
                 self.__commit_data = {}
-
-
-def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
-    return f"{project_id}:{replay_id}:{segment_id}"

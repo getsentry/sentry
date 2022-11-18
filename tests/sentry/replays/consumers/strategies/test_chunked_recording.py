@@ -11,15 +11,17 @@ from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 
 from sentry.models import File, OnboardingTask, OnboardingTaskStatus
-from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.strategies.chunked_recording import (
+    ChunkedRecordingProcessorStrategyFactory,
+)
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
 
-class TestRecordingsConsumerEndToEnd(TransactionTestCase):
+class ChunkedRecordingConsumerTestCase(TransactionTestCase):
     @staticmethod
     def processing_factory():
-        return ProcessReplayRecordingStrategyFactory()
+        return ChunkedRecordingProcessorStrategyFactory()
 
     def setUp(self):
         self.replay_id = uuid.uuid4().hex

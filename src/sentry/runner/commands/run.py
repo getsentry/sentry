@@ -697,12 +697,41 @@ def profiles_consumer(**options):
 @configuration
 @batching_kafka_options("ingest-replay-recordings")
 @click.option(
-    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
+    "--topic",
+    default="ingest-replay-recordings",
+    help="Topic to get replay recording data from",
 )
 def replays_recordings_consumer(**options):
-    from sentry.replays.consumers import get_replays_recordings_consumer
+    from sentry.replays.consumers.factory import make_replays_stream_processor
+    from sentry.replays.consumers.strategies.chunked_recording import (
+        ChunkedRecordingProcessorStrategyFactory,
+    )
 
-    get_replays_recordings_consumer(**options).run()
+    stream_processor = make_replays_stream_processor(
+        processor_factory=ChunkedRecordingProcessorStrategyFactory(),
+        **options,
+    )
+    stream_processor.run()
+
+
+@run.command("ingest-replay-recordings-nonchunked")
+@log_options()
+@configuration
+@batching_kafka_options("ingest-replay-recordings-nonchunked")
+@click.option(
+    "--topic",
+    default="ingest-replay-recordings-nonchunked",
+    help="Topic to get non-chunked replay recording data from",
+)
+def replays_recording_nonchunked_consumer(**options):
+    from sentry.replays.consumers.factory import make_replays_stream_processor
+    from sentry.replays.consumers.strategies.recording import RecordingProcessorStrategyFactory
+
+    stream_processor = make_replays_stream_processor(
+        processor_factory=RecordingProcessorStrategyFactory(),
+        **options,
+    )
+    stream_processor.run()
 
 
 @run.command("indexer-last-seen-updater")
