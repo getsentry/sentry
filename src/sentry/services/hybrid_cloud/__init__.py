@@ -115,7 +115,7 @@ def CreateStubFromBase(
 def stubbed(f: Callable[[], ServiceInterface], mode: SiloMode) -> Callable[[], ServiceInterface]:
     def factory() -> ServiceInterface:
         backing = f()
-        return cast(ServiceInterface, CreateStubFromBase(type(backing), mode)(backing))
+        return cast(ServiceInterface, cast(Any, CreateStubFromBase(type(backing), mode))(backing))
 
     return factory
 

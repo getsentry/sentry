@@ -48,12 +48,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[APIUser]:
+    def get_from_group(self, group: "Group") -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_from_project(self, project_id: int) -> List[Group]:
+    def get_from_project(self, project_id: int) -> List["Group"]:
         """Get all users associated with a project identifier"""
         pass
 
@@ -104,7 +104,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @classmethod
-    def serialize_user(cls, user: User) -> APIUser:
+    def serialize_user(cls, user: "User") -> APIUser:
         args = {
             field.name: getattr(user, field.name)
             for field in fields(APIUser)

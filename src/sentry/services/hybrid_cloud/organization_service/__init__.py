@@ -1,23 +1,11 @@
-import dataclasses
 from abc import abstractmethod
-from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set
+from typing import TYPE_CHECKING, List, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.models import (
-        Organization,
-        OrganizationMember,
-        OrganizationMemberTeam,
-        Project,
-        ProjectStatus,
-        ProjectTeam,
-        Team,
-        TeamStatus,
-    )
     from sentry.roles.manager import TeamRole
 
 
@@ -85,95 +73,6 @@ class OrganizationService(InterfaceWithLifecycle):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
-    def _serialize_member_flags(self, member: OrganizationMember) -> "ApiOrganizationMemberFlags":
-        result = ApiOrganizationMemberFlags()
-        for f in dataclasses.fields(ApiOrganizationMemberFlags):
-            setattr(result, f.name, getattr(member.flags, unescape_flag_name(f.name)))
-        return result
-
-    def _serialize_member(
-        self,
-        member: OrganizationMember,
-    ) -> "ApiOrganizationMember":
-        api_member = ApiOrganizationMember(
-            id=member.id,
-            organization_id=member.organization_id,
-            user_id=member.user.id if member.user is not None else None,
-            role=member.role,
-            scopes=list(member.get_scopes()),
-            flags=self._serialize_member_flags(member),
-        )
-
-        omts = OrganizationMemberTeam.objects.filter(
-            organizationmember=member, is_active=True, team__status=TeamStatus.VISIBLE
-        )
-
-        all_project_ids: Set[int] = set()
-        project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
-        for pt in ProjectTeam.objects.filter(
-            project__status=ProjectStatus.VISIBLE, team_id__in={omt.team_id for omt in omts}
-        ):
-            all_project_ids.add(pt.project_id)
-            project_ids_by_team_id[pt.team_id].append(pt.project_id)
-
-        for omt in omts:
-            api_member.member_teams.append(
-                self._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
-            )
-        api_member.project_ids = list(all_project_ids)
-
-        return api_member
-
-    def _serialize_flags(self, org: Organization) -> "ApiOrganizationFlags":
-        result = ApiOrganizationFlags()
-        for f in dataclasses.fields(result):
-            setattr(result, f.name, getattr(org.flags, f.name))
-        return result
-
-    def _serialize_team(self, team: Team) -> "ApiTeam":
-        return ApiTeam(
-            id=team.id,
-            status=team.status,
-            organization_id=team.organization_id,
-            slug=team.slug,
-        )
-
-    def _serialize_team_member(
-        self, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
-    ) -> "ApiTeamMember":
-        result = ApiTeamMember(
-            id=team_member.id,
-            is_active=team_member.is_active,
-            role=team_member.get_team_role(),
-            team_id=team_member.team_id,
-            project_ids=list(project_ids),
-        )
-
-        return result
-
-    def _serialize_project(self, project: Project) -> "ApiProject":
-        return ApiProject(
-            id=project.id,
-            slug=project.slug,
-            name=project.name,
-            organization_id=project.organization_id,
-            status=project.status,
-        )
-
-    def _serialize_organization(self, org: Organization) -> "ApiOrganization":
-        api_org: ApiOrganization = ApiOrganization(
-            slug=org.slug,
-            id=org.id,
-            flags=self._serialize_flags(org),
-            name=org.name,
-        )
-
-        projects: List[Project] = Project.objects.filter(organization=org)
-        teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(self._serialize_project(project) for project in projects)
-        api_org.teams.extend(self._serialize_team(team) for team in teams)
-        return api_org
-
 
 def impl_with_db() -> OrganizationService:
     from sentry.services.hybrid_cloud.organization_service.impl import (
@@ -192,18 +91,16 @@ organization_service: OrganizationService = silo_mode_delegation(
 )
 
 
-def escape_flag_name(flag_name: str) -> str:
-    return flag_name.replace(":", "__").replace("-", "_")
+def team_status_visible() -> int:
+    from sentry.models import TeamStatus
 
-
-def unescape_flag_name(flag_name: str) -> str:
-    return flag_name.replace("__", ":").replace("_", "-")
+    return int(TeamStatus.VISIBLE)
 
 
 @dataclass
 class ApiTeam:
     id: int = -1
-    status: int = TeamStatus.VISIBLE
+    status: int = field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
 
@@ -212,10 +109,16 @@ class ApiTeam:
 class ApiTeamMember:
     id: int = -1
     is_active: bool = False
-    role: Optional[TeamRole] = None
+    role: Optional["TeamRole"] = None
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team_id: int = -1
+
+
+def project_status_visible() -> int:
+    from sentry.models import ProjectStatus
+
+    return int(ProjectStatus.VISIBLE)
 
 
 @dataclass
@@ -224,7 +127,7 @@ class ApiProject:
     slug: str = ""
     name: str = ""
     organization_id: int = -1
-    status: int = ProjectStatus.VISIBLE
+    status: int = field(default_factory=project_status_visible)
 
 
 @dataclass
@@ -234,6 +137,8 @@ class ApiOrganizationMemberFlags:
     member_limit__restricted: bool = False
 
     def __getattr__(self, item: str) -> bool:
+        from sentry.services.hybrid_cloud.organization_service.impl import escape_flag_name
+
         item = escape_flag_name(item)
         return bool(getattr(self, item))
 

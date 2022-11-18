@@ -27,7 +27,7 @@ class UserOptionService(InterfaceWithLifecycle):
         pass
 
 
-def impl_with_db():
+def impl_with_db() -> UserOptionService:
     from sentry.services.hybrid_cloud.user_option_service.user_option import (
         DatabaseBackedUserOptionService,
     )

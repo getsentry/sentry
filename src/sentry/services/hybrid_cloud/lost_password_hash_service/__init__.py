@@ -57,6 +57,6 @@ lost_password_hash_service: LostPasswordHashService = silo_mode_delegation(
     {
         SiloMode.MONOLITH: impl_with_db,
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db(),
+        SiloMode.CONTROL: impl_with_db,
     }
 )
