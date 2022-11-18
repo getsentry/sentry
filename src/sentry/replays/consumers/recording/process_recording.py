@@ -59,6 +59,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
+    @metrics.wraps("replays.process_recording.store_recording")
     def _store(
         self,
         message_dict: RecordingSegmentMessage,

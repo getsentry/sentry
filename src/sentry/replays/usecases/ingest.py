@@ -55,7 +55,6 @@ class MissingRecordingSegmentHeaders(ValueError):
     pass
 
 
-@metrics.wraps("replays.usecases.ingest.ingest_chunked_recording")
 def ingest_chunked_recording(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
