@@ -16,6 +16,10 @@ class TooManyBoostedReleasesException(Exception):
     pass
 
 
+def _get_environment_cache_key_postfix(environment: Optional[str]) -> str:
+    return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
+
+
 def get_redis_client_for_ds() -> Any:
     cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
@@ -36,8 +40,7 @@ def generate_cache_key_for_observed_release(
     boost also that. This requires a tuple for computing uniqueness of release, that is, the tuple (release,
     environment).
     """
-    env_postfix = f"{ENVIRONMENT_SEPARATOR}{environment}" if environment is not None else ""
-    return f"ds::p:{project_id}:r:{release_id}{env_postfix}"
+    return f"ds::p:{project_id}:r:{release_id}{_get_environment_cache_key_postfix(environment)}"
 
 
 def generate_cache_key_for_boosted_releases_hash(project_id: int) -> str:
@@ -53,8 +56,7 @@ def generate_cache_key_for_boosted_release_with_environment(
     """
     Generates a cache key for the boosted release within a hash.
     """
-    env_postfix = f"{ENVIRONMENT_SEPARATOR}{environment}" if environment is not None else ""
-    return f"ds::r:{release_id}{env_postfix}"
+    return f"ds::r:{release_id}{_get_environment_cache_key_postfix(environment)}"
 
 
 def extract_release_and_environment_from_cache_key(cache_key: str) -> Tuple[int, Optional[str]]:
