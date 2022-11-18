@@ -8,6 +8,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -49,12 +50,12 @@ function NumberField({
   onPropertyChange,
 }: FieldProps) {
   const value =
-    data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
+    data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : undefined;
 
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      value === '' &&
+      value === undefined &&
       data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
@@ -66,14 +67,13 @@ function NumberField({
 
   return (
     <InlineNumberInput
-      type="number"
+      min={0}
       name={name}
       value={value}
       placeholder={`${fieldConfig.placeholder}`}
       disabled={disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onPropertyChange(index, name, e.target.value)
-      }
+      onChange={newVal => onPropertyChange(index, name, String(newVal))}
+      aria-label={t('Value')}
     />
   );
 }
@@ -588,7 +588,7 @@ const InlineInput = styled(Input)`
   min-height: 28px;
 `;
 
-const InlineNumberInput = styled(Input)`
+const InlineNumberInput = styled(NumberInput)`
   width: 90px;
   height: 28px;
   min-height: 28px;
