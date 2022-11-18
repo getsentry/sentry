@@ -576,7 +576,7 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
       userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.paste(screen.getByDisplayValue('10'), '-');
+      userEvent.clear(screen.getByDisplayValue('10'));
       userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
