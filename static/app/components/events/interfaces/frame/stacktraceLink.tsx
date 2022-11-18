@@ -239,7 +239,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
             );
           }}
         >
-          {t('Fix code mapping to see suspect commits and more')}
+          {t('Tell us where your source code is')}
         </FixMappingButton>
       </CodeMappingButtonContainer>
     );
@@ -251,7 +251,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <CodeMappingButtonContainer columnQuantity={2}>
         <StyledLink to={`/settings/${organization.slug}/integrations/`}>
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {t('Add an integration to see suspect commits and more')}
+          {t(
+            'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+          )}
         </StyledLink>
         <CloseButton type="button" priority="link" onClick={this.dismissPrompt}>
           <IconClose size="xs" aria-label={t('Close')} />

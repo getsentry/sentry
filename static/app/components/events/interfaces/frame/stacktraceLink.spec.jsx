@@ -22,6 +22,29 @@ describe('StacktraceLink', function () {
     });
   });
 
+  it('renders ask to setup integration', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {config: null, sourceUrl: null, integrations: []},
+    });
+    render(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={org}
+        lineNo={frame.lineNo}
+      />,
+      {context: TestStubs.routerContext()}
+    );
+    expect(
+      await screen.findByText(
+        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('renders setup CTA with integration but no configs', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
@@ -39,7 +62,7 @@ describe('StacktraceLink', function () {
       {context: TestStubs.routerContext()}
     );
     expect(
-      await screen.findByText('Fix code mapping to see suspect commits and more')
+      await screen.findByText('Tell us where your source code is')
     ).toBeInTheDocument();
   });
 
@@ -85,7 +108,7 @@ describe('StacktraceLink', function () {
     );
     expect(
       screen.getByRole('button', {
-        name: 'Fix code mapping to see suspect commits and more',
+        name: 'Tell us where your source code is',
       })
     ).toBeInTheDocument();
   });
