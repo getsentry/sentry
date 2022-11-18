@@ -5,7 +5,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/spanContext';
+import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
@@ -74,6 +74,17 @@ class TransactionBar extends Component<Props, State> {
   state: State = {
     showDetail: false,
   };
+
+  componentDidMount() {
+    const {location, transaction} = this.props;
+
+    if (
+      'event_id' in transaction &&
+      transactionTargetHash(transaction.event_id) === location.hash
+    ) {
+      this.scrollIntoView();
+    }
+  }
 
   transactionRowDOMRef = createRef<HTMLDivElement>();
 
@@ -437,29 +448,21 @@ class TransactionBar extends Component<Props, State> {
     const {location, organization, isVisible, transaction} = this.props;
     const {showDetail} = this.state;
 
+    if (!isTraceFullDetailed(transaction)) {
+      return null;
+    }
+
+    if (!isVisible || !showDetail) {
+      return null;
+    }
+
     return (
-      <AnchorLinkManager.Consumer>
-        {({registerScrollFn, scrollToHash}) => {
-          if (!isTraceFullDetailed(transaction)) {
-            return null;
-          }
-
-          registerScrollFn(`#txn-${transaction.event_id}`, this.scrollIntoView, false);
-
-          if (!isVisible || !showDetail) {
-            return null;
-          }
-
-          return (
-            <TransactionDetail
-              location={location}
-              organization={organization}
-              transaction={transaction}
-              scrollToHash={scrollToHash}
-            />
-          );
-        }}
-      </AnchorLinkManager.Consumer>
+      <TransactionDetail
+        location={location}
+        organization={organization}
+        transaction={transaction}
+        scrollIntoView={this.scrollIntoView}
+      />
     );
   }
 

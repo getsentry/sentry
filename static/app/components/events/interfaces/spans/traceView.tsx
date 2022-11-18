@@ -67,64 +67,66 @@ function TraceView(props: Props) {
   }
 
   return (
-    <SpanContext.Consumer>
-      {spanContextProps => (
-        <DragManager interactiveLayerRef={minimapInteractiveRef}>
-          {(dragProps: DragManagerChildrenProps) => (
-            <Observer>
-              {() => {
-                const parsedTrace = waterfallModel.parsedTrace;
-                return (
-                  <CursorGuideHandler.Provider
-                    interactiveLayerRef={minimapInteractiveRef}
-                    dragProps={dragProps}
-                    trace={parsedTrace}
-                  >
-                    <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
-                      <DividerHandlerManager.Consumer>
-                        {dividerHandlerChildrenProps => {
-                          return (
-                            <ScrollbarManager.Provider
-                              dividerPosition={
-                                dividerHandlerChildrenProps.dividerPosition
-                              }
-                              interactiveLayerRef={virtualScrollBarContainerRef}
-                              dragProps={dragProps}
-                              isEmbedded={isEmbedded}
-                            >
-                              {renderHeader(dragProps)}
-                              <Observer>
-                                {() => (
-                                  <CustomerProfiler id="SpanTree">
-                                    <SpanTree
-                                      traceViewRef={traceViewRef}
-                                      dragProps={dragProps}
-                                      organization={organization}
-                                      waterfallModel={waterfallModel}
-                                      filterSpans={waterfallModel.filterSpans}
-                                      spans={waterfallModel.getWaterfall({
-                                        viewStart: dragProps.viewWindowStart,
-                                        viewEnd: dragProps.viewWindowEnd,
-                                      })}
-                                      focusedSpanIds={waterfallModel.focusedSpanIds}
-                                      spanContextProps={spanContextProps}
-                                    />
-                                  </CustomerProfiler>
-                                )}
-                              </Observer>
-                            </ScrollbarManager.Provider>
-                          );
-                        }}
-                      </DividerHandlerManager.Consumer>
-                    </DividerHandlerManager.Provider>
-                  </CursorGuideHandler.Provider>
-                );
-              }}
-            </Observer>
-          )}
-        </DragManager>
-      )}
-    </SpanContext.Consumer>
+    <SpanContext.Provider>
+      <SpanContext.Consumer>
+        {spanContextProps => (
+          <DragManager interactiveLayerRef={minimapInteractiveRef}>
+            {(dragProps: DragManagerChildrenProps) => (
+              <Observer>
+                {() => {
+                  const parsedTrace = waterfallModel.parsedTrace;
+                  return (
+                    <CursorGuideHandler.Provider
+                      interactiveLayerRef={minimapInteractiveRef}
+                      dragProps={dragProps}
+                      trace={parsedTrace}
+                    >
+                      <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
+                        <DividerHandlerManager.Consumer>
+                          {dividerHandlerChildrenProps => {
+                            return (
+                              <ScrollbarManager.Provider
+                                dividerPosition={
+                                  dividerHandlerChildrenProps.dividerPosition
+                                }
+                                interactiveLayerRef={virtualScrollBarContainerRef}
+                                dragProps={dragProps}
+                                isEmbedded={isEmbedded}
+                              >
+                                {renderHeader(dragProps)}
+                                <Observer>
+                                  {() => (
+                                    <CustomerProfiler id="SpanTree">
+                                      <SpanTree
+                                        traceViewRef={traceViewRef}
+                                        dragProps={dragProps}
+                                        organization={organization}
+                                        waterfallModel={waterfallModel}
+                                        filterSpans={waterfallModel.filterSpans}
+                                        spans={waterfallModel.getWaterfall({
+                                          viewStart: dragProps.viewWindowStart,
+                                          viewEnd: dragProps.viewWindowEnd,
+                                        })}
+                                        focusedSpanIds={waterfallModel.focusedSpanIds}
+                                        spanContextProps={spanContextProps}
+                                      />
+                                    </CustomerProfiler>
+                                  )}
+                                </Observer>
+                              </ScrollbarManager.Provider>
+                            );
+                          }}
+                        </DividerHandlerManager.Consumer>
+                      </DividerHandlerManager.Provider>
+                    </CursorGuideHandler.Provider>
+                  );
+                }}
+              </Observer>
+            )}
+          </DragManager>
+        )}
+      </SpanContext.Consumer>
+    </SpanContext.Provider>
   );
 }
 
