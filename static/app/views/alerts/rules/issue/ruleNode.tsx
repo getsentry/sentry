@@ -454,7 +454,9 @@ function RuleNode({
     }
     return (
       <MarginlessAlert type="error" showIcon>
-        {t('These conditions conflict, please select different conditions.')}
+        {t(
+          'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
+        )}
       </MarginlessAlert>
     );
   }
