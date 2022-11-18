@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass, field
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import SentryApp, SentryAppInstallation
 
 
 class AppService(InterfaceWithLifecycle):

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization_service import ApiOrganizationMember
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import OrganizationMember
 
 
 class AuthService(InterfaceWithLifecycle):

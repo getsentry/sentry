@@ -1,11 +1,13 @@
 import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import LostPasswordHash
 
 
 class LostPasswordHashService(InterfaceWithLifecycle):

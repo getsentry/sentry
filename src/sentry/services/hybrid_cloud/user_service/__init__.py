@@ -1,10 +1,12 @@
 from abc import abstractmethod
 from dataclasses import dataclass, fields
-from typing import Any, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
-from sentry.models import Group, User
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import Group, User
 
 
 @dataclass(frozen=True, eq=True)

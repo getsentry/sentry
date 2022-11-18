@@ -2,21 +2,23 @@ import dataclasses
 from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Iterable, List, MutableMapping, Optional, Set
+from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set
 
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectStatus,
-    ProjectTeam,
-    Team,
-    TeamStatus,
-)
-from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import (
+        Organization,
+        OrganizationMember,
+        OrganizationMemberTeam,
+        Project,
+        ProjectStatus,
+        ProjectTeam,
+        Team,
+        TeamStatus,
+    )
+    from sentry.roles.manager import TeamRole
 
 
 class OrganizationService(InterfaceWithLifecycle):

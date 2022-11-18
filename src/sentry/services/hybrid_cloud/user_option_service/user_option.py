@@ -1,8 +1,10 @@
-from typing import Iterable, List, Optional
+from typing import TYPE_CHECKING, Iterable, List, Optional
 
-from sentry.models.options.user_option import UserOption
-from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option_service import UserOptionService
+
+if TYPE_CHECKING:
+    from sentry.models.options.user_option import UserOption
+    from sentry.models.project import Project
 
 
 class DatabaseBackedUserOptionService(UserOptionService):
