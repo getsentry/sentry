@@ -1,30 +1,26 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import useApi from 'sentry/utils/useApi';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
@@ -66,8 +62,6 @@ function TransactionHeader({
       organization_id: organization.id,
     });
   }
-  const api = useApi();
-  const [replaysCount, setReplaysCount] = useState<number>();
 
   const project = projects.find(p => p.id === projectId);
 
@@ -107,40 +101,11 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const fetchReplaysCount = useCallback(async () => {
-    if (hasSessionReplay) {
-      const replayEventView = EventView.fromNewQueryWithLocation(
-        {
-          id: '',
-          name: `Replay events count within a transaction`,
-          version: 2,
-          fields: ['count_unique(replayId)'],
-          query: `event.type:transaction transaction:${transactionName}`,
-          projects: [],
-        },
-        location
-      );
-
-      try {
-        const [data] = await doDiscoverQuery<TableData>(
-          api,
-          `/organizations/${organization.slug}/events/`,
-          replayEventView.getEventsAPIPayload(location)
-        );
-
-        setReplaysCount(Number(data.data?.[0]?.['count_unique(replayId)'] ?? 0));
-      } catch (err) {
-        Sentry.captureException(err);
-        return null;
-      }
-    }
-
-    return null;
-  }, [api, hasSessionReplay, location, organization.slug, transactionName]);
-
-  useEffect(() => {
-    fetchReplaysCount();
-  }, [fetchReplaysCount]);
+  const replaysCount = useReplaysCount({
+    transactionNames: transactionName,
+    organization,
+    project,
+  })[transactionName];
 
   return (
     <Layout.Header>
@@ -242,13 +207,7 @@ function TransactionHeader({
               </Item>
               <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
                 {t('Replays')}
-                <Badge
-                  text={
-                    defined(replaysCount) && !Number.isNaN(replaysCount)
-                      ? replaysCount
-                      : null
-                  }
-                />
+                <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
               </Item>
             </TabList>
