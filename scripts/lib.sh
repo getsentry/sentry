@@ -203,6 +203,8 @@ bootstrap() {
     # Load mocks requires a super user to exist, thus, we execute after create-user
     bin/load-mocks
     build-platform-assets
+    done-bootstraping
+    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
