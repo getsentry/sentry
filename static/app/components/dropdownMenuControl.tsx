@@ -162,6 +162,8 @@ function DropdownMenuControl({
       target &&
       triggerRef.current !== target &&
       !triggerRef.current?.contains(target),
+    // Necessary for submenus to be correctly positioned
+    ...(isSubmenu && {preventOverflowOptions: {boundary: document.body}}),
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
