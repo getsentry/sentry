@@ -948,7 +948,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
-        filters = {"project_id": project_ids, "group_id": group_ids}
+        filters = {"project_id": project_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         return aliased_query(
@@ -956,7 +956,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=[
+                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
+            ]
+            + (conditions or []),
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
