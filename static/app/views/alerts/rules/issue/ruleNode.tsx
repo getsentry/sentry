@@ -49,14 +49,13 @@ function NumberField({
   fieldConfig,
   onPropertyChange,
 }: FieldProps) {
-  const value =
-    data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : undefined;
+  const value = data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : NaN;
 
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      value === undefined &&
       data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
+      isNaN(value) &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
       onPropertyChange(index, name, `${fieldConfig.placeholder}`);
