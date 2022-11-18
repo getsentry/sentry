@@ -6,7 +6,7 @@ import {useNumberFieldState} from '@react-stately/numberfield';
 import Input, {InputStylesProps} from 'sentry/components/input';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
-interface NumberInputProps
+export interface NumberInputProps
   extends InputStylesProps,
     AriaNumberFieldProps,
     Pick<
