@@ -18,13 +18,11 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
-    from sentry.services.hybrid_cloud.user_service import APIUser
-    from sentry.services.hybrid_cloud.user_service import APIUser as APIUserClass
-    from sentry.services.hybrid_cloud.user_service import user_service
 
 
 class GroupSubscriptionManager(BaseManager):  # type: ignore
@@ -59,7 +57,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     ) -> Optional[bool]:
         from sentry.models import Team, User
 
-        if isinstance(actor, APIUserClass) or isinstance(actor, User):
+        if isinstance(actor, APIUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
