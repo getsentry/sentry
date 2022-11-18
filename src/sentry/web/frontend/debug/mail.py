@@ -185,6 +185,44 @@ def make_event(request, project, platform):
     return event
 
 
+def make_performance_event(project):
+    with override_options(
+        {
+            "performance.issues.all.problem-creation": 1.0,
+            "performance.issues.all.problem-detection": 1.0,
+            "performance.issues.n_plus_one_db.problem-creation": 1.0,
+        }
+    ):
+        perf_data = dict(
+            load_data(
+                "transaction-n-plus-one",
+                timestamp=datetime(2022, 11, 11, 21, 39, 23, 30723),
+            )
+        )
+        perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+        perf_event_manager = EventManager(perf_data)
+        perf_event_manager.normalize()
+        perf_data = perf_event_manager.get_data()
+        perf_event = perf_event_manager.save(project.id)
+
+    perf_event = perf_event.for_group(perf_event.groups[0])
+    return perf_event
+
+
+def get_shared_context(rule, org, project, group, event):
+    return {
+        "rule": rule,
+        "rules": get_rules([rule], org, project),
+        "group": group,
+        "event": event,
+        "timezone": pytz.timezone("Europe/Vienna"),
+        # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+        #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+        "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+        "tags": event.tags,
+    }
+
+
 def add_unsubscribe_link(context):
     if "unsubscribe_link" not in context:
         context[
@@ -339,16 +377,8 @@ def alert(request):
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
         context={
-            "rule": rule,
-            "rules": get_rules([rule], org, project),
-            "group": group,
-            "event": event,
-            "timezone": pytz.timezone("Europe/Vienna"),
-            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
-            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            **get_shared_context(rule, org, project, group, event),
             "interfaces": get_interface_list(event),
-            "tags": event.tags,
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
         },
@@ -375,14 +405,9 @@ def release_alert(request):
         html_template="sentry/emails/release_alert.html",
         text_template="sentry/emails/release_alert.txt",
         context={
-            "rules": get_rules([rule], org, project),
-            "group": group,
-            "event": event,
-            "event_user": event_user,
-            "timezone": pytz.timezone("Europe/Vienna"),
-            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            **get_shared_context(rule, org, project, group, event),
             "interfaces": get_interface_list(event),
-            "tags": event.tags,
+            "event_user": event_user,
             "contexts": contexts,
             "users_seen": users_seen,
             "project": project,
@@ -459,28 +484,9 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ):
-            perf_data = dict(
-                load_data(
-                    "transaction-n-plus-one",
-                )
-            )
-            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-            perf_event_manager = EventManager(perf_data)
-            perf_event_manager.normalize()
-            perf_data = perf_event_manager.get_data()
-            perf_event = perf_event_manager.save(project.id)
-
-        perf_event = perf_event.for_group(perf_event.groups[0])
+        perf_event = make_performance_event(project)
         # don't clobber error issue ids
         perf_event.group.id = i + 100
-
         perf_group = perf_event.group
 
         records.append(
