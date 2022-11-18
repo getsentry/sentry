@@ -110,8 +110,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def _get_options(self) -> Tuple[str | None, float | None]:
         interval, value = None, None
         try:
-            value = float(self.get_option("value"))
             interval = self.get_option("interval")
+            value = float(self.get_option("value"))
         except (TypeError, ValueError):
             pass
         return interval, value
