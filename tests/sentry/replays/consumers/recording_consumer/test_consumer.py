@@ -191,6 +191,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                     "chunks": 1,
                     "id": self.replay_recording_id,
                 },
+                "org_id": self.organization.id,
+                "key_id": 123,
+                "received": time.time(),
                 "project_id": self.project.id,
             },
         ]

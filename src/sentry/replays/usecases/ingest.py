@@ -87,7 +87,7 @@ def ingest_recording_chunked(
             key_id=message_dict.get("key_id"),
             org_id=message_dict.get("org_id"),
             project_id=message_dict["project_id"],
-            received=message_dict.get("received"),
+            received=message_dict["received"],
             payload_with_headers=recording_segment_with_headers,
         )
         ingest_recording(message, transaction)
