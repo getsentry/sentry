@@ -2,8 +2,8 @@ import {useCallback, useContext} from 'react';
 
 import {ButtonProps} from 'sentry/components/button';
 import HookStore from 'sentry/stores/hookStore';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 type Props = ButtonProps;
 
@@ -21,7 +21,7 @@ export default function useButtonClick({
   'aria-label': ariaLabel,
 }: Props) {
   const organization = useContext(OrganizationContext);
-  const routes = useRoutes();
+  const routes = useContext(RouteContext)?.routes;
 
   const buttonClick = useCallback(
     (e: React.MouseEvent) => {
@@ -36,7 +36,12 @@ export default function useButtonClick({
         return;
       }
 
-      if (organization) {
+      const considerSendingAnalytics =
+        organization &&
+        routes &&
+        organization.features.includes('track-button-click-events');
+
+      if (considerSendingAnalytics) {
         trackButtonClick({
           eventName: analyticsEventName,
           eventKey: analyticsEventKey,
