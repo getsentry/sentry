@@ -1,9 +1,11 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
+import debounce from 'lodash/debounce';
 
-import SearchBar from 'sentry/components/searchBar';
+import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -199,7 +201,6 @@ function FlamegraphSearch({
   const search = useFlamegraphSearch();
   const dispatch = useDispatchFlamegraphState();
   const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
-
   const allFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
       return flamegraphs.reduce(
@@ -241,21 +242,26 @@ function FlamegraphSearch({
     }
   }, [search.results, search.index, onZoomIntoFrame]);
 
-  const handleChange: (value: string) => void = useCallback(
-    value => {
-      if (!value) {
-        dispatch({type: 'clear search'});
-        return;
-      }
+  const handleChange = useMemo(
+    () =>
+      debounce(value => {
+        if (!value) {
+          dispatch({type: 'clear search'});
+          return;
+        }
+        dispatch({
+          type: 'set results',
+          payload: {
+            results: frameSearch(value, allFrames, searchIndex),
+            query: value,
+          },
+        });
 
-      dispatch({
-        type: 'set results',
-        payload: {
-          results: frameSearch(value, allFrames, searchIndex),
-          query: value,
-        },
-      });
-    },
+        dispatch({
+          type: 'set search index position',
+          payload: 0,
+        });
+      }),
     [dispatch, allFrames, searchIndex]
   );
 
@@ -321,12 +327,44 @@ function FlamegraphSearch({
     <StyledSearchBar
       size="xs"
       placeholder={t('Find Frames')}
-      query={search.query}
+      defaultQuery={search.query}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
+      trailing={
+        search.query && (
+          <Fragment>
+            <StyledTrailingText>
+              {`${
+                search.index !== null && search.results.size > 0 ? search.index + 1 : '-'
+              }/${search.results.size}`}
+            </StyledTrailingText>
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" />}
+              aria-label={t('Next')}
+              onClick={onNextSearchClick}
+            />
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" direction="down" />}
+              aria-label={t('Previous')}
+              onClick={onPreviousSearchClick}
+            />
+          </Fragment>
+        )
+      }
     />
   );
 }
+
+const StyledTrailingText = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;
