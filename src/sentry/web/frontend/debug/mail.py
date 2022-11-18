@@ -15,7 +15,6 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
@@ -159,6 +158,33 @@ def make_group_generator(random, project):
         yield group
 
 
+def make_event(request, project, platform):
+    group = next(make_group_generator(get_random(request), project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data.pop("logentry", None)
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    group.message = event.search_message
+    event_type = get_event_type(event.data)
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    return event
+
+
 def add_unsubscribe_link(context):
     if "unsubscribe_link" not in context:
         context[
@@ -282,26 +308,12 @@ class ActivityMailDebugView(View):
     def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
+        platform = request.GET.get("platform", "python")
+        event = make_event(request, project, platform)
 
-        group = next(make_group_generator(get_random(request), project))
-
-        data = dict(load_data("python"))
-        data["message"] = group.message
-        data.pop("logentry", None)
-
-        event_manager = EventManager(data)
-        event_manager.normalize()
-        data = event_manager.get_data()
-        event_type = get_event_type(data)
-
-        event = eventstore.create_event(
-            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
+        activity = Activity(
+            group=event.group, project=event.project, **self.get_activity(request, event)
         )
-
-        group.message = event.search_message
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
-
-        activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
@@ -318,34 +330,10 @@ def alert(request):
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
 
-    random = get_random(request)
-    group = next(make_group_generator(random, project))
-
-    data = dict(load_data(platform))
-    data["message"] = group.message
-    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-    data.pop("logentry", None)
-    data["environment"] = "prod"
-    data["tags"] = [
-        ("logger", "javascript"),
-        ("environment", "prod"),
-        ("level", "error"),
-        ("device", "Other"),
-    ]
-
-    event_manager = EventManager(data)
-    event_manager.normalize()
-    data = event_manager.get_data()
-    event = event_manager.save(project.id)
-    # Prevent CI screenshot from constantly changing
-    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = get_event_type(event.data)
-
-    group.message = event.search_message
-    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    event = make_event(request, project, platform)
+    group = event.group
 
     rule = Rule(id=1, label="An example rule")
-    interface_list = get_interface_list(event)
 
     return MailPreview(
         html_template="sentry/emails/error.html",
@@ -359,7 +347,7 @@ def alert(request):
             # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
             #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
-            "interfaces": interface_list,
+            "interfaces": get_interface_list(event),
             "tags": event.tags,
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
@@ -373,49 +361,12 @@ def release_alert(request):
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
 
-    random = get_random(request)
-    group = next(make_group_generator(random, project))
-
-    data = dict(load_data(platform))
-    data["message"] = group.message
-    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-    data.pop("logentry", None)
-    data["environment"] = "prod"
-    data["tags"] = [
-        ("logger", "javascript"),
-        ("environment", "prod"),
-        ("level", "error"),
-        ("device", "Other"),
-    ]
-
-    event_manager = EventManager(data)
-    event_manager.normalize()
-    data = event_manager.get_data()
-    event = event_manager.save(project.id)
-    # Prevent CI screenshot from constantly changing
-    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = get_event_type(event.data)
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = random.randint(0, 100 * 1000)
-
-    group.message = event.search_message
-    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    event = make_event(request, project, platform)
+    group = event.group
 
     rule = Rule(id=1, label="An example rule")
-
-    # XXX: this interface_list code needs to be the same as in
-    #      src/sentry/mail/adapter.py
-    interfaces = {}
-    for interface in event.interfaces.values():
-        body = interface.to_email_html(event)
-        if not body:
-            continue
-        text_body = interface.to_string(event)
-        interfaces[interface.get_title()] = {
-            "label": interface.get_title(),
-            "html": mark_safe(body),
-            "body": text_body,
-        }
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = get_random(request).randint(0, 100 * 1000)
 
     contexts = event.data["contexts"].items() if "contexts" in event.data else None
     event_user = event.data["event_user"] if "event_user" in event.data else None
@@ -430,7 +381,7 @@ def release_alert(request):
             "event_user": event_user,
             "timezone": pytz.timezone("Europe/Vienna"),
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
-            "interfaces": interfaces,
+            "interfaces": get_interface_list(event),
             "tags": event.tags,
             "contexts": contexts,
             "users_seen": users_seen,
