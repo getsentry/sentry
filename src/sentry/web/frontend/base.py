@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import logging
 from typing import Any, Mapping, Protocol
 
@@ -536,7 +535,7 @@ class OrganizationView(BaseView):
         return args, kwargs
 
 
-class RegionSiloOrganizationView(OrganizationView, abc.ABC):
+class RegionSiloOrganizationView(OrganizationView):
     """
     A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
     region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
@@ -550,19 +549,11 @@ class RegionSiloOrganizationView(OrganizationView, abc.ABC):
 
         return args, kwargs
 
-    @abc.abstractmethod
-    def handle(self, request, organization: Organization, *args, **kwargs) -> HttpResponse:
-        pass
 
-
-class ControlSiloOrganizationView(OrganizationView, abc.ABC):
+class ControlSiloOrganizationView(OrganizationView):
     def convert_args(self, request, *args, **kwargs):
         kwargs["organization"] = self.active_organization.organization
         return super().convert_args(request, *args, **kwargs)
-
-    @abc.abstractmethod
-    def handle(self, request, organization: ApiOrganization, *args, **kwargs) -> HttpResponse:
-        pass
 
 
 class ProjectView(RegionSiloOrganizationView):
