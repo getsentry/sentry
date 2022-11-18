@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -13,6 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {tct} from 'sentry/locale';
@@ -172,14 +173,15 @@ class List extends Component<Props, State> {
       );
     }
 
+    const groupIds = this.props.issues.map(({id}) => id);
     return (
-      <Fragment>
+      <IssuesReplayCountProvider groupIds={groupIds}>
         <StyledPanel>
           <GroupListHeader withChart={false} />
           <PanelBody>{this.renderContent()}</PanelBody>
         </StyledPanel>
         <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
-      </Fragment>
+      </IssuesReplayCountProvider>
     );
   }
 }

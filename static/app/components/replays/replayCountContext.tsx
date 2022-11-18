@@ -18,4 +18,6 @@ import type useReplaysCount from 'sentry/components/replays/useReplaysCount';
  * const count = useContext(ReplayCountContext)[groupId];
  * ```
  */
-export default createContext<ReturnType<typeof useReplaysCount>>({});
+const ReplayCountContext = createContext<ReturnType<typeof useReplaysCount>>({});
+
+export default ReplayCountContext;
