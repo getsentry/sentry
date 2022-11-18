@@ -1077,7 +1077,7 @@ SENTRY_FEATURES = {
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
-    "organizations:integrations-stacktrace-link": False,
+    "organizations:integrations-stacktrace-link": True,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
     # Limit project events endpoint to only query back a certain number of days
