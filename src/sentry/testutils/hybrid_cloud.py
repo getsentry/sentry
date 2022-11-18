@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import threading
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
 
-from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle
+from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
 from sentry.silo import SiloMode
 
 
@@ -89,6 +88,6 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
             len(call_sites) < max_calls
         ), "Too many inter silo calls (through stubs) found!  Consider consolidating total calls."
 
-    threading.local.hc_stub_cb = cb
+    hc_test_stub.cb = cb
     yield
-    threading.local.hc_stub_cb = None
+    hc_test_stub.cb = None

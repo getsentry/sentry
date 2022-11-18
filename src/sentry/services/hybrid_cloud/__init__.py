@@ -69,6 +69,9 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         self._singleton = {}
 
 
+hc_test_stub: Any = threading.local()
+
+
 def CreateStubFromBase(
     base: Type[ServiceInterface], target_mode: SiloMode
 ) -> Type[ServiceInterface]:
@@ -94,7 +97,7 @@ def CreateStubFromBase(
             from django.test import override_settings
 
             with override_settings(SILO_MODE=target_mode):
-                if cb := getattr(threading.local, "hc_stub_cb", None):
+                if cb := getattr(hc_test_stub, "cb", None):
                     cb(self.backing_service, method_name, *args, **kwds)
                 return getattr(self.backing_service, method_name)(*args, **kwds)
 
