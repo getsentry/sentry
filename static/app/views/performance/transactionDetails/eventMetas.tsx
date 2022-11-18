@@ -265,7 +265,7 @@ const EventIDWrapper = styled('span')`
   margin-right: ${space(1)};
 `;
 
-function HttpStatus({event}: {event: Event}) {
+export function HttpStatus({event}: {event: Event}) {
   const {tags} = event;
 
   const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
@@ -292,7 +292,7 @@ function HttpStatus({event}: {event: Event}) {
   event.contexts?.trace?.status ?? '\u2014';
 */
 
-function getStatusBodyText(
+export function getStatusBodyText(
   project: AvatarProject | undefined,
   event: EventTransaction,
   meta: TraceMeta | null

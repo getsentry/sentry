@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {
@@ -19,7 +20,8 @@ import {
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import {EventData} from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';
 
@@ -44,6 +46,14 @@ let mockedGroup = TestStubs.Group({
     name: 'ingest',
     type: 'team',
   },
+});
+
+const mockEventView = EventView.fromSavedQuery({
+  id: '',
+  name: 'test query',
+  version: 2,
+  fields: ['title', 'issue'],
+  projects: [1],
 });
 
 const mockedCommit: Commit = {
@@ -100,7 +110,8 @@ const queryClient = new QueryClient();
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
-  contextType: ContextType = ContextType.ISSUE
+  contextType: ContextType = ContextType.ISSUE,
+  eventView?: EventView
 ) => {
   const organization = TestStubs.Organization();
   render(
@@ -109,6 +120,7 @@ const renderQuickContextContent = (
         dataRow={dataRow}
         contextType={contextType}
         organization={organization}
+        eventView={eventView}
       >
         Text from Child
       </QuickContextHoverWrapper>
@@ -125,6 +137,9 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 
   return evt;
 };
+
+jest.mock('sentry/utils/useLocation');
+const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
@@ -472,19 +487,136 @@ describe('Quick Context', function () {
   });
 
   describe('Quick Context Content: Event ID Column', function () {
-    it('Renders NO context message for events that are not errors', async () => {
+    it('Renders transaction duration context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
       });
-
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(
-        await screen.findByText(/There is no context available./i)
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'transaction.duration'],
+          }),
+        })
+      );
+    });
+
+    it('Renders transaction status context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+          contexts: {
+            trace: {
+              status: 'ok',
+            },
+          },
+          tags: [
+            {
+              key: 'http.status_code',
+              value: '200',
+            },
+          ],
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Status/i)).toBeInTheDocument();
+      expect(screen.getByText(/ok/i)).toBeInTheDocument();
+      expect(screen.getByText(/HTTP 200/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-http-status-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'tags[http.status_code]'],
+          }),
+        })
+      );
+    });
+
+    it('Adds columns for saved query', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: null,
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT, mockEventView);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      const addAsColumnButton = await screen.findByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'issue', 'transaction.duration'],
+          }),
+        })
+      );
     });
 
     it('Renders NO stack trace message for error events without stackTraces', async () => {
