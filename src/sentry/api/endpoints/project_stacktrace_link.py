@@ -24,27 +24,26 @@ def get_link(
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    link, attempted_url, error = None, None, None
+    link = None
     try:
         link = install.get_stacktrace_link(
             config.repository, formatted_path, config.default_branch, version
         )
+
     except ApiError as e:
         if e.code != 403:
             raise
-        error = "integration_link_forbidden"
+        result["error"] = "integration_link_forbidden"
 
     # If the link was not found, attach the URL that we attempted.
-    if not link:
-        error = error or "file_not_found"
-        attempted_url = install.format_source_url(
+    if link:
+        result["sourceUrl"] = link
+    else:
+        result["error"] = result.get("error") or "file_not_found"
+        result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
-    result = {
-        "attemptedUrl": attempted_url,
-        "error": error,
-        "sourceUrl": link,
-    }
+
     return result
 
 
@@ -70,9 +69,7 @@ def try_path_munging(
     mobile_frame: Any,
     ctx: Any,
 ) -> Any:
-    result = {
-        "error": None,
-    }
+    result = {}
     mobile_frame["filename"] = filepath
     munged_frames = munged_filename_and_frames(
         ctx["platform"], [mobile_frame], "munged_filename", sdk_name=ctx["sdk_name"]
@@ -88,6 +85,7 @@ def try_path_munging(
 
             if not result["error"]:
                 result = get_link(config, munged_filename, ctx["commit_id"])
+
     return result
 
 
@@ -109,9 +107,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
 
     def get(self, request: Request, project) -> Response:
-        # import pprint
-
-        # pprint.pp(request)
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:
@@ -123,7 +118,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             "sdk_name": request.GET.get("sdkName"),
         }
         mobile_frame = generate_mobile_frame(request.GET)
-
         result = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
@@ -143,56 +137,50 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             project=project, organization_integration__isnull=False
         )
         matched_code_mappings = []
-        found = False
         with configure_scope() as scope:
             scope.set_tag("project.slug", project.slug)
             scope.set_tag("organization.slug", project.organization.slug)
             for config in configs:
-                # The code mapping does not match and we're not dealing with a mobile platform
                 if not filepath.startswith(config.stack_root) and not mobile_frame:
+                    result["error"] = "stack_root_mismatch"
                     continue
 
-                result = get_link(config, filepath, ctx["commit_id"])
-
+                outcome = get_link(config, filepath, ctx["commit_id"])
                 # For mobile we try a second time by munging the file path
-                if not result["sourceUrl"] and mobile_frame:
-                    result = try_path_munging(filepath, mobile_frame, ctx)
+                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
+                if not outcome.get("sourceUrl") and mobile_frame:
+                    outcome = try_path_munging(config, filepath, mobile_frame, ctx)
 
-                current_config = {
-                    "config": serialize(config, request.user),
-                    "result": result,
-                }
-
+                current_config = {"config": serialize(config, request.user), "outcome": outcome}
+                matched_code_mappings.append(current_config)
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
-                provider = result["config"]["provider"]["key"]
-                # print("ARMEN")
-                # print(provider)
-                scope.set_tag("integration_provider", provider)
+                provider = current_config["config"]["provider"]["key"]
+                scope.set_tag("integration_provider", provider)  # e.g. github
 
-                # it's possible for the link to be None, and in that
-                # case it means we could not find a match for the
-                # configuration
-                if not result["sourceUrl"]:
-                    matched_code_mappings.append(current_config)
-                else:
-                    found = True
+                if outcome.get("sourceUrl") and outcome["sourceUrl"]:
+                    result["sourceUrl"] = outcome["sourceUrl"]
                     # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
-            scope.set_tag("stacktrace_link.platform", ctx["platform"])
+            found = result.get("sourceUrl")
             scope.set_tag("stacktrace_link.found", found)
-            if not found and matched_code_mappings:
-                # For backwards compatibality we return the error of the last matched code mapping
-                result["error"] = matched_code_mappings[-1]["error"]
-                result["config"] = matched_code_mappings[-1]["config"]
+            scope.set_tag("stacktrace_link.platform", ctx["platform"])
+            if matched_code_mappings:
                 # Any code mapping that matches and its results will be returned
                 result["matched_code_mappings"] = matched_code_mappings
-                if result["error"] == "stack_root_mismatch":
-                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                else:
-                    scope.set_tag("stacktrace_link.error", "file_not_found")
+                last = matched_code_mappings[-1]
+                result["config"] = last["config"]  # Backwards compatible
+                if not found:
+                    result["error"] = last["outcome"]["error"]  # Backwards compatible
+                    # When no code mapping matches we don't have an attempted URL
+                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
+                        result["attemptedUrl"] = ["attemptedUrl"]
+                    if result["error"] == "stack_root_mismatch":
+                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                    else:
+                        scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(
