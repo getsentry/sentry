@@ -69,10 +69,10 @@ class RecordingIngestMessage:
 def ingest_chunked_recording(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
-    current_transaction: Transaction,
+    transaction: Transaction,
 ) -> None:
     """Ingest chunked recording messages."""
-    with current_transaction.start_child(
+    with transaction.start_child(
         op="replays.usecases.ingest.ingest_chunked_recording",
         description="ingest_chunked_recording",
     ):
@@ -87,21 +87,19 @@ def ingest_chunked_recording(
             key_id=message_dict.get("key_id"),
             org_id=message_dict.get("org_id"),
             project_id=message_dict["project_id"],
-            received=message_dict["received"],
+            received=message_dict.get("received"),
             payload_with_headers=recording_segment_with_headers,
         )
-        ingest_recording(message, current_transaction)
+        ingest_recording(message, transaction)
 
         # Segment chunks are always deleted regardless of success or failure.
         with metrics.timer("replays.process_recording.store_recording.drop_segments"):
             parts.drop()
 
 
-def ingest_nonchunked_recording(
-    message_dict: dict[str, Any], current_transaction: Transaction
-) -> None:
+def ingest_nonchunked_recording(message_dict: dict[str, Any], transaction: Transaction) -> None:
     """Ingest non-chunked recording messages."""
-    with current_transaction.start_child(
+    with transaction.start_child(
         op="replays.usecases.ingest.ingest_nonchunked_recording",
         description="ingest_nonchunked_recording",
     ):
@@ -113,10 +111,10 @@ def ingest_nonchunked_recording(
             received=message_dict["received"],
             payload_with_headers=message_dict["payload"],
         )
-        ingest_recording(message, current_transaction)
+        ingest_recording(message, transaction)
 
 
-def ingest_recording(message: RecordingIngestMessage, current_transaction: Transaction) -> None:
+def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) -> None:
     """Ingest recording messages."""
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
@@ -202,15 +200,13 @@ def ingest_recording(message: RecordingIngestMessage, current_transaction: Trans
             quantity=1,
         )
 
-    current_transaction.finish()
+    transaction.finish()
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_chunk")
-def ingest_chunk(
-    message_dict: RecordingSegmentChunkMessage, current_transaction: Transaction
-) -> None:
+def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Transaction) -> None:
     """Ingest chunked message part."""
-    with current_transaction.start_child(op="replays.process_recording.store_chunk"):
+    with transaction.start_child(op="replays.process_recording.store_chunk"):
         cache_prefix = replay_recording_segment_cache_id(
             project_id=message_dict["project_id"],
             replay_id=message_dict["replay_id"],
@@ -220,7 +216,7 @@ def ingest_chunk(
         part = RecordingSegmentCache(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
 
-    current_transaction.finish()
+    transaction.finish()
 
 
 @metrics.wraps("replays.usecases.ingest.collate_segment_chunks")
