@@ -244,7 +244,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: Optional[bool],
     ) -> StreamProcessor[KafkaPayload]:
-        configure_metrics(MetricsWrapper(metrics.backend))
+        configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
