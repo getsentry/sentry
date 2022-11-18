@@ -407,14 +407,14 @@ def get_transaction_data(event: Event) -> Any:
 
 
 def get_default_data(event: Event) -> Any:
-    """Get data about a non-specific issue type to populate alert emails."""
+    """Get data about a generic issue type to populate alert emails."""
 
     # do some stuff here to parse the event data you want
     # this is a guess at the data format and may be incorrect
     default_evidence = [
-        ["Row 1 Name", "Row 1 Value"],
-        ["Row 2 Name", "Row 2 Value"],
-        ["Row 3 Name", "Row 3 Value"],
+        ("Row 1 Name", "Row 1 Value"),
+        ("Row 2 Name", "Row 2 Value"),
+        ("Row 3 Name", "Row 3 Value"),
     ]
     context = {}
     for row in default_evidence:

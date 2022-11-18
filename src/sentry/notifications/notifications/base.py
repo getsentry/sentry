@@ -83,7 +83,7 @@ class BaseNotification(abc.ABC):
          - src/sentry/templates/path/to/example.txt
         then set `template_path` for the notification to `path/to/example`.
         """
-        return "sentry/emails/default"
+        pass
 
     def get_recipient_context(
         self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
