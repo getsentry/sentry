@@ -246,7 +246,7 @@ class SpanTree extends Component<PropType> {
           }
         });
 
-        // This loop will ensure that any expanded spans after the spans which were removed
+        // This loop will ensure that any expanded spans after the spans which were added
         // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
         prevProps.spans.forEach((span, index) => {
           if (
