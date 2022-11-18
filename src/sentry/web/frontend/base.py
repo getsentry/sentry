@@ -418,7 +418,7 @@ class OrganizationView(BaseView):
     required_scope: str | None = None
     valid_sso_required = True
 
-    def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:  # type: ignore[override]
+    def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
         if self.active_organization is None:
             return access.DEFAULT
         return access.from_request_org_and_scopes(
@@ -543,7 +543,9 @@ class RegionSiloOrganizationView(OrganizationView):
     remain.
     """
 
-    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+    def convert_args(
+        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
             kwargs["organization"] = self._lookup_orm_org()
 
@@ -551,8 +553,12 @@ class RegionSiloOrganizationView(OrganizationView):
 
 
 class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(self, request, *args, **kwargs):
-        kwargs["organization"] = self.active_organization.organization
+    def convert_args(
+        self, request: Any, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        kwargs["organization"] = (
+            self.active_organization.organization if self.active_organization else None
+        )
         return super().convert_args(request, *args, **kwargs)
 
 
