@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {ReplayCountProvider} from 'sentry/components/replays/replayCountContext';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
@@ -274,7 +274,7 @@ class GroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <ReplayCountProvider groupIds={groups.map(({id}) => id)}>
+      <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
         <Panel>
           <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
@@ -305,7 +305,7 @@ class GroupList extends Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </ReplayCountProvider>
+      </IssuesReplayCountProvider>
     );
   }
 }

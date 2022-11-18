@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ReplayCountProvider} from 'sentry/components/replays/replayCountContext';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
@@ -210,7 +210,7 @@ class SimilarStackTrace extends Component<Props, State> {
             />
           )}
           {hasSimilarItems && (
-            <ReplayCountProvider groupIds={groupsIds}>
+            <IssuesReplayCountProvider groupIds={groupsIds}>
               <List
                 items={similarItems}
                 filteredItems={filteredSimilarItems}
@@ -221,7 +221,7 @@ class SimilarStackTrace extends Component<Props, State> {
                 pageLinks={similarLinks}
                 v2={v2}
               />
-            </ReplayCountProvider>
+            </IssuesReplayCountProvider>
           )}
         </Layout.Main>
       </Layout.Body>

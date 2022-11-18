@@ -13,7 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {ReplayCountProvider} from 'sentry/components/replays/replayCountContext';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {tct} from 'sentry/locale';
@@ -175,13 +175,13 @@ class List extends Component<Props, State> {
 
     const groupIds = this.props.issues.map(({id}) => id);
     return (
-      <ReplayCountProvider groupIds={groupIds}>
+      <IssuesReplayCountProvider groupIds={groupIds}>
         <StyledPanel>
           <GroupListHeader withChart={false} />
           <PanelBody>{this.renderContent()}</PanelBody>
         </StyledPanel>
         <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
-      </ReplayCountProvider>
+      </IssuesReplayCountProvider>
     );
   }
 }
