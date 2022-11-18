@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
       with:
         token: ${{ secrets.BUMP_SENTRY_TOKEN }}
-    - uses: getsentry/action-fast-revert@dc3703df06fd2774abdef6c45bfb3720a1278130  # v2.0.0
+    - uses: getsentry/action-fast-revert@35b4b6c1f8f91b5911159568b3b15e531b5b8174  # v2.0.1
       with:
         pr: ${{ github.event.number || github.event.inputs.pr }}
         co_authored_by: ${{ github.event.inputs.co_authored_by || format('{0} <{1}+{0}@users.noreply.github.com>', github.event.sender.login, github.event.sender.id) }}
