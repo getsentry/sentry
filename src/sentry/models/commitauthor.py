@@ -1,12 +1,10 @@
-from typing import TYPE_CHECKING, List
+from typing import List
 
 from django.db import models
 
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user_service import APIUser, user_service
 
 
 class CommitAuthorManager(BaseManager):

@@ -141,5 +141,5 @@ def setup_default_hybrid_cloud_stubs():
     with contextlib.ExitStack() as stack:
         for stub in stubs:
             stack.enter_context(stub)
-        stack.enter_context(enforce_inter_silo_max_calls(5))
+        stack.enter_context(enforce_inter_silo_max_calls(7))
         yield
