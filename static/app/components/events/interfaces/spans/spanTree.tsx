@@ -372,7 +372,6 @@ class SpanTree extends Component<PropType> {
     this.props.waterfallModel.toggleSpanSubTree(spanID);
   };
 
-  // TODO: Clean this up so spanTree contains objects instead of React nodes
   generateSpanTree = () => {
     const {
       waterfallModel,
