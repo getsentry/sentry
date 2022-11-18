@@ -73,7 +73,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         message: Message[KafkaPayload],
         current_transaction: Transaction,
     ) -> None:
-
         cache_prefix = replay_recording_segment_cache_id(
             project_id=message_dict["project_id"],
             replay_id=message_dict["replay_id"],
@@ -118,17 +117,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     # as msgpack will decode it as a utf-8 python string
                     message_dict["payload"] = message_dict["payload"].encode("utf-8")
 
-                    with sentry_sdk.start_span(op="replay_recording_chunk"):
-                        ingest_chunk(
-                            cast(RecordingSegmentChunkMessage, message_dict), current_transaction
-                        )
-                elif message_dict["type"] == "replay_recording":
-                    with sentry_sdk.start_span(op="replay_recording"):
-                        self._process_recording(
-                            cast(RecordingSegmentMessage, message_dict),
-                            message,
-                            current_transaction,
-                        )
+                ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), current_transaction)
+            elif message_dict["type"] == "replay_recording":
+                self._process_recording(
+                    cast(RecordingSegmentMessage, message_dict),
+                    message,
+                    current_transaction,
+                )
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
