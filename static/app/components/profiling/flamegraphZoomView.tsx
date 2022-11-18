@@ -493,8 +493,8 @@ function FlamegraphZoomView({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          flamegraphState.profiles.selectedRoot &&
-          hoveredNode === flamegraphState.profiles.selectedRoot
+          selectedFramesRef.current?.length === 1 &&
+          selectedFramesRef.current[0] === hoveredNode
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
@@ -508,20 +508,12 @@ function FlamegraphZoomView({
           hoveredNode ? [hoveredNode] : null,
           'selected',
         ]);
-        dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
       setStartPanVector(null);
     },
-    [
-      configSpaceCursor,
-      flamegraphState.profiles.selectedRoot,
-      dispatch,
-      hoveredNode,
-      canvasPoolManager,
-      lastInteraction,
-    ]
+    [configSpaceCursor, dispatch, hoveredNode, canvasPoolManager, lastInteraction]
   );
 
   const onMouseDrag = useCallback(
@@ -795,6 +787,7 @@ function FlamegraphZoomView({
       />
       <FlamegraphOptionsContextMenu
         contextMenu={contextMenu}
+        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}

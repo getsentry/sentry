@@ -5,6 +5,8 @@ sudo.views
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import annotations
+
 from urllib.parse import urlparse, urlunparse
 
 from django.contrib.auth.decorators import login_required
@@ -81,7 +83,7 @@ def sudo(request, **kwargs):
     return SudoView(**kwargs).dispatch(request)
 
 
-def redirect_to_sudo(next_url, sudo_url=None):
+def redirect_to_sudo(next_url: str, sudo_url: str | None = None) -> HttpResponseRedirect:
     """
     Redirects the user to the login page, passing the given 'next' page
     """

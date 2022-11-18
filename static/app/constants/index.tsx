@@ -17,7 +17,9 @@ export const usingCustomerDomain =
 // to when the application does not have any further context
 //
 // e.g. loading app root or switching organization
-export const DEFAULT_APP_ROUTE = '/organizations/:orgSlug/issues/';
+export const DEFAULT_APP_ROUTE = usingCustomerDomain
+  ? '/issues/'
+  : '/organizations/:orgSlug/issues/';
 
 export const API_ACCESS_SCOPES = [
   'project:read',
