@@ -1,9 +1,13 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorCheckIns from './monitorCheckIns';
@@ -54,6 +58,10 @@ class MonitorDetails extends AsyncView<Props, State> {
           <Layout.Main fullWidth>
             {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
 
+            <StyledPageFilterBar condensed>
+              <DatePageFilter alignDropdown="left" />
+            </StyledPageFilterBar>
+
             <MonitorStats monitor={monitor} />
 
             <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
@@ -69,5 +77,9 @@ class MonitorDetails extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
+`;
 
 export default MonitorDetails;

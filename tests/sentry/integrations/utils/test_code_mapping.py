@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -30,7 +31,7 @@ class TestDerivedCodeMappings(TestCase):
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
                 self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
-                self.bar_repo.name: RepoTree(self.bar_repo, files=["getsentry/web/urls.py"]),
+                self.bar_repo.name: RepoTree(self.bar_repo, files=["sentry/web/urls.py"]),
             }
         )
 
@@ -113,6 +114,27 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_matches_top_src_file(self, logger):
+        stacktraces = ["setup.py"]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        assert code_mappings == []
+
+        assert logger.info.called_with(
+            "We do not support top level files.",
+            extra={"stackframes": [FrameFilename("setup.py")]},
+        )
+
+    def test_no_dir_depth_match(self):
+        code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
+        assert code_mappings == [
+            CodeMapping(
+                repo=Repo(name="Test-Organization/foo", branch="master"),
+                stacktrace_root="sentry/",
+                source_path="src/sentry/",
+            )
+        ]
+
     def test_more_than_one_match_does_derive(self):
         stacktraces = [
             # More than one file matches for this, however, the package name is taken into account
@@ -151,13 +173,48 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
-    def test_more_than_one_repo_match(self):
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_more_than_one_repo_match(self, logger):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
-        # repo 2: getsentry/web/urls.py
+        # repo 2: sentry/web/urls.py
         stacktraces = ["sentry/web/urls.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert self._caplog.records[0].message == "More than one repo matched sentry/web/urls.py"
-        assert self._caplog.records[0].levelname == "WARNING"
+        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
+
+    def test_list_file_matches_single(self):
+        frame_filename = FrameFilename("sentry_plugins/slack/client.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            {
+                "filename": "src/sentry_plugins/slack/client.py",
+                "repo_name": "Test-Organization/foo",
+                "repo_branch": "master",
+                "stacktrace_root": "sentry_plugins/",
+                "source_path": "src/sentry_plugins/",
+            }
+        ]
+        assert matches == expected_matches
+
+    def test_list_file_matches_multiple(self):
+        frame_filename = FrameFilename("sentry/web/urls.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            {
+                "filename": "src/sentry/web/urls.py",
+                "repo_name": "Test-Organization/foo",
+                "repo_branch": "master",
+                "stacktrace_root": "sentry/",
+                "source_path": "src/sentry/",
+            },
+            {
+                "filename": "sentry/web/urls.py",
+                "repo_name": "Test-Organization/bar",
+                "repo_branch": "main",
+                "stacktrace_root": "sentry/",
+                "source_path": "sentry/",
+            },
+        ]
+        assert matches == expected_matches

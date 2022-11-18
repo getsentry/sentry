@@ -242,7 +242,7 @@ class MonitorForm extends Component<Props> {
                               disabled={!hasAccess}
                               placeholder="e.g. 1"
                               help={t(
-                                'The amount of times you expect the cron job to run within the specified interval.'
+                                'The amount of intervals that pass between executions of the cron job.'
                               )}
                               required
                             />
@@ -252,7 +252,7 @@ class MonitorForm extends Component<Props> {
                               disabled={!hasAccess}
                               options={INTERVALS}
                               help={t(
-                                'The interval on which the frequency will be applied. X times an (hour, day, week...)'
+                                'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
                               )}
                               required
                             />

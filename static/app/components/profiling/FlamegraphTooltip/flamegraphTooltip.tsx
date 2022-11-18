@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -20,6 +21,19 @@ export function formatWeightToProfileDuration(
   flamegraph: Flamegraph
 ) {
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
+}
+
+function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
+  if (!frame.frame.file) {
+    return '<unknown file>';
+  }
+  if (typeof frame.frame.line === 'number' && typeof frame.frame.column === 'number') {
+    return `${frame.frame.file}:${frame.frame.line}:${frame.frame.column}`;
+  }
+  if (typeof frame.frame.line === 'number') {
+    return `${frame.frame.file}:${frame.frame.line}`;
+  }
+  return `${frame.frame.file}:<unknown line>`;
 }
 
 export interface FlamegraphTooltipProps {
@@ -52,20 +66,46 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           )}{' '}
           {props.frame.frame.name}
         </FlamegraphTooltipFrameMainInfo>
-        {defined(props.frame.frame.file) && (
-          <FlamegraphTooltipTimelineInfo>
-            {props.frame.frame.file}:{props.frame.frame.line ?? t('<unknown line>')}
-          </FlamegraphTooltipTimelineInfo>
-        )}
+        <FlamegraphTooltipTimelineInfo>
+          {defined(props.frame.frame.file) && (
+            <Fragment>
+              {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+            </Fragment>
+          )}
+        </FlamegraphTooltipTimelineInfo>
         <FlamegraphTooltipTimelineInfo>
           {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
           {' \u2014 '}
           {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
+          {props.frame.frame.inline ? (
+            <FlamegraphInlineIndicator>
+              <IconLightning width={10} />
+              {t('inline frame')}
+            </FlamegraphInlineIndicator>
+          ) : (
+            ''
+          )}
         </FlamegraphTooltipTimelineInfo>
       </Fragment>
     </BoundTooltip>
   );
 }
+
+const FlamegraphInlineIndicator = styled('span')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: ${space(0.25)} ${space(0.25)};
+  line-height: 12px;
+  margin: 0 ${space(0.5)};
+  align-self: flex-end;
+
+  svg {
+    width: 10px;
+    height: 10px;
+    transform: translateY(1px);
+  }
+`;
 
 export const FlamegraphTooltipTimelineInfo = styled('div')`
   color: ${p => p.theme.subText};

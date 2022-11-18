@@ -9,6 +9,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 import pytest
 import responses
 from requests.exceptions import RequestException
+from symbolic import SourceMapTokenMatch
 
 from sentry import http, options
 from sentry.event_manager import get_tag
@@ -25,16 +26,17 @@ from sentry.lang.javascript.processor import (
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
-    get_function_for_token,
     get_max_age,
     get_release_file_cache_key,
     get_release_file_cache_key_meta,
     should_retry_fetch,
     trim_line,
 )
+from sentry.lang.javascript.processor_smcache import fetch_sourcemap as fetch_sourcemap_smcache
+from sentry.lang.javascript.processor_smcache import get_function_for_token
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -1113,33 +1115,58 @@ class GetFunctionForTokenTest(unittest.TestCase):
 
         return Token(fn_name, token_name)
 
+    def get_frame(self, frame):
+        processable_frame = ProcessableFrame(frame, 0, None, None, None)
+        processable_frame.data = {"token": None}
+        return processable_frame
+
     def test_valid_name(self):
-        frame = {"function": "original"}
+        frame = self.get_frame({"function": "original"})
         token = self.get_token("lookedup")
         assert get_function_for_token(frame, token) == "lookedup"
 
     def test_fallback_to_previous_frames_token_if_useless_name(self):
-        previous_frame = {"data": {"token": self.get_token("previous_fn", "previous_name")}}
-        frame = {"function": None}
+        previous_frame = self.get_frame({})
+        previous_frame.data["token"] = self.get_token("previous_fn", "previous_name")
+        frame = self.get_frame({"function": None})
         token = self.get_token("__webpack_require__")
         assert get_function_for_token(frame, token, previous_frame) == "previous_name"
 
     def test_fallback_to_useless_name(self):
-        previous_frame = {"data": {"token": None}}
-        frame = {"function": None}
+        previous_frame = self.get_frame({"data": {"token": None}})
+        frame = self.get_frame({"function": None})
         token = self.get_token("__webpack_require__")
         assert get_function_for_token(frame, token, previous_frame) == "__webpack_require__"
 
     def test_fallback_to_original_name(self):
-        previous_frame = {"data": {"token": None}}
-        frame = {"function": "original"}
+        previous_frame = self.get_frame({"data": {"token": None}})
+        frame = self.get_frame({"function": "original"})
         token = self.get_token("__webpack_require__")
         assert get_function_for_token(frame, token, previous_frame) == "original"
 
 
 class FetchSourcemapTest(TestCase):
+    # TODO(smcache): Remove non-`_smcache` tests once we migrate to smcache only.
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+
+        assert list(smap_view) == tokens
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
+
+    def test_base64_without_padding(self):
+        smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+
+        assert list(smap_view) == tokens
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
+
+    def test_simple_base64_smcache(self):
+        smap_view = fetch_sourcemap_smcache(base64_sourcemap)
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"
@@ -1147,8 +1174,8 @@ class FetchSourcemapTest(TestCase):
         assert token.col == 1
         assert token.context_line == 'console.log("hello, World!")'
 
-    def test_base64_without_padding(self):
-        smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
+    def test_base64_without_padding_smcache(self):
+        smap_view = fetch_sourcemap_smcache(base64_sourcemap.rstrip("="))
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"

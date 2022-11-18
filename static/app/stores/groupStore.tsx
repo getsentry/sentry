@@ -12,6 +12,7 @@ import {
   GroupStats,
 } from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
+import toArray from 'sentry/utils/toArray';
 
 import SelectedGroupStore from './selectedGroupStore';
 import {CommonStoreDefinition} from './types';
@@ -147,9 +148,7 @@ const storeConfig: GroupStoreDefinition = {
    * If any items already exist, they will merged into the existing item index.
    */
   add(items) {
-    if (!Array.isArray(items)) {
-      items = [items];
-    }
+    items = toArray(items);
     const newItems = this.mergeItems(items);
 
     this.items = [...this.items, ...newItems];
@@ -162,9 +161,7 @@ const storeConfig: GroupStoreDefinition = {
    * If any items already exist, they will be moved to the front in the order provided.
    */
   addToFront(items) {
-    if (!Array.isArray(items)) {
-      items = [items];
-    }
+    items = toArray(items);
     const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
