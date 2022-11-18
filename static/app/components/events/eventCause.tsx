@@ -32,7 +32,7 @@ function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
 
   useRouteAnalyticsParams({
     fetching,
-    suspect_commit_count: committers.length,
+    num_suspect_commits: committers.length,
   });
 
   function getUniqueCommitsWithAuthors() {
