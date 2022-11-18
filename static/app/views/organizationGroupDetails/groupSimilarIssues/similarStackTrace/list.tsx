@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -28,20 +28,8 @@ type Props = {
   v2: boolean;
 } & DefaultProps;
 
-type State = {
-  showAllItems: boolean;
-};
-
-class List extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    filteredItems: [],
-  };
-
-  state: State = {
-    showAllItems: false,
-  };
-
-  renderEmpty = () => (
+function Empty() {
+  return (
     <Panel>
       <PanelBody>
         <EmptyStateWarning small withIcon={false}>
@@ -50,58 +38,63 @@ class List extends Component<Props, State> {
       </PanelBody>
     </Panel>
   );
+}
 
-  handleShowAll = () => {
-    this.setState({showAllItems: true});
-  };
-  render() {
-    const {orgId, groupId, project, items, filteredItems, pageLinks, onMerge, v2} =
-      this.props;
+function List({
+  orgId,
+  groupId,
+  project,
+  items,
+  filteredItems = [],
+  pageLinks,
+  onMerge,
+  v2,
+}: Props) {
+  const [showAllItems, setShowAllItems] = useState<boolean>(false);
 
-    const {showAllItems} = this.state;
+  const handleShowAll = useCallback(() => setShowAllItems(true), []);
 
-    const hasHiddenItems = !!filteredItems.length;
-    const hasResults = items.length > 0 || hasHiddenItems;
-    const itemsWithFiltered = items.concat((showAllItems && filteredItems) || []);
+  const hasHiddenItems = !!filteredItems.length;
+  const hasResults = items.length > 0 || hasHiddenItems;
+  const itemsWithFiltered = items.concat((showAllItems && filteredItems) || []);
 
-    if (!hasResults) {
-      return this.renderEmpty();
-    }
-
-    return (
-      <Fragment>
-        <Header>
-          <SimilarSpectrum />
-        </Header>
-
-        <Panel>
-          <Toolbar v2={v2} onMerge={onMerge} />
-
-          <PanelBody>
-            {itemsWithFiltered.map(item => (
-              <Item
-                key={item.issue.id}
-                orgId={orgId}
-                v2={v2}
-                groupId={groupId}
-                project={project}
-                {...item}
-              />
-            ))}
-
-            {hasHiddenItems && !showAllItems && (
-              <Footer>
-                <Button onClick={this.handleShowAll}>
-                  {t('Show %s issues below threshold', filteredItems.length)}
-                </Button>
-              </Footer>
-            )}
-          </PanelBody>
-        </Panel>
-        <Pagination pageLinks={pageLinks} />
-      </Fragment>
-    );
+  if (!hasResults) {
+    return <Empty />;
   }
+
+  return (
+    <Fragment>
+      <Header>
+        <SimilarSpectrum />
+      </Header>
+
+      <Panel>
+        <Toolbar v2={v2} onMerge={onMerge} />
+
+        <PanelBody>
+          {itemsWithFiltered.map(item => (
+            <Item
+              key={item.issue.id}
+              orgId={orgId}
+              v2={v2}
+              groupId={groupId}
+              project={project}
+              {...item}
+            />
+          ))}
+
+          {hasHiddenItems && !showAllItems && (
+            <Footer>
+              <Button onClick={handleShowAll}>
+                {t('Show %s issues below threshold', filteredItems.length)}
+              </Button>
+            </Footer>
+          )}
+        </PanelBody>
+      </Panel>
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
+  );
 }
 
 export default List;
