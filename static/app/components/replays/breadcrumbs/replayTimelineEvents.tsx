@@ -52,6 +52,8 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => Math.floor(p.column)};
   place-items: stretch;
   display: grid;
+  align-items: center;
+  position: relative;
 
   &:hover {
     z-index: ${p => p.theme.zIndex.initial};
@@ -163,10 +165,6 @@ const IconPosition = styled('div')`
   position: absolute;
   transform: translate(-50%);
   margin-left: ${EVENT_STICK_MARKER_WIDTH / 2}px;
-  align-self: center;
-  display: grid;
-  /* We need to add the height here so safari recongnize the height */
-  height: 100%;
 `;
 
 const IconNode = styled('div')<{
