@@ -99,7 +99,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             elif msg == "Not Found":
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                logger.exception("An unknown error has occurred.")
+                logger.exception("An unknown error has ocurred.")
 
         return tree
 
