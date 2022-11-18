@@ -26,16 +26,19 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
   );
 
   const [condition, fieldName] = useMemo(() => {
-    if (groupIds !== undefined) {
+    if (groupIds === undefined && transactionNames === undefined) {
+      throw new Error('Missing groupId or transactionName in useReplaysCount()');
+    }
+    if (groupIds && groupIds.length) {
       return [`issue.id:[${toArray(groupIds).join(',')}]`, 'issue.id'];
     }
-    if (transactionNames !== undefined) {
+    if (transactionNames && transactionNames.length) {
       return [
         `event.type:transaction transaction:[${toArray(transactionNames).join(',')}]`,
         'transaction',
       ];
     }
-    throw new Error('Missing groupId or transactionName in useReplaysCount()');
+    return [null, null];
   }, [groupIds, transactionNames]);
 
   const eventView = useMemo(
@@ -45,7 +48,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
           id: '',
           name: `Errors within replay`,
           version: 2,
-          fields: ['count_unique(replayId)', fieldName],
+          fields: ['count_unique(replayId)', String(fieldName)],
           query: `!replayId:"" ${condition}`,
           projects: [],
         },
@@ -56,6 +59,9 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
 
   const fetchReplayCount = useCallback(async () => {
     try {
+      if (!condition || !fieldName) {
+        return;
+      }
       const [data] = await doDiscoverQuery<TableData>(
         api,
         `/organizations/${organization.slug}/events/`,
@@ -72,7 +78,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, location, organization.slug, fieldName, eventView]);
+  }, [api, location, organization.slug, condition, fieldName, eventView]);
 
   useEffect(() => {
     const hasSessionReplay =

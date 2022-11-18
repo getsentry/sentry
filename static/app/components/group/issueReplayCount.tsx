@@ -27,7 +27,7 @@ function IssueReplayCount({groupId}: Props) {
   const countDisplay = count > 50 ? '50+' : count;
 
   return (
-    <Tooltip title={t('This issue has %s replays available to view', countDisplay)}>
+    <StyledTooltip title={t('This issue has %s replays available to view', countDisplay)}>
       <ReplayCountLink
         to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
         aria-label="replay-count"
@@ -35,9 +35,14 @@ function IssueReplayCount({groupId}: Props) {
         <IconPlay size="xs" />
         {countDisplay}
       </ReplayCountLink>
-    </Tooltip>
+    </StyledTooltip>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+`;
 
 const ReplayCountLink = styled(Link)`
   display: inline-flex;
