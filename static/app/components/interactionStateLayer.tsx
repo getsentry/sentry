@@ -10,7 +10,7 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   isPressed?: boolean;
 }
 
-const StateLayer = styled(
+const InteractionStateLayer = styled(
   (props: StateLayerProps) => <span role="presentation" {...props} />,
   {shouldForwardProp: p => typeof p === 'string' && isPropValid(p)}
 )`
@@ -64,4 +64,4 @@ const StateLayer = styled(
   }
 `;
 
-export default StateLayer;
+export default InteractionStateLayer;

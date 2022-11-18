@@ -3,9 +3,9 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import StateLayer from 'sentry/components/stateLayer';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -203,7 +203,7 @@ function BaseButton({
       role="button"
     >
       {priority !== 'link' && (
-        <StateLayer
+        <InteractionStateLayer
           higherOpacity={priority && ['primary', 'danger'].includes(priority)}
         />
       )}

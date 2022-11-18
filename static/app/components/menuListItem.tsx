@@ -2,7 +2,7 @@ import {forwardRef as reactForwardRef, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import StateLayer from 'sentry/components/stateLayer';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
@@ -124,7 +124,7 @@ function BaseMenuListItem({
           size={size}
           {...innerWrapProps}
         >
-          <StyledStateLayer
+          <StyledInteractionStateLayer
             isHovered={isFocused}
             higherOpacity={priority !== 'default'}
           />
@@ -258,7 +258,7 @@ export const InnerWrap = styled('div', {
     `}
 `;
 
-const StyledStateLayer = styled(StateLayer)`
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   z-index: -1;
 `;
 

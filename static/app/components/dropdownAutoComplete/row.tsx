@@ -2,7 +2,7 @@ import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
-import StateLayer from 'sentry/components/stateLayer';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import space from 'sentry/styles/space';
 
 import {Item} from './types';
@@ -65,7 +65,7 @@ function Row<T extends Item>({
       style={style}
       {...itemProps}
     >
-      <StateLayer isHovered={isHighlighted} />
+      <InteractionStateLayer isHovered={isHighlighted} />
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );

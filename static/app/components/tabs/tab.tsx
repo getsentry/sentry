@@ -5,8 +5,8 @@ import {useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import StateLayer from 'sentry/components/stateLayer';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
@@ -86,7 +86,10 @@ function BaseTab(
       ref={ref}
     >
       <InnerWrap>
-        <StyledStateLayer orientation={orientation} higherOpacity={isSelected} />
+        <StyledInteractionStateLayer
+          orientation={orientation}
+          higherOpacity={isSelected}
+        />
         <FocusLayer orientation={orientation} />
         {rendered}
         <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -173,7 +176,9 @@ const TabInnerWrap = styled('span')<{orientation: Orientation}>`
   ${innerWrapStyles}
 `;
 
-const StyledStateLayer = styled(StateLayer)<{orientation: Orientation}>`
+const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
+  orientation: Orientation;
+}>`
   position: absolute;
   width: auto;
   height: auto;
