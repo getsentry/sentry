@@ -55,7 +55,7 @@ class AppService(InterfaceWithLifecycle):
 
 
 def impl_with_db() -> AppService:
-    from sentry.services.hybrid_cloud.app_service.impl import DatabaseBackedAppService
+    from sentry.services.hybrid_cloud.app.impl import DatabaseBackedAppService
 
     return DatabaseBackedAppService()
 

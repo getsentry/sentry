@@ -117,7 +117,7 @@ class UserService(InterfaceWithLifecycle):
 
 
 def impl_with_db() -> UserService:
-    from sentry.services.hybrid_cloud.user_service.impl import DatabaseBackedUserService
+    from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
 
     return DatabaseBackedUserService()
 

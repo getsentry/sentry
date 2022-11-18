@@ -4,7 +4,7 @@ from django.db import models
 
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
-from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 
 class CommitAuthorManager(BaseManager):

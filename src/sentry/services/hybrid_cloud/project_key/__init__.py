@@ -34,9 +34,7 @@ class ProjectKeyService(InterfaceWithLifecycle):
 
 
 def impl_with_db() -> ProjectKeyService:
-    from sentry.services.hybrid_cloud.project_key_service.impl import (
-        DatabaseBackedProjectKeyService,
-    )
+    from sentry.services.hybrid_cloud.project_key.impl import DatabaseBackedProjectKeyService
 
     return DatabaseBackedProjectKeyService()
 

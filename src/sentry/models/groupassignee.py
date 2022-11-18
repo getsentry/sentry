@@ -21,7 +21,7 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class GroupAssigneeManager(BaseManager):

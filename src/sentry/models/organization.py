@@ -31,7 +31,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
         Team,
         User,
     )
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def _get_notification_setting_default(

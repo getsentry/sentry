@@ -14,7 +14,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
-from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:

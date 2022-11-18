@@ -15,7 +15,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
-from sentry.services.hybrid_cloud.organization_service import organization_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature

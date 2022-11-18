@@ -14,7 +14,7 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models import Team
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
 

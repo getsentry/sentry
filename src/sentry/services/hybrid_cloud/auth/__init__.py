@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, List
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization_service import ApiOrganizationMember
+from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class AuthService(InterfaceWithLifecycle):
 
 
 def impl_with_db() -> AuthService:
-    from sentry.services.hybrid_cloud.auth_service.impl import DatabaseBackedAuthService
+    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
 
     return DatabaseBackedAuthService()
 

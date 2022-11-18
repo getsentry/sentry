@@ -11,7 +11,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import exempt_from_silo_limits

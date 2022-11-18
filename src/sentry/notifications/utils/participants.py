@@ -34,7 +34,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 

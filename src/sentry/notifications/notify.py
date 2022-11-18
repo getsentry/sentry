@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMappi
 
 from sentry.models import User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviders
 

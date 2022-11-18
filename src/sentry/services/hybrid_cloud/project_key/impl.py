@@ -2,7 +2,7 @@ from typing import Optional
 
 from django.db.models import F
 
-from sentry.services.hybrid_cloud.project_key_service import (
+from sentry.services.hybrid_cloud.project_key import (
     ApiProjectKey,
     ProjectKeyRole,
     ProjectKeyService,

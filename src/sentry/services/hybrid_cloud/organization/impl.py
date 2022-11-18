@@ -14,7 +14,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.services.hybrid_cloud import logger
-from sentry.services.hybrid_cloud.organization_service import (
+from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
     ApiOrganizationFlags,
     ApiOrganizationMember,

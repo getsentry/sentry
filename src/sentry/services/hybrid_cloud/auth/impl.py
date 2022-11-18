@@ -7,8 +7,8 @@ from django.db.models import F
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
-from sentry.services.hybrid_cloud.auth_service import ApiAuthState, ApiMemberSsoState, AuthService
-from sentry.services.hybrid_cloud.organization_service import ApiOrganizationMember
+from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, AuthService
+from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.utils.types import Any
 
 _SSO_BYPASS = ApiMemberSsoState(False, True)

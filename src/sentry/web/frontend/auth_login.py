@@ -16,7 +16,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
-from sentry.services.hybrid_cloud.organization_service import organization_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (

@@ -5,7 +5,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user_service import user_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders

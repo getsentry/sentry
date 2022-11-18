@@ -11,7 +11,7 @@ from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute

@@ -33,7 +33,7 @@ from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user_service import user_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupCategory
 from sentry.utils import json

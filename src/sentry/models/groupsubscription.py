@@ -18,7 +18,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
-from sentry.services.hybrid_cloud.user_service import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:

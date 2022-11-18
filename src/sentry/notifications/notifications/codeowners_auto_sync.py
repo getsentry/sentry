@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 

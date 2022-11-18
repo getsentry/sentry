@@ -10,7 +10,7 @@ from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 

@@ -19,7 +19,7 @@ from sentry.utils.linksign import generate_signed_link
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:

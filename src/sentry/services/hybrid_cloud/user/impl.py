@@ -4,7 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user_service import APIUser, UserService
+from sentry.services.hybrid_cloud.user import APIUser, UserService
 
 
 class DatabaseBackedUserService(UserService):

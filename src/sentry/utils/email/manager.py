@@ -5,8 +5,8 @@ from typing import Iterable, Mapping
 
 from sentry.models import Project, UserEmail
 
-from ...services.hybrid_cloud.user_option_service import user_option_service
-from ...services.hybrid_cloud.user_service import user_service
+from ...services.hybrid_cloud.user import user_service
+from ...services.hybrid_cloud.user_option import user_option_service
 from .faker import is_fake_email
 
 logger = logging.getLogger("sentry.mail")

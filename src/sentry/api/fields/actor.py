@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.models import ActorTuple, OrganizationMember, Team, User
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class ActorField(serializers.Field):

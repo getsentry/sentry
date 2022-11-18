@@ -1,7 +1,7 @@
 import datetime
 
 from sentry.models import LostPasswordHash
-from sentry.services.hybrid_cloud.lost_password_hash_service import (
+from sentry.services.hybrid_cloud.lost_password_hash import (
     APILostPasswordHash,
     LostPasswordHashService,
 )

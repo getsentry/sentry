@@ -22,7 +22,7 @@ from sentry.types.activity import CHOICES, ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
-    from sentry.services.hybrid_cloud.user_service import APIUser
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class ActivityManager(BaseManager):

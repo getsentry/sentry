@@ -75,9 +75,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
 
 def impl_with_db() -> OrganizationService:
-    from sentry.services.hybrid_cloud.organization_service.impl import (
-        DatabaseBackedOrganizationService,
-    )
+    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 
     return DatabaseBackedOrganizationService()
 
@@ -137,7 +135,7 @@ class ApiOrganizationMemberFlags:
     member_limit__restricted: bool = False
 
     def __getattr__(self, item: str) -> bool:
-        from sentry.services.hybrid_cloud.organization_service.impl import escape_flag_name
+        from sentry.services.hybrid_cloud.organization.impl import escape_flag_name
 
         item = escape_flag_name(item)
         return bool(getattr(self, item))

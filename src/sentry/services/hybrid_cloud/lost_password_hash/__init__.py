@@ -44,9 +44,7 @@ class APILostPasswordHash:
 
 
 def impl_with_db() -> LostPasswordHashService:
-    from sentry.services.hybrid_cloud.lost_password_hash_service.impl import (
-        DatabaseLostPasswordHashService,
-    )
+    from sentry.services.hybrid_cloud.lost_password_hash.impl import DatabaseLostPasswordHashService
 
     return DatabaseLostPasswordHashService()
 

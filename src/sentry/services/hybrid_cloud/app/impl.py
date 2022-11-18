@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud.app_service import ApiSentryAppInstallation, AppService
+from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
 
 
 class DatabaseBackedAppService(AppService):

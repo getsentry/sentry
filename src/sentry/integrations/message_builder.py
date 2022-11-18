@@ -8,7 +8,7 @@ from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
-from sentry.services.hybrid_cloud.user_service import APIUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
