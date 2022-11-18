@@ -126,7 +126,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     message,
                     current_transaction,
                 )
-            elif message_dict["type"] == "replay_recording_nonchunked":
+            elif message_dict["type"] == "replay_recording_not_chunked":
                 ingest_recording_not_chunked(message_dict, current_transaction)
         except Exception:
             # avoid crash looping on bad messsages for now

@@ -226,7 +226,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                     b"key",
                     msgpack.packb(
                         {
-                            "type": "replay_recording_nonchunked",
+                            "type": "replay_recording_not_chunked",
                             "replay_id": self.replay_id,
                             "org_id": self.organization.id,
                             "key_id": 123,
@@ -282,7 +282,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                     b"key",
                     msgpack.packb(
                         {
-                            "type": "replay_recording_nonchunked",
+                            "type": "replay_recording_not_chunked",
                             "replay_id": self.replay_id,
                             "org_id": self.organization.id,
                             "key_id": 123,
