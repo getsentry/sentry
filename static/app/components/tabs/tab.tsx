@@ -5,6 +5,7 @@ import {useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
@@ -85,7 +86,10 @@ function BaseTab(
       ref={ref}
     >
       <InnerWrap>
-        <HoverLayer orientation={orientation} />
+        <StyledInteractionStateLayer
+          orientation={orientation}
+          higherOpacity={isSelected}
+        />
         <FocusLayer orientation={orientation} />
         {rendered}
         <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -172,32 +176,17 @@ const TabInnerWrap = styled('span')<{orientation: Orientation}>`
   ${innerWrapStyles}
 `;
 
-const HoverLayer = styled('div')<{orientation: Orientation}>`
+const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
+  orientation: Orientation;
+}>`
   position: absolute;
+  width: auto;
+  height: auto;
+  transform: none;
   left: 0;
   right: 0;
   top: 0;
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
-
-  pointer-events: none;
-  background-color: currentcolor;
-  border-radius: inherit;
-  z-index: 0;
-
-  opacity: 0;
-  transition: opacity 0.1s ease-out;
-
-  li:hover:not(.focus-visible) & {
-    opacity: 0.06;
-  }
-
-  ${p =>
-    p.orientation === 'vertical' &&
-    `
-      li[aria-selected='true']:not(.focus-visible) & {
-        opacity: 0.06;
-      }
-    `}
 `;
 
 const FocusLayer = styled('div')<{orientation: Orientation}>`

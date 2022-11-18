@@ -605,7 +605,7 @@ if (IS_UI_DEV_ONLY) {
   };
 }
 
-if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   appConfig.output!.publicPath = '/_assets/';
 
   /**

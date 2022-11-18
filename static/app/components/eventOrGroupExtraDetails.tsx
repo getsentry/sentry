@@ -8,7 +8,7 @@ import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ReplayCount from 'sentry/components/group/replayCount';
+import ReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -89,7 +89,7 @@ function EventOrGroupExtraDetails({
           <span>{numComments}</span>
         </CommentsLink>
       )}
-      {showReplayCount && <ReplayCount groupId={id} orgId={params.orgId} />}
+      {showReplayCount && <ReplayCount groupId={id} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink
