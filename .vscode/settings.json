@@ -80,7 +80,5 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
   "python.formatting.provider": "black",
-  "python.testing.pytestArgs": [
-    "tests"
-  ]
+  "python.testing.pytestArgs": ["tests"]
 }
