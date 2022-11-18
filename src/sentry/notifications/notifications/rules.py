@@ -51,7 +51,11 @@ class AlertRuleNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
         self.rules = notification.rules
-        self.template_path = f"sentry/emails/{event.group.issue_category.name.lower()}"
+        self.template_path = (
+            f"sentry/emails/{event.group.issue_category.name.lower()}"
+            if hasattr(event.group, "issue_category")
+            else "sentry/emails/default"
+        )
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
