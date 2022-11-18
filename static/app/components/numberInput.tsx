@@ -25,7 +25,18 @@ export interface NumberInputProps
   min?: number;
 }
 const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputProps> = (
-  {disabled, readOnly, monospace, min, max, size, nativeSize, className, ...props},
+  {
+    disabled,
+    readOnly,
+    monospace,
+    min,
+    max,
+    size,
+    placeholder,
+    nativeSize,
+    className,
+    ...props
+  },
   forwardedRef
 ) => {
   const ref = useRef<HTMLInputElement>(null);
@@ -35,6 +46,7 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
     isReadOnly: readOnly,
     minValue: min,
     maxValue: max,
+    placeholder,
     ...props,
   };
   const {locale} = useLocale();
@@ -59,6 +71,7 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
       <Input
         {...inputProps}
         ref={mergeRefs([ref, forwardedRef])}
+        placeholder={placeholder}
         size={size}
         nativeSize={nativeSize}
         monospace={monospace}
