@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,73 +9,22 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
-import {Project} from 'sentry/types';
-import {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import useReplayOnboardingSidebarPanel from 'sentry/utils/replays/hooks/useReplayOnboardingSidebarPanel';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQuery>;
-
-function getProjectList(selectedProjects: PageFilters['projects'], projects: Project[]) {
-  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
-    return projects;
-  }
-
-  const projectsByProjectId = projects.reduce<Record<string, Project>>((acc, project) => {
-    acc[project.id] = project;
-    return acc;
-  }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
-}
-
-function useShouldShowOnboardingPanel() {
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
-
-  const shouldShowOnboardingPanel = useMemo(() => {
-    const projectList = getProjectList(selection.projects, projects);
-    const hasSentOneReplay = projectList.some(project => project.hasReplays);
-    return !hasSentOneReplay;
-  }, [selection.projects, projects]);
-
-  return shouldShowOnboardingPanel;
-}
-
-function useReplayOnboardingSidebarPanel() {
-  const {location} = useRouteContext();
-  const enabled = useShouldShowOnboardingPanel();
-
-  useEffect(() => {
-    if (enabled && location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
-    }
-  }, [enabled, location.hash]);
-
-  const activate = useCallback(event => {
-    event.preventDefault();
-    window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
-  }, []);
-
-  return {enabled, activate};
-}
 
 function Replays({location}: Props) {
   const organization = useOrganization();
