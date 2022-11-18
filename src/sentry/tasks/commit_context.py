@@ -74,6 +74,10 @@ def process_commit_context(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={"detail": "maxed_owners_none_old"},
                 )
+                logger.info(
+                    "process_commit_context.maxed_owners",
+                    extra={"event": event_id, "reason": "maxed_owners_none_old"},
+                )
                 return
 
             code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
@@ -91,16 +95,24 @@ def process_commit_context(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={"detail": "could_not_find_in_app_stacktrace_frame"},
                 )
+                logger.info(
+                    "process_commit_context.find_frame",
+                    extra={"event": event_id, "reason": "could_not_find_in_app_stacktrace_frame"},
+                )
                 return
 
             commit_context, selected_code_mapping = find_commit_context_for_event(
-                code_mappings=code_mappings, frame=frame, logger=logger
+                code_mappings=code_mappings, frame=frame, logger=logger, extra={"event": event_id}
             )
 
             if not commit_context and not selected_code_mapping:
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={"detail": "could_not_fetch_commit_context"},
+                )
+                logger.info(
+                    "process_commit_context.find_commit_context",
+                    extra={"event": event_id, "reason": "could_not_fetch_commit_context"},
                 )
                 return
 
@@ -134,6 +146,14 @@ def process_commit_context(
                 defaults={
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
+            )
+            logger.info(
+                "process_commit_context.success",
+                extra={
+                    "event": event_id,
+                    "group_owner_id": group_owner.id,
+                    "reason": "created" if created else "updated",
+                },
             )
             if created:
                 # If owners exceeds the limit, delete the oldest one.
