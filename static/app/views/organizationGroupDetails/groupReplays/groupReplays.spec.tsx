@@ -129,22 +129,6 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('should snapshot empty state', async () => {
-    MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    const {container} = renderComponent();
-
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
-  });
-
   it('should show empty message when no replays are found', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
@@ -154,12 +138,11 @@ describe('GroupReplays', () => {
       statusCode: 200,
     });
 
-    renderComponent();
+    const {container} = renderComponent();
 
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('There are no items to display')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('There are no items to display')).toBeInTheDocument();
+    expect(mockApi).toHaveBeenCalledTimes(1);
+    expect(container).toSnapshot();
   });
 
   it('should display error message when api call fails', async () => {
