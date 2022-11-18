@@ -162,19 +162,10 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
 
 
 def generate_boost_key_transaction_rule(
-    sample_rate: float, project_id: int, org_id: int
+    sample_rate: float, key_transactions: List[str]
 ) -> BaseRule:
-
-    key_transactions = list(
-        set(
-            TeamKeyTransaction.objects.filter(
-                organization_id=org_id, project_team__project_id=project_id
-            ).values_list("transaction")
-        )
-    )
-
     return {
-        "sampleRate": sample_rate * KEY_TRANSACTION_BOOST_FACTOR,
+        "sampleRate": min(1.0, sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
         "type": "transaction",
         "condition": {
             "op": "or",
@@ -213,11 +204,16 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             )
             # Key Transaction boost
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
-                rule = generate_boost_key_transaction_rule(
-                    sample_rate, project.organization.id, project.id
+                key_transactions = list(
+                    set(
+                        TeamKeyTransaction.objects.filter(
+                            organization_id=project.organization.id,
+                            project_team__project_id=project.id,
+                        ).values_list("transaction", flat=True)
+                    )
                 )
-                if rule:
-                    rules.append(rule)
+                if key_transactions:
+                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:

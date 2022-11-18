@@ -2,6 +2,7 @@ import time
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
 from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
@@ -33,7 +34,8 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 def test_generate_rules_return_uniform_rules_with_rate(
     get_blended_sample_rate, get_enabled_user_biases
 ):
-    get_enabled_user_biases.return_value = {"id": "boostEnvironments", "active": False}
+    # it means no enabled user biases
+    get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
@@ -53,13 +55,13 @@ def test_generate_rules_return_uniform_rules_with_rate(
     )
 
 
+@pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rate):
+def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rate, default_project):
     get_blended_sample_rate.return_value = 0.1
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
-    fake_project = MagicMock()
-    assert generate_rules(fake_project) == [
+    assert generate_rules(default_project) == [
         {
             "sampleRate": 1,
             "type": "trace",
@@ -102,7 +104,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(fake_project)
+    get_blended_sample_rate.assert_called_with(default_project)
 
 
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
