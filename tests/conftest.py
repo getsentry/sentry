@@ -3,8 +3,6 @@ import os
 
 import pytest
 
-from sentry.testutils.hybrid_cloud import enforce_inter_silo_max_calls
-
 pytest_plugins = ["sentry.utils.pytest"]
 
 
@@ -131,16 +129,10 @@ def setup_default_hybrid_cloud_stubs():
         MockRegionToControlMessageService,
         region_to_control_message_service,
     )
-    from sentry.services.hybrid_cloud.organization_service import organization_service
-    from sentry.services.hybrid_cloud.organization_service.impl import StubOrganizationService
-    from sentry.services.hybrid_cloud.project_key_service import project_key_service
-    from sentry.services.hybrid_cloud.project_key_service.impl import StubProjectKeyService
     from sentry.silo import SiloMode
-    from sentry.testutils.hybrid_cloud import service_stubbed
+    from sentry.testutils.hybrid_cloud import enforce_inter_silo_max_calls, service_stubbed
 
     stubs = [
-        service_stubbed(project_key_service, StubProjectKeyService(), SiloMode.CONTROL),
-        service_stubbed(organization_service, StubOrganizationService(), SiloMode.CONTROL),
         service_stubbed(
             region_to_control_message_service, MockRegionToControlMessageService(), SiloMode.REGION
         ),
