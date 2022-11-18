@@ -130,7 +130,7 @@ def setup_default_hybrid_cloud_stubs():
         region_to_control_message_service,
     )
     from sentry.silo import SiloMode
-    from sentry.testutils.hybrid_cloud import enforce_inter_silo_max_calls, service_stubbed
+    from sentry.testutils.hybrid_cloud import service_stubbed
 
     stubs = [
         service_stubbed(
@@ -141,5 +141,4 @@ def setup_default_hybrid_cloud_stubs():
     with contextlib.ExitStack() as stack:
         for stub in stubs:
             stack.enter_context(stub)
-        stack.enter_context(enforce_inter_silo_max_calls(7))
         yield
