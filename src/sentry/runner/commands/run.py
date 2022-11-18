@@ -708,7 +708,7 @@ def replays_recordings_consumer(**options):
     )
 
     stream_processor = make_replays_stream_processor(
-        processor_factory=ChunkedRecordingProcessorStrategyFactory(),
+        processor_factory=ChunkedRecordingProcessorStrategyFactory,
         **options,
     )
     stream_processor.run()
@@ -728,7 +728,7 @@ def replays_recording_nonchunked_consumer(**options):
     from sentry.replays.consumers.strategies.recording import RecordingProcessorStrategyFactory
 
     stream_processor = make_replays_stream_processor(
-        processor_factory=RecordingProcessorStrategyFactory(),
+        processor_factory=RecordingProcessorStrategyFactory,
         **options,
     )
     stream_processor.run()
