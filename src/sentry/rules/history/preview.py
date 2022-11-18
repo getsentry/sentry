@@ -307,14 +307,14 @@ def apply_frequency_conditions(
                 except NotImplementedError:
                     raise PreviewException
 
-            for i in range(len(activities)):
-                if (
-                    pass_count[i]
-                    and condition_match == "any"
-                    or pass_count[i] == len(conditions)
-                    and condition_match == "all"
-                ):
-                    filtered_activity[group].append(activities[i])
+        for i in range(len(activities)):
+            if (
+                pass_count[i]
+                and condition_match == "any"
+                or pass_count[i] == len(conditions)
+                and condition_match == "all"
+            ):
+                filtered_activity[group].append(activities[i])
 
     return filtered_activity
 
