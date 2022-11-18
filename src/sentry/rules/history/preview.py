@@ -324,7 +324,6 @@ def get_frequency_buckets(
 ) -> Sequence[Dict[str, Any]]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
-    The returned list contains the prefix sum of the buckets to support efficient range queries by frequency conditions.
     """
     # TODO: support counting of other issue types and fields (# of unique users, ...)
     bucket_counts: Sequence[Dict[str, Any]] = raw_query(
