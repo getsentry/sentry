@@ -82,8 +82,7 @@ def try_path_munging(
                 config.stack_root
             ):
                 result["error"] = "stack_root_mismatch"
-
-            if not result["error"]:
+            else:
                 result = get_link(config, munged_filename, ctx["commit_id"])
 
     return result
@@ -149,7 +148,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # For mobile we try a second time by munging the file path
                 # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
                 if not outcome.get("sourceUrl") and mobile_frame:
-                    outcome = try_path_munging(config, filepath, mobile_frame, ctx)
+                    munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
+                    # If we failed to munge we should keep the original outcome
+                    if munging_outcome:
+                        outcome = munging_outcome
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
                 matched_code_mappings.append(current_config)
@@ -174,9 +176,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 result["config"] = last["config"]  # Backwards compatible
                 if not found:
                     result["error"] = last["outcome"]["error"]  # Backwards compatible
-                    # When no code mapping matches we don't have an attempted URL
+                    # When no code mapping have been matched we have not attempted a URL
                     if last["outcome"].get("attemptedUrl"):  # Backwards compatible
-                        result["attemptedUrl"] = ["attemptedUrl"]
+                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
                     if result["error"] == "stack_root_mismatch":
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
