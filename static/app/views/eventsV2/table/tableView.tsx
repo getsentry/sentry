@@ -204,8 +204,8 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           dataRow={dataRow}
           contextType={ContextType.EVENT}
           organization={organization}
-          location={location}
           projects={projects}
+          eventView={eventView}
         >
           {eventIdLink}
         </QuickContextHoverWrapper>,
