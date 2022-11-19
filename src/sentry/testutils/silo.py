@@ -61,6 +61,12 @@ class SiloModeTest:
             yield modified_name, replacement_test_method
 
         for mode in self.silo_modes:
+            # Currently, test classes that are decorated already handle the monolith mode as the default
+            # because the original test method remains -- this is different from the pytest variant
+            # that actually strictly parameterizes the existing test.  This reduces a redundant run of MONOLITH
+            # mode.
+            if mode == SiloMode.MONOLITH:
+                continue
             yield from method_for_mode(mode)
 
     def _add_silo_modes_to_methods(self, test_class: type) -> type:
