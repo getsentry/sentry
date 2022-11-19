@@ -697,8 +697,20 @@ class IssueEvidence:
 
 @dataclass
 class IssueOccurrence:
+    """
+    A class representing a specific occurrence of an issue. Separate to an `Event`. An `Event` may
+    have 0-M `IssueOccurrences` associated with it, and each `IssueOccurrence` is associated with
+    one `Event`.
+
+    Longer term, we will change this relationship so that each individual
+    """
+
+    id: str
+    event_id: str  # Maybe optional? Although I think that we should create an event for all issue
+    # categories, even if the backing data type doesn't explicitly have Events
     fingerprint: Sequence[str]
     issue_title: str
+    # subtitle: str # We haven't defined what this will look like just yet
     resource_id: str
     evidence_data: Mapping[str, Any]
     evidence_display: Sequence[IssueEvidence]
