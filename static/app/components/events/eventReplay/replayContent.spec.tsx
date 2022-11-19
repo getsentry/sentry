@@ -123,15 +123,15 @@ describe('ReplayContent', () => {
       };
     });
 
-    expect(() =>
-      render(
-        <ReplayContent
-          orgSlug={mockOrgSlug}
-          replaySlug={mockReplaySlug}
-          event={mockEvent}
-        />
-      )
-    ).toThrow();
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        event={mockEvent}
+      />
+    );
+
+    expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
   it('Should render details button when there is a replay', () => {
@@ -143,10 +143,8 @@ describe('ReplayContent', () => {
       />
     );
 
-    const detailButtons = screen.getAllByLabelText('Open Replay');
-    // Expect the details buttons to have the correct href
-    expect(detailButtons[0]).toHaveAttribute('href', mockButtonHref);
-    expect(detailButtons[1]).toHaveAttribute('href', mockButtonHref);
+    const detailButton = screen.getByLabelText('Open Replay');
+    expect(detailButton).toHaveAttribute('href', mockButtonHref);
   });
 
   it('Should render all its elements correctly', () => {

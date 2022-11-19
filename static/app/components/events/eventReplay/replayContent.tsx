@@ -47,7 +47,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
   if (fetchError) {
     return (
-      <Alert type="info" showIcon>
+      <Alert type="info" showIcon data-test-id="replay-error">
         {t('The replay associated with this event could not be found.')}
       </Alert>
     );
