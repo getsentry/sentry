@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
@@ -12,6 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
@@ -273,7 +274,7 @@ class GroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <Fragment>
+      <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
         <Panel>
           <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
@@ -304,7 +305,7 @@ class GroupList extends Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </Fragment>
+      </IssuesReplayCountProvider>
     );
   }
 }
