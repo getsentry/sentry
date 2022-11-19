@@ -114,18 +114,6 @@ export function FlamegraphStateProvider(
 
   useEffect(() => {
     if (defined(state.profiles.threadId)) {
-      // if the state already has a thread id on it, we may want to restore some existing view
-      // this should only happen when sharing links with the thread id already specified
-      if (defined(state.position.view) && !defined(state.profiles.zoomIntoView)) {
-        dispatch({
-          type: 'jump to view',
-          payload: {
-            view: state.position.view,
-            threadId: state.profiles.threadId,
-          },
-        });
-      }
-
       return;
     }
 
