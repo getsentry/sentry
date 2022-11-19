@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Iterable, List, Optional
 
 from sentry.api.serializers import serialize
