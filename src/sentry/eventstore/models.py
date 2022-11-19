@@ -683,12 +683,25 @@ class Event(BaseEvent):
 
 
 @dataclass
+class IssueEvidence:
+    name: str
+    value: str
+    # Feels like we need more attributes to allow us to decide which things to include in verbose and
+    # condensed displays. We'll use all the evidence in issue details and emails, but only important
+    # rows in slack, for example. Some thoughts:
+    # important: bool
+    # include_in: Sequence[str] # List of places this should be included in, like UI, email, slack.
+    # Maybe too configurable? Also doesn't expand well as we add more integration types. Could be
+    # more general like: UI, alerts_email, alerts_messaging, integration_ticketing, etc.
+
+
+@dataclass
 class IssueOccurrence:
     fingerprint: Sequence[str]
     issue_title: str
     resource_id: str
     evidence_data: Mapping[str, Any]
-    evidence_display: Sequence[Tuple[str, str]]
+    evidence_display: Sequence[IssueEvidence]
     type: GroupType
     detection_time: datetime
 
