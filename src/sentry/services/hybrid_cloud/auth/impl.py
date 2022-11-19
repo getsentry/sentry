@@ -1,37 +1,18 @@
 from __future__ import annotations
 
-import abc
-from dataclasses import dataclass
 from typing import List
 
 from django.db.models import F
 
 from sentry import roles
+from sentry.auth.access import get_permissions_for_user
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
-from sentry.services.hybrid_cloud import (
-    CreateStubFromBase,
-    InterfaceWithLifecycle,
-    silo_mode_delegation,
-)
+from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, AuthService
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
-from sentry.silo import SiloMode
 from sentry.utils.types import Any
-
-
-@dataclass(eq=True)
-class ApiMemberSsoState:
-    is_required: bool = False
-    is_valid: bool = False
-
 
 _SSO_BYPASS = ApiMemberSsoState(False, True)
 _SSO_NONMEMBER = ApiMemberSsoState(False, False)
-
-
-@dataclass
-class ApiAuthState:
-    sso_state: ApiMemberSsoState
-    permissions: List[str]
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
@@ -94,31 +75,6 @@ def query_sso_state(
     return ApiMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
 
 
-class AuthService(InterfaceWithLifecycle):
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiAuthState:
-        pass
-
-    # TODO: Denormalize this scim enabled flag onto organizations?
-    # This is potentially a large list
-    @abc.abstractmethod
-    def get_org_ids_with_scim(
-        self,
-    ) -> List[int]:
-        """
-        This method returns a list of org ids that have scim enabled
-        :return:
-        """
-        pass
-
-
 class DatabaseBackedAuthService(AuthService):
     # Monolith implementation that uses OrganizationMember and User tables freely, but in silo world
     # this won't be possible.
@@ -130,8 +86,6 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int | None,
         org_member: ApiOrganizationMember | OrganizationMember | None,
     ) -> ApiAuthState:
-        from sentry.auth.access import get_permissions_for_user
-
         sso_state = query_sso_state(
             organization_id=organization_id,
             is_super_user=is_superuser,
@@ -160,14 +114,3 @@ class DatabaseBackedAuthService(AuthService):
                 flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
             ).values_list("organization_id", flat=True)
         )
-
-
-StubAuthService = CreateStubFromBase(DatabaseBackedAuthService)
-
-auth_service: AuthService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: lambda: DatabaseBackedAuthService(),
-        SiloMode.CONTROL: lambda: StubAuthService(),  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
-        SiloMode.REGION: lambda: StubAuthService(),  # this must eventually be purely RPC
-    }
-)

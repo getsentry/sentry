@@ -588,7 +588,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
-    "sentry.tasks.reports",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -781,26 +780,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
-    "schedule-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60 * 3},
-    },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
-    },
-    "schedule-verify-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.verify_prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
@@ -2939,3 +2924,27 @@ SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
 # Show session replay banner on login page
 SHOW_SESSION_REPLAY_BANNER = False
+
+# Mapping of (logical topic names, slice id) to physical topic names
+# and kafka broker names. The kafka broker names are used to construct
+# the broker config from KAFKA_CLUSTERS. This is used for slicing only.
+# Example:
+# SLICED_KAFKA_TOPICS = {
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#       "topic": "generic_metrics_0",
+#       "cluster": "cluster_1",
+#   },
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#       "topic": "generic_metrics_1",
+#       "cluster": "cluster_2",
+# }
+# And then in KAFKA_CLUSTERS:
+# KAFKA_CLUSTERS = {
+#   "cluster_1": {
+#       "bootstrap.servers": "kafka1:9092",
+#   },
+#   "cluster_2": {
+#       "bootstrap.servers": "kafka2:9092",
+#   },
+# }
+SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}

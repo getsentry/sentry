@@ -17,6 +17,7 @@ import {
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 
 import {ViewProps} from '../../../types';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
@@ -78,7 +79,7 @@ function Content({
     // the tooltip content entirely when zooming is no longer available.
     const tooltip = {
       formatter(series) {
-        const seriesData = Array.isArray(series) ? series : [series];
+        const seriesData = toArray(series);
         let contents: string[] = [];
         if (!zoomError) {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
