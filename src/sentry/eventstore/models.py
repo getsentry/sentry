@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import string
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
@@ -20,7 +21,7 @@ from sentry.interfaces.base import Interface, get_interfaces
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
@@ -681,6 +682,17 @@ class Event(BaseEvent):
         return GroupEvent.from_event(self, group)
 
 
+@dataclass
+class IssueOccurrence:
+    fingerprint: Sequence[str]
+    issue_title: str
+    resource_id: str
+    evidence_data: Mapping[str, Any]
+    evidence_display: Mapping[str, str]
+    type: GroupType
+    detection_time: datetime
+
+
 class GroupEvent(BaseEvent):
     def __init__(
         self,
@@ -689,10 +701,12 @@ class GroupEvent(BaseEvent):
         group: Group,
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
+        occurrence: IssueOccurrence | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
+        self._occurrence = occurrence
 
     def __eq__(self, other):
         if not isinstance(other, GroupEvent):
@@ -730,6 +744,14 @@ class GroupEvent(BaseEvent):
         if hasattr(event, "_project_cache"):
             group_event.project = event.project
         return group_event
+
+    @property
+    def occurrence(self) -> IssueOccurrence:
+        return self._data
+
+    @occurrence.setter
+    def occurrence(self, value: IssueOccurrence) -> None:
+        self._data = value
 
 
 class EventSubjectTemplate(string.Template):
