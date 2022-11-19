@@ -9,6 +9,7 @@ from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models import Project, Rule
+from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
 
@@ -104,8 +105,8 @@ class RuleBase(abc.ABC):
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
-    def get_event_columns(self) -> Sequence[str]:
-        return []
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+        return {}
 
     def passes_activity(
         self, condition_activity: ConditionActivity, event_map: Dict[str, Any]

@@ -8,7 +8,9 @@ from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.condition_activity import ConditionActivity
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.events import Columns
+from sentry.types.condition_activity import ConditionActivity, get_dataset_columns
 
 
 class TaggedEventForm(forms.Form):  # type: ignore
@@ -145,5 +147,8 @@ class TaggedEventCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def get_event_columns(self) -> Sequence[str]:
-        return ["tags.key", "tags.value"]
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns(
+            [Columns.TAGS_KEY, Columns.TAGS_VALUE]
+        )
+        return columns
