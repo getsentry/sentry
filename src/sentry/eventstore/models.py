@@ -688,7 +688,7 @@ class IssueOccurrence:
     issue_title: str
     resource_id: str
     evidence_data: Mapping[str, Any]
-    evidence_display: Mapping[str, str]
+    evidence_display: Sequence[Tuple[str, str]]
     type: GroupType
     detection_time: datetime
 
