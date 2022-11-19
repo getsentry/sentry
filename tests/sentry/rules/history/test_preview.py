@@ -11,12 +11,14 @@ from sentry.rules.history.preview import (
     get_top_groups,
     preview,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 
 MATCH_ARGS = ("all", "all", 0)
 
@@ -232,11 +234,11 @@ class ProjectRulePreviewTest(TestCase):
             }
         ]
 
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group in results
 
         filters[0]["value"] = "goodbye world"
-        results = preview(self.project, conditions, filters, "all", "all", 0)
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert event.group not in results
 
     def test_unsupported_conditions(self):
@@ -324,6 +326,122 @@ class ProjectRulePreviewTest(TestCase):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert result.count() == 0
 
+    def test_transactions(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        event = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        ).copy()
+        event.update(
+            {
+                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "timestamp": iso_format(prev_hour),
+                "tags": {"foo": "bar"},
+                "transaction": "this is where a transaction's 'message' is stored",
+            }
+        )
+        transaction = self.store_event(project_id=self.project.id, data=event)
+        self.store_event(project_id=self.project.id, data=event)
+
+        perf_issue = transaction.groups[0]
+        perf_issue.update(first_seen=prev_hour)
+        Activity.objects.create(
+            project=self.project,
+            group=perf_issue,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=prev_hour,
+            data={"event_id": transaction.event_id},
+        )
+        conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            }
+        ]
+        result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert perf_issue in result
+
+        filters[0]["value"] = "baz"
+        result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert perf_issue not in result
+
+        filters = [
+            {
+                "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+                "attribute": "message",
+                "match": "eq",
+                "value": "this is where a transaction's 'message' is stored",
+            }
+        ]
+        result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert perf_issue in result
+
+        filters[0]["value"] = "wrong message"
+        result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert perf_issue not in result
+        # this can be tested when SNS-1891 is fixed
+        """
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [{
+            "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+            "key": "foo",
+            "match": "eq",
+            "value": "bar",
+        }]
+        result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert perf_issue in result
+        """
+
+    def test_errors_transactions_together(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        error = self.store_event(
+            project_id=self.project.id,
+            data={"timestamp": iso_format(prev_hour), "tags": {"foo": "bar"}},
+        )
+        issue = error.group
+        issue.update(first_seen=prev_hour)
+
+        event = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        ).copy()
+        event.update(
+            {
+                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "timestamp": iso_format(prev_hour),
+                "tags": {"foo": "bar"},
+            }
+        )
+        transaction = self.store_event(project_id=self.project.id, data=event)
+
+        perf_issue = transaction.groups[0]
+        perf_issue.update(first_seen=timezone.now() - timedelta(weeks=3))
+        Activity.objects.create(
+            project=self.project,
+            group=perf_issue,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=prev_hour,
+            data={"event_id": transaction.event_id},
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+        ]
+        filters = [
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            }
+        ]
+        result = preview(self.project, conditions, filters, "any", "all", 0)
+        assert issue in result and perf_issue in result
+
 
 @freeze_time()
 @region_silo_test
@@ -410,7 +528,7 @@ class GetEventsTest(TestCase):
                 )
             ]
         }
-        events = get_events(self.project, activity, [])
+        events = get_events(self.project, activity, {Dataset.Events: []})
 
         assert len(events) == 1
         assert event.event_id in events
@@ -442,7 +560,7 @@ class GetEventsTest(TestCase):
                 ),
             ]
         }
-        events = get_events(self.project, activity, [])
+        events = get_events(self.project, activity, {Dataset.Events: []})
 
         assert len(events) == 2
         assert all([event.event_id in events for event in (regression_event, reappeared_event)])
