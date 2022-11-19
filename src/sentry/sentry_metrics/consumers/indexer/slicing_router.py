@@ -4,7 +4,7 @@ from arroyo import Message, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.ingest.partitioning import (
+from sentry.ingest.slicing import (
     Sliceable,
     is_sliced,
     map_logical_partition_to_slice,
