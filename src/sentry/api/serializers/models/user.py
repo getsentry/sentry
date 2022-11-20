@@ -2,7 +2,18 @@ import itertools
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from django.conf import settings
 from django.db.models import QuerySet
@@ -25,6 +36,7 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
+from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -110,7 +122,7 @@ class UserSerializer(Serializer):  # type: ignore
             item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(user__in=item_list).select_related(
-            "auth_provider", "auth_provider__organization"
+            "auth_provider",
         )
 
         results: Dict[int, List[AuthIdentity]] = {i.id: [] for i in item_list}
@@ -190,13 +202,23 @@ class UserSerializer(Serializer):  # type: ignore
 
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
+            organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
+            orgs_by_id: Mapping[int, ApiOrganization] = {
+                o.id: o
+                for o in organization_service.get_organizations(
+                    user_id=None,
+                    scope=None,
+                    only_visible=False,
+                    organization_ids=list(organization_ids),
+                )
+            }
             d["identities"] = [
                 {
                     "id": str(i.id),
                     "name": i.ident,
                     "organization": {
-                        "slug": i.auth_provider.organization.slug,
-                        "name": i.auth_provider.organization.name,
+                        "slug": orgs_by_id[i.auth_provider.organization_id].slug,
+                        "name": orgs_by_id[i.auth_provider.organization_id].name,
                     },
                     "provider": {
                         "id": i.auth_provider.provider,

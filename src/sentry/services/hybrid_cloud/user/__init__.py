@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
@@ -7,6 +9,7 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass(frozen=True, eq=True)
@@ -48,12 +51,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_from_group(self, group: "Group") -> List[APIUser]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_from_project(self, project_id: int) -> List["Group"]:
+    def get_from_project(self, project_id: int) -> List[Group]:
         """Get all users associated with a project identifier"""
         pass
 
@@ -94,7 +97,13 @@ class UserService(InterfaceWithLifecycle):
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
     # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
     @abstractmethod
-    def serialize_users(self, user_ids: List[int]) -> List[Any]:
+    def serialize_users(
+        self,
+        user_ids: List[int],
+        *,
+        detailed: int = 0,
+        auth_context: AuthenticationContext | None = None,
+    ) -> List[Any]:
         """
         It is crucial that the returned order matches the user_ids passed in so that no introspection is required
         to match the serialized user and the original user_id.
@@ -104,7 +113,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @classmethod
-    def serialize_user(cls, user: "User") -> APIUser:
+    def serialize_user(cls, user: User) -> APIUser:
         args = {
             field.name: getattr(user, field.name)
             for field in fields(APIUser)

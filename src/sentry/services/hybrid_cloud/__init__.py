@@ -107,7 +107,7 @@ def CreateStubFromBase(
 
                 auth_context: AuthenticationContext = AuthenticationContext()
                 if "auth_context" in call_args:
-                    auth_context = call_args["auth_context"]
+                    auth_context = call_args["auth_context"] or auth_context
                 with auth_context.applied_to_request():
                     return method(*args, **kwds)
 

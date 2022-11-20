@@ -6,14 +6,13 @@ from packaging.version import parse as parse_version
 
 import sentry
 from sentry import features, options
-from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
-from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -105,16 +104,12 @@ def _resolve_last_org(session, user):
     last_org_slug = session["activeorg"] if session and "activeorg" in session else None
     if not last_org_slug:
         return None
-    try:
-        last_org = Organization.objects.get_from_cache(slug=last_org_slug)
-        if user is not None and not isinstance(user, AnonymousUser):
-            try:
-                get_cached_organization_member(user.id, last_org.id)
-                return last_org
-            except OrganizationMember.DoesNotExist:
-                return None
-    except Organization.DoesNotExist:
-        pass
+    if user is not None and not isinstance(user, AnonymousUser):
+        org_context = organization_service.get_organization_by_slug(
+            slug=last_org_slug, only_visible=False, user_id=user.id
+        )
+        if org_context and org_context.member:
+            return org_context.organization
     return None
 
 
@@ -236,7 +231,17 @@ def get_client_config(request=None):
     }
     if user and user.is_authenticated:
         context.update(
-            {"isAuthenticated": True, "user": serialize(user, user, DetailedSelfUserSerializer())}
+            {
+                "isAuthenticated": True,
+                "user": user_service.serialize_users(
+                    [user.id],
+                    detailed=2,
+                    auth_context=AuthenticationContext(
+                        auth=getattr(request, "auth", None),
+                        user=request.user,
+                    ),
+                )[0],
+            }
         )
 
         if request.user.is_superuser:
