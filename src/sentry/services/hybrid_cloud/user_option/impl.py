@@ -24,7 +24,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         self,
         *,
         user_ids: Iterable[int],
-        keys: Iterable[str],
+        keys: List[str],
         project: Optional[Project] = None,
         organization: Optional[Organization] = None,
     ) -> List[ApiUserOption]:

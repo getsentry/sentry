@@ -138,7 +138,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         options.delete("store.symbolicate-event-lpq-always")
         options.delete("store.symbolicate-event-lpq-never")
 
-        expected_queries += 1
+        expected_queries += 2
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
