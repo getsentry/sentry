@@ -115,13 +115,13 @@ def resolved_in_commit(instance, created, **kwargs):
                 if user_list:
                     acting_user: APIUser = user_list[0]
                     # TODO(hybrid-cloud): rely on user options being returned in the user service get calls.
-                    user_options = user_option_service.get(
-                        [acting_user.id], "self_assign_issue", None
+                    user_options = user_option_service.get_many(
+                        user_ids=[acting_user.id], keys="self_assign_issue"
                     )
+
+                    self_assign_issue = "0"
                     if len(user_options) > 0:
-                        self_assign_issue = user_options[0].value
-                    else:
-                        self_assign_issue = "0"
+                        self_assign_issue = user_options[0].value or "0"
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user

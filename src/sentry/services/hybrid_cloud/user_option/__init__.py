@@ -1,29 +1,41 @@
-from abc import abstractmethod
-from typing import Iterable, List, Optional
+from __future__ import annotations
 
-from sentry.models import Project, UserOption
+from abc import abstractmethod
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import Organization, Project
+
+
+@dataclass
+class ApiUserOption:
+    id: int = -1
+    user_id: int = -1
+    value: Any = None
+    key: str = ""
+    project_id: int | None = None
+    organization_id: int | None = None
 
 
 class UserOptionService(InterfaceWithLifecycle):
     @abstractmethod
-    def get(
+    def delete_options(self, *, options: List[ApiUserOption]) -> None:
+        pass
+
+    @abstractmethod
+    def get_many(
         self,
+        *,
         user_ids: Iterable[int],
-        key: str,
-        project: Optional[Project],
-    ) -> List[UserOption]:
-        """
-        This method returns UserOption objects based on the passed in filters
-        :param user_ids:
-        A list of user IDs to fetch
-        :param project:
-        Filter options to a specific project
-        :param key:
-        Filter options to a specific key
-        :return:
-        """
+        keys: Iterable[str],
+        project: Optional[Project] = None,
+        organization: Optional[Organization] = None,
+    ) -> List[ApiUserOption]:
+        """ """
         pass
 
 
