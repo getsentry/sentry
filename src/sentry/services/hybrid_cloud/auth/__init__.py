@@ -159,13 +159,25 @@ class AuthenticationContext:
             yield
             return
 
-        old_user = request.user
-        old_auth = request.auth
+        has_user = hasattr(request, "user")
+        has_auth = hasattr(request, "auth")
+
+        old_user = getattr(request, "user", None)
+        old_auth = getattr(request, "auth", None)
         request.user = self.user or AnonymousUser()
         request.auth = self.auth
+
         yield
-        request.user = old_user
-        request.auth = old_auth
+
+        if has_user:
+            request.user = old_user
+        else:
+            delattr(request, "user")
+
+        if has_auth:
+            request.auth = old_auth
+        else:
+            delattr(request, "auth")
 
 
 @dataclass
