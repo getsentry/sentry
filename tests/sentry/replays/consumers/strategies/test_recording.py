@@ -25,13 +25,18 @@ class RecordingConsumerTestCase(TransactionTestCase):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
+        self.processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x: None, None
+        )
+        self.processing_strategy.teardown()
+        self.processing_strategy.setup(always_eager=True)
+
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     def test_basic_flow_compressed(self, mock_record, mock_onboarding_task):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
 
-        processing_strategy.submit(
+        self.processing_strategy.submit(
             Message(
                 Partition(Topic("ingest-replay-recordings"), 1),
                 1,
@@ -53,9 +58,9 @@ class RecordingConsumerTestCase(TransactionTestCase):
                 datetime.now(),
             )
         )
-        processing_strategy.poll()
-        processing_strategy.join(1)
-        processing_strategy.terminate()
+        self.processing_strategy.poll()
+        self.processing_strategy.join(1)
+        self.processing_strategy.terminate()
         recording_file_name = f"rr:{self.replay_id}:{segment_id}"
         recording = File.objects.get(name=recording_file_name)
 
@@ -84,10 +89,9 @@ class RecordingConsumerTestCase(TransactionTestCase):
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     def test_basic_flow(self, mock_record, mock_onboarding_task):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
 
-        processing_strategy.submit(
+        self.processing_strategy.submit(
             Message(
                 Partition(Topic("ingest-replay-recordings"), 1),
                 1,
@@ -109,9 +113,9 @@ class RecordingConsumerTestCase(TransactionTestCase):
                 datetime.now(),
             )
         )
-        processing_strategy.poll()
-        processing_strategy.join(1)
-        processing_strategy.terminate()
+        self.processing_strategy.poll()
+        self.processing_strategy.join(1)
+        self.processing_strategy.terminate()
         recording_file_name = f"rr:{self.replay_id}:{segment_id}"
         recording = File.objects.get(name=recording_file_name)
 

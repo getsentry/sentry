@@ -3,7 +3,6 @@ from __future__ import annotations
 import collections
 import concurrent.futures as cf
 import logging
-import multiprocessing as mp
 import os
 import time
 from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional
@@ -16,8 +15,6 @@ from sentry.replays.lib.pool import BoundedProcessPoolExecutor
 
 COMMIT_FREQUENCY_SEC = 1
 logger = logging.getLogger("sentry.replays")
-
-mp.set_start_method("fork")
 
 
 class KafkaMessageFutureTuple(NamedTuple):
@@ -34,19 +31,25 @@ class ProcessPoolStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
-        self.setup()
+        self.setup(always_eager=False)
 
-    def setup(self):
-        max_workers = os.cpu_count() * 1  # self.worker_multiplier
-        max_queue_size = max_workers * 1  # self.prefetch_multiplier
+    def setup(
+        self,
+        always_eager: bool,
+        worker_multiplier: int = 1,
+        prefetch_multiplier: int = 1,
+    ) -> None:
+        max_workers = os.cpu_count() * worker_multiplier
+        max_queue_size = max_workers * prefetch_multiplier
 
         self.__tasks: Deque[KafkaMessageFutureTuple] = collections.deque()
         self.__pool = BoundedProcessPoolExecutor(
             worker_count=max_workers,
             queue_size=max_queue_size,
+            always_eager=always_eager,
         )
 
-    def teardown(self):
+    def teardown(self) -> None:
         # ProcessPoolExecutor must have wait=True. Otherwise the shutdown method will fail. Fixed
         # in Python 3.9.
         #
