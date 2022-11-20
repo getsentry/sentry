@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any, TypedDict
 
+import msgpack
 import sentry_sdk
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -98,12 +99,14 @@ def ingest_recording_chunked(
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(message_dict: dict[str, Any], transaction: Transaction) -> None:
+def ingest_recording_not_chunked(message_bytes: bytes, transaction: Transaction) -> None:
     """Ingest non-chunked recording messages."""
     with transaction.start_child(
         op="replays.usecases.ingest.ingest_recording_not_chunked",
         description="ingest_recording_not_chunked",
     ):
+        message_dict: dict[str, Any] = msgpack.unpackb(message_bytes)
+
         message = RecordingIngestMessage(
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
@@ -112,6 +115,7 @@ def ingest_recording_not_chunked(message_dict: dict[str, Any], transaction: Tran
             received=message_dict["received"],
             payload_with_headers=message_dict["payload"],
         )
+
         ingest_recording(message, transaction)
 
 
