@@ -28,7 +28,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         project: Optional[Project] = None,
         organization: Optional[Organization] = None,
     ) -> List[ApiUserOption]:
-        queryset = UserOption.objects.filter(user_id__in=user_ids, key_in=keys)  # type: ignore
+        queryset = UserOption.objects.filter(user_id__in=user_ids, key__in=keys)  # type: ignore
         if project is not None:
             queryset = queryset.filter(project=project)
         if organization is not None:
