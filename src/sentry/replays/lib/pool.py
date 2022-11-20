@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from threading import BoundedSemaphore
 from typing import Any
 
 
 class EagerFuture:
-    """Emulate the Future class."""
+    """Synchronous future class."""
 
     def __init__(self, result: Any) -> None:
         self._result = result
@@ -31,13 +32,11 @@ class EagerFuture:
 
 
 class BoundedPoolExecutorBase:
-    _executor_cls: ProcessPoolExecutor | ThreadPoolExecutor = None
-
     def __init__(
         self, worker_count: int | None, queue_size: int, always_eager: bool = False
     ) -> None:
         self.always_eager = always_eager
-        self.executor = self._executor_cls(max_workers=worker_count)
+        self.executor = self.init_executor(worker_count)
         self.semaphore = BoundedSemaphore(queue_size)
 
     def submit(self, function, *args, **kwargs):
@@ -45,7 +44,6 @@ class BoundedPoolExecutorBase:
             return EagerFuture(function(*args, **kwargs))
 
         self.semaphore.acquire()
-
         future = self.executor.submit(function, *args, **kwargs)
         future.add_done_callback(self.semaphore_release_callback)
         return future
@@ -54,10 +52,17 @@ class BoundedPoolExecutorBase:
         self.semaphore.release()
         return result
 
+    def init_executor(self, _: int) -> ProcessPoolExecutor | ThreadPoolExecutor:
+        raise NotImplementedError
+
 
 class BoundedProcessPoolExecutor(BoundedPoolExecutorBase):
-    _executor_cls = ProcessPoolExecutor
+    def init_executor(self, workers: int) -> ProcessPoolExecutor:
+        # "Fork" is required.  "Spawn" has compatibility issues with Django among other problems.
+        # Any threads that were forked will be broken in the subprocess.
+        return ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork"))
 
 
 class BoundedThreadPoolExecutor(BoundedPoolExecutorBase):
-    _executor_cls = ThreadPoolExecutor
+    def init_executor(self, workers: int) -> ThreadPoolExecutor:
+        return ThreadPoolExecutor(max_workers=workers)
