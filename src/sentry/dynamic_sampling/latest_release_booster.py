@@ -78,15 +78,15 @@ def _extract_release_and_environment_from_cache_key(
             return int(release_id), environment
         elif release_id:
             return int(release_id), None
+
+    # If the cache key doesn't match the new format, we will fallback to the old format which is just an integer.
+    try:
+        release_id = int(cache_key)
+    except ValueError:
+        # If the format is not an integer we will silently return None.
+        return None
     else:
-        # If the cache key doesn't match the new format, we will fallback to the old format which is just an integer.
-        try:
-            release_id = int(cache_key)
-        except ValueError:
-            # If the format is not an integer we will silently return None.
-            return None
-        else:
-            return release_id, None
+        return release_id, None
 
 
 def observe_release(project_id: int, release_id: int, environment: Optional[str]) -> bool:
