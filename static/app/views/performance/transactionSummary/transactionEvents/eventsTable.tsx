@@ -84,6 +84,7 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
+  showReplayCol: boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -91,7 +92,6 @@ type Props = {
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
-  showReplayCol?: boolean;
   totalEventCount?: string;
 };
 
