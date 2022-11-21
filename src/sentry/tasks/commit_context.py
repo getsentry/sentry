@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from sentry_sdk import set_tag
 
 from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
@@ -46,6 +47,7 @@ def process_commit_context(
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
+            set_tag("organization.slug", project.organization.slug)
 
             owners = GroupOwner.objects.filter(
                 group_id=group_id,
