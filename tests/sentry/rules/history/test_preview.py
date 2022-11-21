@@ -528,7 +528,13 @@ class GetEventsTest(TestCase):
                 )
             ]
         }
-        events = get_events(self.project, activity, {Dataset.Events: []})
+        events = get_events(
+            self.project,
+            activity,
+            {Dataset.Events: []},
+            timezone.now() - timedelta(weeks=2),
+            timezone.now(),
+        )
 
         assert len(events) == 1
         assert event.event_id in events
@@ -560,7 +566,13 @@ class GetEventsTest(TestCase):
                 ),
             ]
         }
-        events = get_events(self.project, activity, {Dataset.Events: []})
+        events = get_events(
+            self.project,
+            activity,
+            {Dataset.Events: []},
+            timezone.now() - timedelta(weeks=2),
+            timezone.now(),
+        )
 
         assert len(events) == 2
         assert all([event.event_id in events for event in (regression_event, reappeared_event)])
