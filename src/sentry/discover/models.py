@@ -2,9 +2,18 @@ from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.utils import RuleType
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
@@ -76,6 +85,53 @@ class DiscoverSavedQuery(Model):
             )
 
 
+class TeamKeyTransactionModelManager(BaseManager):
+    @staticmethod
+    def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
+        project = (
+            instance.project_team.project if hasattr(instance.project_team, "project") else None
+        )
+
+        if project is None:
+            return
+
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        if ds_feature_multiplexer.is_on_dynamic_sampling:
+            # check if option is enabled
+            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+                project.get_option("sentry:dynamic_sampling_biases", None)
+            )
+            # invalidate project config only when the rule is enabled
+            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+                transaction.on_commit(
+                    lambda: schedule_invalidate_project_config(
+                        project_id=project.id, trigger=trigger
+                    )
+                )
+
+    def post_save(self, instance, **kwargs):
+        # this hook may be called from model hooks during an
+        # open transaction. In that case, wait until the current transaction has
+        # been committed or rolled back to ensure we don't read stale data in the
+        # task.
+        #
+        # If there is no transaction open, on_commit should run immediately.
+        self.__schedule_invalidate_project_config_transaction_commit(
+            instance, "teamkeytransaction.post_save"
+        )
+
+    def post_delete(self, instance, **kwargs):
+        # this hook may be called from model hooks during an
+        # open transaction. In that case, wait until the current transaction has
+        # been committed or rolled back to ensure we don't read stale data in the
+        # task.
+        #
+        # If there is no transaction open, on_commit should run immediately.
+        self.__schedule_invalidate_project_config_transaction_commit(
+            instance, "teamkeytransaction.post_delete"
+        )
+
+
 @region_silo_only_model
 class TeamKeyTransaction(Model):
     __include_in_export__ = False
@@ -84,6 +140,9 @@ class TeamKeyTransaction(Model):
     transaction = models.CharField(max_length=200)
     project_team = FlexibleForeignKey("sentry.ProjectTeam", null=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
+
+    # Custom Model Manager required to override post_save/post_delete method
+    objects = TeamKeyTransactionModelManager()
 
     class Meta:
         app_label = "sentry"
