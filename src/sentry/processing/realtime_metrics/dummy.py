@@ -25,6 +25,9 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
     def projects(self) -> Iterable[int]:
         yield from ()
 
+    def get_used_budget_for_project(self, project_id: int) -> int:
+        return 0
+
     def get_counts_for_project(self, project_id: int, timestamp: int) -> base.BucketedCounts:
         return base.BucketedCounts(timestamp=-1, width=0, counts=[])
 

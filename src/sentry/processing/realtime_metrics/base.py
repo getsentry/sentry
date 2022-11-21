@@ -139,6 +139,7 @@ class RealtimeMetricsStore(Service):
         "increment_project_event_counter",
         "increment_project_duration_counter",
         "projects",
+        "get_used_budget_for_project",
         "get_counts_for_project",
         "get_durations_for_project",
         "get_lpq_projects",
@@ -200,6 +201,12 @@ class RealtimeMetricsStore(Service):
     def projects(self) -> Iterable[int]:
         """
         Returns IDs of all projects that should be considered for the low priority queue.
+        """
+        raise NotImplementedError
+
+    def get_used_budget_for_project(self, project_id: int) -> int:
+        """
+        Returns the total used budget with during the configured sliding time window for some given project.
         """
         raise NotImplementedError
 

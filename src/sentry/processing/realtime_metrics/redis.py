@@ -184,6 +184,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
+    def get_used_budget_for_project(self, project_id: int) -> int:
+        """
+        Returns the total used budget with during the configured sliding time window for some given project.
+        """
+        raise NotImplementedError
+
     def get_counts_for_project(self, project_id: int, timestamp: int) -> base.BucketedCounts:
         """Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.

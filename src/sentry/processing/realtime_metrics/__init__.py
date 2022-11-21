@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         __realtime_metrics_store__.increment_project_duration_counter
     )
     projects = __realtime_metrics_store__.projects
+    get_used_budget_for_project = __realtime_metrics_store__.get_used_budget_for_project
     get_counts_for_project = __realtime_metrics_store__.get_counts_for_project
     get_durations_for_project = __realtime_metrics_store__.get_durations_for_project
     get_lpq_projects = __realtime_metrics_store__.get_lpq_projects
