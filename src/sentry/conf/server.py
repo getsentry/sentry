@@ -2879,6 +2879,11 @@ SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}
+
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
