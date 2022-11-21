@@ -113,7 +113,6 @@ export type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;

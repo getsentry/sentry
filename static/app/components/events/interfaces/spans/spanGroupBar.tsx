@@ -52,7 +52,6 @@ type Props = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;

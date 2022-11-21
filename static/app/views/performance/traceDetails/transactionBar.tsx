@@ -210,10 +210,8 @@ class TransactionBar extends Component<Props, State> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
-  ) {
-    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
+  // TODO: Use ScrollbarManager to bring autoscrolling here
+  renderTitle(_: ScrollbarManager.ScrollbarManagerChildrenProps) {
     const {organization, transaction} = this.props;
     const left = this.getCurrentOffset();
     const errored = isTraceFullDetailed(transaction)
@@ -254,7 +252,7 @@ class TransactionBar extends Component<Props, State> {
     );
 
     return (
-      <RowTitleContainer ref={generateContentSpanBarRef()}>
+      <RowTitleContainer>
         {this.renderToggle(errored)}
         <RowTitle
           style={{

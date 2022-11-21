@@ -15,7 +15,6 @@ import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
@@ -32,7 +31,6 @@ export type ScrollbarManagerChildrenProps = {
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   addContentSpanBarRef: () => {},
   removeContentSpanBarRef: () => {},
-  generateContentSpanBarRef: () => () => undefined,
   virtualScrollbarRef: createRef<HTMLDivElement>(),
   scrollBarAreaRef: createRef<HTMLDivElement>(),
   onDragStart: () => {},
@@ -288,24 +286,6 @@ export class Provider extends Component<Props, State> {
     if (instance) {
       this.contentSpanBar.delete(instance);
     }
-  };
-
-  generateContentSpanBarRef = () => {
-    let previousInstance: HTMLDivElement | null = null;
-
-    const addContentSpanBarRef = (instance: HTMLDivElement | null) => {
-      if (previousInstance) {
-        this.contentSpanBar.delete(previousInstance);
-        previousInstance = null;
-      }
-
-      if (instance) {
-        this.contentSpanBar.add(instance);
-        previousInstance = instance;
-      }
-    };
-
-    return addContentSpanBarRef;
   };
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
@@ -594,7 +574,6 @@ export class Provider extends Component<Props, State> {
     const childrenProps: ScrollbarManagerChildrenProps = {
       addContentSpanBarRef: this.addContentSpanBarRef,
       removeContentSpanBarRef: this.removeContentSpanBarRef,
-      generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
       onScroll: this.onScroll,
       onWheel: this.onWheel,

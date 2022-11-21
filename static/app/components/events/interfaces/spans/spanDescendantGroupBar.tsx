@@ -35,7 +35,6 @@ export type SpanDescendantGroupBarProps = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -58,7 +57,6 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     onWheel,
     addContentSpanBarRef,
     removeContentSpanBarRef,
-    generateContentSpanBarRef,
     getScrollLeftValue,
     didAnchoredSpanMount,
   } = props;
@@ -171,7 +169,6 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       onWheel={onWheel}
       addContentSpanBarRef={addContentSpanBarRef}
       removeContentSpanBarRef={removeContentSpanBarRef}
-      generateContentSpanBarRef={generateContentSpanBarRef}
       getScrollLeftValue={getScrollLeftValue}
       didAnchoredSpanMount={didAnchoredSpanMount}
     />

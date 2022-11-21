@@ -29,7 +29,6 @@ export type SpanSiblingGroupBarProps = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   isEmbeddedSpanTree: boolean;
   isLastSibling: boolean;
@@ -57,7 +56,6 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     onWheel,
     addContentSpanBarRef,
     removeContentSpanBarRef,
-    generateContentSpanBarRef,
     isEmbeddedSpanTree,
     getScrollLeftValue,
     didAnchoredSpanMount,
@@ -161,7 +159,6 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}
       onWheel={onWheel}
-      generateContentSpanBarRef={generateContentSpanBarRef}
       addContentSpanBarRef={addContentSpanBarRef}
       removeContentSpanBarRef={removeContentSpanBarRef}
       getScrollLeftValue={getScrollLeftValue}
