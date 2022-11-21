@@ -116,7 +116,7 @@ const getPlatformColumns = (
   const replayField = options.isReplayEnabled ? ['replayId'] : [];
   const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
 
-  const categoryToColumnMap: {[key: string]: ColumnInfo} = {
+  const categoryToColumnMap: Record<PlatformCategory, ColumnInfo> = {
     [PlatformCategory.FRONTEND]: {
       fields: ['url', 'browser', ...replayField],
       columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
