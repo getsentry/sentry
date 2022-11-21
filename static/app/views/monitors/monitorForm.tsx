@@ -22,9 +22,7 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: 'interval', label: 'Interval'},
 ];
 
-const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
-  {value: 'cron_job', label: 'Cron Job'},
-];
+const DEFAULT_MONITOR_TYPE = 'cron_job';
 
 const INTERVALS: SelectValue<string>[] = [
   {value: 'minute', label: 'minute(s)'},
@@ -122,12 +120,13 @@ class MonitorForm extends Component<Props> {
               monitor
                 ? {
                     name: monitor.name,
-                    type: monitor.type,
+                    type: monitor.type ?? DEFAULT_MONITOR_TYPE,
                     project: monitor.project.slug,
                     ...this.formDataFromConfig(monitor.type, monitor.config),
                   }
                 : {
                     project: selectedProject ? selectedProject.slug : null,
+                    type: DEFAULT_MONITOR_TYPE,
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
@@ -167,42 +166,22 @@ class MonitorForm extends Component<Props> {
               <PanelHeader>{t('Config')}</PanelHeader>
 
               <PanelBody>
-                <SelectField
-                  name="type"
-                  label={t('Type')}
+                <NumberField
+                  name="config.max_runtime"
+                  label={t('Max Runtime')}
                   disabled={!hasAccess}
-                  options={MONITOR_TYPES}
+                  help={t(
+                    "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
+                  )}
+                  placeholder="e.g. 30"
+                />
+                <SelectField
+                  name="config.schedule_type"
+                  label={t('Schedule Type')}
+                  disabled={!hasAccess}
+                  options={SCHEDULE_TYPES}
                   required
                 />
-                <Observer>
-                  {() => {
-                    switch (this.form.getValue('type')) {
-                      case 'cron_job':
-                        return (
-                          <Fragment>
-                            <NumberField
-                              name="config.max_runtime"
-                              label={t('Max Runtime')}
-                              disabled={!hasAccess}
-                              help={t(
-                                "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
-                              )}
-                              placeholder="e.g. 30"
-                            />
-                            <SelectField
-                              name="config.schedule_type"
-                              label={t('Schedule Type')}
-                              disabled={!hasAccess}
-                              options={SCHEDULE_TYPES}
-                              required
-                            />
-                          </Fragment>
-                        );
-                      default:
-                        return null;
-                    }
-                  }}
-                </Observer>
                 <Observer>
                   {() => {
                     switch (this.form.getValue('config.schedule_type')) {
