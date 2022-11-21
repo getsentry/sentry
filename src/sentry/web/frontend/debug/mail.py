@@ -12,6 +12,7 @@ from typing import Any, MutableMapping
 
 import pytz
 from django.shortcuts import redirect
+from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -36,6 +37,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     Project,
+    Release,
     Rule,
     Team,
     User,
@@ -560,6 +562,121 @@ def digest(request):
         html_template="sentry/emails/digests/body.html",
         text_template="sentry/emails/digests/body.txt",
         context=context,
+    ).render(request)
+
+
+@login_required
+def report(request):
+    from sentry.tasks import reports
+
+    random = get_random(request)
+
+    duration = 60 * 60 * 24 * 7
+    timestamp = to_timestamp(
+        reports.floor_to_utc_day(
+            to_datetime(
+                random.randint(
+                    to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
+                    to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
+                )
+            )
+        )
+    )
+
+    start, stop = interval = reports._to_interval(timestamp, duration)
+
+    organization = Organization(id=1, slug="example", name="Example")
+
+    projects = []
+    for i in range(0, random.randint(1, 8)):
+        name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
+        projects.append(
+            Project(
+                id=i,
+                organization=organization,
+                slug=slugify(name),
+                name=name,
+                date_added=start - timedelta(days=random.randint(0, 120)),
+            )
+        )
+
+    def make_release_generator():
+        id_sequence = itertools.count(1)
+        while True:
+            dt = to_datetime(random.randint(timestamp - (30 * 24 * 60 * 60), timestamp))
+            p = random.choice(projects)
+            yield Release(
+                id=next(id_sequence),
+                project=p,
+                organization_id=p.organization_id,
+                version="".join(random.choice("0123456789abcdef") for _ in range(40)),
+                date_added=dt,
+            )
+
+    def build_issue_summaries():
+        summaries = []
+        for i in range(3):
+            summaries.append(int(random.weibullvariate(10, 1) * random.paretovariate(0.5)))
+        return summaries
+
+    def build_usage_outcomes():
+        return (
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
+        )
+
+    def build_report(project):
+        daily_maximum = random.randint(1000, 10000)
+
+        rollup = 60 * 60 * 24
+        series = [
+            (
+                timestamp + (i * rollup),
+                (
+                    # Issues
+                    random.randint(0, daily_maximum),
+                    # Transactions
+                    random.randint(0, daily_maximum),
+                ),
+            )
+            for i in range(0, 7)
+        ]
+
+        aggregates = [
+            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
+            for _ in range(0, 4)
+        ]
+
+        return reports.Report(
+            series,
+            aggregates,
+            build_issue_summaries(),
+            build_usage_outcomes(),
+            key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
+            key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
+        )
+
+    if random.random() < 0.85:
+        personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
+    else:
+        personal = {"resolved": 0, "users": 0}
+    html_template = "sentry/emails/reports/body.html"
+
+    return MailPreview(
+        html_template=html_template,
+        text_template="sentry/emails/reports/body.txt",
+        context={
+            "duration": reports.durations[duration],
+            "interval": {"start": reports.date_format(start), "stop": reports.date_format(stop)},
+            "report": reports.to_context(
+                organization, interval, {project: build_report(project) for project in projects}
+            ),
+            "organization": organization,
+            "personal": personal,
+            "user": request.user,
+        },
     ).render(request)
 
 

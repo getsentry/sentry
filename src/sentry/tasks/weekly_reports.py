@@ -100,7 +100,7 @@ class ProjectContext:
     max_retries=5,
     acks_late=True,
 )
-def schedule_organizations(dry_run=False, timestamp=None, duration=None):
+def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_flag_check=False):
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
@@ -110,11 +110,12 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
         duration = ONE_DAY * 7
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    for organization in RangeQuerySetWrapper(
-        organizations, step=10000, result_value_getter=lambda item: item.id
+    for i, organization in enumerate(
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-        # Create a celery task per organization
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        if skip_flag_check or features.has("organizations:weekly-email-refresh", organization):
+            # Create a celery task per organization
+            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 # This task is launched per-organization.
