@@ -68,6 +68,11 @@ const Context = ({
     : frame.context.filter(l => l[0] === frame.lineNo);
 
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
+  const hasStacktraceLink =
+    frame.inApp &&
+    !!frame.filename &&
+    isExpanded &&
+    organization?.features.includes('integrations-stacktrace-link');
 
   return (
     <Wrapper
@@ -84,6 +89,8 @@ const Context = ({
         contextLines.map((line, index) => {
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
+          const showStacktraceLink = hasStacktraceLink && isActive;
+
           return (
             <StyledContextLine key={index} line={line} isActive={isActive}>
               {hasComponents && (
@@ -96,20 +103,17 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-              {organization?.features.includes('integrations-stacktrace-link') &&
-                isActive &&
-                isExpanded &&
-                frame.inApp &&
-                frame.filename && (
-                  <ErrorBoundary customComponent={null}>
-                    <StacktraceLink
-                      key={index}
-                      lineNo={line[0]}
-                      frame={frame}
-                      event={event}
-                    />
-                  </ErrorBoundary>
-                )}
+              {showStacktraceLink && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceLink
+                    key={index}
+                    line={line[1]}
+                    lineNo={line[0]}
+                    frame={frame}
+                    event={event}
+                  />
+                </ErrorBoundary>
+              )}
             </StyledContextLine>
           );
         })}

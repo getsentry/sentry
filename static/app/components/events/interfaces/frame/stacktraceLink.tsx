@@ -36,6 +36,7 @@ import StacktraceLinkModal from './stacktraceLinkModal';
 type Props = AsyncComponent['props'] & {
   event: Event;
   frame: Frame;
+  line: string;
   lineNo: number;
   organization: Organization;
   projects: Project[];
@@ -278,19 +279,24 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   renderBody() {
     const {config, error, sourceUrl, integrations} = this.state.match || {};
     const {isDismissed, promptLoaded} = this.state;
+    const {event, line} = this.props;
 
     // Success state
     if (config && sourceUrl) {
       return this.renderLink();
     }
 
+    // Hide stacktrace link errors if the stacktrace might be minified javascript
+    // Check if the line starts and ends with {snip}
+    const hideErrors = event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+
     // Code mapping does not match
     // Has integration but no code mappings
-    if (error || integrations.length > 0) {
+    if (!hideErrors && (error || integrations.length > 0)) {
       return this.renderNoMatch();
     }
 
-    if (!promptLoaded || (promptLoaded && isDismissed)) {
+    if (hideErrors || !promptLoaded || (promptLoaded && isDismissed)) {
       return null;
     }
 
