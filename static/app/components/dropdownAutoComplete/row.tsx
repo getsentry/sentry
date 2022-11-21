@@ -2,6 +2,7 @@ import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import space from 'sentry/styles/space';
 
 import {Item} from './types';
@@ -64,6 +65,7 @@ function Row<T extends Item>({
       style={style}
       {...itemProps}
     >
+      <InteractionStateLayer isHovered={isHighlighted} />
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );
@@ -122,7 +124,6 @@ const AutoCompleteItem = styled('div')<{
   scroll-margin: 20px 0;
 
   font-size: ${p => p.theme.fontSizeMedium};
-  background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
@@ -130,10 +131,5 @@ const AutoCompleteItem = styled('div')<{
 
   :last-child {
     border-bottom: none;
-  }
-
-  :hover {
-    color: ${p => p.theme.textColor};
-    background-color: ${p => p.theme.hover};
   }
 `;

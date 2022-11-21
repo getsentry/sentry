@@ -261,7 +261,7 @@ class BaseGroupSidebar extends Component<Props, State> {
           organization={organization}
           features={['issue-details-tag-improvements']}
         >
-          {isMobilePlatform(project.platform) && (
+          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
             <TagFacets
               environments={environments}
               groupId={group.id}
@@ -269,10 +269,12 @@ class BaseGroupSidebar extends Component<Props, State> {
               event={event}
               title={
                 <div>
-                  {t('Tag Summary')} <FeatureBadge type="alpha" />
+                  {t('Tag Summary')} <FeatureBadge type="beta" />
                 </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
+              style="bars"
+              project={project}
             />
           )}
         </Feature>
@@ -299,7 +301,9 @@ class BaseGroupSidebar extends Component<Props, State> {
         {this.renderPluginIssue()}
 
         {(!organization.features.includes('issue-details-tag-improvements') ||
-          !isMobilePlatform(project.platform)) && (
+          !(
+            isMobilePlatform(project.platform) && project.platform === 'react-native'
+          )) && (
           <SidebarSection.Wrap>
             <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
             <SidebarSection.Content>
@@ -328,6 +332,18 @@ class BaseGroupSidebar extends Component<Props, State> {
                       organization={organization}
                       projectId={projectId}
                       group={group}
+                      onTagClick={(title, value) => {
+                        trackAdvancedAnalyticsEvent(
+                          'issue_group_details.tags_distribution.bar.clicked',
+                          {
+                            tag: title,
+                            value: value.name,
+                            platform: project.platform,
+                            is_mobile: isMobilePlatform(project?.platform),
+                            organization,
+                          }
+                        );
+                      }}
                     />
                   );
                 })

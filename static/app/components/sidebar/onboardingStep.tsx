@@ -15,7 +15,7 @@ type Props = {
   project: Project;
 };
 
-function OnBoardingStep({docContent, docKey, prefix, project}: Props) {
+export function OnboardingStep({docContent, docKey, prefix, project}: Props) {
   const [increment, setIncrement] = useState<number>(0);
 
   if (!docContent) {
@@ -68,7 +68,7 @@ const TaskCheckBox = styled('div')`
   position: relative;
 `;
 
-const DocumentationWrapper = styled('div')`
+export const DocumentationWrapper = styled('div')`
   line-height: 1.5;
 
   .gatsby-highlight {
@@ -104,4 +104,4 @@ const DocumentationWrapper = styled('div')`
   position: relative;
 `;
 
-export default OnBoardingStep;
+export default OnboardingStep;

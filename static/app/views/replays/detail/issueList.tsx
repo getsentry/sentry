@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/react';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {PanelTable} from 'sentry/components/panels';
+import ReplayCountContext from 'sentry/components/replays/replayCountContext';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
@@ -15,6 +17,7 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   projectId: string;
@@ -28,10 +31,12 @@ type State = {
   issues: Group[];
 };
 
-function IssueList(props: Props) {
+function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
 
   const [state, setState] = useState<State>({
     fetchError: undefined,
@@ -50,8 +55,8 @@ function IssueList(props: Props) {
         {
           query: {
             // TODO(replays): What about backend issues?
-            project: props.projectId,
-            query: `replayId:${props.replayId}`,
+            project: projectId,
+            query: `replayId:${replayId}`,
           },
         }
       );
@@ -68,28 +73,38 @@ function IssueList(props: Props) {
         issues: [],
       });
     }
-  }, [api, organization.slug, props.replayId, props.projectId]);
+  }, [api, organization.slug, replayId, projectId]);
 
   useEffect(() => {
     fetchIssueData();
   }, [fetchIssueData]);
 
+  const counts = useReplaysCount({
+    groupIds: state.issues.map(issue => issue.id),
+    organization,
+    project,
+  });
+
   return (
-    <StyledPanelTable
-      isEmpty={state.issues.length === 0}
-      emptyMessage={t('No related Issues found.')}
-      isLoading={state.fetching}
-      headers={isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))}
-    >
-      {state.issues.map(issue => (
-        <TableRow
-          key={issue.id}
-          isScreenLarge={isScreenLarge}
-          issue={issue}
-          organization={organization}
-        />
-      )) || null}
-    </StyledPanelTable>
+    <ReplayCountContext.Provider value={counts}>
+      <StyledPanelTable
+        isEmpty={state.issues.length === 0}
+        emptyMessage={t('No related Issues found.')}
+        isLoading={state.fetching}
+        headers={
+          isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
+        }
+      >
+        {state.issues.map(issue => (
+          <TableRow
+            key={issue.id}
+            isScreenLarge={isScreenLarge}
+            issue={issue}
+            organization={organization}
+          />
+        )) || null}
+      </StyledPanelTable>
+    </ReplayCountContext.Provider>
   );
 }
 

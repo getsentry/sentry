@@ -18,7 +18,8 @@ import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Color, Theme} from 'sentry/utils/theme';
+import {ColorOrAlias, Theme} from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
@@ -163,7 +164,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
+      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
         {`${round(Math.abs(trend), 3)}`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
       </SubText>
@@ -225,9 +226,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             tooltip={{
               formatter: seriesParams => {
                 // `seriesParams` can be an array or an object :/
-                const [series] = Array.isArray(seriesParams)
-                  ? seriesParams
-                  : [seriesParams];
+                const [series] = toArray(seriesParams);
 
                 const dateFormat = 'MMM D';
                 const startDate = moment(series.data[0]).format(dateFormat);
@@ -341,6 +340,6 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

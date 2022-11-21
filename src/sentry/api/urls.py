@@ -4,11 +4,11 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
-    OrganizationProfilingProfilesEndpoint,
-    OrganizationProfilingStatsEndpoint,
-    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.organization_sentry_function_details import (
@@ -941,6 +941,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-code-mappings",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/derive-code-mappings/$",
+                    OrganizationDeriveCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-derive-code-mappings",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
                     OrganizationCodeMappingDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-details",
@@ -1640,24 +1645,9 @@ urlpatterns = [
                     include(
                         [
                             url(
-                                r"^profiles/$",
-                                OrganizationProfilingProfilesEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-profiles",
-                            ),
-                            url(
                                 r"^filters/$",
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
-                            ),
-                            url(
-                                r"^transactions/$",
-                                OrganizationProfilingTransactionsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-transactions",
-                            ),
-                            url(
-                                r"^stats/$",
-                                OrganizationProfilingStatsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),

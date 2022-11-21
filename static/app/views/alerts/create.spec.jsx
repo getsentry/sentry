@@ -118,7 +118,7 @@ describe('ProjectAlertsCreate', function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+        expect(screen.getAllByText('all')).toHaveLength(2);
       });
       await waitFor(() => {
         expect(screen.getByText('24 hours')).toBeInTheDocument();
@@ -533,8 +533,7 @@ describe('ProjectAlertsCreate', function () {
     const organization = TestStubs.Organization({
       features: ['issue-alert-incompatible-rules'],
     });
-    const errorText =
-      'This condition conflicts with other condition(s) above. Please select a different condition.';
+    const errorText = 'These conditions conflict, please select different conditions.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});

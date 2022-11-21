@@ -407,7 +407,7 @@ const ToolbarPanel = styled('div')`
   align-items: flex-start;
 
   background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
 `;
 
 const IconContainer = styled('div')`

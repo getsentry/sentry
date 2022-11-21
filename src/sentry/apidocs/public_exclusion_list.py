@@ -165,6 +165,9 @@ from sentry.api.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.api.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.api.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
@@ -237,7 +240,6 @@ from sentry.api.endpoints.organization_pinned_searches import OrganizationPinned
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
-    OrganizationProfilingProfilesEndpoint,
 )
 from sentry.api.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -596,7 +598,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     SentryAppInteractionEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationTransactionAnomalyDetectionEndpoint,
-    OrganizationProfilingProfilesEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
     JiraDescriptorEndpoint,
@@ -665,6 +666,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationIncidentSubscriptionIndexEndpoint,
     ChunkUploadEndpoint,
     OrganizationCodeMappingsEndpoint,
+    OrganizationDeriveCodeMappingsEndpoint,
     OrganizationCodeMappingDetailsEndpoint,
     OrganizationCodeMappingCodeOwnersEndpoint,
     DiscoverSavedQueriesEndpoint,

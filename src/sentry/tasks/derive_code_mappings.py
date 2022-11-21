@@ -20,7 +20,7 @@ from sentry.utils.safe import get_path
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
 GROUP_ANALYSIS_RANGE = timedelta(days=14)
 
-logger = logging.getLogger("sentry.tasks.derive_code_mappings")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(  # type: ignore
@@ -43,6 +43,7 @@ def derive_code_mappings(
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
+    set_tag("project.slug", project.slug)
 
     # Check the feature flag again to ensure the feature is still enabled.
     should_continue = features.has(
@@ -83,7 +84,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
             paths = {frame["filename"] for frame in stacktrace["frames"]}
             stacktrace_paths.update(paths)
         except Exception:
-            logger.exception("Error getting filenames for project {project.slug}")
+            logger.exception("Error getting filenames for project.")
     return list(stacktrace_paths)
 
 
@@ -176,7 +177,6 @@ def report_project_codemappings(
     """
     Log the code mappings that would be created for a project.
     """
-    set_tag("project.slug", project.slug)
     extra = {
         "org": project.organization.slug,
         "project": project.slug,
@@ -192,4 +192,4 @@ def report_project_codemappings(
         msg = "derive_code_mappings: code mappings already exist."
         extra["existing_code_mappings"] = existing_code_mappings
 
-    logger.info(msg, extra)
+    logger.info(msg, extra=extra)

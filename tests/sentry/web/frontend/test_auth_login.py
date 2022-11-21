@@ -508,9 +508,10 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                (f"/organizations/{self.organization.slug}/issues/", 302),
-                ("/organizations/albertos-apples/issues/", 302),
-                ("/auth/login/albertos-apples/", 302),
+                (
+                    f"http://albertos-apples.testserver{reverse('sentry-auth-organization', args=['albertos-apples'])}",
+                    302,
+                ),
             ]
 
     def test_login_valid_credentials_orgless(self):
