@@ -21,8 +21,6 @@ from arroyo.types import Commit, Message, Partition, Position
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome_custom_publish
@@ -92,6 +90,7 @@ class MetricsBucket(TypedDict):
     metric_id: int
     timestamp: int
     value: Any
+    mapping_meta: Dict[str, Dict[str, str]]
 
 
 class MetricsBucketBilling(NamedTuple):
@@ -204,8 +203,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             raise MessageRejected
 
         bucket_payload = self._get_bucket_payload(message)
-        org_id = bucket_payload["org_id"]
-        quantity = self._count_processed_transactions(org_id, bucket_payload)
+        quantity = self._count_processed_transactions(bucket_payload)
 
         if quantity < 1:
             # We still want to commmit buckets that don't generate billing
@@ -216,7 +214,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         else:
             future = track_outcome_custom_publish(
                 self._produce,
-                org_id=org_id,
+                org_id=bucket_payload["org_id"],
                 project_id=bucket_payload["project_id"],
                 key_id=None,
                 outcome=Outcome.ACCEPTED,
@@ -233,11 +231,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
-    def _count_processed_transactions(self, org_id: int, bucket_payload: MetricsBucket) -> int:
-        counter_metric_id = indexer.resolve(
-            UseCaseKey.PERFORMANCE, org_id, self.counter_metric_name
-        )
-        if bucket_payload["metric_id"] != counter_metric_id:
+    def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
+        metric_name = self._get_metric_name(bucket_payload)
+        if metric_name != self.counter_metric_name:
             return 0
 
         value = bucket_payload["value"]
@@ -246,6 +242,16 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return 0
+
+    def _get_metric_name(self, bucket_payload: MetricsBucket) -> Optional[str]:
+        metric_id = str(bucket_payload["metric_id"])
+
+        for mapping in bucket_payload.get("mapping_meta", {}).values():
+            for id, name in mapping.items():
+                if id == metric_id:
+                    return name
+
+        return None
 
     def _produce(
         self, cluster_name: str, topic_name: str, payload: str
