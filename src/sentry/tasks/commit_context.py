@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
-from sentry_sdk import set_tag
 
 from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
@@ -47,7 +46,6 @@ def process_commit_context(
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
-            set_tag("organization.slug", project.organization.slug)
 
             owners = GroupOwner.objects.filter(
                 group_id=group_id,
@@ -55,7 +53,11 @@ def process_commit_context(
                 organization_id=project.organization_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
             )
-
+            basic_logging_details = {
+                "event": event_id,
+                "group": group_id,
+                "organization": project.organization_id,
+            }
             # Delete old owners
             to_be_deleted = owners.filter(
                 date_added__gte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
@@ -72,11 +74,17 @@ def process_commit_context(
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
-                    tags={"detail": "maxed_owners_none_old"},
+                    tags={
+                        **basic_logging_details,
+                        "detail": "maxed_owners_none_old",
+                    },
                 )
                 logger.info(
                     "process_commit_context.maxed_owners",
-                    extra={"event": event_id, "reason": "maxed_owners_none_old"},
+                    extra={
+                        **basic_logging_details,
+                        "reason": "maxed_owners_none_old",
+                    },
                 )
                 return
 
@@ -93,26 +101,43 @@ def process_commit_context(
             if not frame:
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
-                    tags={"detail": "could_not_find_in_app_stacktrace_frame"},
+                    tags={
+                        **basic_logging_details,
+                        "detail": "could_not_find_in_app_stacktrace_frame",
+                    },
                 )
                 logger.info(
                     "process_commit_context.find_frame",
-                    extra={"event": event_id, "reason": "could_not_find_in_app_stacktrace_frame"},
+                    extra={
+                        **basic_logging_details,
+                        "reason": "could_not_find_in_app_stacktrace_frame",
+                    },
                 )
                 return
 
             commit_context, selected_code_mapping = find_commit_context_for_event(
-                code_mappings=code_mappings, frame=frame, logger=logger, extra={"event": event_id}
+                code_mappings=code_mappings,
+                frame=frame,
+                logger=logger,
+                extra={
+                    **basic_logging_details,
+                },
             )
 
             if not commit_context and not selected_code_mapping:
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
-                    tags={"detail": "could_not_fetch_commit_context"},
+                    tags={
+                        **basic_logging_details,
+                        "detail": "could_not_fetch_commit_context",
+                    },
                 )
                 logger.info(
                     "process_commit_context.find_commit_context",
-                    extra={"event": event_id, "reason": "could_not_fetch_commit_context"},
+                    extra={
+                        **basic_logging_details,
+                        "reason": "could_not_fetch_commit_context",
+                    },
                 )
                 return
 
@@ -125,11 +150,17 @@ def process_commit_context(
             except Commit.DoesNotExist:
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
-                    tags={"detail": "commit_sha_does_not_exist_in_sentry"},
+                    tags={
+                        **basic_logging_details,
+                        "detail": "commit_sha_does_not_exist_in_sentry",
+                    },
                 )
                 logger.info(
-                    "process_commit_context.skipped",
-                    extra={"event": event_id, "reason": "no_commit"},
+                    "process_commit_context.no_commit_in_sentry",
+                    extra={
+                        **basic_logging_details,
+                        "reason": "commit_sha_does_not_exist_in_sentry",
+                    },
                 )
                 return
 
@@ -147,14 +178,7 @@ def process_commit_context(
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
-            logger.info(
-                "process_commit_context.success",
-                extra={
-                    "event": event_id,
-                    "group_owner_id": group_owner.id,
-                    "reason": "created" if created else "updated",
-                },
-            )
+
             if created:
                 # If owners exceeds the limit, delete the oldest one.
                 if len(current_owners) + 1 > PREFERRED_GROUP_OWNERS:
@@ -165,6 +189,22 @@ def process_commit_context(
                     else:
                         owner.delete()
 
+            logger.info(
+                "process_commit_context.success",
+                extra={
+                    **basic_logging_details,
+                    "group_owner_id": group_owner.id,
+                    "reason": "created" if created else "updated",
+                },
+            )
+            metrics.incr(
+                "sentry.tasks.process_commit_context.success",
+                tags={
+                    **basic_logging_details,
+                    "group_owner_id": group_owner.id,
+                    "detail": f'successfully {"created" if created else "updated"}',
+                },
+            )
             analytics.record(
                 "groupowner.assignment",
                 organization_id=project.organization_id,
