@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
@@ -10,6 +11,7 @@ from sentry.utils import redis
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
 ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 ENVIRONMENT_SEPARATOR = ":e:"
+BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(r"^ds::r:(?P<release>\d+)(:e:(?P<environment>.+))?$")
 
 
 class TooManyBoostedReleasesException(Exception):
@@ -59,20 +61,32 @@ def generate_cache_key_for_boosted_release_with_environment(
     return f"ds::r:{release_id}{_get_environment_cache_key_postfix(environment)}"
 
 
-def extract_release_and_environment_from_cache_key(cache_key: str) -> Tuple[int, Optional[str]]:
+def _extract_release_and_environment_from_cache_key(
+    cache_key: str,
+) -> Optional[Tuple[int, Optional[str]]]:
     """
     Extracts the release id and the environment from the cache key, in order to avoid storing the metadata also
     in the value field.
     """
-    # Hardcoded string split based on the "generate_cache_key_for_boosted_release_with_environment()" format.
-    cache_key = cache_key[6:]
+    match = BOOSTED_RELEASE_CACHE_KEY_REGEX.match(cache_key)
+    if match is not None:
+        # If the cache key matches the new format, we will extract the necessary information.
+        release_id = match["release"]
+        environment = match["environment"]
 
-    # If we have an environment we want to extract it.
-    if ENVIRONMENT_SEPARATOR in cache_key:
-        release_id, environment = cache_key.split(ENVIRONMENT_SEPARATOR)
-        return int(release_id), environment
+        if release_id and environment:
+            return int(release_id), environment
+        elif release_id:
+            return int(release_id), None
     else:
-        return int(cache_key), None
+        # If the cache key doesn't match the new format, we will fallback to the old format which is just an integer.
+        try:
+            release_id = int(cache_key)
+        except ValueError:
+            # If the format is not an integer we will silently return None.
+            return None
+        else:
+            return release_id, None
 
 
 def observe_release(project_id: int, release_id: int, environment: Optional[str]) -> bool:
@@ -111,10 +125,15 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
         timestamp = float(timestamp)
 
         if current_timestamp <= timestamp + BOOSTED_RELEASE_TIMEOUT:
-            release_id, environment = extract_release_and_environment_from_cache_key(
-                boosted_release_cache_key
-            )
-            boosted_releases.append((release_id, environment, timestamp))
+            # If we are unable to parse the cache key we will silently skip the boosted release.
+            if (
+                extracted_data := _extract_release_and_environment_from_cache_key(
+                    boosted_release_cache_key
+                )
+            ) is not None:
+                release_id, environment = extracted_data
+                boosted_releases.append((release_id, environment, timestamp))
+
         else:
             expired_releases.append(boosted_release_cache_key)
 

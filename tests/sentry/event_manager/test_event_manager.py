@@ -2826,7 +2826,7 @@ class DSLatestReleaseBoostTest(TestCase):
         return event
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_not_observed_release_same_environment(self):
+    def test_boost_release_not_observed_release(self):
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
@@ -2954,6 +2954,40 @@ class DSLatestReleaseBoostTest(TestCase):
 
             assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
             assert get_boosted_releases(self.project.id) == []
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_get_boosted_releases_with_old_and_new_cache_keys(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            ts = time()
+
+            # Old cache key
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                f"{self.release.id}",
+                ts,
+            )
+
+            # New cache key
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::r:{self.release.id}:e:{self.environment1.name}",
+                ts,
+            )
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::r:{self.release.id}:e:{self.environment2.name}",
+                ts,
+            )
+
+            assert get_boosted_releases(self.project.id) == [
+                (self.release.id, None, ts),
+                (self.release.id, self.environment1.name, ts),
+                (self.release.id, self.environment2.name, ts),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_evict_expired_boosted_releases(self):
