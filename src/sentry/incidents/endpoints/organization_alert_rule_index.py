@@ -21,7 +21,7 @@ from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
+from sentry.models import OrganizationMemberTeam, Project, ProjectStatus, Rule, RuleStatus, Team
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
 
@@ -36,9 +36,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
-            project_ids = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
+            project_ids = Project.objects.filter(
+                organization=organization, status=ProjectStatus.VISIBLE
+            ).values_list("id", flat=True)
         elif project_ids is None:  # All projects for user
             org_team_list = Team.objects.filter(organization=organization).values_list(
                 "id", flat=True
