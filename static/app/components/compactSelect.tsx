@@ -19,6 +19,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
 interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
@@ -162,7 +163,7 @@ function CompactSelect<
   position = 'bottom-start',
   shouldCloseOnBlur = true,
   isDismissable = true,
-  maxMenuHeight = 400,
+  maxMenuHeight: maxMenuHeightProp = 400,
   ...props
 }: Props<OptionType, MultipleType>) {
   // Manage the dropdown menu's open state
@@ -200,7 +201,7 @@ function CompactSelect<
   // Keep track of the default trigger label when the value changes
   const defaultTriggerLabel = useMemo(() => {
     const newValue = valueProp ?? internalValue;
-    const valueSet = Array.isArray(newValue) ? newValue : [newValue];
+    const valueSet = toArray(newValue);
     const selectedOptions = valueSet
       .map(val => getSelectedOptions<OptionType, MultipleType>(options, val))
       .flat();
@@ -274,12 +275,17 @@ function CompactSelect<
   }
 
   const theme = useTheme();
-  const menuHeight = useMemo(
+  const maxMenuHeight = useMemo(
     () =>
       overlayProps.style?.maxHeight
-        ? Math.min(+overlayProps.style?.maxHeight, maxMenuHeight)
-        : maxMenuHeight,
-    [overlayProps, maxMenuHeight]
+        ? Math.min(
+            typeof overlayProps.style?.maxHeight === 'number'
+              ? overlayProps.style?.maxHeight
+              : Infinity,
+            maxMenuHeightProp
+          )
+        : maxMenuHeightProp,
+    [overlayProps, maxMenuHeightProp]
   );
   function renderMenu() {
     if (!isOpen) {
@@ -291,7 +297,10 @@ function CompactSelect<
         <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
           <StyledOverlay minWidth={triggerWidth}>
             <SelectControl
-              components={{Control: CompactSelectControl, ClearIndicator: null}}
+              components={{
+                Control: CompactSelectControl,
+                ClearIndicator: null,
+              }}
               {...props}
               options={options}
               value={valueProp ?? internalValue}
@@ -301,7 +310,7 @@ function CompactSelect<
               menuTitle={menuTitle}
               placeholder={placeholder}
               isSearchable={isSearchable}
-              menuHeight={menuHeight}
+              maxMenuHeight={maxMenuHeight}
               menuPlacement="bottom"
               menuIsOpen
               isCompact
@@ -344,7 +353,6 @@ const StyledBadge = styled(Badge)`
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{minWidth?: number}>`
-  max-width: calc(100vw - ${space(2)} * 2);
   overflow: hidden;
   ${p => p.minWidth && `min-width: ${p.minWidth}px;`}
 `;
@@ -356,7 +364,7 @@ const MenuHeader = styled('div')`
   justify-content: space-between;
   padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
-  z-index: 1;
+  z-index: 2;
 `;
 
 const MenuTitle = styled('span')`

@@ -12,8 +12,8 @@ class BaseStacktraceLinkTest(APITestCase):
             name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
         )
 
-    def make_post(self, source_url, stack_path, project=None):
-        self.login_as(user=self.user)
+    def make_post(self, source_url, stack_path, project=None, user=None):
+        self.login_as(user=user or self.user)
         if not project:
             project = self.project
 
@@ -134,6 +134,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
+    def test_member_can_access(self):
+        source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "stuff/hey/here/sentry/api/endpoints/project_stacktrace_link.py"
+        member = self.create_user("hernando@life.com")
+        self.create_member(user=member, organization=self.org, role="member")
+        resp = self.make_post(source_url, stack_path, user=member)
+        assert resp.status_code == 200, resp.content
+
 
 @region_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
@@ -171,3 +179,12 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "sourceRoot": "src/",
             "defaultBranch": "master",
         }
+
+    def test_skips_null_repo_url(self):
+        self.repo.update(url=None)
+        source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}

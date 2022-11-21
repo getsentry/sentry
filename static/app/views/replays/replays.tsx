@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,8 +9,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
@@ -23,6 +25,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -39,7 +42,7 @@ function getProjectList(selectedProjects: PageFilters['projects'], projects: Pro
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]);
+  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
 function useShouldShowOnboardingPanel() {
@@ -53,6 +56,25 @@ function useShouldShowOnboardingPanel() {
   }, [selection.projects, projects]);
 
   return shouldShowOnboardingPanel;
+}
+
+function useReplayOnboardingSidebarPanel() {
+  const {location} = useRouteContext();
+  const enabled = useShouldShowOnboardingPanel();
+
+  useEffect(() => {
+    if (enabled && location.hash === '#replay-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    }
+  }, [enabled, location.hash]);
+
+  const activate = useCallback(event => {
+    event.preventDefault();
+    window.location.hash = 'replay-sidequest';
+    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+  }, []);
+
+  return {enabled, activate};
 }
 
 function Replays({location}: Props) {
@@ -83,7 +105,8 @@ function Replays({location}: Props) {
     eventView,
   });
 
-  const shouldShowOnboardingPanel = useShouldShowOnboardingPanel();
+  const {enabled: shouldShowOnboardingPanel, activate: activateOnboardingSidebarPanel} =
+    useReplayOnboardingSidebarPanel();
 
   return (
     <Fragment>
@@ -99,6 +122,9 @@ function Replays({location}: Props) {
           <ReplaysFilters />
           {shouldShowOnboardingPanel ? (
             <ReplayOnboardingPanel>
+              <Button onClick={activateOnboardingSidebarPanel} priority="primary">
+                {t('Get Started')}
+              </Button>
               <Button
                 href="https://github.com/getsentry/sentry-replay/blob/main/README.md"
                 external

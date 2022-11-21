@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     Tuple,
     TypedDict,
+    Union,
 )
 
 import pytz
@@ -52,6 +53,7 @@ from sentry.models import (
     Integration,
     NotificationSetting,
     SentryAppInstallationToken,
+    Team,
     User,
 )
 from sentry.notifications.helpers import (
@@ -179,6 +181,20 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
+    def _serialize_assigness(
+        self, actor_dict: Mapping[int, ActorTuple]
+    ) -> Mapping[int, Union[Team, Any]]:
+        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
+        for actor in actor_dict.values():
+            actors_by_type[actor.type].append(actor)
+
+        resolved_actors = {}
+        for t, actors in actors_by_type.items():
+            serializable = ActorTuple.resolve_many(actors)
+            resolved_actors[t] = {actor.id: actor for actor in serializable}
+
+        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
+
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
@@ -205,11 +221,11 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        assignees = {
+        assignees: Mapping[int, ActorTuple] = {
             a.group_id: a.assigned_actor()
             for a in GroupAssignee.objects.filter(group__in=item_list)
         }
-        resolved_assignees = ActorTuple.resolve_dict(assignees)
+        resolved_assignees = self._serialize_assigness(assignees)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
@@ -932,7 +948,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
-        filters = {"project_id": project_ids, "group_id": group_ids}
+        filters = {"project_id": project_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         return aliased_query(
@@ -940,7 +956,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=[
+                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
+            ]
+            + (conditions or []),
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",

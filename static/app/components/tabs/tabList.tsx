@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {TabListProps as TabListStateProps, useTabListState} from '@react-stately/tabs';
+import {useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -24,7 +25,9 @@ import {tabsShouldForwardProp} from './utils';
 function useOverflowTabs({
   tabListRef,
   tabItemsRef,
+  tabItems,
 }: {
+  tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<React.Key, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
@@ -63,15 +66,35 @@ function useOverflowTabs({
     return () => observer.disconnect();
   }, [tabListRef, tabItemsRef]);
 
-  return overflowTabs;
+  const tabItemKeyToHiddenMap = tabItems.reduce(
+    (acc, next) => ({
+      ...acc,
+      [next.key]: next.hidden,
+    }),
+    {}
+  );
+
+  // Tabs that are hidden will be rendered with display: none so won't intersect,
+  // but we don't want to show them in the overflow menu
+  return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
+interface TabListProps extends AriaTabListProps<TabListItemProps> {
   className?: string;
   hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
 }
 
-function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
+interface BaseTabListProps extends TabListProps {
+  items: TabListItemProps[];
+}
+
+function BaseTabList({
+  hideBorder = false,
+  className,
+  outerWrapStyles,
+  ...props
+}: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -113,7 +136,12 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<React.Key, HTMLLIElement | null>>({});
-  const overflowTabs = useOverflowTabs({tabListRef, tabItemsRef});
+  const overflowTabs = useOverflowTabs({
+    tabListRef,
+    tabItemsRef,
+    tabItems: props.items,
+  });
+
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
     const sortedKeys = [...state.collection].map(item => item.key);
@@ -121,18 +149,20 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.map(key => {
-      const item = state.collection.getItem(key);
-      return {
-        value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-      };
-    });
+    return sortedOverflowTabs
+      .filter(key => state.collection.getItem(key))
+      .map(key => {
+        const item = state.collection.getItem(key);
+        return {
+          value: key,
+          label: item.props.children,
+          disabled: item.props.disabled,
+        };
+      });
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap>
+    <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
@@ -188,16 +218,8 @@ export function TabList({items, ...props}: TabListProps) {
    */
   const collection = useCollection({items, ...props}, collectionFactory);
 
-  /**
-   * Filtered list of items with hidden items (those with a `disbled` prop)
-   * removed. The `hidden` prop is useful for hiding tabs based on some
-   * conditions.
-   */
   const parsedItems = useMemo(
-    () =>
-      [...collection]
-        .filter(item => !item.props.hidden)
-        .map(({key, props: itemProps}) => ({key, ...itemProps})),
+    () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );
 

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -23,14 +23,20 @@ function ThreadMenuSelector({
   onThreadIdChange,
   profileGroup,
 }: ThreadSelectorProps) {
-  const options: SelectValue<number>[] = useMemo(() => {
-    return [...profileGroup.profiles].sort(compareProfiles).map(profile => {
-      return {
+  const [profileOptions, emptyProfileOptions]: [
+    SelectValue<number>[],
+    SelectValue<number>[]
+  ] = useMemo(() => {
+    const profiles: SelectValue<number>[] = [];
+    const emptyProfiles: SelectValue<number>[] = [];
+    const sortedProfiles = [...profileGroup.profiles].sort(compareProfiles);
+
+    sortedProfiles.forEach(profile => {
+      const option = {
         label: profile.name
           ? `tid (${profile.threadId}): ${profile.name}`
           : `tid (${profile.threadId})`,
         value: profile.threadId,
-        disabled: profile.samples.length === 0,
         details: (
           <ThreadLabelDetails
             duration={makeFormatter(profile.unit)(profile.duration)}
@@ -40,7 +46,15 @@ function ThreadMenuSelector({
           />
         ),
       };
+
+      if (profile.rawWeights.length > 0) {
+        profiles.push(option);
+        return;
+      }
+      emptyProfiles.push(option);
+      return;
     });
+    return [profiles, emptyProfiles];
   }, [profileGroup]);
 
   const handleChange: (opt: SelectValue<number>) => void = useCallback(
@@ -58,7 +72,21 @@ function ThreadMenuSelector({
         icon: <IconList size="xs" />,
         size: 'xs',
       }}
-      options={options}
+      options={[
+        {
+          // TODO: fix CompactSelect types to better represent usage.
+          // this value has no effect on the selection, it's simply to satisfy the types..
+          // tried modifying the types but it creates a lot of errors
+          value: threadId || 0,
+          label: t('Profiles'),
+          options: profileOptions,
+        },
+        {
+          value: threadId || 0,
+          label: t('Empty Profiles'),
+          options: emptyProfileOptions,
+        },
+      ]}
       value={threadId}
       onChange={handleChange}
       isSearchable

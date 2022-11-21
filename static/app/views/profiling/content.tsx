@@ -13,21 +13,24 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
-import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTransactionsTable';
+import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  formatSort,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -35,45 +38,6 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
-
-function hasSetupProfilingForAtLeastOneProject(
-  selectedProjects: PageFilters['projects'],
-  projects: Project[]
-): boolean {
-  const projectIDsToProjectTable = projects.reduce<Record<string, Project>>(
-    (acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    },
-    {}
-  );
-
-  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
-    const projectWithProfiles = projects.find(p => {
-      const project = projectIDsToProjectTable[String(p)];
-
-      if (!project) {
-        // Shouldnt happen, but lets be safe and just not do anything
-        return false;
-      }
-      return project.hasProfiles;
-    });
-
-    return projectWithProfiles !== undefined;
-  }
-
-  const projectWithProfiles = selectedProjects.find(p => {
-    const project = projectIDsToProjectTable[String(p)];
-
-    if (!project) {
-      // Shouldnt happen, but lets be safe and just not do anything
-      return false;
-    }
-    return project.hasProfiles;
-  });
-
-  return projectWithProfiles !== undefined;
-}
 
 interface ProfilingContentProps {
   location: Location;
@@ -85,15 +49,22 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
-  const transactionsSort = decodeScalar(location.query.sort, '-count()');
-  const profileFilters = useProfileFilters({query: '', selection});
-  const transactions = useProfileTransactions({
-    cursor,
-    query,
-    selection,
-    sort: transactionsSort,
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+    key: 'count()',
+    order: 'desc',
   });
+
+  const profileFilters = useProfileFilters({query: '', selection});
   const {projects} = useProjects();
+
+  const transactions = useProfileEvents<FieldType>({
+    cursor,
+    fields: FIELDS,
+    query,
+    sort,
+    referrer: 'api.profiling.landing-table',
+  });
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
@@ -117,21 +88,37 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
+    const profilingOnboardingChecklistEnabled = organization.features?.includes(
+      'profiling-onboarding-checklist'
+    );
+    if (profilingOnboardingChecklistEnabled) {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+      return;
+    }
     openModal(props => {
       return <ProfilingOnboardingModal {...props} organization={organization} />;
     });
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (transactions.type !== 'resolved') {
-      return false;
+    // if it's My Projects or All projects, only show onboarding if we can't
+    // find any projects with profiles
+    if (
+      selection.projects.length === 0 ||
+      selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      return projects.every(project => !project.hasProfiles);
     }
 
-    if (transactions.data.transactions.length > 0) {
-      return false;
-    }
-    return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
-  }, [selection.projects, projects, transactions]);
+    // otherwise, only show onboarding if we can't find any projects with profiles
+    // from those that were selected
+    const projectsWithProfiles = new Set(
+      projects.filter(project => project.hasProfiles).map(project => project.id)
+    );
+    return selection.projects.every(
+      project => !projectsWithProfiles.has(String(project))
+    );
+  }, [selection.projects, projects]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -194,24 +181,24 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 ) : (
                   <Fragment>
                     <ProfileCharts router={router} query={query} selection={selection} />
-                    <ProfileTransactionsTable
+                    <ProfileEventsTable
+                      columns={FIELDS.slice()}
+                      data={
+                        transactions.status === 'success' ? transactions.data[0] : null
+                      }
                       error={
-                        transactions.type === 'errored'
+                        transactions.status === 'error'
                           ? t('Unable to load profiles')
                           : null
                       }
-                      isLoading={transactions.type === 'loading'}
-                      sort={transactionsSort}
-                      transactions={
-                        transactions.type === 'resolved'
-                          ? transactions.data.transactions
-                          : []
-                      }
+                      isLoading={transactions.status === 'loading'}
+                      sort={sort}
+                      sortableColumns={new Set(FIELDS)}
                     />
                     <Pagination
                       pageLinks={
-                        transactions.type === 'resolved'
-                          ? transactions.data.pageLinks
+                        transactions.status === 'success'
+                          ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
                           : null
                       }
                     />
@@ -225,6 +212,18 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     </SentryDocumentTitle>
   );
 }
+
+const FIELDS = [
+  'transaction',
+  'project.id',
+  'last_seen()',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+] as const;
+
+type FieldType = typeof FIELDS[number];
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;

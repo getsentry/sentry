@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
@@ -18,11 +19,12 @@ import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
 import AlertChart from './alertChart';
@@ -184,6 +186,32 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     );
   }
 
+  renderIncompatibleAlert() {
+    const {orgId, projectId, ruleId} = this.props.params;
+
+    const incompatibleRule = findIncompatibleRules(this.state.rule);
+    if (
+      (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) &&
+      this.props.organization.features.includes('issue-alert-incompatible-rules')
+    ) {
+      return (
+        <Alert type="error" showIcon>
+          {tct(
+            'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
+            {
+              link: (
+                <a
+                  href={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   renderBody() {
     const {params, location, organization, project} = this.props;
     const {orgId, ruleId, projectId} = params;
@@ -272,6 +300,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
+            {this.renderIncompatibleAlert()}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={period ?? ''}

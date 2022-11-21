@@ -4,16 +4,22 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularit
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
-from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
-from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
-from sentry.snuba.metrics.query import (
-    MetricConditionField,
-    MetricField,
-    MetricGroupByField,
-    MetricsQuery,
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import (
+    FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
+    OPERATIONS,
+    DerivedMetricException,
+    TransactionMRI,
 )
-from sentry.snuba.metrics.query import OrderBy as MetricOrderBy
+from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
+from sentry.snuba.metrics.query import MetricOrderByField
+from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
+
+TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
 
 class MQBQueryTransformationException(Exception):
@@ -186,7 +192,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name in ["tags[environment]", "tags[transaction]"]:
+            elif condition.lhs.name in FILTERABLE_TAGS:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
@@ -218,19 +224,199 @@ def _get_mq_dict_params_from_where(query_where):
 def _transform_orderby(query_orderby):
     mq_orderby = []
     for orderby_field in query_orderby:
-        transformed_field = _transform_select([orderby_field.exp]).pop()
-        metric_exp = metric_object_factory(
-            op=transformed_field.op, metric_mri=transformed_field.metric_mri
-        )
-        try:
-            metric_exp.validate_can_orderby()
-        except DerivedMetricException as e:
-            raise MQBQueryTransformationException(e)
-        mq_orderby.append(MetricOrderBy(field=transformed_field, direction=orderby_field.direction))
+        orderby_exp = orderby_field.exp
+
+        # We want to use the string field only when a column with a valid field is passed. For example:
+        # Column(name="project_id").
+        if (
+            isinstance(orderby_exp, Column)
+            and orderby_exp.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values()
+        ):
+            metric_order_by = MetricOrderByField(
+                field=orderby_exp.name,
+                direction=orderby_field.direction,
+            )
+        else:
+            transformed_field = _transform_select([orderby_exp]).pop()
+            metric_exp = metric_object_factory(
+                op=transformed_field.op, metric_mri=transformed_field.metric_mri
+            )
+            try:
+                metric_exp.validate_can_orderby()
+            except DerivedMetricException as e:
+                raise MQBQueryTransformationException(e)
+
+            metric_order_by = MetricOrderBy(
+                field=transformed_field, direction=orderby_field.direction
+            )
+
+        mq_orderby.append(metric_order_by)
+
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
-def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+def _derive_mri_to_apply(project_ids, select, orderby):
+    mri_dictionary = {
+        "generic_metrics_distributions": TransactionMRI.DURATION.value,
+        "generic_metrics_sets": TransactionMRI.USER.value,
+    }
+    mri_to_apply = TransactionMRI.DURATION.value
+
+    # We first check if there is an order by field that has the team_key_transaction, otherwise
+    # we just use the default mri of duration.
+    has_order_by_team_key_transaction = False
+    if orderby is not None:
+        for orderby_field in orderby:
+            if isinstance(orderby_field.field, MetricField):
+                if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+                    has_order_by_team_key_transaction = True
+                    break
+
+    if has_order_by_team_key_transaction:
+        entities = set()
+
+        if len(orderby) == 1:
+            # If the number of clauses in the order by is equal to 1 and the order by has a team_key_transaction it
+            # means that it must be the only one, therefore we want to infer the MRI type of the team_key_transaction
+            # from one entity in the select in order to save up a query. This is just an optimization for the edge case
+            # in which the select has a different entity than the default entity for the team_key_transaction, which
+            # is the distribution, inferred from TransactionMRI.DURATION.
+            for select_field in select:
+                if select_field.op != TEAM_KEY_TRANSACTION_OP:
+                    expr = metric_object_factory(select_field.op, select_field.metric_mri)
+                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                    if isinstance(entity, str):
+                        entities.add(entity)
+        else:
+            # If the number of clauses in the order by is more than 1 it means that together with team_key_transaction
+            # there are other order by conditions and by definition we want all the order by conditions to belong to
+            # the same entity type, therefore we want to check how many entities are there in the other order by
+            # conditions and if there is only one we will infer the MRI type of the team_key_transaction
+            # from that one entity. If, on the other hand, there are multiple entities, then we throw an error because
+            # an order by across multiple entities is not supported.
+            for orderby_field in orderby:
+                if isinstance(orderby_field.field, MetricField):
+                    if orderby_field.field.op != TEAM_KEY_TRANSACTION_OP:
+                        expr = metric_object_factory(
+                            orderby_field.field.op, orderby_field.field.metric_mri
+                        )
+                        entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                        if isinstance(entity, str):
+                            entities.add(entity)
+
+            if len(entities) > 1:
+                raise InvalidParams("The orderby cannot have fields with multiple entities.")
+
+        if len(entities) > 0:
+            # Only if entities are found in the clauses we are going to update the MRI to apply, otherwise we will just
+            # resort to the default one.
+            mri_to_apply = mri_dictionary[entities.pop()]
+
+    return mri_to_apply
+
+
+def _transform_team_key_transaction_in_select(mri_to_apply, select):
+    if select is None:
+        return select
+
+    def _select_predicate(select_field):
+        if select_field.op == TEAM_KEY_TRANSACTION_OP:
+            return MetricField(
+                op=select_field.op,
+                metric_mri=mri_to_apply,
+                params=select_field.params,
+                alias=select_field.alias,
+            )
+
+        return select_field
+
+    return list(map(_select_predicate, select))
+
+
+def _transform_team_key_transaction_in_where(mri_to_apply, where):
+    if where is None:
+        return where
+
+    def _where_predicate(where_field):
+        if (
+            isinstance(where_field, MetricConditionField)
+            and where_field.lhs.op == TEAM_KEY_TRANSACTION_OP
+        ):
+            return MetricConditionField(
+                lhs=MetricField(
+                    op=where_field.lhs.op,
+                    metric_mri=mri_to_apply,
+                    params=where_field.lhs.params,
+                    alias=where_field.lhs.alias,
+                ),
+                op=where_field.op,
+                rhs=where_field.rhs,
+            )
+
+        return where_field
+
+    return list(map(_where_predicate, where))
+
+
+def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
+    if groupby is None:
+        return groupby
+
+    def _groupby_predicate(groupby_field):
+        if (
+            isinstance(groupby_field.field, MetricField)
+            and groupby_field.field.op == TEAM_KEY_TRANSACTION_OP
+        ):
+            return MetricGroupByField(
+                field=MetricField(
+                    op=groupby_field.field.op,
+                    metric_mri=mri_to_apply,
+                    params=groupby_field.field.params,
+                    alias=groupby_field.field.alias,
+                ),
+            )
+
+        return groupby_field
+
+    return list(map(_groupby_predicate, groupby))
+
+
+def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
+    if orderby is None:
+        return orderby
+
+    def _orderby_predicate(orderby_field):
+        if isinstance(orderby_field.field, MetricField):
+            if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
+                return MetricOrderByField(
+                    field=MetricField(
+                        op=orderby_field.field.op,
+                        metric_mri=mri_to_apply,
+                        params=orderby_field.field.params,
+                        alias=orderby_field.field.alias,
+                    ),
+                    direction=orderby_field.direction,
+                )
+
+        return orderby_field
+
+    return list(map(_orderby_predicate, orderby))
+
+
+def _transform_team_key_transaction_fake_mri(mq_dict):
+    mri_to_apply = _derive_mri_to_apply(
+        mq_dict["project_ids"], mq_dict["select"], mq_dict["orderby"]
+    )
+
+    return {
+        "select": _transform_team_key_transaction_in_select(mri_to_apply, mq_dict["select"]),
+        "where": _transform_team_key_transaction_in_where(mri_to_apply, mq_dict["where"]),
+        "groupby": _transform_team_key_transaction_in_groupby(mri_to_apply, mq_dict["groupby"]),
+        "orderby": _transform_team_key_transaction_in_orderby(mri_to_apply, mq_dict["orderby"]),
+    }
+
+
+def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
         raise MQBQueryTransformationException(
@@ -256,4 +442,8 @@ def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "interval": interval,
         **_get_mq_dict_params_from_where(query.where),
     }
+
+    # This code is just an edge case specific for the team_key_transaction derived operation.
+    mq_dict.update(**_transform_team_key_transaction_fake_mri(mq_dict))
+
     return MetricsQuery(**mq_dict)

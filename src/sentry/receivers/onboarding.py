@@ -14,6 +14,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -134,7 +135,7 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logging.getLogger("sentry").warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -221,17 +222,35 @@ def record_first_transaction(project, event, **kwargs):
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
-
-@first_replay_received.connect(weak=False)
-def record_first_replay(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_replays))
     analytics.record(
-        "first_replay.sent",
+        "first_profile.sent",
         user_id=project.organization.default_owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
     )
+
+
+@first_replay_received.connect(weak=False)
+def record_first_replay(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+    success = OrganizationOnboardingTask.objects.record(
+        organization_id=project.organization_id,
+        task=OnboardingTask.SESSION_REPLAY,
+        status=OnboardingTaskStatus.COMPLETE,
+        date_completed=timezone.now(),
+    )
+
+    if success:
+        analytics.record(
+            "first_replay.sent",
+            user_id=project.organization.default_owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @member_invited.connect(weak=False)
@@ -280,7 +299,7 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         try:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logging.getLogger("sentry").warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -317,7 +336,9 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             try:
-                user = Organization.objects.get(id=project.organization_id).get_default_owner()
+                user: APIUser = Organization.objects.get(
+                    id=project.organization_id
+                ).get_default_owner()
             except IndexError:
                 logging.getLogger("sentry").warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
@@ -351,7 +372,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         try:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logging.getLogger("sentry").warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",

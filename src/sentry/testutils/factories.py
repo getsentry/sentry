@@ -81,6 +81,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    SavedSearch,
     SentryAppInstallation,
     SentryFunction,
     Team,
@@ -531,7 +532,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
-        repo = Repository.objects.create(
+        repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
             or "{}-{}".format(petname.Generate(2, "", letters=10), random.randint(1000, 9999)),
@@ -1288,12 +1289,12 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_identity(
-        user: User, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,
             idp=identity_provider,
-            user=user,
+            user_id=user.id,
             status=IdentityStatus.VALID,
             scopes=[],
         )
@@ -1348,3 +1349,7 @@ class Factories:
             external_id=slugify(name) + "-" + uuid4().hex,
             **kwargs,
         )
+
+    @staticmethod
+    def create_saved_search(name: str, **kwargs):
+        return SavedSearch.objects.create(name=name, **kwargs)

@@ -176,6 +176,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
+        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -220,7 +221,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    render(
+    const {container} = render(
       <EventsTable
         totalEventCount={totalEventCount}
         eventView={eventView}
@@ -230,6 +231,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
+        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -238,6 +240,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 
   it('renders event id and trace id url', async function () {
@@ -265,6 +268,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
+        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -278,5 +282,45 @@ describe('Performance GridEditable Table', function () {
       'href',
       '/organizations/org-slug/performance/trace/1234/?'
     );
+  });
+
+  it('renders replay id', async function () {
+    const initialData = initializeData({features: ['session-replay-ui']});
+
+    fields.push('replayId');
+    data.forEach(result => {
+      result.replayId = 'mock_replay_id';
+    });
+
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    const {container} = render(
+      <EventsTable
+        totalEventCount={totalEventCount}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+        showReplayCol
+      />,
+      {context: initialData.routerContext}
+    );
+
+    expect(await screen.getAllByRole('columnheader')).toHaveLength(7);
+    expect(container).toSnapshot();
   });
 });

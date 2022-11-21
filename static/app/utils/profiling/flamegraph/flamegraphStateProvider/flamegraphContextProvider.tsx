@@ -18,28 +18,31 @@ import {
 } from './flamegraphContext';
 
 type FlamegraphCandidate = {
-  score: number;
-  threadId: number | null;
+  frame: FlamegraphFrame;
+  threadId: number;
 };
 
-function scoreFlamegraph(
+function findLongestMatchingFrame(
   flamegraph: Flamegraph,
-  focusFrame: FlamegraphProfiles['highlightFrame']
-): number {
+  focusFrame: FlamegraphProfiles['highlightFrames']
+): FlamegraphFrame | null {
   if (focusFrame === null) {
-    return 0;
+    return null;
   }
 
-  let score = 0;
+  let longestFrame: FlamegraphFrame | null = null;
 
   const frames: FlamegraphFrame[] = [...flamegraph.root.children];
   while (frames.length > 0) {
     const frame = frames.pop()!;
     if (
-      frame.frame.name === focusFrame.name &&
-      frame.frame.image === focusFrame.package
+      focusFrame.name === frame.frame.name &&
+      // the image name on a frame is optional,
+      // treat it the same as the empty string
+      focusFrame.package === (frame.frame.image || '') &&
+      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
-      score += frame.node.totalWeight;
+      longestFrame = frame;
     }
 
     for (let i = 0; i < frame.children.length; i++) {
@@ -47,12 +50,12 @@ function scoreFlamegraph(
     }
   }
 
-  return score;
+  return longestFrame;
 }
 
 function isValidHighlightFrame(
-  frame: Partial<FlamegraphProfiles['highlightFrame']> | null | undefined
-): frame is NonNullable<FlamegraphProfiles['highlightFrame']> {
+  frame: Partial<FlamegraphProfiles['highlightFrames']> | null | undefined
+): frame is NonNullable<FlamegraphProfiles['highlightFrames']> {
   return !!frame && typeof frame.name === 'string';
 }
 
@@ -69,18 +72,19 @@ export function FlamegraphStateProvider(
     flamegraphStateReducer,
     {
       profiles: {
-        highlightFrame: isValidHighlightFrame(
-          props.initialState?.profiles?.highlightFrame
+        highlightFrames: isValidHighlightFrame(
+          props.initialState?.profiles?.highlightFrames
         )
           ? (props.initialState?.profiles
-              ?.highlightFrame as FlamegraphProfiles['highlightFrame'])
-          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame)
-          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame
+              ?.highlightFrames as FlamegraphProfiles['highlightFrames'])
+          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames)
+          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames
           : null,
         selectedRoot: null,
         threadId:
           props.initialState?.profiles?.threadId ??
           DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
+        zoomIntoFrame: null,
       },
       position: {
         view: (props.initialState?.position?.view ??
@@ -111,47 +115,70 @@ export function FlamegraphStateProvider(
   );
 
   useEffect(() => {
-    if (state.profiles.threadId === null) {
-      if (state.profiles.highlightFrame && profileGroup.type === 'resolved') {
-        const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
-          (prevCandidate, profile) => {
-            const flamegraph = new Flamegraph(profile, profile.threadId, {
-              inverted: false,
-              leftHeavy: false,
-              configSpace: undefined,
-            });
+    if (defined(state.profiles.threadId)) {
+      return;
+    }
 
-            const score = scoreFlamegraph(flamegraph, state.profiles.highlightFrame);
-
-            return score <= prevCandidate.score
-              ? prevCandidate
-              : {
-                  score,
-                  threadId: profile.threadId,
-                };
-          },
-          {score: 0, threadId: null}
-        );
-
-        if (typeof candidate.threadId === 'number') {
-          dispatch({type: 'set thread id', payload: candidate.threadId});
-          return;
-        }
-      }
-
-      if (
-        profileGroup.type === 'resolved' &&
-        typeof profileGroup.data.activeProfileIndex === 'number'
-      ) {
-        const threadID =
-          profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
-
-        if (defined(threadID)) {
-          dispatch({
-            type: 'set thread id',
-            payload: threadID,
+    // if the state has a highlight frame specified, then we want to jump to the
+    // thread containing it, highlight the frames on the thread, and change the
+    // view so it's obvious where it is
+    if (state.profiles.highlightFrames && profileGroup.type === 'resolved') {
+      const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate | null>(
+        (prevCandidate, profile) => {
+          const flamegraph = new Flamegraph(profile, profile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
           });
-        }
+
+          const frame = findLongestMatchingFrame(
+            flamegraph,
+            state.profiles.highlightFrames
+          );
+
+          if (!defined(frame)) {
+            return prevCandidate;
+          }
+
+          const newScore = frame.node.totalWeight || 0;
+          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
+
+          return newScore <= oldScore
+            ? prevCandidate
+            : {
+                frame,
+                threadId: profile.threadId,
+              };
+        },
+        null
+      );
+
+      if (defined(candidate)) {
+        dispatch({
+          type: 'jump to frame',
+          payload: {
+            frame: candidate.frame,
+            threadId: candidate.threadId,
+          },
+        });
+        return;
+      }
+    }
+
+    // fall back case, when we finally load the active profile index from the profile,
+    // make sure we update the thread id so that it is show first
+    if (
+      profileGroup.type === 'resolved' &&
+      typeof profileGroup.data.activeProfileIndex === 'number'
+    ) {
+      const threadId =
+        profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+
+      if (defined(threadId)) {
+        dispatch({
+          type: 'set thread id',
+          payload: threadId,
+        });
       }
     }
   }, [
@@ -159,7 +186,7 @@ export function FlamegraphStateProvider(
     profileGroup,
     state,
     dispatch,
-    state.profiles.highlightFrame,
+    state.profiles.highlightFrames,
   ]);
 
   return (

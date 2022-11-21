@@ -106,8 +106,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_trees_for_org(self) -> JSONData:
-        return self.get_client().get_trees_for_org(self.model.name)
+    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> JSONData:
+        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
+        return self.get_client().get_trees_for_org(
+            cache_key=self.org_integration.organization.slug,
+            gh_org=gh_org,
+            cache_seconds=cache_seconds,
+        )
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False

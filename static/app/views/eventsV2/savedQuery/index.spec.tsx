@@ -1,23 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import DiscoverBanner from 'sentry/views/eventsV2/banner';
 import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
 import * as utils from 'sentry/views/eventsV2/savedQuery/utils';
-
-const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
-const SELECTOR_BUTTON_SET_AS_DEFAULT = '[data-test-id="set-as-default"]';
-const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
-const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
-const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
-const SELECTOR_BUTTON_CREATE_ALERT = '[data-test-id="discover2-create-from-discover"]';
-const SELECTOR_SAVED_QUERIES = '[data-test-id="discover2-savedquery-button-view-saved"]';
-const SELECTOR_CONTEXT_MENU = 'button[aria-label="Discover Context Menu"]';
-const SELECTOR_ADD_TO_DASHBAORD = 'button[aria-label="Add to Dashboard"]';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -28,7 +16,8 @@ function mount(
   eventView,
   savedQuery,
   yAxis,
-  disabled = false
+  disabled = false,
+  setSavedQuery = jest.fn()
 ) {
   return render(
     <SavedQueryButtonGroup
@@ -41,39 +30,10 @@ function mount(
       yAxis={yAxis}
       router={router}
       queryDataLoading={false}
-      setSavedQuery={jest.fn()}
+      setSavedQuery={setSavedQuery}
       setHomepageQuery={jest.fn()}
     />
   );
-}
-function generateWrappedComponent(
-  location,
-  organization,
-  router,
-  eventView,
-  savedQuery,
-  yAxis,
-  disabled = false
-) {
-  const mockSetSavedQuery = jest.fn();
-  return {
-    mockSetSavedQuery,
-    wrapper: mountWithTheme(
-      <SavedQueryButtonGroup
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        savedQuery={savedQuery}
-        disabled={disabled}
-        updateCallback={() => {}}
-        yAxis={yAxis}
-        router={router}
-        queryDataLoading={false}
-        setSavedQuery={mockSetSavedQuery}
-        setHomepageQuery={jest.fn()}
-      />
-    ),
-  };
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
@@ -130,39 +90,22 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders disabled buttons when disabled prop is used', () => {
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis,
-        true
-      );
+      mount(location, organization, router, errorsView, undefined, yAxis, true);
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      expect(buttonSaveAs.props()['aria-disabled']).toBe(true);
+      expect(screen.getByRole('button', {name: /save as/i})).toBeDisabled();
     });
 
     it('renders the correct set of buttons', () => {
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-
-      expect(buttonSaveAs.exists()).toBe(true);
-      expect(buttonSaved.exists()).toBe(false);
-      expect(buttonUpdate.exists()).toBe(false);
-      expect(buttonDelete.exists()).toBe(false);
+      expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /saved for org/i})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /save changes/i})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
     });
 
     it('renders the correct set of buttons with the homepage query feature', () => {
@@ -173,33 +116,25 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           'discover-query-builder-as-landing-page',
         ],
       });
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
-      const buttonSetAsDefault = wrapper.find(SELECTOR_BUTTON_SET_AS_DEFAULT);
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-      const buttonSavedQueries = wrapper.find(SELECTOR_SAVED_QUERIES);
-      const buttonContextMenu = wrapper.find(SELECTOR_CONTEXT_MENU);
-      const buttonAddToDashboard = wrapper.find(SELECTOR_ADD_TO_DASHBAORD);
+      expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /saved queries/i})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: /discover context menu/i})
+      ).toBeInTheDocument();
 
-      expect(buttonSetAsDefault.exists()).toBe(true);
-      expect(buttonSaveAs.exists()).toBe(true);
-      expect(buttonSavedQueries.exists()).toBe(true);
-      expect(buttonContextMenu.exists()).toBe(true);
-
-      expect(buttonSaved.exists()).toBe(false);
-      expect(buttonUpdate.exists()).toBe(false);
-      expect(buttonDelete.exists()).toBe(false);
-      expect(buttonAddToDashboard.exists()).toBe(false);
+      expect(
+        screen.queryByRole('button', {name: /saved for org/i})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /save changes/i})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /add to dashboard/i})
+      ).not.toBeInTheDocument();
     });
 
     it('hides the banner when save is complete.', () => {
@@ -215,7 +150,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // The banner should not render
-      mountWithTheme(<DiscoverBanner organization={organization} resultsUrl="" />);
       expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
@@ -275,28 +209,18 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', () => {
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsViewSaved,
-        savedQuery,
-        yAxis
-      );
+      mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-
-      expect(buttonSaveAs.exists()).toBe(false);
-      expect(buttonSaved.exists()).toBe(true);
-      expect(buttonUpdate.exists()).toBe(false);
-      expect(buttonDelete.exists()).toBe(true);
+      expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /save changes/i})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
     it('treats undefined yAxis the same as count() when checking for changes', () => {
-      const {wrapper} = generateWrappedComponent(
+      mount(
         location,
         organization,
         router,
@@ -305,19 +229,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         ['count()']
       );
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-
-      expect(buttonSaveAs.exists()).toBe(false);
-      expect(buttonSaved.exists()).toBe(true);
-      expect(buttonUpdate.exists()).toBe(false);
-      expect(buttonDelete.exists()).toBe(true);
+      expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /save changes/i})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
     it('converts string yAxis values to array when checking for changes', () => {
-      const {wrapper} = generateWrappedComponent(
+      mount(
         location,
         organization,
         router,
@@ -326,29 +247,18 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         ['count()']
       );
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-
-      expect(buttonSaveAs.exists()).toBe(false);
-      expect(buttonSaved.exists()).toBe(true);
-      expect(buttonUpdate.exists()).toBe(false);
-      expect(buttonDelete.exists()).toBe(true);
+      expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /save changes/i})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('deletes the saved query', async () => {
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsViewSaved,
-        savedQuery,
-        yAxis
-      );
+    it('deletes the saved query', () => {
+      mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
-      await buttonDelete.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: /delete/i}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -362,7 +272,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     let mockUtils;
 
     it('renders the correct set of buttons', () => {
-      const {wrapper} = generateWrappedComponent(
+      mount(
         location,
         organization,
         router,
@@ -371,15 +281,12 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         yAxis
       );
 
-      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
-      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
-      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
-
-      expect(buttonSaveAs.exists()).toBe(true);
-      expect(buttonSaved.exists()).toBe(false);
-      expect(buttonUpdate.exists()).toBe(true);
-      expect(buttonDelete.exists()).toBe(true);
+      expect(screen.queryByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /saved for org/i})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /save changes/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
     describe('updates the saved query', () => {
@@ -394,28 +301,32 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       });
 
       it('accepts a well-formed query', async () => {
-        const {mockSetSavedQuery, wrapper} = generateWrappedComponent(
+        const mockSetSavedQuery = jest.fn();
+        mount(
           location,
           organization,
           router,
           errorsViewModified,
           savedQuery,
-          yAxis
+          yAxis,
+          false,
+          mockSetSavedQuery
         );
 
         // Click on Save in the Dropdown
-        const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE).first();
-        await buttonUpdate.simulate('click');
+        userEvent.click(screen.getByRole('button', {name: /save changes/i}));
 
-        expect(mockUtils).toHaveBeenCalledWith(
-          expect.anything(), // api
-          organization,
-          expect.objectContaining({
-            ...errorsViewModified,
-          }),
-          yAxis
-        );
-        expect(mockSetSavedQuery).toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockUtils).toHaveBeenCalledWith(
+            expect.anything(), // api
+            organization,
+            expect.objectContaining({
+              ...errorsViewModified,
+            }),
+            yAxis
+          );
+          expect(mockSetSavedQuery).toHaveBeenCalled();
+        });
       });
     });
 
@@ -461,30 +372,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         ...organization,
         features: ['incidents'],
       };
-      const {wrapper} = generateWrappedComponent(
-        location,
-        metricAlertOrg,
-        router,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+      mount(location, metricAlertOrg, router, errorsViewModified, savedQuery, yAxis);
 
-      expect(buttonCreateAlert.exists()).toBe(true);
+      expect(screen.getByRole('button', {name: /create alert/i})).toBeInTheDocument();
     });
     it('does not render create alert button without metric alerts', () => {
-      const {wrapper} = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+      mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
-      expect(buttonCreateAlert.exists()).toBe(false);
+      expect(
+        screen.queryByRole('button', {name: /create alert/i})
+      ).not.toBeInTheDocument();
     });
   });
 });

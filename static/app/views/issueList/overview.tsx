@@ -188,7 +188,12 @@ class IssueListOverview extends Component<Props, State> {
 
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
-    this.fetchSavedSearches();
+    // But if searches are already there, we can go right to fetching issues
+    if (this.props.savedSearchLoading) {
+      this.fetchSavedSearches();
+    } else {
+      this.fetchData();
+    }
     this.fetchTags();
     this.fetchMemberList();
     // let custom analytics take control
@@ -242,7 +247,8 @@ class IssueListOverview extends Component<Props, State> {
       prevQuery.query !== newQuery.query ||
       prevQuery.statsPeriod !== newQuery.statsPeriod ||
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
-      prevProps.savedSearch !== this.props.savedSearch
+      prevProps.savedSearch?.query !== this.props.savedSearch?.query ||
+      prevProps.savedSearch?.sort !== this.props.savedSearch?.sort
     ) {
       this.fetchData(selectionChanged);
     } else if (
@@ -380,7 +386,9 @@ class IssueListOverview extends Component<Props, State> {
   fetchSavedSearches() {
     const {organization, api} = this.props;
 
-    fetchSavedSearches(api, organization.slug);
+    if (!organization.features.includes('issue-list-saved-searches-v2')) {
+      fetchSavedSearches(api, organization.slug);
+    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -1141,15 +1149,8 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      savedSearchLoading,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1235,6 +1236,7 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
+                isSavedSearchesOpen={isSavedSearchesOpen}
               />
               <PanelBody>
                 <ProcessingIssueList
@@ -1257,6 +1259,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    isSavedSearchesOpen={isSavedSearchesOpen}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>
@@ -1271,15 +1274,8 @@ class IssueListOverview extends Component<Props, State> {
             />
           </StyledMain>
           <SavedIssueSearches
-            {...{
-              savedSearches,
-              savedSearch,
-              savedSearchLoading,
-              organization,
-              query,
-            }}
+            {...{organization, query}}
             isOpen={isSavedSearchesOpen}
-            onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
             sort={this.getSort()}
           />
@@ -1302,22 +1298,27 @@ export {IssueListOverview};
 const StyledBody = styled('div')`
   background-color: ${p => p.theme.background};
 
-  display: flex;
-  flex-direction: column-reverse;
+  flex: 1;
+  display: grid;
+  gap: 0;
+  padding: 0;
+
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(max-content, 1fr);
+  grid-template-areas:
+    'saved-searches'
+    'content';
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex: 1;
-    display: grid;
     grid-template-rows: 1fr;
-    grid-template-columns: 1fr auto;
-    gap: 0;
-    padding: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'content saved-searches';
   }
 `;
 
 const StyledMain = styled('section')`
+  grid-area: content;
   padding: ${space(2)};
-  overflow: hidden;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};

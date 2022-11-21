@@ -336,15 +336,15 @@ function FlamegraphZoomView({
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   useEffect(() => {
-    if (flamegraphState.profiles.highlightFrame) {
+    if (flamegraphState.profiles.highlightFrames) {
       selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightFrame.name,
-        flamegraphState.profiles.highlightFrame.package
+        flamegraphState.profiles.highlightFrames.name,
+        flamegraphState.profiles.highlightFrames.package
       );
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
+  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
@@ -389,7 +389,7 @@ function FlamegraphZoomView({
     flamegraphCanvas,
     scheduler,
     flamegraph,
-    flamegraphState.profiles.highlightFrame,
+    flamegraphState.profiles.highlightFrames,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -493,31 +493,31 @@ function FlamegraphZoomView({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          flamegraphState.profiles.selectedRoot &&
-          hoveredNode === flamegraphState.profiles.selectedRoot
+          selectedFramesRef.current?.length === 1 &&
+          selectedFramesRef.current[0] === hoveredNode
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
+          dispatch({type: 'set selected root', payload: hoveredNode});
+        } else {
+          // If double click is fired on an empty space, then reset the zoom
+          dispatch({type: 'set selected root', payload: null});
         }
 
+        dispatch({
+          type: 'set highlight all frames',
+          payload: null,
+        });
         canvasPoolManager.dispatch('highlight frame', [
           hoveredNode ? [hoveredNode] : null,
           'selected',
         ]);
-        dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
       setStartPanVector(null);
     },
-    [
-      configSpaceCursor,
-      flamegraphState.profiles.selectedRoot,
-      dispatch,
-      hoveredNode,
-      canvasPoolManager,
-      lastInteraction,
-    ]
+    [configSpaceCursor, dispatch, hoveredNode, canvasPoolManager, lastInteraction]
   );
 
   const onMouseDrag = useCallback(
@@ -735,17 +735,26 @@ function FlamegraphZoomView({
       )
     ) {
       setHighlightingAllOccurences(false);
+      dispatch({type: 'set highlight all frames', payload: null});
       canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
       scheduler.draw();
       return;
     }
 
     setHighlightingAllOccurences(true);
+    dispatch({
+      type: 'set highlight all frames',
+      payload: {
+        name: hoveredNodeOnContextMenuOpen.current.frame.name,
+        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+      },
+    });
+
     canvasPoolManager.dispatch('highlight frame', [
       flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
       'selected',
     ]);
-  }, [canvasPoolManager, flamegraph, scheduler]);
+  }, [canvasPoolManager, flamegraph, scheduler, dispatch]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {
@@ -782,6 +791,7 @@ function FlamegraphZoomView({
       />
       <FlamegraphOptionsContextMenu
         contextMenu={contextMenu}
+        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}

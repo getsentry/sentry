@@ -8,6 +8,8 @@ const DEFAULT_CONTEXT = {
   setDisableRouteAnalytics: () => {},
   setRouteAnalyticsParams: () => {},
   setOrganization: () => {},
+  setEventNames: () => {},
+  previousUrl: '',
 };
 
 /**
@@ -16,7 +18,9 @@ const DEFAULT_CONTEXT = {
  * slightly different use cases.
  */
 export const RouteAnalyticsContext = createContext<{
+  previousUrl: string;
   setDisableRouteAnalytics: () => void;
+  setEventNames: (evetKey: string, eventName: string) => void;
   setOrganization: (organization: Organization) => void;
   setRouteAnalyticsParams: (params: Record<string, any>) => void;
 }>(DEFAULT_CONTEXT);
@@ -27,16 +31,29 @@ interface Props extends RouteContextInterface {
 
 export default function RouteAnalyticsContextProvider({children, ...props}: Props) {
   const useRouteActivatedHook = HookStore.get('react-hook:route-activated')[0];
-  const {setDisableRouteAnalytics, setRouteAnalyticsParams, setOrganization} =
-    useRouteActivatedHook?.(props) || DEFAULT_CONTEXT;
+  const {
+    setDisableRouteAnalytics,
+    setRouteAnalyticsParams,
+    setOrganization,
+    setEventNames,
+    previousUrl,
+  } = useRouteActivatedHook?.(props) || DEFAULT_CONTEXT;
 
   const memoizedValue = useMemo(
     () => ({
       setDisableRouteAnalytics,
       setRouteAnalyticsParams,
       setOrganization,
+      setEventNames,
+      previousUrl,
     }),
-    [setDisableRouteAnalytics, setRouteAnalyticsParams, setOrganization]
+    [
+      setDisableRouteAnalytics,
+      setRouteAnalyticsParams,
+      setOrganization,
+      setEventNames,
+      previousUrl,
+    ]
   );
 
   return (

@@ -588,7 +588,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
-    "sentry.tasks.reports",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -601,7 +600,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.profiles.task",
-    "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
@@ -679,7 +677,6 @@ CELERY_QUEUES = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
-    Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
@@ -783,26 +780,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
-    "schedule-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60 * 3},
-    },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
-    },
-    "schedule-verify-weekly-organization-reports": {
-        "task": "sentry.tasks.reports.verify_prepare_reports",
-        "schedule": crontab(
-            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 60 * 60},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
@@ -1017,6 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling on-boarding checklist
+    "organizations:profiling-onboarding-checklist": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1068,6 +1053,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics-report": False,
     # True if the metrics data should be returned as API response (if possible with current data)
     "organizations:release-health-return-metrics": False,
+    # True if Relay should drop raw session payloads after extracting metrics from them.
+    "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1097,8 +1084,6 @@ SENTRY_FEATURES = {
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1169,6 +1154,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
@@ -1220,6 +1206,10 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable org member role provisioning through scim
+    "organizations:scim-orgmember-roles": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1241,8 +1231,6 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
-    "projects:sourcemapcache-processor": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -2771,6 +2759,41 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     "backoff_timer": 5 * 60,
 }
 
+# Tunable knobs for automatic LPQ eligibility.
+# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
+# This sampling rate needs to be considered when tuning any of the cutoff rates.
+#
+# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
+# event processing times.
+#
+# A project is eligible for the LPQ based on event rate if
+# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
+# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
+# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+#
+# A project is eligible for the LPQ based on processing duration if it averages more than
+# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
+# of event processing durations in that window exceeds `min_p75_duration` seconds. See
+# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+SENTRY_LPQ_OPTIONS = {
+    # The period that is considered for "recent events".
+    # Has to be a multiple of `counter_bucket_size` above.
+    "recent_event_period": 60,
+    # The minimum rate of events *per second* a project needs to have
+    # in the `recent_event_period` to be eligible for the LPQ.
+    "min_recent_event_rate": 5,
+    # The ratio of recent event rate over average event rate above which a project is eligible
+    # for the LPQ.
+    "recent_event_multiple": 4,
+    # The minimum rate of events *per minute* a project needs to have
+    # in the `duration_time_window` to be eligible for the LPQ.
+    "min_events_per_minute": 15,
+    # A project is considered for the LPQ if the p75 event processing time
+    # exceeds configured value.
+    # This considers events that *finished* during the last `duration_time_window`.
+    "min_p75_duration": 30,
+}
+
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
@@ -2856,6 +2879,11 @@ SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}
+
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
@@ -2901,3 +2929,27 @@ SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
 # Show session replay banner on login page
 SHOW_SESSION_REPLAY_BANNER = False
+
+# Mapping of (logical topic names, slice id) to physical topic names
+# and kafka broker names. The kafka broker names are used to construct
+# the broker config from KAFKA_CLUSTERS. This is used for slicing only.
+# Example:
+# SLICED_KAFKA_TOPICS = {
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#       "topic": "generic_metrics_0",
+#       "cluster": "cluster_1",
+#   },
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#       "topic": "generic_metrics_1",
+#       "cluster": "cluster_2",
+# }
+# And then in KAFKA_CLUSTERS:
+# KAFKA_CLUSTERS = {
+#   "cluster_1": {
+#       "bootstrap.servers": "kafka1:9092",
+#   },
+#   "cluster_2": {
+#       "bootstrap.servers": "kafka2:9092",
+#   },
+# }
+SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
