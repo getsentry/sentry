@@ -174,6 +174,11 @@ function SetupDocs({
       // If no projects remaining, then we can leave
       !project
     ) {
+      // marke onboarding as complete
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
       browserHistory.push(
         `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
       );
