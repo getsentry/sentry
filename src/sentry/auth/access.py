@@ -177,9 +177,6 @@ class Access(abc.ABC):
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         pass
 
-    def to_django_context(self) -> Mapping[str, bool]:
-        return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
-
 
 @dataclass
 class DbAccess(Access):
@@ -993,6 +990,7 @@ def from_api_member(
 def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
+    assert not isinstance(auth, SystemToken)
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
             auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True

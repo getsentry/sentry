@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
+import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
 import {useButton} from '@react-aria/button';
 import {
   OverlayProps,
@@ -10,6 +11,63 @@ import {
 import {mergeProps} from '@react-aria/utils';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+
+type PreventOverflowOptions = NonNullable<typeof preventOverflow['options']>;
+
+/**
+ * PopperJS modifier to change the popper element's width/height to prevent
+ * overflowing. Based on
+ * https://github.com/atomiks/popper.js/blob/master/src/modifiers/maxSize.js
+ */
+const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
+  name: 'maxSize',
+  enabled: true,
+  phase: 'main',
+  requiresIfExists: ['offset', 'preventOverflow', 'flip'],
+  fn({state, name, options}) {
+    const overflow = detectOverflow(state, options);
+    const {x, y} = state.modifiersData.preventOverflow ?? {x: 0, y: 0};
+    const {width, height} = state.rects.popper;
+    const [basePlacement] = state.placement.split('-');
+
+    const widthSide = basePlacement === 'left' ? 'left' : 'right';
+    const heightSide = basePlacement === 'top' ? 'top' : 'bottom';
+
+    const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
+    const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
+
+    // If there is enough space on the other side, then allow the popper to flip
+    // without constraining its size
+    const maxHeight = Math.max(
+      height - overflow[heightSide] - y,
+      -overflow[flippedHeightSide]
+    );
+
+    // If there is enough space on the other side, then allow the popper to flip
+    // without constraining its size
+    const maxWidth = Math.max(
+      width - overflow[widthSide] - x,
+      -overflow[flippedWidthSide]
+    );
+
+    state.modifiersData[name] = {
+      width: maxWidth,
+      height: maxHeight,
+    };
+  },
+};
+
+const applyMaxSize: Modifier<'applyMaxSize', {}> = {
+  name: 'applyMaxSize',
+  enabled: true,
+  phase: 'beforeWrite',
+  requires: ['maxSize'],
+  fn({state}) {
+    const {width, height} = state.modifiersData.maxSize;
+    state.styles.popper.maxHeight = height;
+    state.styles.popper.maxWidth = width;
+  },
+};
 
 export interface UseOverlayProps
   extends Partial<OverlayProps>,
@@ -23,6 +81,7 @@ export interface UseOverlayProps
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
+  preventOverflowOptions?: PreventOverflowOptions;
 }
 
 function useOverlay({
@@ -33,6 +92,7 @@ function useOverlay({
   type = 'dialog',
   offset = 8,
   position = 'top',
+  preventOverflowOptions = {},
   isDismissable = true,
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
@@ -109,11 +169,19 @@ function useOverlay({
         enabled: true,
         options: {
           padding: 16,
-          altAxis: true,
+          ...preventOverflowOptions,
         },
       },
+      {
+        ...maxSize,
+        options: {
+          padding: 16,
+          ...preventOverflowOptions,
+        },
+      },
+      applyMaxSize,
     ],
-    [arrowElement, offset]
+    [arrowElement, offset, preventOverflowOptions]
   );
   const {styles: popperStyles, state: popperState} = usePopper(
     triggerElement,

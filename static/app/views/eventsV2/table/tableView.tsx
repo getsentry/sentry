@@ -114,7 +114,8 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location, isHomepage} = this.props;
+    const {organization, eventView, tableData, location, isHomepage, projects} =
+      this.props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -203,6 +204,8 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           dataRow={dataRow}
           contextType={ContextType.EVENT}
           organization={organization}
+          projects={projects}
+          eventView={eventView}
         >
           {eventIdLink}
         </QuickContextHoverWrapper>,
