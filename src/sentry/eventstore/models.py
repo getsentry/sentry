@@ -773,11 +773,11 @@ class GroupEvent(BaseEvent):
 
     @property
     def occurrence(self) -> IssueOccurrence:
-        return self._data
+        return self._occurrence
 
     @occurrence.setter
     def occurrence(self, value: IssueOccurrence) -> None:
-        self._data = value
+        self._occurrence = value
 
 
 class EventSubjectTemplate(string.Template):
