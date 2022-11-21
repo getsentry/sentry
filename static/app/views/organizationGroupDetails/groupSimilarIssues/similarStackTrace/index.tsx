@@ -30,23 +30,29 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
+type ItemState = {
+  filtered: SimilarItem[];
+  pageLinks: string | null;
+  similar: SimilarItem[];
+};
+
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
   const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
-  const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
-  const [filteredSimilarItems, setFilteredSimilarItems] = useState<SimilarItem[]>([]);
-  const [similarLinks, setSimilarLinks] = useState<string | null>(null);
-  const [isLoading, setLoading] = useState<boolean>(true);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const [items, setItems] = useState<ItemState>({
+    similar: [],
+    filtered: [],
+    pageLinks: null,
+  });
+  const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
 
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
 
   const fetchData = useCallback(() => {
-    setLoading(true);
-    setHasError(false);
+    setState('loading');
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
@@ -76,11 +82,12 @@ function SimilarStackTrace({params, location, project}: Props) {
       error,
     }) => {
       if (updatedSimilarItems) {
-        setSimilarItems(updatedSimilarItems);
-        setFilteredSimilarItems(updatedFilteredSimilarItems);
-        setSimilarLinks(updatedSimilarLinks);
-        setLoading(loading ?? false);
-        setHasError(error ?? false);
+        setItems({
+          similar: updatedSimilarItems,
+          filtered: updatedFilteredSimilarItems,
+          pageLinks: updatedSimilarLinks,
+        });
+        setState(error ? 'error' : loading ? 'loading' : 'ready');
         return;
       }
 
@@ -124,24 +131,22 @@ function SimilarStackTrace({params, location, project}: Props) {
     // Similar issues API currently does not return issues across projects,
     // so we can assume that the first issues project slug is the project in
     // scope
-    const [firstIssue] = similarItems.length ? similarItems : filteredSimilarItems;
+    const [firstIssue] = items.similar.length ? items.similar : items.filtered;
 
     GroupingStore.onMerge({
       params,
       query: location.query,
       projectId: firstIssue.issue.project.slug,
     });
-  }, [params, location.query, similarItems, filteredSimilarItems]);
+  }, [params, location.query, items]);
 
   const hasSimilarityViewV2 = project.features.includes('similarity-view-v2');
-  const isError = hasError && !isLoading;
-  const isLoadedSuccessfully = !isError && !isLoading;
   const hasSimilarItems =
     hasSimilarityFeature &&
-    (similarItems.length > 0 || filteredSimilarItems.length > 0) &&
-    isLoadedSuccessfully;
+    (items.similar.length > 0 || items.filtered.length > 0) &&
+    state === 'ready';
 
-  const groupsIds = similarItems.concat(filteredSimilarItems).map(({issue}) => issue.id);
+  const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
   return (
     <Layout.Body>
@@ -164,8 +169,8 @@ function SimilarStackTrace({params, location, project}: Props) {
             </ButtonBar>
           )}
         </HeaderWrapper>
-        {isLoading && <LoadingIndicator />}
-        {isError && (
+        {state === 'loading' && <LoadingIndicator />}
+        {state === 'error' && (
           <LoadingError
             message={t('Unable to load similar issues, please try again later')}
             onRetry={fetchData}
@@ -174,13 +179,13 @@ function SimilarStackTrace({params, location, project}: Props) {
         {hasSimilarItems && (
           <IssuesReplayCountProvider groupIds={groupsIds}>
             <List
-              items={similarItems}
-              filteredItems={filteredSimilarItems}
+              items={items.similar}
+              filteredItems={items.filtered}
               onMerge={handleMerge}
               orgId={orgId}
               project={project}
               groupId={groupId}
-              pageLinks={similarLinks}
+              pageLinks={items.pageLinks}
               v2={isUsingSimilarityViewV2}
             />
           </IssuesReplayCountProvider>
