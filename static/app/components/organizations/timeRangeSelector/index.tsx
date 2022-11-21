@@ -464,7 +464,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
         {items => (
           <ClassNames>
             {({css}) => (
-              <StyledDropdownAutoComplete
+              <DropdownAutoComplete
                 allowActorToggle
                 autoCompleteFilter={this.autoCompleteFilter}
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
@@ -547,7 +547,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                     </StyledHeaderItem>
                   )
                 }
-              </StyledDropdownAutoComplete>
+              </DropdownAutoComplete>
             )}
           </ClassNames>
         )}
@@ -558,19 +558,6 @@ class TimeRangeSelector extends PureComponent<Props, State> {
 
 const TimeRangeRoot = styled('div')`
   position: relative;
-`;
-
-const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  position: absolute;
-  top: 100%;
-
-  ${p =>
-    !p.detached &&
-    `
-    margin-top: 0;
-    border-radius: ${p.theme.borderRadiusBottom};
-  `};
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`

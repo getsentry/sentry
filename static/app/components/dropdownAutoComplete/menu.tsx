@@ -369,7 +369,6 @@ function Menu({
                   <StyledDropdownBubble
                     className={className}
                     {...getMenuProps(menuProps)}
-                    {...{minWidth}}
                   >
                     <DropdownMainContent minWidth={minWidth}>
                       {itemsLoading && <LoadingIndicator mini />}
@@ -486,9 +485,7 @@ export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   ${p => p.disabled && 'pointer-events: none;'}
 `;
 
-const StyledDropdownBubble = styled(Overlay)<{minWidth: number}>`
-  /* min-width: ${p => p.minWidth}px; */
-`;
+const StyledDropdownBubble = styled(Overlay)``;
 
 const DropdownMainContent = styled('div')<{minWidth: number}>`
   width: 100%;

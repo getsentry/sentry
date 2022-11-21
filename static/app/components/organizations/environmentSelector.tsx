@@ -181,7 +181,7 @@ function EnvironmentSelector({
   return (
     <ClassNames>
       {({css}) => (
-        <StyledDropdownAutoComplete
+        <DropdownAutoComplete
           alignMenu={alignDropdown}
           allowActorToggle
           closeOnSelect
@@ -233,27 +233,13 @@ function EnvironmentSelector({
           {({isOpen, actions}) =>
             customDropdownButton({isOpen, actions, value: validatedValue})
           }
-        </StyledDropdownAutoComplete>
+        </DropdownAutoComplete>
       )}
     </ClassNames>
   );
 }
 
 export default withRouter(EnvironmentSelector);
-
-const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  position: absolute;
-  top: 100%;
-
-  ${p =>
-    !p.detached &&
-    `
-    margin-top: 0;
-    border-radius: ${p.theme.borderRadiusBottom};
-  `};
-`;
 
 const StyledPinButton = styled(PageFilterPinButton)`
   margin: 0 ${space(1)};

@@ -11,6 +11,7 @@ type Props = {
 };
 
 const PageFilterDropdownButton = styled(DropdownButton)<Props>`
+  border: 0;
   width: 100%;
   text-overflow: ellipsis;
   ${p =>
