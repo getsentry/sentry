@@ -34,6 +34,7 @@ describe('StacktraceLink', function () {
         event={event}
         projects={[project]}
         organization={org}
+        line="foo()"
         lineNo={frame.lineNo}
       />,
       {context: TestStubs.routerContext()}
@@ -55,6 +56,7 @@ describe('StacktraceLink', function () {
         event={event}
         projects={[project]}
         organization={org}
+        line="foo()"
         lineNo={frame.lineNo}
       />,
       {context: TestStubs.routerContext()}
@@ -79,6 +81,7 @@ describe('StacktraceLink', function () {
         event={event}
         projects={[project]}
         organization={org}
+        line="foo()"
         lineNo={frame.lineNo}
       />,
       {context: TestStubs.routerContext()}
@@ -88,5 +91,29 @@ describe('StacktraceLink', function () {
         name: 'Fix code mapping to see suspect commits and more',
       })
     ).toBeInTheDocument();
+  });
+
+  it('should hide stacktrace link error state on minified javascript frames', function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink
+        frame={frame}
+        event={{...event, platform: 'javascript'}}
+        projects={[project]}
+        organization={org}
+        line="{snip} somethingInsane=e.IsNotFound {snip}"
+        lineNo={frame.lineNo}
+      />,
+      {context: TestStubs.routerContext()}
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });
