@@ -50,7 +50,7 @@ function List({
   onMerge,
   v2,
 }: Props) {
-  const [showAllItems, setShowAllItems] = useState<boolean>(false);
+  const [showAllItems, setShowAllItems] = useState(false);
 
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
