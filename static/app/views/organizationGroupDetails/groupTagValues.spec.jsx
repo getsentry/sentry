@@ -3,11 +3,25 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues';
 
-describe('GroupTagValues', () => {
-  const {routerContext, router, project} = initializeOrg({});
-  const group = TestStubs.Group();
-  const tags = TestStubs.Tags();
+const group = TestStubs.Group();
+const tags = TestStubs.Tags();
 
+function init(tagKey) {
+  return initializeOrg({
+    organization: {},
+    project: undefined,
+    projects: undefined,
+    router: {
+      location: {
+        query: {},
+        pathname: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+      },
+      params: {orgId: 'org-slug', groupId: group.id, tagKey},
+    },
+  });
+}
+
+describe('GroupTagValues', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/',
@@ -20,20 +34,15 @@ describe('GroupTagValues', () => {
   });
 
   it('navigates to issue details events tab with correct query params', () => {
+    const {routerContext, router, project} = init('user');
+
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    render(
-      <GroupTagValues
-        group={group}
-        project={project}
-        environments={[]}
-        location={{query: {}}}
-        params={{orgId: 'org-slug', groupId: group.id, tagKey: 'user'}}
-      />,
-      {context: routerContext}
-    );
+    render(<GroupTagValues environments={[]} group={group} project={project} />, {
+      context: routerContext,
+    });
 
     userEvent.click(screen.getByLabelText('Show more'));
     userEvent.click(screen.getByText('Search All Issues with Tag Value'));
@@ -45,22 +54,14 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if no tag values are returned because of environment selection', () => {
+    const {routerContext, project} = init('user');
+
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: [],
     });
     const {container} = render(
-      <GroupTagValues
-        group={group}
-        project={project}
-        location={{query: {}}}
-        params={{
-          orgId: 'org-slug',
-          groupId: group.id,
-          tagKey: 'user',
-        }}
-        environments={['staging']}
-      />,
+      <GroupTagValues environments={['staging']} group={group} project={project} />,
       {context: routerContext}
     );
 
