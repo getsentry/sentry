@@ -7,6 +7,7 @@ from concurrent.futures import Future
 from datetime import datetime
 from typing import Any, Deque, Dict, Mapping, NamedTuple, Optional, Sequence, TypedDict, cast
 
+import sentry_sdk
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.backends.kafka.configuration import (
@@ -247,11 +248,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         metric_id = str(bucket_payload["metric_id"])
 
         for mapping in bucket_payload.get("mapping_meta", {}).values():
-            for id, name in mapping.items():
-                if id == metric_id:
-                    return name
+            metric_name = mapping.get(metric_id)
+            if metric_name is not None:
+                return metric_name
 
-        return None
+        sentry_sdk.set_context("Metrics bucket", {"payload": bucket_payload})
+        raise ValueError("Metric ID does not exist in the bucket's mapping.")
 
     def _produce(
         self, cluster_name: str, topic_name: str, payload: str
