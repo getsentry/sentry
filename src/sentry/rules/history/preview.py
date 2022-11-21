@@ -236,7 +236,8 @@ def get_top_groups(
             kwargs["aggregations"].append(("arrayJoin", ["group_ids"], "group_id"))
         groups.extend(raw_query(**kwargs).get("data", []))
 
-    sorted_groups = sorted(groups, key=lambda x: x["groupCount"], reverse=True)
+    k = lambda x: x["groupCount"]
+    sorted_groups = sorted(groups, key=k, reverse=True)
 
     top_groups = {group["group_id"] for group in sorted_groups[:FREQUENCY_CONDITION_GROUP_LIMIT]}
     top_activity = {
