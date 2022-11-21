@@ -41,6 +41,7 @@ Sentry is a developer-first error tracking and performance monitoring platform t
   - [Elixir](https://github.com/getsentry/sentry-elixir)
   - [Unity](https://github.com/getsentry/sentry-unity)
   - [Laravel](https://github.com/getsentry/sentry-laravel)
+  - [Symfony](https://github.com/getsentry/sentry-symfony)
   - [Electron](https://github.com/getsentry/sentry-electron/)
 
 # Resources
