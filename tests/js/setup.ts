@@ -91,10 +91,6 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
-jest.mock('react-lazyload', function reactLazyLoadMockFactory() {
-  const LazyLoadMock = ({children}) => children;
-  return LazyLoadMock;
-});
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
