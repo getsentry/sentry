@@ -24,6 +24,7 @@ import {
 } from './utils';
 
 export type SpanSiblingGroupBarProps = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
@@ -34,6 +35,7 @@ export type SpanSiblingGroupBarProps = {
   isLastSibling: boolean;
   occurrence: number;
   onWheel: (deltaX: number) => void;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -53,6 +55,8 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     occurrence,
     toggleSiblingSpanGroup,
     onWheel,
+    addContentSpanBarRef,
+    removeContentSpanBarRef,
     generateContentSpanBarRef,
     isEmbeddedSpanTree,
     getScrollLeftValue,
@@ -158,6 +162,8 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       renderSpanRectangles={renderSpanRectangles}
       onWheel={onWheel}
       generateContentSpanBarRef={generateContentSpanBarRef}
+      addContentSpanBarRef={addContentSpanBarRef}
+      removeContentSpanBarRef={removeContentSpanBarRef}
       getScrollLeftValue={getScrollLeftValue}
       didAnchoredSpanMount={didAnchoredSpanMount}
     />

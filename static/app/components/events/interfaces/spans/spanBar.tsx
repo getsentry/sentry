@@ -105,6 +105,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 export const MARGIN_LEFT = 0;
 
 export type SpanBarProps = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
@@ -123,6 +124,7 @@ export type SpanBarProps = {
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
   organization: Organization;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
@@ -172,6 +174,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
     // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
     if (this.spanContentRef) {
+      this.props.addContentSpanBarRef(this.spanContentRef);
       const left = -this.props.getScrollLeftValue();
       this.spanContentRef.style.transform = `translateX(${left}px)`;
       this.spanContentRef.style.transformOrigin = 'left';
@@ -213,6 +216,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     markSpanOutOfView(span.span_id);
+    this.props.removeContentSpanBarRef(this.spanContentRef);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
@@ -518,13 +522,15 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(errors: TraceError[] | null) {
-    const {generateContentSpanBarRef, spanBarType} = this.props;
     const {
       span,
+      spanBarType,
       treeDepth,
       groupOccurrence,
       toggleSpanGroup,
       toggleSiblingSpanGroup,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
       groupType,
     } = this.props;
 
@@ -575,7 +581,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       <RowTitleContainer
         data-debug-id="SpanBarTitleContainer"
         ref={ref => {
-          generateContentSpanBarRef()(ref);
+          if (!ref) {
+            removeContentSpanBarRef(this.spanContentRef);
+            return;
+          }
+
+          addContentSpanBarRef(ref);
           this.spanContentRef = ref;
         }}
       >

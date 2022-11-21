@@ -14,6 +14,7 @@ import SpanBar from './spanBar';
 import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   markSpanInView: (spanId: string, treeDepth: number) => void;
@@ -21,6 +22,7 @@ export type ScrollbarManagerChildrenProps = {
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   storeSpanBar: (spanBar: SpanBar) => void;
   updateScrollState: () => void;
@@ -28,6 +30,8 @@ export type ScrollbarManagerChildrenProps = {
 };
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
+  addContentSpanBarRef: () => {},
+  removeContentSpanBarRef: () => {},
   generateContentSpanBarRef: () => () => undefined,
   virtualScrollbarRef: createRef<HTMLDivElement>(),
   scrollBarAreaRef: createRef<HTMLDivElement>(),
@@ -274,6 +278,18 @@ export class Provider extends Component<Props, State> {
     virtualScrollbarDOM.style.removeProperty('transform');
   };
 
+  addContentSpanBarRef = (instance: HTMLDivElement | null) => {
+    if (instance) {
+      this.contentSpanBar.add(instance);
+    }
+  };
+
+  removeContentSpanBarRef = (instance: HTMLDivElement | null) => {
+    if (instance) {
+      this.contentSpanBar.delete(instance);
+    }
+  };
+
   generateContentSpanBarRef = () => {
     let previousInstance: HTMLDivElement | null = null;
 
@@ -465,10 +481,12 @@ export class Provider extends Component<Props, State> {
     // Update scroll positions of all the span bars
 
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
-      const maxScrollDistance =
-        spanBarDOM.getBoundingClientRect().width - interactiveLayerRect.width;
+      const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
 
-      const left = -lerp(0, maxScrollDistance, virtualScrollPercentage);
+      const maxScrollLeft =
+        interactiveLayerRefDOM.scrollWidth - interactiveLayerRefDOM.clientWidth;
+
+      const left = -lerp(0, maxScrollLeft, virtualScrollPercentage);
 
       spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
       spanBarDOM.style.transformOrigin = 'left';
@@ -574,6 +592,8 @@ export class Provider extends Component<Props, State> {
 
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
+      addContentSpanBarRef: this.addContentSpanBarRef,
+      removeContentSpanBarRef: this.removeContentSpanBarRef,
       generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
       onScroll: this.onScroll,

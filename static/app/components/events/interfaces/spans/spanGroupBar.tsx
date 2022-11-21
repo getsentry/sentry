@@ -1,4 +1,11 @@
-import {Fragment, LegacyRef, useCallback, useEffect, useRef} from 'react';
+import {
+  Fragment,
+  LegacyRef,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 
 import Count from 'sentry/components/count';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
@@ -41,12 +48,14 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   renderGroupSpansTitle: () => React.ReactNode;
   renderSpanRectangles: () => React.ReactNode;
   renderSpanTreeConnector: () => React.ReactNode;
@@ -144,10 +153,12 @@ function renderMeasurements(
 
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
+  const spanContentRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
 
   const {
     onWheel,
-    generateContentSpanBarRef,
+    addContentSpanBarRef,
+    removeContentSpanBarRef,
     getScrollLeftValue,
     didAnchoredSpanMount,
     spanGrouping,
@@ -156,17 +167,21 @@ export function SpanGroupBar(props: Props) {
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
   // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
-
   const setTransformCallback = useCallback(
-    ref => {
-      generateContentSpanBarRef()(ref);
+    (ref: HTMLDivElement | null) => {
       if (ref) {
+        spanContentRef.current = ref;
+        addContentSpanBarRef(ref);
         const left = -getScrollLeftValue();
         ref.style.transform = `translateX(${left}px)`;
         ref.style.transformOrigin = 'left';
+        return;
       }
+
+      // If ref is null, this means the component is about to unmount
+      removeContentSpanBarRef(spanContentRef.current);
     },
-    [generateContentSpanBarRef, getScrollLeftValue]
+    [getScrollLeftValue, addContentSpanBarRef, removeContentSpanBarRef]
   );
 
   useEffect(() => {
