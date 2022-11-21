@@ -11,14 +11,15 @@ import Count from 'sentry/components/count';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
-import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
@@ -45,7 +46,6 @@ type Props = {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  replaysCount: number | undefined;
   event?: Event;
 };
 
@@ -80,11 +80,16 @@ function GroupHeader({
   group,
   groupReprocessingStatus,
   organization,
-  replaysCount,
   event,
   project,
 }: Props) {
   const location = useLocation();
+
+  const replaysCount = useReplaysCount({
+    groupIds: group.id,
+    organization,
+    project,
+  })[group.id];
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(
@@ -243,8 +248,8 @@ function GroupHeader({
           hidden={!hasSessionReplay}
           to={`${baseUrl}replays/${location.search}`}
         >
-          {t('Replays')}{' '}
-          {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
+          {t('Replays')}
+          <ReplayCountBadge count={replaysCount} />
           <ReplaysFeatureBadge noTooltip />
         </Item>
       </StyledTabList>
@@ -377,23 +382,7 @@ function GroupHeader({
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}
               {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage
-                message={message}
-                annotations={
-                  group.logger && (
-                    <EventAnnotation>
-                      <Link
-                        to={{
-                          pathname: `/organizations/${organization.slug}/issues/`,
-                          query: {query: 'logger:' + group.logger},
-                        }}
-                      >
-                        {group.logger}
-                      </Link>
-                    </EventAnnotation>
-                  )
-                }
-              />
+              <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
           <StatsWrapper numItems={hasIssueDetailsOwners ? '2' : '3'}>

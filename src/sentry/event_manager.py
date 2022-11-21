@@ -895,7 +895,15 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                         "event_manager.dynamic_sampling_observe_latest_release"
                     ) as metrics_tags:
                         try:
-                            release_observed_in_last_24h = observe_release(project_id, release.id)
+                            environment = data.get("environment", None)
+                            # We handle the case in which the users sets the empty string as environment, for us that
+                            # is equal to having no environment at all.
+                            if environment == "":
+                                environment = None
+
+                            release_observed_in_last_24h = observe_release(
+                                project_id, release.id, environment
+                            )
                             if not release_observed_in_last_24h:
                                 span.set_tag(
                                     "dynamic_sampling.observe_release_status",
@@ -904,7 +912,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                                 metrics_tags[
                                     "dynamic_sampling.observe_release_status"
                                 ] = f"New release observed {release.id}"
-                                add_boosted_release(project_id, release.id)
+                                add_boosted_release(project_id, release.id, environment)
                                 schedule_invalidate_project_config(
                                     project_id=project_id, trigger="dynamic_sampling:boost_release"
                                 )
@@ -2214,6 +2222,13 @@ def _save_grouphash_and_group(
     return group, created
 
 
+def _message_from_metadata(meta: Mapping[str, str]) -> str:
+    title = meta.get("title", "")
+    location = meta.get("location", "")
+    seperator = ": " if title and location else ""
+    return f"{title}{seperator}{location}"
+
+
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
 
@@ -2309,8 +2324,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
                         )
-                        if group_kwargs["data"]["metadata"].get("title"):
-                            group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
+
+                        if group_kwargs["data"]["metadata"]:
+                            group_kwargs["message"] = _message_from_metadata(
+                                group_kwargs["data"]["metadata"]
+                            )
 
                         group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
@@ -2355,7 +2373,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         group_kwargs["data"]["metadata"], problem
                     )
                     if group_kwargs["data"]["metadata"].get("title"):
-                        group_kwargs["message"] = group_kwargs["data"]["metadata"].get("title")
+                        group_kwargs["message"] = _message_from_metadata(
+                            group_kwargs["data"]["metadata"]
+                        )
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=group_kwargs, release=job["release"]

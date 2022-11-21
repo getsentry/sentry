@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
@@ -7,6 +6,7 @@ import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -95,13 +95,13 @@ const PreviewTable = ({
   };
 
   return (
-    <Fragment>
+    <IssuesReplayCountProvider groupIds={previewGroups || []}>
       <Panel>
         <GroupListHeader withChart={false} />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}
-    </Fragment>
+    </IssuesReplayCountProvider>
   );
 };
 

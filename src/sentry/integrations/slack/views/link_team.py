@@ -59,7 +59,7 @@ class SelectTeamForm(forms.Form):  # type: ignore
         self.fields["team"].widget.choices = self.fields["team"].choices
 
 
-class SlackLinkTeamView(BaseView):  # type: ignore
+class SlackLinkTeamView(BaseView):
     @transaction_start("SlackLinkTeamView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> HttpResponse:

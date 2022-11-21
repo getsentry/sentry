@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
-import {FormSize} from 'sentry/utils/theme';
+import {FormSize, Theme} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
@@ -77,6 +79,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <StyledInput
+        ref={ref}
+        leadingWidth={leadingWidth}
+        trailingWidth={trailingWidth}
+        size={size}
+        disabled={disabled}
+        {...props}
+      />
+    );
+  }
+);
+
+export {TextAreaProps};
+export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
+  ({size, disabled, ...props}, ref) => {
+    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+
+    useLayoutEffect(() => {
+      setInputProps?.({size, disabled});
+    }, [size, disabled, setInputProps]);
+
+    return (
+      <StyledTextArea
         ref={ref}
         leadingWidth={leadingWidth}
         trailingWidth={trailingWidth}
@@ -183,28 +207,41 @@ const InputItemsWrap = styled('div')`
   transform: translateY(-50%);
 `;
 
-const StyledInput = styled(_Input)<{
+interface InputStyleProps {
   leadingWidth?: number;
   size?: FormSize;
   trailingWidth?: number;
-}>`
-  ${p =>
-    p.leadingWidth &&
-    `
-      padding-left: calc(
-        ${p.theme.formPadding[p.size ?? 'md'].paddingLeft}px * 1.5
-        + ${p.leadingWidth}px
-      );
-    `}
+}
 
-  ${p =>
-    p.trailingWidth &&
-    `
-      padding-right: calc(
-        ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.5
-        + ${p.trailingWidth}px
-      );
-    `}
+const getInputStyles = ({
+  leadingWidth,
+  trailingWidth,
+  size,
+  theme,
+}: InputStyleProps & {theme: Theme}) => css`
+  ${leadingWidth &&
+  `
+    padding-left: calc(
+      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
+      + ${leadingWidth}px
+    );
+  `}
+
+  ${trailingWidth &&
+  `
+    padding-right: calc(
+      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
+      + ${trailingWidth}px
+    );
+  `}
+`;
+
+const StyledInput = styled(_Input)<InputStyleProps>`
+  ${getInputStyles}
+`;
+
+const StyledTextArea = styled(_TextArea)<InputStyleProps>`
+  ${getInputStyles}
 `;
 
 const InputLeadingItemsWrap = styled(InputItemsWrap)<{

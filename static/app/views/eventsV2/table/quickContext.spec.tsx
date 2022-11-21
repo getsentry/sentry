@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {
@@ -19,7 +20,8 @@ import {
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import {EventData} from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';
 
@@ -44,6 +46,14 @@ let mockedGroup = TestStubs.Group({
     name: 'ingest',
     type: 'team',
   },
+});
+
+const mockEventView = EventView.fromSavedQuery({
+  id: '',
+  name: 'test query',
+  version: 2,
+  fields: ['title', 'issue'],
+  projects: [1],
 });
 
 const mockedCommit: Commit = {
@@ -100,7 +110,8 @@ const queryClient = new QueryClient();
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
-  contextType: ContextType = ContextType.ISSUE
+  contextType: ContextType = ContextType.ISSUE,
+  eventView?: EventView
 ) => {
   const organization = TestStubs.Organization();
   render(
@@ -109,6 +120,7 @@ const renderQuickContextContent = (
         dataRow={dataRow}
         contextType={contextType}
         organization={organization}
+        eventView={eventView}
       >
         Text from Child
       </QuickContextHoverWrapper>
@@ -126,6 +138,9 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
+jest.mock('sentry/utils/useLocation');
+const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
+
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
     afterEach(() => {
@@ -133,11 +148,10 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('Renders child and trigger icon.', async () => {
+    it('Renders child', async () => {
       renderQuickContextContent();
 
       expect(await screen.findByText(/Text from Child/i)).toBeInTheDocument();
-      expect(screen.getByTestId('quick-context-hover-trigger')).toBeInTheDocument();
     });
 
     it('Renders quick context hover body', async () => {
@@ -158,7 +172,7 @@ describe('Quick Context', function () {
       });
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('quick-context-hover-body')).toBeInTheDocument();
     });
@@ -181,7 +195,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       // Error is expected, do not fail when calling console.error
       jest.spyOn(console, 'error').mockImplementation();
@@ -218,7 +232,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
       expect(screen.getByText(/Ignored/i)).toBeInTheDocument();
@@ -234,7 +248,7 @@ describe('Quick Context', function () {
       });
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
       expect(screen.getByText(/Resolved/i)).toBeInTheDocument();
@@ -251,7 +265,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
       expect(screen.getByText(/Unresolved/i)).toBeInTheDocument();
@@ -266,7 +280,7 @@ describe('Quick Context', function () {
       });
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Assigned To/i)).toBeInTheDocument();
       expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
@@ -289,7 +303,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(dataRowWithoutId as EventData);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       await waitFor(() => {
         expect(
@@ -330,7 +344,7 @@ describe('Quick Context', function () {
       });
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Suspect Commits/i)).toBeInTheDocument();
       expect(screen.getByText(/MB/i)).toBeInTheDocument();
@@ -346,6 +360,22 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
+    it('Renders release header with copy button', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+        body: mockedReleaseWithHealth,
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.RELEASE);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Release/i)).toBeInTheDocument();
+      expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
+      expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
+      expect(screen.getByTestId('version-hover-header-copy-icon')).toBeInTheDocument();
+    });
+
     it('Renders Release details for active release', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
@@ -354,7 +384,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
 
@@ -379,7 +409,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
 
@@ -398,7 +428,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Last Commit/i)).toBeInTheDocument();
       expect(screen.getByTestId('quick-context-commit-row')).toBeInTheDocument();
@@ -412,7 +442,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/New Issues/i)).toBeInTheDocument();
       expect(screen.getByText(/21/i)).toBeInTheDocument();
@@ -426,11 +456,11 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
       expect(screen.getByText(/commits by/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/2/i)).toHaveLength(2);
+      expect(screen.getAllByText(/2/i)).toHaveLength(3);
       expect(screen.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
@@ -445,11 +475,11 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
       expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/1/i)).toHaveLength(2);
+      expect(screen.getAllByText(/1/i)).toHaveLength(3);
       expect(screen.getByText(/other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
@@ -457,19 +487,136 @@ describe('Quick Context', function () {
   });
 
   describe('Quick Context Content: Event ID Column', function () {
-    it('Renders NO context message for events that are not errors', async () => {
+    it('Renders transaction duration context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
       });
-
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(
-        await screen.findByText(/There is no context available./i)
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'transaction.duration'],
+          }),
+        })
+      );
+    });
+
+    it('Renders transaction status context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+          contexts: {
+            trace: {
+              status: 'ok',
+            },
+          },
+          tags: [
+            {
+              key: 'http.status_code',
+              value: '200',
+            },
+          ],
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Status/i)).toBeInTheDocument();
+      expect(screen.getByText(/ok/i)).toBeInTheDocument();
+      expect(screen.getByText(/HTTP 200/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-http-status-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'tags[http.status_code]'],
+          }),
+        })
+      );
+    });
+
+    it('Adds columns for saved query', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: null,
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT, mockEventView);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      const addAsColumnButton = await screen.findByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'issue', 'transaction.duration'],
+          }),
+        })
+      );
     });
 
     it('Renders NO stack trace message for error events without stackTraces', async () => {
@@ -481,7 +628,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(
         await screen.findByText(/There is no stack trace available for this event./i)
@@ -548,7 +695,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
-      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+      userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
     });

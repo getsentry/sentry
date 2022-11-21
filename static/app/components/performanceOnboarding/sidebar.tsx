@@ -302,7 +302,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
@@ -331,7 +331,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -344,7 +344,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.successText};
 `;
 
 export default PerformanceOnboardingSidebar;

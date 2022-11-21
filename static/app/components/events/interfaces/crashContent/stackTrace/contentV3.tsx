@@ -241,8 +241,11 @@ function Content({
 export default Content;
 
 const Wrapper = styled(Panel)`
-  border-top-left-radius: 0;
-  position: relative;
+  && {
+    border-top-left-radius: 0;
+    position: relative;
+    border: 0;
+  }
 `;
 
 const Frames = styled('ul')<{isHoverPreviewed?: boolean}>`

@@ -43,6 +43,7 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import toArray from 'sentry/utils/toArray';
 import {
   FieldValueKind,
   TableColumn,
@@ -251,9 +252,9 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     return [];
   }
   const value = location.query.team;
-  return (Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)]).filter(
-    team => team === 'myteams' || !isNaN(team)
-  );
+  return toArray(value)
+    .map(decodeTeam)
+    .filter(team => team === 'myteams' || !isNaN(team));
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -262,7 +263,7 @@ const decodeProjects = (location: Location): number[] => {
   }
 
   const value = location.query.project;
-  return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
+  return toArray(value).map(i => parseInt(i, 10));
 };
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {

@@ -531,6 +531,8 @@ urlpatterns += [
     ),
     # Issues
     url(r"^issues/", react_page_view, name="issues"),
+    # Alerts
+    url(r"^alerts/", react_page_view, name="alerts"),
     # Performance
     url(r"^performance/", react_page_view, name="performance"),
     # Profiling
@@ -544,6 +546,8 @@ urlpatterns += [
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
     url(r"^join-request/", react_page_view, name="join-request"),
+    # Activity
+    url(r"^activity/", react_page_view, name="activity"),
     # Stats
     url(r"^stats/", react_page_view, name="stats"),
     # Replays
