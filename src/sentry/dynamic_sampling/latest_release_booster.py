@@ -108,11 +108,13 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
     boosted_releases = []
     expired_releases = []
     for boosted_release_cache_key, timestamp in old_boosted_releases.items():
-        if current_timestamp <= float(timestamp) + BOOSTED_RELEASE_TIMEOUT:
+        timestamp = float(timestamp)
+
+        if current_timestamp <= timestamp + BOOSTED_RELEASE_TIMEOUT:
             release_id, environment = extract_release_and_environment_from_cache_key(
                 boosted_release_cache_key
             )
-            boosted_releases.append((release_id, environment, float(timestamp)))
+            boosted_releases.append((release_id, environment, timestamp))
         else:
             expired_releases.append(boosted_release_cache_key)
 
