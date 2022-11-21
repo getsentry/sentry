@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, pending_silo_endpoint
-from sentry.utils.assets import get_asset_url
+from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.http import absolute_uri
 
 from .. import JIRA_KEY
@@ -23,7 +23,9 @@ class JiraDescriptorEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request: Request) -> Response:
-        sentry_logo = absolute_uri(get_asset_url("sentry", "images/logos/logo-sentry.svg"))
+        sentry_logo = absolute_uri(
+            get_frontend_app_asset_url("sentry", "entrypoints/logo-sentry.svg")
+        )
         return self.respond(
             {
                 "name": "Sentry",

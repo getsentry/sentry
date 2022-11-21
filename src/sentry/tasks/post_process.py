@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
 
-logger = logging.getLogger("sentry")
+logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
@@ -640,7 +640,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
             derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
-        logger.exception("Failed to set auto-assignment")
+        logger.exception("derive_code_mappings: Failed to process code mappings")
 
 
 def process_commits(job: PostProcessJob) -> None:

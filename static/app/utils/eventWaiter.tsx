@@ -13,7 +13,7 @@ const recordAnalyticsFirstEvent = ({
   organization,
   project,
 }: {
-  key: 'first_event_recieved' | 'first_transaction_recieved';
+  key: 'first_event_recieved' | 'first_transaction_recieved' | 'first_replay_recieved';
   organization: Organization;
   project: Project;
 }) =>
@@ -33,7 +33,7 @@ type FirstIssue = null | boolean | Group;
 export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-  eventType: 'error' | 'transaction';
+  eventType: 'error' | 'transaction' | 'replay' | 'profile';
   organization: Organization;
   project: Project;
   disabled?: boolean;
@@ -45,6 +45,21 @@ export interface EventWaiterProps {
 type EventWaiterState = {
   firstIssue: FirstIssue;
 };
+
+function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) {
+  switch (eventType) {
+    case 'error':
+      return resp.firstEvent;
+    case 'transaction':
+      return resp.firstTransactionEvent;
+    case 'replay':
+      return resp.hasReplays;
+    case 'profile':
+      return resp.hasProfiles;
+    default:
+      return null;
+  }
+}
 
 /**
  * This is a render prop component that can be used to wait for the first event
@@ -73,14 +88,14 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
-    let firstEvent = null;
+    let firstEvent: string | boolean | null = null;
     let firstIssue: Group | boolean | null = null;
 
     try {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      firstEvent = eventType === 'error' ? resp.firstEvent : resp.firstTransactionEvent;
+      firstEvent = getFirstEvent(eventType, resp);
     } catch (resp) {
       if (!resp) {
         return;
@@ -117,17 +132,22 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       // The event may have expired, default to true
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
-      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_event_recieved',
         organization,
         project,
       });
-    } else {
-      firstIssue = firstEvent;
-      // noinspection SpellCheckingInspection
+    } else if (eventType === 'transaction') {
+      firstIssue = Boolean(firstEvent);
       recordAnalyticsFirstEvent({
         key: 'first_transaction_recieved',
+        organization,
+        project,
+      });
+    } else if (eventType === 'replay') {
+      firstIssue = Boolean(firstEvent);
+      recordAnalyticsFirstEvent({
+        key: 'first_replay_recieved',
         organization,
         project,
       });

@@ -2,6 +2,7 @@ import {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
@@ -18,6 +19,7 @@ type GroupListBodyProps = {
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
+  isSavedSearchesOpen: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
   query: string;
@@ -30,6 +32,7 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
+  isSavedSearchesOpen: boolean;
   memberList: IndexedMembersByProject;
   query: string;
   sort: string;
@@ -46,6 +49,7 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
+  isSavedSearchesOpen,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -71,17 +75,17 @@ function GroupListBody({
   }
 
   return (
-    <GroupList
-      {...{
-        groupIds,
-        memberList,
-        query,
-        sort,
-        displayReprocessingLayout,
-        groupStatsPeriod,
-        source: 'group-list',
-      }}
-    />
+    <IssuesReplayCountProvider groupIds={groupIds}>
+      <GroupList
+        groupIds={groupIds}
+        memberList={memberList}
+        query={query}
+        sort={sort}
+        displayReprocessingLayout={displayReprocessingLayout}
+        groupStatsPeriod={groupStatsPeriod}
+        isSavedSearchesOpen={isSavedSearchesOpen}
+      />
+    </IssuesReplayCountProvider>
   );
 }
 
@@ -92,10 +96,15 @@ function GroupList({
   sort,
   displayReprocessingLayout,
   groupStatsPeriod,
+  isSavedSearchesOpen,
 }: GroupListProps) {
   const topIssue = groupIds[0];
   const showInboxTime = sort === IssueSortOptions.INBOX;
-  const canSelect = !useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const canSelect = !useMedia(
+    `(max-width: ${
+      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+    })`
+  );
 
   return (
     <PanelBody>
@@ -116,6 +125,7 @@ function GroupList({
             useFilteredStats
             showInboxTime={showInboxTime}
             canSelect={canSelect}
+            narrowGroups={isSavedSearchesOpen}
           />
         );
       })}

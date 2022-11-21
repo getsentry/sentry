@@ -182,7 +182,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_exists(self):
+    def test_org_global_search_conflict(self):
         global_search = SavedSearch.objects.create(
             type=SearchType.ISSUE.value,
             name="Some global search",
@@ -190,6 +190,8 @@ class CreateOrganizationSearchesTest(APITestCase):
             is_global=True,
             visibility=Visibility.ORGANIZATION,
         )
+
+        # Org searches may be created with same query as global searches
         self.login_as(user=self.manager)
         resp = self.get_response(
             self.organization.slug,
@@ -197,9 +199,10 @@ class CreateOrganizationSearchesTest(APITestCase):
             name="hello",
             query=global_search.query,
         )
-        assert resp.status_code == 400
-        assert "already exists" in resp.data["detail"]
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
+    def test_org_org_search_conflict(self):
         org_search = SavedSearch.objects.create(
             organization=self.organization,
             type=SearchType.ISSUE.value,
@@ -207,6 +210,7 @@ class CreateOrganizationSearchesTest(APITestCase):
             query="org search",
             visibility=Visibility.ORGANIZATION,
         )
+        self.login_as(user=self.manager)
         resp = self.get_response(
             self.organization.slug,
             type=SearchType.ISSUE.value,
@@ -216,6 +220,118 @@ class CreateOrganizationSearchesTest(APITestCase):
         )
         assert resp.status_code == 400
         assert "already exists" in resp.data["detail"]
+
+    def test_owner_global_search_conflict(self):
+        global_search = SavedSearch.objects.create(
+            type=SearchType.ISSUE.value,
+            name="Some global search",
+            query="is:unresolved",
+            is_global=True,
+            visibility=Visibility.ORGANIZATION,
+        )
+
+        # Owner searches may be created with same query as global searches
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query=global_search.query,
+            visibility=Visibility.OWNER,
+        )
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
+
+    def test_owner_org_search_conflict(self):
+        org_search = SavedSearch.objects.create(
+            organization=self.organization,
+            type=SearchType.ISSUE.value,
+            name="Some org search",
+            query="org search",
+            visibility=Visibility.ORGANIZATION,
+        )
+
+        # Owner searches may be created with same query as org searches
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query=org_search.query,
+            visibility=Visibility.OWNER,
+        )
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
+
+    def test_owner_owner_search_conflict(self):
+        user_search = SavedSearch.objects.create(
+            organization=self.organization,
+            type=SearchType.ISSUE.value,
+            name="Some user search",
+            query="user search",
+            visibility=Visibility.OWNER,
+            owner=self.member,
+        )
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query=user_search.query,
+            visibility=Visibility.OWNER,
+        )
+        assert resp.status_code == 400
+        assert "already exists" in resp.data["detail"]
+
+    def test_owner1_owner2_search_conflict(self):
+        # User 1 has a saved search in org
+        other_user_search = SavedSearch.objects.create(
+            organization=self.organization,
+            type=SearchType.ISSUE.value,
+            name="Some other user in org made this search",
+            query="user search",
+            visibility=Visibility.OWNER,
+            owner=self.create_user("otheruser@test.com"),
+        )
+
+        # User 2 creates a similar search in the same org
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query=other_user_search.query,
+            visibility=Visibility.OWNER,
+        )
+
+        # Should work and both searches should exist
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=other_user_search.id).exists()
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
+
+    def test_owner_pinned_search_conflict(self):
+        # Member has a pinned search
+        pinned_search = SavedSearch.objects.create(
+            organization=self.organization,
+            type=SearchType.ISSUE.value,
+            name="My Pinned Search",
+            query="user pinned search",
+            visibility=Visibility.OWNER_PINNED,
+            owner=self.member,
+        )
+
+        # Member creates a saved search with the same query
+        self.login_as(user=self.member)
+        resp = self.get_response(
+            self.organization.slug,
+            type=SearchType.ISSUE.value,
+            name="hello",
+            query=pinned_search.query,
+            visibility=Visibility.OWNER,
+        )
+
+        assert resp.status_code == 200
+        assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
     def test_empty(self):
         self.login_as(user=self.manager)

@@ -3,12 +3,12 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
@@ -30,6 +30,14 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const fields = useMemo(() => {
+    if (mobile.includes(props.project.platform as any)) {
+      return MOBILE_FIELDS;
+    }
+
+    return DEFAULT_FIELDS;
+  }, [props.project]);
+
   const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
     [props.location.query.cursor]
@@ -45,14 +53,14 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.functionsSort]
   );
 
-  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), FIELDS, {
+  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), fields, {
     key: 'timestamp',
     order: 'desc',
   });
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields: FIELDS,
+    fields,
     query: props.query,
     sort,
     limit: 5,
@@ -80,10 +88,25 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     });
   }, []);
 
+  const handleFilterChange = useCallback(
+    value => {
+      browserHistory.push({
+        ...props.location,
+        query: {...props.location.query, sort: value},
+      });
+    },
+    [props.location]
+  );
+
   return (
     <Layout.Main fullWidth>
       <TableHeader>
-        <SectionHeading>{t('Recent Profiles')}</SectionHeading>
+        <CompactSelect
+          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+          options={FILTER_OPTIONS}
+          onChange={opt => handleFilterChange(opt.value)}
+        />
         <StyledPagination
           pageLinks={
             profiles.status === 'success'
@@ -94,7 +117,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         />
       </TableHeader>
       <ProfileEventsTable
-        columns={FIELDS}
+        columns={fields}
         data={profiles.status === 'success' ? profiles.data[0] : null}
         error={profiles.status === 'error' ? t('Unable to load profiles') : null}
         isLoading={profiles.status === 'loading'}
@@ -137,16 +160,42 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 }
 
-const FIELDS = [
+const ALL_FIELDS = [
   'id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
+  'device.arch',
   'profile.duration',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
+type FieldType = typeof ALL_FIELDS[number];
+
+const MOBILE_FIELDS: FieldType[] = [...ALL_FIELDS];
+
+const DEFAULT_FIELDS: FieldType[] = [
+  'id',
+  'timestamp',
+  'release',
+  'device.model',
+  'profile.duration',
+];
+
+const FILTER_OPTIONS = [
+  {
+    label: t('Recent Profiles'),
+    value: '-timestamp',
+  },
+  {
+    label: t('Slowest Profiles'),
+    value: '-profile.duration',
+  },
+  {
+    label: t('Fastest Profiles'),
+    value: 'profile.duration',
+  },
+];
 
 const TableHeader = styled('div')`
   display: flex;

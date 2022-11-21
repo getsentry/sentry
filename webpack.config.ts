@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 import CompressionPlugin from 'compression-webpack-plugin';
+import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
@@ -383,6 +384,20 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
+
+    /**
+     * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
+     * the backend
+     */
+    new CopyPlugin({
+      patterns: [
+        {
+          from: `${staticPrefix}/images/logo-sentry.svg`,
+          to: 'entrypoints/logo-sentry.svg',
+          toType: 'file',
+        },
+      ],
+    }),
   ],
 
   resolve: {
@@ -590,7 +605,7 @@ if (IS_UI_DEV_ONLY) {
   };
 }
 
-if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   appConfig.output!.publicPath = '/_assets/';
 
   /**

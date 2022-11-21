@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
+import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
@@ -175,7 +175,7 @@ export function makeSaveSearchAction({
 }
 
 export const ActionButton = styled(Button)<{isActive?: boolean}>`
-  color: ${p => (p.isActive ? p.theme.blue300 : p.theme.gray300)};
+  color: ${p => (p.isActive ? p.theme.linkColor : p.theme.subText)};
   width: 18px;
   height: 18px;
   padding: 2px;

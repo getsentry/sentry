@@ -39,6 +39,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
+import toArray from 'sentry/utils/toArray';
 import {
   ContextType,
   QuickContextHoverWrapper,
@@ -73,7 +74,7 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
-  projectId?: string;
+  projectSlug?: string;
   unit?: string;
 };
 
@@ -288,7 +289,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   array: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      const value = toArray(data[field]);
       return <ArrayValue value={value} />;
     },
   },
@@ -342,7 +343,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   attachments: {
     sortField: null,
-    renderFunc: (data, {organization, projectId}) => {
+    renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment> = data.attachments;
 
       const items: MenuItemProps[] = attachments
@@ -352,7 +353,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
             ),
         }));
 
@@ -378,7 +379,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   minidump: {
     sortField: null,
-    renderFunc: (data, {organization, projectId}) => {
+    renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
@@ -394,7 +395,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectId}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
                     );
                   }
                 : undefined
@@ -597,10 +598,10 @@ const SPECIAL_FIELDS: SpecialFields = {
               contextType={ContextType.RELEASE}
               organization={organization}
             >
-              <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+              <Version version={data.release} truncate />
             </QuickContextHoverWrapper>
           ) : (
-            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+            <Version version={data.release} tooltipRawVersion truncate />
           )}
         </VersionContainer>
       ) : (

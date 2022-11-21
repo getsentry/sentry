@@ -296,9 +296,9 @@ const VariantTitle = styled('h5')`
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color="green300" {...p} />
+    <IconCheckmark size="sm" isCircled color="successText" {...p} />
   ) : (
-    <IconClose size="sm" isCircled color="red300" {...p} />
+    <IconClose size="sm" isCircled color="dangerText" {...p} />
   )
 )`
   margin-right: ${space(1)};

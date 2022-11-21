@@ -342,6 +342,10 @@ register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORI
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
+# Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
+# Set this value of the fraction of projects that you want to use it for.
+register("processing.sourcemapcache-processor", default=0.0)
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -460,9 +464,6 @@ register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
 
-# switch all metrics usage over to using strings for tag values
-register("sentry-metrics.performance.tags-values-are-strings", default=False)
-
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register("sentry-metrics.performance.index-tag-values", default=True)
@@ -538,3 +539,6 @@ register("dynamic-sampling:boost-latest-release", default=False)
 
 # Controls whether we should attempt to derive code mappings for projects during post processing.
 register("post_process.derive-code-mappings", default=True)
+# Allows adjusting the percentage of orgs we test under the dry run mode
+register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
+register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)

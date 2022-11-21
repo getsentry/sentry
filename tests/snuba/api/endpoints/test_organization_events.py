@@ -39,6 +39,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+        self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.eleven_mins_ago = before_now(minutes=11)
@@ -2533,8 +2534,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": iso_format(self.eleven_mins_ago),
-            "end": iso_format(before_now(minutes=9)),
+            "start": self.eleven_mins_ago_iso,
+            "end": iso_format(self.nine_mins_ago),
         }
         response = self.do_request(query)
 
@@ -5527,3 +5528,23 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert set(fields) == data_keys
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
+
+    def test_readable_device_name(self):
+        data = self.load_data(
+            timestamp=before_now(minutes=1),
+        )
+        data["tags"] = {"device": "iPhone14,3"}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["device"],
+            "query": "",
+            "project": [self.project.id],
+            "readable": True,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["device"] == "iPhone14,3"
+        assert data[0]["readable"] == "iPhone 13 Pro Max"

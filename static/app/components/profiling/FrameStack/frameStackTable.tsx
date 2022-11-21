@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -209,7 +210,16 @@ export function FrameStackTable({
         <FrameCallersTableHeader>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('self weight')}>
-              {t('Self Time ')}
+              <span>
+                {t('Self Time')}{' '}
+                <QuestionTooltip
+                  title={t(
+                    'Self time is the amount of time spent by this function excluding the time spent by other functions called within it.'
+                  )}
+                  size="sm"
+                  position="top"
+                />
+              </span>
               {sort === 'self weight' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
@@ -217,7 +227,16 @@ export function FrameStackTable({
           </FrameWeightCell>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('total weight')}>
-              {t('Total Time')}{' '}
+              <span>
+                {t('Total Time')}{' '}
+                <QuestionTooltip
+                  title={t(
+                    'Total time is the total amount of time spent by this function.'
+                  )}
+                  size="sm"
+                  position="top"
+                />
+              </span>
               {sort === 'total weight' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}

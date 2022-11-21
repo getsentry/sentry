@@ -32,7 +32,7 @@ def get_kafka_payload() -> KafkaPayload:
                     "skip_consume": False,
                 },
             ]
-        ),
+        ).encode(),
         headers=[],
     )
 

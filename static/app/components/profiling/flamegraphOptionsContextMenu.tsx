@@ -1,7 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 
-import {IconCopy} from 'sentry/icons';
+import {IconCopy, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {RequestState} from 'sentry/types';
+import {StacktraceLinkResult} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
@@ -12,6 +15,10 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import {
   ProfilingContextMenu,
@@ -39,11 +46,93 @@ interface FlameGraphOptionsContextMenuProps {
   isHighlightingAllOccurences: boolean;
   onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
+  profileGroup: ProfileGroup | null;
+}
+
+function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
+  if (platform === undefined) {
+    return false;
+  }
+
+  return platform === 'node' || platform === 'python';
 }
 
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
+  const api = useApi();
+  const {projects} = useProjects();
+  const organization = useOrganization();
+
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
+
+  const [githubLink, setGithubLinkState] = useState<RequestState<StacktraceLinkResult>>({
+    type: 'initial',
+  });
+
+  useEffect(() => {
+    if (!props.hoveredNode || !props.profileGroup) {
+      return setGithubLinkState({type: 'initial'});
+    }
+
+    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
+      return undefined;
+    }
+
+    const project = projects.find(
+      p => p.id === String(props.profileGroup?.metadata?.projectID)
+    );
+
+    if (!project || !props.hoveredNode) {
+      return undefined;
+    }
+
+    const metadata = props.profileGroup.metadata;
+    const commitId = metadata.release?.lastCommit?.id;
+    const platform = metadata.platform;
+
+    const frame = props.hoveredNode.frame;
+
+    setGithubLinkState({type: 'loading'});
+
+    api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/stacktrace-link/`, {
+        query: {
+          file: frame.file,
+          platform,
+          commitId,
+          ...(frame.path && {absPath: frame.path}),
+        },
+      })
+      .then(response => {
+        setGithubLinkState({type: 'resolved', data: response});
+      });
+
+    return () => {
+      api.clear();
+    };
+  }, [props.hoveredNode, api, projects, organization, props.profileGroup]);
+
+  // @TODO: this only works for github right now, other providers will not work
+  const onOpenInGithubClick = useCallback(() => {
+    if (githubLink.type !== 'resolved') {
+      return;
+    }
+
+    if (
+      !githubLink.data.sourceUrl ||
+      githubLink.data.config?.provider?.key !== 'github'
+    ) {
+      return;
+    }
+
+    // make a best effort to link to the exact line if we can
+    const url =
+      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
+        ? `${githubLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
+        : githubLink.data.sourceUrl;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [props.hoveredNode, githubLink]);
 
   return props.contextMenu.open ? (
     <Fragment>
@@ -70,15 +159,32 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
             </ProfilingContextMenuItemCheckbox>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
-                onClick: () => {
-                  props.onCopyFunctionNameClick();
-                  // This is a button, so close the context menu.
-                  props.contextMenu.setOpen(false);
-                },
+                onClick: props.onCopyFunctionNameClick,
               })}
               icon={<IconCopy size="xs" />}
             >
               {t('Copy function name')}
+            </ProfilingContextMenuItemButton>
+            <ProfilingContextMenuItemButton
+              disabled={
+                githubLink.type !== 'resolved' ||
+                !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
+              }
+              tooltip={
+                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? t('Open in GitHub is not yet supported for this platform')
+                  : githubLink.type === 'resolved' &&
+                    (!githubLink.data.sourceUrl ||
+                      githubLink.data.config?.provider?.key !== 'github')
+                  ? t('Could not find source code location in GitHub')
+                  : undefined
+              }
+              {...props.contextMenu.getMenuItemProps({
+                onClick: onOpenInGithubClick,
+              })}
+              icon={<IconGithub size="xs" />}
+            >
+              {t('Open in GitHub')}
             </ProfilingContextMenuItemButton>
           </ProfilingContextMenuGroup>
         ) : null}

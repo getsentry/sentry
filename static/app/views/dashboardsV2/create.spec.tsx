@@ -1,6 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -71,8 +75,6 @@ describe('Dashboards > Create', function () {
         body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
 
-      mountGlobalModal(initialData.routerContext);
-
       render(
         <CreateDashboard
           organization={initialData.organization}
@@ -83,6 +85,7 @@ describe('Dashboards > Create', function () {
         />,
         {context: initialData.routerContext}
       );
+      renderGlobalModal({context: initialData.routerContext});
 
       userEvent.click(await screen.findByTestId('widget-add'));
 

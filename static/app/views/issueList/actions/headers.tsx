@@ -12,6 +12,7 @@ type Props = {
   selection: PageFilters;
   statsPeriod: string;
   anySelected?: boolean;
+  isSavedSearchesOpen?: boolean;
 };
 
 function Headers({
@@ -19,6 +20,7 @@ function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
+  isSavedSearchesOpen,
 }: Props) {
   return (
     <Fragment>
@@ -30,7 +32,7 @@ function Headers({
         </Fragment>
       ) : (
         <Fragment>
-          <GraphHeaderWrapper className="hidden-xs hidden-sm hidden-md">
+          <GraphHeaderWrapper isSavedSearchesOpen={isSavedSearchesOpen}>
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               {selection.datetime.period !== '24h' && (
@@ -51,7 +53,7 @@ function Headers({
           </GraphHeaderWrapper>
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
-          <AssigneesLabel className="hidden-xs hidden-sm">
+          <AssigneesLabel isSavedSearchesOpen={isSavedSearchesOpen}>
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
         </Fragment>
@@ -62,11 +64,16 @@ function Headers({
 
 export default Headers;
 
-const GraphHeaderWrapper = styled('div')`
+const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 160px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
   animation: 0.25s FadeIn linear forwards;
+
+  @media (max-width: ${p =>
+      p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    display: none;
+  }
 
   @keyframes FadeIn {
     0% {
@@ -111,12 +118,17 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
-const AssigneesLabel = styled('div')`
+const AssigneesLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+
+  @media (max-width: ${p =>
+      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
 
 // Reprocessing
