@@ -13,7 +13,8 @@ from django.conf import settings
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
 
-MessageBatch = List[Message[Union[KafkaPayload, RoutingPayload]]]
+MessageBatch = List[Message[KafkaPayload]]
+OutputMessageBatch = List[Message[Union[RoutingPayload, KafkaPayload]]]
 
 logger = logging.getLogger(__name__)
 

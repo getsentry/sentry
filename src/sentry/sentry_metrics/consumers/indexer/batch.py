@@ -11,7 +11,6 @@ from typing import (
     Sequence,
     Set,
     TypedDict,
-    Union,
     cast,
 )
 
@@ -22,7 +21,7 @@ from arroyo.types import Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import MessageBatch, OutputMessageBatch
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
@@ -80,12 +79,12 @@ class IndexerBatch:
         use_case_id: UseCaseKey,
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
-        should_produce_routing_payload: bool = False,
+        is_output_sliced: bool,
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
-        self.should_produce_routing_payload = should_produce_routing_payload
+        self.is_output_sliced = is_output_sliced
 
         self._extract_messages()
 
@@ -209,8 +208,8 @@ class IndexerBatch:
         self,
         mapping: Mapping[int, Mapping[str, Optional[int]]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
-    ) -> List[Message[Union[KafkaPayload, RoutingPayload]]]:
-        new_messages: List[Message[Union[KafkaPayload, RoutingPayload]]] = []
+    ) -> OutputMessageBatch:
+        new_messages: OutputMessageBatch = []
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
@@ -353,16 +352,7 @@ class IndexerBatch:
                     ("metric_type", new_payload_value["type"]),
                 ],
             )
-            if not self.should_produce_routing_payload:
-                new_messages.append(
-                    Message(
-                        partition=message.partition,
-                        offset=message.offset,
-                        payload=kafka_payload,
-                        timestamp=message.timestamp,
-                    )
-                )
-            else:
+            if self.is_output_sliced:
                 routing_payload = RoutingPayload(
                     routing_header={"org_id": org_id},
                     routing_message=kafka_payload,
@@ -372,6 +362,15 @@ class IndexerBatch:
                         partition=message.partition,
                         offset=message.offset,
                         payload=routing_payload,
+                        timestamp=message.timestamp,
+                    )
+                )
+            else:
+                new_messages.append(
+                    Message(
+                        partition=message.partition,
+                        offset=message.offset,
+                        payload=kafka_payload,
                         timestamp=message.timestamp,
                     )
                 )

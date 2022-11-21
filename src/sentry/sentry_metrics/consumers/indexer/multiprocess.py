@@ -11,14 +11,22 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.ingest.slicing import Sliceable
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
+from sentry.sentry_metrics.consumers.indexer.routing_producer import (
+    RoutingPayload,
+    RoutingProducerStep,
+)
+from sentry.sentry_metrics.consumers.indexer.slicing_router import (
+    SlicingConfigurationException,
+    SlicingRouter,
+)
 from sentry.utils import kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -46,17 +54,17 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        producer = get_metrics_producer_strategy(
+            config=self.__config,
+            commit=commit,
+            commit_max_batch_size=self.__commit_max_batch_size,
+            commit_max_batch_time_ms=self.__commit_max_batch_time,
+        )
         transform_step = TransformStep(
-            next_step=SimpleProduceStep(
-                commit_function=commit,
-                commit_max_batch_size=self.__commit_max_batch_size,
-                # convert to seconds
-                commit_max_batch_time=self.__commit_max_batch_time / 1000,
-                output_topic=self.__config.output_topic,
-            ),
+            next_step=producer,
             config=self.__config,
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
@@ -230,6 +238,34 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__callbacks = 0
             self.__produced_message_offsets = {}
             self.__started = time.time()
+
+
+def get_metrics_producer_strategy(
+    config: MetricsIngestConfiguration,
+    commit: Commit,
+    commit_max_batch_size: int,
+    commit_max_batch_time_ms: float,
+) -> Any:
+    if config.is_output_sliced:
+        if config.use_case_id == UseCaseKey.PERFORMANCE:
+            sliceable = Sliceable("generic_metrics")
+        else:
+            raise SlicingConfigurationException(
+                f"Slicing not supported for " f"{config.use_case_id}"
+            )
+        router = SlicingRouter(sliceable=sliceable)
+        return RoutingProducerStep(
+            commit_function=commit,
+            message_router=router,
+        )
+    else:
+        return SimpleProduceStep(
+            commit_function=commit,
+            commit_max_batch_size=commit_max_batch_size,
+            # convert to seconds
+            commit_max_batch_time=commit_max_batch_time_ms / 1000,
+            output_topic=config.output_topic,
+        )
 
 
 def get_streaming_metrics_consumer(

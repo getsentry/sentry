@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Callable, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
@@ -11,15 +11,19 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
     initialize_sentry_and_global_consumer_state,
 )
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
-from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    OutputMessageBatch,
+    get_config,
+)
+from sentry.sentry_metrics.consumers.indexer.multiprocess import get_metrics_producer_strategy
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -27,7 +31,7 @@ from sentry.utils.batching_kafka_consumer import create_topics
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStep[MessageBatch]):
+class Unbatcher(ProcessingStep[OutputMessageBatch]):
     def __init__(
         self,
         next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
@@ -38,7 +42,7 @@ class Unbatcher(ProcessingStep[MessageBatch]):
     def poll(self) -> None:
         self.__next_step.poll()
 
-    def submit(self, message: Message[MessageBatch]) -> None:
+    def submit(self, message: Message[OutputMessageBatch]) -> None:
         assert not self.__closed
 
         for transformed_message in message.payload:
@@ -113,20 +117,18 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        producer = get_metrics_producer_strategy(
+            config=self.__config,
+            commit=commit,
+            commit_max_batch_size=self.__commit_max_batch_size,
+            commit_max_batch_time_ms=self.__commit_max_batch_time,
+        )
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
-            Unbatcher(
-                SimpleProduceStep(
-                    commit_function=commit,
-                    commit_max_batch_size=self.__commit_max_batch_size,
-                    # This is in seconds
-                    commit_max_batch_time=self.__commit_max_batch_time / 1000,
-                    output_topic=self.__config.output_topic,
-                ),
-            ),
+            Unbatcher(next_step=producer),
             self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds

@@ -183,7 +183,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
             (set_payload, []),
         ]
     )
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values, False)
 
     assert batch.extract_strings() == expected
 
@@ -198,7 +198,7 @@ def test_all_resolved(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -339,7 +339,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -456,7 +456,7 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -552,7 +552,7 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -630,7 +630,7 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -747,7 +747,7 @@ def test_one_org_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -861,7 +861,7 @@ def test_cardinality_limiter(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.

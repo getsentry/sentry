@@ -6,7 +6,7 @@ from arroyo.types import Message
 from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import MessageBatch, OutputMessageBatch
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
@@ -45,7 +45,7 @@ class MessageProcessor:
     def process_messages(
         self,
         outer_message: Message[MessageBatch],
-    ) -> MessageBatch:
+    ) -> OutputMessageBatch:
         """
         We have an outer_message Message() whose payload is a batch of Message() objects.
 
@@ -69,8 +69,11 @@ class MessageProcessor:
             if self._config.index_tag_values_option_name
             else True
         )
+        is_output_sliced = self._config.is_output_sliced or False
 
-        batch = IndexerBatch(self._config.use_case_id, outer_message, should_index_tag_values)
+        batch = IndexerBatch(
+            self._config.use_case_id, outer_message, should_index_tag_values, is_output_sliced
+        )
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
