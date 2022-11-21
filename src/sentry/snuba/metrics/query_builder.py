@@ -56,13 +56,14 @@ from sentry.snuba.metrics.naming_layer.mapping import (
 )
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
+    MetricActionByField,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
-    MetricsQuery,
 )
-from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics.query import Tag
+from sentry.snuba.metrics.query import MetricOrderByField
+from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
+from sentry.snuba.metrics.query import MetricsQuery, Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
@@ -339,7 +340,7 @@ class QueryDefinition:
                 direction = Direction.DESC
 
             field = parse_field(orderby)
-            orderby_list.append(MetricsOrderBy(field, direction))
+            orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
 
@@ -518,54 +519,102 @@ class SnubaQueryBuilder:
         self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
 
     @staticmethod
-    def generate_snql_for_groupby_field(
-        metric_groupby_obj: MetricGroupByField,
+    def generate_snql_for_action_by_fields(
+        metric_action_by_field: MetricActionByField,
         use_case_id: UseCaseKey,
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
-    ) -> Union[Column, AliasedExpression, Function]:
-        if isinstance(metric_groupby_obj.field, str):
-            if metric_groupby_obj.field == "transaction":
+    ) -> Union[List[OrderBy], Column, AliasedExpression, Function]:
+        """
+        Generates the necessary snql for any action by field which in our case will be group by and order by. This
+        function has been designed to share as much logic as possible, however, it should be refactored in case
+        the snql generation starts to diverge significantly.
+        """
+
+        is_group_by = isinstance(metric_action_by_field, MetricGroupByField)
+        is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
+        if not is_group_by and not is_order_by:
+            raise InvalidParams("The metric action must either be an order by or group by.")
+
+        if isinstance(metric_action_by_field.field, str):
+            # This transformation is currently supported only for group by because OrderBy doesn't support the Function
+            # type.
+            if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_groupby_obj.alias
+                    use_case_id, org_id, metric_action_by_field.alias
                 )
 
-            # Handles the case when we are trying to group by `project` for example, but we want
-            # to translate it to `project_id` as that is what the metrics dataset understands
-            if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
-                column_name = FIELD_ALIAS_MAPPINGS[metric_groupby_obj.field]
-            elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
-                column_name = metric_groupby_obj.field
+            # Handles the case when we are trying to group or order by `project` for example, but we want
+            # to translate it to `project_id` as that is what the metrics dataset understands.
+            if metric_action_by_field.field in FIELD_ALIAS_MAPPINGS:
+                column_name = FIELD_ALIAS_MAPPINGS[metric_action_by_field.field]
+            elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
+                column_name = metric_action_by_field.field
             else:
-                # TODO: if we pass a non tag key this will return a wrong column.
-                assert isinstance(metric_groupby_obj.field, Tag)
-                column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
+                # The support for tags in the order by is disabled for now because there is no need to have it. If the
+                # need arise, we will implement it.
+                if is_group_by:
+                    assert isinstance(metric_action_by_field.field, Tag)
+                    column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported string field: {metric_action_by_field.field}"
+                    )
 
-            return (
+            exp = (
                 AliasedExpression(
                     exp=Column(name=column_name),
-                    alias=metric_groupby_obj.alias,
+                    alias=metric_action_by_field.alias,
                 )
-                if not is_column
+                if is_group_by and not is_column
                 else Column(name=column_name)
             )
 
-        elif isinstance(metric_groupby_obj.field, MetricField):
+            if is_order_by:
+                # We return a list in order to use the "extend" method and reduce the number of changes across
+                # the codebase.
+                exp = [OrderBy(exp=exp, direction=metric_action_by_field.direction)]
+
+            return exp
+        elif isinstance(metric_action_by_field.field, MetricField):
             try:
                 metric_expression = metric_object_factory(
-                    metric_groupby_obj.field.op, metric_groupby_obj.field.metric_mri
+                    metric_action_by_field.field.op, metric_action_by_field.field.metric_mri
                 )
-                return metric_expression.generate_groupby_statements(
-                    use_case_id=use_case_id,
-                    alias=metric_groupby_obj.field.alias,
-                    params=metric_groupby_obj.field.params,
-                    projects=projects,
-                )[0]
+
+                if is_group_by:
+                    return metric_expression.generate_groupby_statements(
+                        use_case_id=use_case_id,
+                        alias=metric_action_by_field.field.alias,
+                        params=metric_action_by_field.field.params,
+                        projects=projects,
+                    )[0]
+                elif is_order_by:
+                    return metric_expression.generate_orderby_clause(
+                        use_case_id=use_case_id,
+                        alias=metric_action_by_field.field.alias,
+                        params=metric_action_by_field.field.params,
+                        projects=projects,
+                        direction=metric_action_by_field.direction,
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported metric field: {metric_action_by_field.field}"
+                    )
+
             except IndexError:
-                raise InvalidParams(f"Cannot resolve {metric_groupby_obj.field} into SnQL")
+                raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
-            raise NotImplementedError(f"Unsupported groupby field: {metric_groupby_obj.field}")
+            action_by_name = None
+            if is_group_by:
+                action_by_name = "group by"
+            elif is_order_by:
+                action_by_name = "order by"
+
+            raise NotImplementedError(
+                f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
+            )
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
@@ -619,8 +668,8 @@ class SnubaQueryBuilder:
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
             groupby_cols.append(
-                self.generate_snql_for_groupby_field(
-                    metric_groupby_obj=metric_groupby_obj,
+                self.generate_snql_for_action_by_fields(
+                    metric_action_by_field=metric_groupby_obj,
                     use_case_id=self._use_case_id,
                     org_id=self._org_id,
                     projects=self._projects,
@@ -633,18 +682,17 @@ class SnubaQueryBuilder:
             return None
 
         orderby_fields = []
-        for orderby in self._metrics_query.orderby:
-            op = orderby.field.op
-            metric_field_obj = metric_object_factory(op, orderby.field.metric_mri)
+        for metric_order_by_obj in self._metrics_query.orderby:
             orderby_fields.extend(
-                metric_field_obj.generate_orderby_clause(
-                    projects=self._projects,
-                    direction=orderby.direction,
-                    params=orderby.field.params,
+                self.generate_snql_for_action_by_fields(
+                    metric_action_by_field=metric_order_by_obj,
                     use_case_id=self._use_case_id,
-                    alias=orderby.field.alias,
+                    org_id=self._org_id,
+                    projects=self._projects,
+                    is_column=True,
                 )
             )
+
         return orderby_fields
 
     def __build_totals_and_series_queries(

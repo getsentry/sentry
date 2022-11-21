@@ -24,8 +24,8 @@ from sentry.snuba.metrics import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
+    MetricOrderByField,
     MetricsQuery,
-    OrderBy,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
@@ -226,21 +226,21 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             groupby=[MetricGroupByField("transaction", alias="transaction_group")],
             orderby=[
-                OrderBy(
-                    MetricField(
+                MetricOrderByField(
+                    field=MetricField(
                         op="count",
                         metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp",
                     ),
-                    Direction.DESC,
+                    direction=Direction.DESC,
                 ),
-                OrderBy(
-                    MetricField(
+                MetricOrderByField(
+                    field=MetricField(
                         op="count",
                         metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
                         alias="count_fcp",
                     ),
-                    Direction.DESC,
+                    direction=Direction.DESC,
                 ),
             ],
             limit=Limit(limit=2),
@@ -305,21 +305,21 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField("transaction", alias="transaction_group"),
             ],
             orderby=[
-                OrderBy(
-                    MetricField(
+                MetricOrderByField(
+                    field=MetricField(
                         op="count",
                         metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp",
                     ),
-                    Direction.DESC,
+                    direction=Direction.DESC,
                 ),
-                OrderBy(
-                    MetricField(
+                MetricOrderByField(
+                    field=MetricField(
                         op="count",
                         metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp_2",
                     ),
-                    Direction.DESC,
+                    direction=Direction.DESC,
                 ),
             ],
             limit=Limit(limit=2),
@@ -444,6 +444,151 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     include_meta=True,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
+
+    def test_query_with_order_by_valid_str_field(self):
+        project_2 = self.create_project()
+        project_3 = self.create_project()
+
+        for project_id, value in (
+            (self.project.id, 0),
+            (self.project.id, 1),
+            (project_2.id, 2),
+            (project_3.id, 3),
+        ):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                project_id=project_id,
+                tags={},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            project_ids=[project_2.id, project_3.id],
+            groupby=[MetricGroupByField(field="project_id")],
+            orderby=[
+                MetricOrderByField(
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                    ),
+                    direction=Direction.DESC,
+                ),
+                MetricOrderByField(
+                    field="project_id",
+                    direction=Direction.DESC,
+                ),
+            ],
+            limit=Limit(limit=3),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 3
+
+        for index, (expected_project, expected_count) in enumerate(
+            sorted(
+                [(self.project.id, 2), (project_3.id, 1), (project_2.id, 1)],
+                key=lambda elem: elem[0],
+                reverse=True,
+            )
+        ):
+            assert groups[index]["by"]["project_id"] == expected_project
+            assert groups[index]["totals"]["count(transaction.duration)"] == expected_count
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "count(transaction.duration)", "type": "UInt64"},
+                {"name": "project_id", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_query_with_order_by_invalid_str_field(self):
+        for value in (0, 1, 2):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={},
+                value=value,
+            )
+
+        with pytest.raises(NotImplementedError):
+            metrics_query = self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
+                select=[
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                    ),
+                ],
+                groupby=[MetricGroupByField(field="transaction")],
+                orderby=[
+                    MetricOrderByField(
+                        field="transaction",
+                        direction=Direction.DESC,
+                    ),
+                ],
+                limit=Limit(limit=3),
+                offset=Offset(offset=0),
+                include_series=False,
+            )
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    def test_query_with_order_by_str_field_not_in_group_by(self):
+        for value in (0, 1, 2):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={},
+                value=value,
+            )
+
+        with pytest.raises(InvalidParams):
+            metrics_query = self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
+                select=[
+                    MetricField(
+                        op="count",
+                        metric_mri=TransactionMRI.DURATION.value,
+                    ),
+                ],
+                groupby=[],
+                orderby=[
+                    MetricOrderByField(
+                        field="project_id",
+                        direction=Direction.DESC,
+                    ),
+                ],
+                limit=Limit(limit=3),
+                offset=Offset(offset=0),
+                include_series=False,
+            )
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
     def test_query_with_tuple_condition(self):
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
@@ -780,7 +925,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField("project", "project_alias"),
             ],
             orderby=[
-                OrderBy(
+                MetricOrderByField(
                     MetricField(
                         op="p50",
                         metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
@@ -1328,7 +1473,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField("transaction"),
             ],
             orderby=[
-                OrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri=str(TransactionMRI.DURATION.value),
@@ -1341,7 +1486,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     ),
                     direction=Direction.DESC,
                 ),
-                OrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="p95",
                         metric_mri=str(TransactionMRI.DURATION.value),
@@ -1684,7 +1829,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField("transaction"),
             ],
             orderby=[
-                OrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri=str(TransactionMRI.DURATION.value),
@@ -1697,7 +1842,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     ),
                     direction=Direction.DESC,
                 ),
-                OrderBy(
+                MetricOrderByField(
                     field=MetricField(
                         op="p95",
                         metric_mri=str(TransactionMRI.DURATION.value),
