@@ -2972,21 +2972,28 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
             # New cache key
+            release_2 = Release.get_or_create(self.project, "2.0")
             self.redis_client.hset(
                 f"ds::p:{self.project.id}:boosted_releases",
-                f"ds::r:{self.release.id}:e:{self.environment1.name}",
+                f"ds::r:{release_2.id}",
                 ts,
             )
             self.redis_client.hset(
                 f"ds::p:{self.project.id}:boosted_releases",
-                f"ds::r:{self.release.id}:e:{self.environment2.name}",
+                f"ds::r:{release_2.id}:e:{self.environment1.name}",
+                ts,
+            )
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::r:{release_2.id}:e:{self.environment2.name}",
                 ts,
             )
 
             assert get_boosted_releases(self.project.id) == [
                 (self.release.id, None, ts),
-                (self.release.id, self.environment1.name, ts),
-                (self.release.id, self.environment2.name, ts),
+                (release_2.id, None, ts),
+                (release_2.id, self.environment1.name, ts),
+                (release_2.id, self.environment2.name, ts),
             ]
 
     @freeze_time("2022-11-03 10:00:00")
