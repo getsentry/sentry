@@ -13,6 +13,11 @@ export const ROOT_ELEMENT = 'blk_router';
 export const usingCustomerDomain =
   typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
 
+export const customerDomain =
+  typeof window !== 'undefined'
+    ? window?.__initialData?.customerDomain?.subdomain
+    : undefined;
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
