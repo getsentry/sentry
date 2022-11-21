@@ -1,3 +1,5 @@
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
 /**
  * Given a route string, replace path parameters (e.g. `:id`) with value from `params`
  *
@@ -24,5 +26,5 @@ export default function replaceRouterParams(
     route = route.replace(param, String(params[paramName]));
   });
 
-  return route;
+  return normalizeUrl(route) as string;
 }

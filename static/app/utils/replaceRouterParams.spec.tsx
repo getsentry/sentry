@@ -31,4 +31,17 @@ describe('replaceRouterParams', function () {
       '/path/to/orgId/test/'
     );
   });
+
+  it('normalizes URLs for customer domains', function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    } as any;
+    expect(replaceRouterParams('/settings/:orgId/projects/', params)).toBe(
+      '/settings/projects/'
+    );
+  });
 });

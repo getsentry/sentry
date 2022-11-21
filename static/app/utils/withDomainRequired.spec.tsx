@@ -8,6 +8,7 @@ import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired'
 
 describe('normalizeUrl', function () {
   let result;
+
   beforeEach(function () {
     window.__initialData = {
       customerDomain: {
@@ -83,6 +84,13 @@ describe('normalizeUrl', function () {
     }
     result = normalizeUrl(stringCallback, location);
     expect(result).toEqual('/discover/');
+  });
+
+  it('errors on functions without location', function () {
+    function objectCallback(_loc: Location): LocationDescriptorObject {
+      return {pathname: '/settings/organization'};
+    }
+    expect(() => normalizeUrl(objectCallback)).toThrow();
   });
 });
 

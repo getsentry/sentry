@@ -18,13 +18,16 @@ type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDes
 /**
  * Normalize a URL for customer domains based on the current route state
  */
-export function normalizeUrl(path: LocationTarget, location: Location): LocationTarget {
+export function normalizeUrl(path: LocationTarget, location?: Location): LocationTarget {
   if (!window.__initialData?.customerDomain) {
     return path;
   }
 
   let resolved: LocationDescriptor;
   if (typeof path === 'function') {
+    if (!location) {
+      throw new Error('Cannot resolve function URL without a location');
+    }
     resolved = path(location);
   } else {
     resolved = path;
