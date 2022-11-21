@@ -70,7 +70,7 @@ def _get_bootstrap_servers(cluster: str) -> Sequence[str]:
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, max_buffer_size) -> None:
+    def __init__(self, max_buffer_size: int) -> None:
         self._max_buffer_size = max_buffer_size
 
     def create_with_partitions(
