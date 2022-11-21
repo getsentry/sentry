@@ -10,6 +10,10 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
     def __init__(self, **kwargs: Any) -> None:
         pass
 
+    def record_project_duration(self, project_id: int, duration: float) -> None:
+        pass
+
+    # FIXME(swatinem): remove the outdated metrics
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         pass
 

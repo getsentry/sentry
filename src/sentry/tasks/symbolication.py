@@ -204,15 +204,20 @@ def _do_symbolicate_event(
     symbolication_start_time = time()
 
     submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
-    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
-    timestamp = int(symbolication_start_time)
+    submit_realtime_metrics = random.random() < submission_ratio
 
-    if submit_realtime_metrics:
-        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
-            try:
-                realtime_metrics.increment_project_event_counter(project_id, timestamp)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+    def record_symbolication_duration():
+        """
+        Returns the symbolication duration so far, and optionally record the duration to the LPQ metrics if configured.
+        """
+        symbolication_duration = time() - symbolication_start_time
+        if submit_realtime_metrics:
+            with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
+                try:
+                    realtime_metrics.record_project_duration(project_id, symbolication_duration)
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+        return symbolication_duration
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
@@ -232,18 +237,11 @@ def _do_symbolicate_event(
                         data = symbolicated_data
                         has_changed = True
 
+                    record_symbolication_duration()
                     break
                 except RetrySymbolication as e:
-                    if (
-                        time() - symbolication_start_time
-                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
-                        error_logger.warning(
-                            "symbolicate.slow",
-                            extra={"project_id": project_id, "event_id": event_id},
-                        )
-                    if (
-                        time() - symbolication_start_time
-                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                    duration = record_symbolication_duration()
+                    if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
                         # Do not drop event but actually continue with rest of pipeline
                         # (persisting unsymbolicated event)
                         metrics.incr(
@@ -262,6 +260,11 @@ def _do_symbolicate_event(
                         has_changed = True
                         break
                     else:
+                        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
+                            error_logger.warning(
+                                "symbolicate.slow",
+                                extra={"project_id": project_id, "event_id": event_id},
+                            )
                         # sleep for `retry_after` but max 5 seconds and try again
                         metrics.incr(
                             "tasks.store.symbolicate_event.retry",
@@ -286,19 +289,9 @@ def _do_symbolicate_event(
                     data.setdefault("_metrics", {})["flag.processing.error"] = True
                     data.setdefault("_metrics", {})["flag.processing.fatal"] = True
                     has_changed = True
-                    break
 
-    if submit_realtime_metrics:
-        with sentry_sdk.start_span(
-            op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
-        ):
-            symbolication_duration = int(time() - symbolication_start_time)
-            try:
-                realtime_metrics.increment_project_duration_counter(
-                    project_id, timestamp, symbolication_duration
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+                    record_symbolication_duration()
+                    break
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.

@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     # RealtimeMetricsStore.__all__:
     __realtime_metrics_store__ = RealtimeMetricsStore()
     validate = __realtime_metrics_store__.validate
+    record_project_duration = __realtime_metrics_store__.record_project_duration
+    # FIXME(swatinem): remove the outdated metrics
     increment_project_event_counter = __realtime_metrics_store__.increment_project_event_counter
     increment_project_duration_counter = (
         __realtime_metrics_store__.increment_project_duration_counter

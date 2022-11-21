@@ -135,6 +135,7 @@ class RealtimeMetricsStore(Service):
 
     __all__ = (
         "validate",
+        "record_project_duration",
         "increment_project_event_counter",
         "increment_project_duration_counter",
         "projects",
@@ -145,6 +146,36 @@ class RealtimeMetricsStore(Service):
         "remove_projects_from_lpq",
     )
 
+    def record_project_duration(self, project_id: int, duration: float) -> None:
+        """
+        Records the duration of a symbolication request for the given project_id.
+
+        The duration (from the start of the symbolication request)
+        should be recorded at regular intervals *as the event is being processed*.
+
+        The duration is used to track the used "symbolication time budget" of a project.
+        Each project is allocated a certain budget within a sliding time window.
+        If that budget is exceeded, the project will be demoted to the low priority queue.
+
+        This can happen when a project either submits *a lot* of fast events,
+        or a few *very slow* events.
+
+        As the running duration is recorded at regular intervals,
+        it naturally forms a parabolic function:
+
+        Assuming we record at 1-second intervals and the request took 5 seconds
+        in total, the used budget is:
+
+        1 + 2 + 3 + 4 + 5 = 15
+
+        See <https://en.wikipedia.org/wiki/1_%2B_2_%2B_3_%2B_4_%2B_%E2%8B%AF>.
+
+        This method will "punish" slow events in particular, as our main goal is
+        to maintain throughput with limited concurrency.
+        """
+        raise NotImplementedError
+
+    # FIXME(swatinem): remove the outdated metrics
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
