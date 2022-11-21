@@ -1303,7 +1303,7 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(max-content, 1fr);
   grid-template-areas:
     'saved-searches'
@@ -1311,7 +1311,7 @@ const StyledBody = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: 1fr;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: 'content saved-searches';
   }
 `;
@@ -1319,7 +1319,6 @@ const StyledBody = styled('div')`
 const StyledMain = styled('section')`
   grid-area: content;
   padding: ${space(2)};
-  overflow: hidden;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};

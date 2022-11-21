@@ -7,7 +7,7 @@ from typing import Literal
 
 from django.conf import settings
 
-Sliceable = Literal["generic_metrics_sets", "generic_metrics_distributions"]
+Sliceable = Literal["generic_metrics"]
 
 
 def map_org_id_to_logical_partition(org_id: int) -> int:

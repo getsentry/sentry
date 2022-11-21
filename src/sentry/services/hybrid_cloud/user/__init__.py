@@ -1,17 +1,12 @@
 from abc import abstractmethod
 from dataclasses import dataclass, fields
-from typing import Any, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
-from sentry.api.serializers import serialize
-from sentry.models import Project
-from sentry.models.group import Group
-from sentry.models.user import User
-from sentry.services.hybrid_cloud import (
-    CreateStubFromBase,
-    InterfaceWithLifecycle,
-    silo_mode_delegation,
-)
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import Group, User
 
 
 @dataclass(frozen=True, eq=True)
@@ -53,12 +48,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[APIUser]:
+    def get_from_group(self, group: "Group") -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_from_project(self, project_id: int) -> List[Group]:
+    def get_from_project(self, project_id: int) -> List["Group"]:
         """Get all users associated with a project identifier"""
         pass
 
@@ -109,7 +104,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @classmethod
-    def serialize_user(cls, user: User) -> APIUser:
+    def serialize_user(cls, user: "User") -> APIUser:
         args = {
             field.name: getattr(user, field.name)
             for field in fields(APIUser)
@@ -121,58 +116,16 @@ class UserService(InterfaceWithLifecycle):
         return APIUser(**args)
 
 
-class DatabaseBackedUserService(UserService):
-    def get_many_by_email(self, email: str) -> List[APIUser]:
-        return [
-            UserService.serialize_user(user)
-            for user in User.objects.filter(
-                emails__is_verified=True, is_active=True, emails__email__iexact=email
-            )
-        ]
+def impl_with_db() -> UserService:
+    from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
 
-    def serialize_users(self, user_ids: List[int]) -> List[Any]:
-        result: List[Any] = []
-        for user in User.objects.filter(id__in=user_ids):
-            result.append(serialize(user))
-        return result
+    return DatabaseBackedUserService()
 
-    def get_from_group(self, group: Group) -> List[APIUser]:
-        return [
-            UserService.serialize_user(u)
-            for u in User.objects.filter(
-                sentry_orgmember_set__organization=group.organization,
-                sentry_orgmember_set__teams__in=group.project.teams.all(),
-                is_active=True,
-            )
-        ]
-
-    def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-        query = User.objects.filter(id__in=user_ids)
-        return [UserService.serialize_user(u) for u in query]
-
-    def get_from_project(self, project_id: int) -> List[APIUser]:
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            return []
-        return self.get_many(project.member_set.values_list("user_id", flat=True))
-
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        try:
-            return UserService.serialize_user(User.objects.get(actor_id=actor_id))
-        except User.DoesNotExist:
-            return None
-
-    def close(self) -> None:
-        pass
-
-
-StubUserService = CreateStubFromBase(DatabaseBackedUserService)
 
 user_service: UserService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: lambda: DatabaseBackedUserService(),
-        SiloMode.REGION: lambda: StubUserService(),
-        SiloMode.CONTROL: lambda: DatabaseBackedUserService(),
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
+        SiloMode.CONTROL: impl_with_db,
     }
 )
