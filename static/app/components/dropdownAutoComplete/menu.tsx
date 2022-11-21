@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import {isNil} from 'lodash';
+import {mergeProps} from '@react-aria/utils';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
@@ -275,16 +275,32 @@ function Menu({
   const getFilteredItems = memoize(stableItemFilter);
 
   const {
-    state,
-    triggerRef,
+    state: overlayState,
     triggerProps: overlayTriggerProps,
     overlayProps,
     isOpen: useOverlayIsOpen,
   } = useOverlay({
     offset: detached ? 8 : 0,
-    position: 'bottom-start',
+    position: alignMenu === 'right' ? 'bottom-end' : 'bottom-start',
     isOpen: props.isOpen,
+    onOpenChange: newIsOpen => (newIsOpen ? onOpen?.() : onClose?.()),
   });
+
+  // const onOpen = useCallback(() => {
+  //   console.log('open', overlayState);
+  //   if (!overlayState.isOpen) {
+  //     overlayState.open();
+  //   }
+  // }, [overlayState]);
+
+  // const onClose = useCallback(() => {
+  //   console.log('close', overlayState);
+  //   if (overlayState.isOpen) {
+  //     overlayState.close();
+  //   }
+  // }, [overlayState]);
+
+  // console.log({useOverlayIsOpen, isOpen: props.isOpen});
 
   return (
     <AutoComplete
@@ -295,6 +311,7 @@ function Menu({
       disabled={disabled}
       closeOnSelect={closeOnSelect}
       resetInputOnClose
+      isOpen={useOverlayIsOpen}
       {...props}
     >
       {({
@@ -352,10 +369,9 @@ function Menu({
           >
             {children({
               getInputProps,
-              getActorProps: () => {
+              getActorProps: incomingProps => {
                 return {
-                  ...getActorProps(),
-                  ...overlayTriggerProps,
+                  ...mergeProps(overlayTriggerProps, getActorProps(incomingProps)),
                   ref: mergeRefs([overlayTriggerProps.ref, getActorProps().ref]),
                 };
               },
@@ -366,8 +382,10 @@ function Menu({
             {isOpen && (
               <FocusScope restoreFocus autoFocus>
                 <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-                  <StyledDropdownBubble
+                  <Overlay
                     className={className}
+                    style={style}
+                    css={css}
                     {...getMenuProps(menuProps)}
                   >
                     <DropdownMainContent minWidth={minWidth}>
@@ -430,7 +448,7 @@ function Menu({
                       </div>
                     </DropdownMainContent>
                     {subPanel}
-                  </StyledDropdownBubble>
+                  </Overlay>
                 </PositionWrapper>
               </FocusScope>
             )}
@@ -484,8 +502,6 @@ export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   display: inline-block;
   ${p => p.disabled && 'pointer-events: none;'}
 `;
-
-const StyledDropdownBubble = styled(Overlay)``;
 
 const DropdownMainContent = styled('div')<{minWidth: number}>`
   width: 100%;
