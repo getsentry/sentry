@@ -498,6 +498,10 @@ function FlamegraphZoomView({
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
+          dispatch({type: 'set selected root', payload: hoveredNode});
+        } else {
+          // If double click is fired on an empty space, then reset the zoom
+          dispatch({type: 'set selected root', payload: null});
         }
 
         dispatch({
