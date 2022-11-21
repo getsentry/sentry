@@ -308,7 +308,7 @@ function ReplayButton({project, routes, orgId, tagValue}) {
     <RightAligned>
       <Tooltip title={t('View Replay')}>
         <Link to={target}>
-          <Button size="xs">
+          <Button size="xs" aria-label={t('View Replay')}>
             <IconPlay size="xs" />
           </Button>
         </Link>
