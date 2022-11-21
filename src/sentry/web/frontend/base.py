@@ -29,7 +29,6 @@ from sentry.services.hybrid_cloud.organization import (
     ApiUserOrganizationContext,
     organization_service,
 )
-from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -407,28 +406,31 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
 
 class OrganizationView(BaseView):
     """
-    Any view acting on behalf of an organization should inherit from this base.
-
-    The 'organization' keyword argument is automatically injected into the
-    resulting dispatch.
+    A deprecated view used by endpoints that act on behalf of an organization.
+    In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
+    move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
+    common logic.
+    The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
+    typing of 'organization' will vary based on the subclass.  It may either be an ApiOrganization or an orm
+    Organization based on the subclass.  Be mindful during this transition of the typing.
     """
 
     required_scope: str | None = None
     valid_sso_required = True
 
-    def get_access(self, request: Request, organization: Organization, *args: Any, **kwargs: Any) -> access.Access:  # type: ignore[override]
-        if organization is None:
+    def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
+        if self.active_organization is None:
             return access.DEFAULT
-        return access.from_request(request, organization)
+        return access.from_request_org_and_scopes(
+            request=request, api_user_org_context=self.active_organization
+        )
 
-    def get_context_data(self, request: Request, organization: Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(self, request: Request, organization: ApiOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
         context = super().get_context_data(request)
         context["organization"] = organization
-        context["TEAM_LIST"] = self.get_team_list(request.user, organization)
-        context["ACCESS"] = request.access.to_django_context()
         return context
 
-    def has_permission(self, request: Request, organization: Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: Request, organization: ApiOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -471,7 +473,7 @@ class OrganizationView(BaseView):
 
         return False
 
-    def handle_permission_required(self, request: Request, organization: Organization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(self, request: Request, organization: Organization | ApiOrganization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         if self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -493,7 +495,7 @@ class OrganizationView(BaseView):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def needs_sso(self, request: Request, organization: Organization) -> bool:
+    def needs_sso(self, request: Request, organization: Organization | ApiOrganization) -> bool:
         if not organization:
             return False
         # XXX(dcramer): this branch should really never hit
@@ -509,26 +511,58 @@ class OrganizationView(BaseView):
             return True
         return False
 
+    def _lookup_orm_org(self) -> Organization | None:
+        """
+        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
+        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
+        endpoint or codepath will result in exceptions.
+        :return:
+        """
+        organization: Organization | None = None
+        if self.active_organization:
+            try:
+                organization = Organization.objects.get(id=self.active_organization.organization.id)
+            except Organization.DoesNotExist:
+                pass
+        return organization
+
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        # TODO:  Extract separate view base classes based on control vs region / monolith,
-        # with distinct convert_args implementation.
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            assert self.active_organization is not None
-            kwargs["organization"] = self.active_organization.organization
-        else:
-            organization: Organization | None = None
-            if self.active_organization:
-                for org in Organization.objects.filter(id=self.active_organization.organization.id):
-                    organization = org
+        if "organization" not in kwargs:
+            kwargs["organization"] = self._lookup_orm_org()
 
-            kwargs["organization"] = organization
-
-        return (args, kwargs)
+        return args, kwargs
 
 
-class ProjectView(OrganizationView):
+class RegionSiloOrganizationView(OrganizationView):
+    """
+    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
+    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
+    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
+    remain.
+    """
+
+    def convert_args(
+        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        if "organization" not in kwargs:
+            kwargs["organization"] = self._lookup_orm_org()
+
+        return args, kwargs
+
+
+class ControlSiloOrganizationView(OrganizationView):
+    def convert_args(
+        self, request: Any, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        kwargs["organization"] = (
+            self.active_organization.organization if self.active_organization else None
+        )
+        return super().convert_args(request, *args, **kwargs)
+
+
+class ProjectView(RegionSiloOrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
     matching URL pattern must pass 'org_slug' as well as 'project_slug'.
@@ -572,20 +606,17 @@ class ProjectView(OrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            for org in Organization.objects.filter(id=self.active_organization.organization.id):
-                organization = org
+            organization = self._lookup_orm_org()
 
             if organization:
                 active_project = self.get_active_project(
                     request=request, organization=organization, project_slug=project_slug
                 )
-        else:
-            active_project = None
 
         kwargs["project"] = active_project
         kwargs["organization"] = organization
 
-        return (args, kwargs)
+        return args, kwargs
 
 
 class AvatarPhotoView(View):  # type: ignore[misc]
