@@ -61,7 +61,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -916,7 +916,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             fingerprint,
             "db",
             "consecutive db",
-            GroupType.PERORMANCE_CONSECUTIVE_DB_OP,
+            GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
             cause_span_ids=None,
             parent_span_ids=None,
             offender_span_ids=self.consecutive_db_spans,
@@ -959,7 +959,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         """
         TODO - improve fingerprinting
         """
-        problem_class = GroupType.PERORMANCE_CONSECUTIVE_DB_OP
+        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
         return f"1-{problem_class}"
 
     def on_complete(self) -> None:
