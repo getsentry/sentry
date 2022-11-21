@@ -27,6 +27,7 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -63,6 +64,8 @@ function getTransactionConfigSpace(
   return new Rect(startedAt, 0, maxProfileDuration, 0);
 }
 
+const FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
+
 const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
@@ -75,6 +78,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const flamegraphTheme = useFlamegraphTheme();
+  const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, zoomIntoView} = useFlamegraphProfiles();
 
@@ -93,14 +97,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
-      return FlamegraphModel.Empty();
+      return FALLBACK_FLAMEGRAPH;
     }
 
     // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
     const profile = props.profiles.profiles.find(p => p.threadId === threadId);
     if (!profile) {
-      return FlamegraphModel.Empty();
+      return FALLBACK_FLAMEGRAPH;
     }
 
     return new FlamegraphModel(profile, threadId, {
@@ -159,13 +163,27 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             previousView.configView.withHeight(newView.configView.height)
           );
         }
-      } else if (defined(zoomIntoView)) {
+      } else if (
+        // When the profile changes, it may be because it finally loaded and if a zoom
+        // was specified, this should be used as the initial view.
+        defined(zoomIntoView)
+      ) {
         newView.setConfigView(zoomIntoView);
         return newView;
       }
 
+      // Because we render empty flamechart while we fetch the data, we need to make sure
+      // to have some heuristic when the data is fetched to determine if we should
+      // initialize the config view to the full view or a predefined value
+      if (position.view && previousView?.flamegraph === FALLBACK_FLAMEGRAPH) {
+        newView.setConfigView(position.view);
+      }
+
       return newView;
     },
+
+    // We skip position.view dependency because it will go into an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoView]
   );
 

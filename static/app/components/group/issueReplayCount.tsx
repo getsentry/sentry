@@ -5,7 +5,7 @@ import Link from 'sentry/components/links/link';
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import Tooltip from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,7 +27,13 @@ function IssueReplayCount({groupId}: Props) {
   const countDisplay = count > 50 ? '50+' : count;
 
   return (
-    <Tooltip title={t('This issue has %s replays available to view', countDisplay)}>
+    <StyledTooltip
+      title={tn(
+        'This issue has %s replay available to view',
+        'This issue has %s replays available to view',
+        countDisplay
+      )}
+    >
       <ReplayCountLink
         to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
         aria-label="replay-count"
@@ -35,9 +41,14 @@ function IssueReplayCount({groupId}: Props) {
         <IconPlay size="xs" />
         {countDisplay}
       </ReplayCountLink>
-    </Tooltip>
+    </StyledTooltip>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+`;
 
 const ReplayCountLink = styled(Link)`
   display: inline-flex;
