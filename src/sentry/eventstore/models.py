@@ -712,7 +712,7 @@ class IssueOccurrence:
     fingerprint: Sequence[str]
     issue_title: str
     # subtitle: str # We haven't defined what this will look like just yet
-    resource_id: str
+    resource_id: str | None
     evidence_data: Mapping[str, Any]
     evidence_display: Sequence[IssueEvidence]
     type: GroupType
