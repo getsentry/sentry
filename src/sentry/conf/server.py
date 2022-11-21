@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
+from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -813,6 +814,18 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 20 * 60},
     },
 }
+
+if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
+    CELERYBEAT_SCHEDULE.update(
+        {
+            "hybrid-cloud-organizationmapping-repair": {
+                "task": "sentry.tasks.organizationmapping_repair",
+                "schedule": timedelta(hours=1),
+                "options": {"expires": 3600},
+            },
+        }
+    )
+
 
 BGTASKS = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
