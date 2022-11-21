@@ -566,6 +566,13 @@ urlpatterns += [
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
     ),
+    # Project on-boarding
+    # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
+    url(
+        r"^getting-started/(?P<project_slug>[\w_-]+)/",
+        react_page_view,
+        name="project-getting-started",
+    ),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(
