@@ -20,7 +20,7 @@ class TooManyBoostedReleasesException(Exception):
     pass
 
 
-def _get_environment_cache_key_postfix(environment: Optional[str]) -> str:
+def _get_environment_cache_key_suffix(environment: Optional[str]) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
 
 
@@ -44,7 +44,7 @@ def generate_cache_key_for_observed_release(
     boost also that. This requires a tuple for computing uniqueness of release, that is, the tuple (release,
     environment).
     """
-    return f"ds::p:{project_id}:r:{release_id}{_get_environment_cache_key_postfix(environment)}"
+    return f"ds::p:{project_id}:r:{release_id}{_get_environment_cache_key_suffix(environment)}"
 
 
 def generate_cache_key_for_boosted_releases_hash(project_id: int) -> str:
@@ -60,7 +60,7 @@ def generate_cache_key_for_boosted_release_with_environment(
     """
     Generates a cache key for the boosted release within a hash.
     """
-    return f"ds::r:{release_id}{_get_environment_cache_key_postfix(environment)}"
+    return f"ds::r:{release_id}{_get_environment_cache_key_suffix(environment)}"
 
 
 def _extract_release_and_environment_from_cache_key(
