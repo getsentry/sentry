@@ -185,7 +185,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       // Because we render empty flamechart while we fetch the data, we need to make sure
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
-      if (position.view && previousView?.flamegraph === FALLBACK_FLAMEGRAPH) {
+      if (
+        position.view &&
+        !position.view.isEmpty() &&
+        previousView?.flamegraph === FALLBACK_FLAMEGRAPH
+      ) {
         newView.setConfigView(position.view);
       }
 
