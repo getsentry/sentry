@@ -46,6 +46,8 @@ const AllEventsTable = (props: Props) => {
     return <LoadingError message={error} />;
   }
 
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
+
   return (
     <EventsTable
       eventView={eventView}
@@ -61,6 +63,7 @@ const AllEventsTable = (props: Props) => {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
+      showReplayCol={isReplayEnabled}
     />
   );
 };
