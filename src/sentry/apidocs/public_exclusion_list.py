@@ -165,6 +165,9 @@ from sentry.api.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.api.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.api.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
@@ -663,6 +666,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationIncidentSubscriptionIndexEndpoint,
     ChunkUploadEndpoint,
     OrganizationCodeMappingsEndpoint,
+    OrganizationDeriveCodeMappingsEndpoint,
     OrganizationCodeMappingDetailsEndpoint,
     OrganizationCodeMappingCodeOwnersEndpoint,
     DiscoverSavedQueriesEndpoint,

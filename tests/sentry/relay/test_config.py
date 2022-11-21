@@ -263,7 +263,7 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     if active:
         assert dynamic_sampling == dyn_sampling_data(active)
     else:
-        assert dynamic_sampling == {"rules": []}
+        assert dynamic_sampling == {"mode": "total", "rules": []}
 
 
 @pytest.mark.django_db
@@ -346,7 +346,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         (
             True,
             True,
-            {"rules": []},
+            {"mode": "total", "rules": []},
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
@@ -365,6 +365,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             True,
             {
+                "mode": "total",
                 "rules": [
                     {
                         "sampleRate": 0.1,
@@ -373,7 +374,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "condition": {"op": "and", "inner": []},
                         "id": 1000,
                     }
-                ]
+                ],
             },
             {
                 "rules": [
@@ -393,7 +394,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             False,
             {"rules": []},
-            {"rules": []},
+            {"mode": "total", "rules": []},
         ),
         (
             True,
@@ -413,7 +414,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                 ]
             },
         ),
-        (False, False, {"rules": []}, None),
+        (False, False, {"mode": "total", "rules": []}, None),
     ],
 )
 def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
@@ -468,7 +469,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     for release, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            release,
+            f"ds::r:{release}:e:prod",
             timestamp,
         )
     with Feature(
@@ -527,7 +528,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["3.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1500,
                 "timeRange": {
@@ -541,7 +549,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["4.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1501,
                 "timeRange": {
@@ -555,7 +570,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["5.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1502,
                 "timeRange": {
@@ -569,7 +591,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["6.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1503,
                 "timeRange": {
@@ -583,7 +612,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1504,
                 "timeRange": {

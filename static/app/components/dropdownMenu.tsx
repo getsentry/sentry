@@ -195,15 +195,16 @@ function DropdownMenu({
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
         <StyledOverlay>
+          {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           <MenuWrap
             ref={menuRef}
+            hasTitle={!!menuTitle}
             {...mergeProps(modifiedMenuProps, keyboardProps)}
             style={{
               maxHeight: overlayPositionProps.style?.maxHeight,
               minWidth,
             }}
           >
-            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             {renderCollection(stateCollection)}
           </MenuWrap>
         </StyledOverlay>
@@ -215,16 +216,18 @@ function DropdownMenu({
 export default DropdownMenu;
 
 const StyledOverlay = styled(Overlay)`
-  max-width: 24rem;
-  @media only screen and (max-width: calc(24rem + ${space(2)} * 2)) {
-    max-width: calc(100vw - ${space(2)} * 2);
-  }
+  display: flex;
+  flex-direction: column;
 `;
 
-const MenuWrap = styled('ul')`
+const MenuWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
+  overflow-x: hidden;
+  overflow-y: scroll;
+
+  ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
 
   &:focus {
     outline: none;
@@ -232,13 +235,14 @@ const MenuWrap = styled('ul')`
 `;
 
 const MenuTitle = styled('div')`
+  flex-shrink: 0;
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  padding: ${space(0.25)} ${space(1.5)} ${space(0.75)};
-  margin-bottom: ${space(0.5)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  padding: ${space(0.75)} ${space(1.5)};
+  box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 2;
 `;
 
 const Separator = styled('li')`

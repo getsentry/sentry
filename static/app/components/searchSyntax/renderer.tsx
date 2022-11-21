@@ -202,7 +202,7 @@ const colorType = (p: FilterProps) =>
 const Filter = styled('span')<FilterProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
-  --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
+  --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
 
   position: relative;
   animation-name: ${shakeAnimation};
@@ -221,7 +221,7 @@ const Negation = styled('span')`
   margin-left: -2px;
   font-weight: bold;
   border-radius: 2px 0 0 2px;
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.red400};
 `;
 
 const Key = styled('span')<{negated: boolean}>`
@@ -259,7 +259,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const Value = styled('span')`
@@ -273,7 +273,7 @@ const Value = styled('span')`
 
 const Unit = styled('span')`
   font-weight: bold;
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.green400};
 `;
 
 const LogicBoolean = styled('span')`
@@ -282,11 +282,11 @@ const LogicBoolean = styled('span')`
 `;
 
 const Boolean = styled('span')`
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const DateTime = styled('span')`
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.green400};
 `;
 
 const ListComma = styled('span')`
@@ -297,16 +297,16 @@ const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: bold;
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.purple400};
   }
   &:after {
     content: ']';
     font-weight: bold;
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.purple400};
   }
 
   ${Value} {
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.purple400};
   }
 `;
 
@@ -325,7 +325,7 @@ const LogicGroup = styled(({children, ...props}) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.pink300};
+      color: ${p => p.theme.pink400};
       font-size: 16px;
       font-weight: bold;
     }

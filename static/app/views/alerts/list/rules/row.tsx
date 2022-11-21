@@ -23,7 +23,7 @@ import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
-import type {Color} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
   AlertRuleComparisonType,
@@ -125,7 +125,7 @@ function RuleListRow({
         ? criticalTrigger
         : warningTrigger ?? criticalTrigger;
 
-    let iconColor: Color = 'green300';
+    let iconColor: ColorOrAlias = 'successText';
     let iconDirection: 'up' | 'down' | undefined;
     let thresholdTypeText =
       activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
@@ -135,10 +135,10 @@ function RuleListRow({
     if (activeIncident) {
       iconColor =
         trigger?.label === AlertRuleTriggerType.CRITICAL
-          ? 'red300'
+          ? 'errorText'
           : trigger?.label === AlertRuleTriggerType.WARNING
-          ? 'yellow300'
-          : 'green300';
+          ? 'warningText'
+          : 'successText';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
     } else {
       // Use the Resolved threshold type, which is opposite of Critical

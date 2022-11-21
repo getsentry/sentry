@@ -5,7 +5,7 @@ import GlobalModal from 'sentry/components/globalModal';
 const mountedModals = [];
 
 /**
- * @deprecated only use this with enzyme
+ * @deprecated only use this with enzyme (still used in getsentry)
  */
 export async function mountGlobalModal(context) {
   const modal = mountWithTheme(<GlobalModal />, context);

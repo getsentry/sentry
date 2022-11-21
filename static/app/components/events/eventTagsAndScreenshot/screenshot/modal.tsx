@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {ComponentProps, Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,7 @@ import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/cont
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {CursorHandler} from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -19,6 +19,7 @@ import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
@@ -57,6 +58,7 @@ function Modal({
   groupId,
 }: Props) {
   const api = useApi();
+  const location = useLocation();
 
   const [currentEventAttachment, setCurrentAttachment] =
     useState<EventAttachment>(eventAttachment);
@@ -103,19 +105,70 @@ function Modal({
     }
   };
 
+  const path = location.pathname;
+  const query = location.query;
   const {dateCreated, size, mimetype} = currentEventAttachment;
   const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
-  const previousDisabled =
-    links?.previous?.results === false && currentAttachmentIndex === 0;
-  const nextDisabled =
-    links?.next?.results === false &&
-    currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1;
+
+  // Pagination behaviour is different between the attachments tab with page links
+  // vs the issue details page where we have all of the screenshots fetched already
+  let paginationProps: ComponentProps<typeof ScreenshotPagination> | null = null;
+  if (links) {
+    paginationProps = {
+      previousDisabled:
+        links?.previous?.results === false && currentAttachmentIndex === 0,
+      nextDisabled:
+        links?.next?.results === false &&
+        currentAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE - 1,
+      onPrevious: () => {
+        handleCursor(links.previous?.cursor, path, query, -1);
+      },
+      onNext: () => {
+        handleCursor(links.next?.cursor, path, query, 1);
+      },
+    };
+  } else if (
+    memoizedAttachments &&
+    memoizedAttachments.length > 1 &&
+    defined(currentAttachmentIndex)
+  ) {
+    paginationProps = {
+      previousDisabled: currentAttachmentIndex === 0,
+      nextDisabled: currentAttachmentIndex === memoizedAttachments.length - 1,
+      onPrevious: () => {
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
+        setCurrentAttachmentIndex(currentAttachmentIndex - 1);
+      },
+      onNext: () => {
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
+        setCurrentAttachmentIndex(currentAttachmentIndex + 1);
+      },
+      headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
+        currentScreenshotIndex: currentAttachmentIndex + 1,
+        totalScreenshotCount: memoizedAttachments.length,
+      }),
+    };
+  }
 
   return (
     <Fragment>
-      <Header closeButton>{t('Screenshot')}</Header>
+      <StyledHeaderWrapper hasPagination={defined(paginationProps)}>
+        <Header closeButton>{t('Screenshot')}</Header>
+        {defined(paginationProps) && (
+          <Header>
+            <ScreenshotPagination {...paginationProps} />
+          </Header>
+        )}
+      </StyledHeaderWrapper>
       <Body>
-        <GeralInfo>
+        <StyledImageVisualization
+          attachment={currentEventAttachment}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          eventId={currentEventAttachment.event_id}
+        />
+
+        <GeneralInfo>
           {groupId && enablePagination && (
             <Fragment>
               <Label>{t('Event ID')}</Label>
@@ -155,14 +208,7 @@ function Modal({
 
           <Label coloredBg>{t('MIME Type')}</Label>
           <Value coloredBg>{mimetype ?? <NotAvailable />}</Value>
-        </GeralInfo>
-
-        <StyledImageVisualization
-          attachment={currentEventAttachment}
-          orgId={orgSlug}
-          projectId={projectSlug}
-          eventId={currentEventAttachment.event_id}
-        />
+        </GeneralInfo>
       </Body>
       <Footer>
         <Buttonbar gap={1}>
@@ -180,14 +226,6 @@ function Modal({
           <Button onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </Button>
-          {enablePagination && (
-            <ScreenshotPagination
-              onCursor={handleCursor}
-              pageLinks={pageLinks}
-              previousDisabled={previousDisabled}
-              nextDisabled={nextDisabled}
-            />
-          )}
         </Buttonbar>
       </Footer>
     </Fragment>
@@ -196,7 +234,22 @@ function Modal({
 
 export default Modal;
 
-const GeralInfo = styled('div')`
+const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
+  ${p =>
+    p.hasPagination &&
+    `
+  header {
+    margin-bottom: 0;
+  }
+
+  header:last-of-type {
+    margin-top: 0;
+    margin-bottom: ${space(3)};
+  }
+  `}
+`;
+
+const GeneralInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(3)};

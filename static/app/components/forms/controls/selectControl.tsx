@@ -20,6 +20,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+import PanelProvider from 'sentry/utils/panelProvider';
 import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
@@ -90,6 +91,15 @@ const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
+const Menu = (props: React.ComponentProps<typeof selectComponents.Menu>) => {
+  const {children, ...otherProps} = props;
+  return (
+    <selectComponents.Menu {...otherProps}>
+      <PanelProvider>{children}</PanelProvider>
+    </selectComponents.Menu>
+  );
+};
+
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
   'onChange' | 'value'
@@ -158,7 +168,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
+  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -178,6 +188,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const defaultStyles = useMemo<StylesConfig>(
     () => ({
+      container: provided => ({
+        ...provided,
+        ...(isCompact && {
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: maxMenuHeight,
+        }),
+      }),
       control: (_, state: any) => ({
         display: 'flex',
         // @ts-ignore Ignore merge errors as only defining the property once
@@ -234,7 +252,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
         ...(isCompact && {
-          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'static',
+          minHeight: 0,
+          maxHeight: '100%',
           margin: 0,
           borderRadius: 0,
           border: 'none',
@@ -247,12 +269,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       menuList: provided => ({
         ...provided,
         ...(isCompact && {
-          ...(menuHeight && {
-            maxHeight: menuHeight,
-          }),
-          ...(isSearchable && {
-            paddingTop: 0,
-          }),
+          paddingTop: isSearchable ? 0 : `calc(${space(0.5)} + 1px)`,
+          paddingBottom: space(0.5),
         }),
       }),
 
@@ -395,7 +413,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
-    [theme, size, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
+    [theme, size, maxMenuWidth, maxMenuHeight, indicatorStyles, isSearchable, isCompact]
   );
 
   const getFieldLabelStyle = (label?: string) => ({
@@ -483,6 +501,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
+    Menu,
     Option,
   };
 
