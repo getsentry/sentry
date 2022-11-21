@@ -449,15 +449,17 @@ class FrequencyConditionTest(TestCase):
     def test_top_groups(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         activity = {i: [] for i in range(FREQUENCY_CONDITION_GROUP_LIMIT + 1)}
+        dataset_map = {}
         for i in range(FREQUENCY_CONDITION_GROUP_LIMIT):
             for j in range(2):
-                self.store_event(
+                event = self.store_event(
                     project_id=self.project.id,
                     data={
                         "fingerprint": ["group-" + str(i)],
                         "timestamp": iso_format(prev_hour),
                     },
                 )
+                dataset_map[event.group_id] = Dataset.Events
         event = self.store_event(
             project_id=self.project.id,
             data={
@@ -465,9 +467,14 @@ class FrequencyConditionTest(TestCase):
                 "timestamp": iso_format(prev_hour),
             },
         )
+        dataset_map[event.group_id] = Dataset.Events
 
         activity = get_top_groups(
-            self.project, timezone.now() - timedelta(hours=2), timezone.now(), activity
+            self.project,
+            timezone.now() - timedelta(hours=2),
+            timezone.now(),
+            activity,
+            dataset_map,
         )
         assert event.group_id not in activity
 
@@ -505,6 +512,46 @@ class FrequencyConditionTest(TestCase):
         conditions[1]["interval"] = "1d"
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group in result
+
+    def test_transaction(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        event = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        ).copy()
+        event.update(
+            {
+                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "timestamp": iso_format(prev_hour),
+                "tags": {"foo": "bar"},
+            }
+        )
+        transaction = self.store_event(project_id=self.project.id, data=event)
+        group = transaction.groups[0]
+
+        Activity.objects.create(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=prev_hour,
+            data={"event_id": transaction.event_id},
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group in result
+
+        conditions[1]["value"] = 1
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group not in result
 
 
 @freeze_time()
