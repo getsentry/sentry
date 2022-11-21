@@ -33,6 +33,10 @@ describe('normalizeUrl', function () {
       ['/organizations/albertos-apples/issues/', '/issues/'],
       ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
       ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
+      [
+        '/acme/project-slug/getting-started/python',
+        '/getting-started/project-slug/python',
+      ],
     ];
     for (const scenario of cases) {
       result = normalizeUrl(scenario[0], location);
