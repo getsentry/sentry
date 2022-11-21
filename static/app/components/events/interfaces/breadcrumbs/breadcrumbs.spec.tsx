@@ -6,12 +6,11 @@ import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
-jest.mock('sentry/utils/replays/hooks/useReplayOnboardingSidebarPanel', () => ({
+jest.mock('sentry/utils/replays/hooks/useReplayOnboarding', () => ({
   __esModule: true,
-  default: jest.fn(() => ({enabled: false, activate: jest.fn()})),
-  useShouldShowOnboardingPanel: jest.fn(() => true),
+  useShouldShowOnboarding: () => true,
+  useReplayOnboardingSidebarPanel: () => ({enabled: true, activate: jest.fn()}),
 }));
-const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -33,6 +32,8 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
     }),
   };
 });
+
+const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;

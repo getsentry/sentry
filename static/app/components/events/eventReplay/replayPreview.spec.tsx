@@ -6,7 +6,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-import ReplayContent from './replayContent';
+import ReplayPreview from './replayPreview';
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -92,7 +92,7 @@ const render: typeof baseRender = children => {
   );
 };
 
-describe('ReplayContent', () => {
+describe('ReplayPreview', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
     (useReplayData as jest.Mock).mockImplementationOnce(() => {
@@ -103,7 +103,7 @@ describe('ReplayContent', () => {
     });
 
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
@@ -124,7 +124,7 @@ describe('ReplayContent', () => {
     });
 
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
@@ -136,7 +136,7 @@ describe('ReplayContent', () => {
 
   it('Should render details button when there is a replay', () => {
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
@@ -149,7 +149,7 @@ describe('ReplayContent', () => {
 
   it('Should render all its elements correctly', () => {
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}

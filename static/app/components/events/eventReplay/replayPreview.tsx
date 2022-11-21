@@ -80,15 +80,14 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           <ReplaysFeatureBadge />
         </BadgeContainer>
         <FluidHeight>
+          <StaticPanel>
+            <ReplayPlayer isPreview />
+          </StaticPanel>
           <CTAOverlay>
             <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
               {t('Open Replay')}
             </Button>
           </CTAOverlay>
-
-          <StaticPanel>
-            <ReplayPlayer isPreview />
-          </StaticPanel>
         </FluidHeight>
       </PlayerContainer>
     </ReplayContextProvider>
@@ -123,6 +122,13 @@ const FeatureText = styled('div')`
   color: ${p => p.theme.text};
 `;
 
+const StaticPanel = styled(FluidHeight)`
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLight};
+`;
+
 const CTAOverlay = styled('div')`
   position: absolute;
   width: 100%;
@@ -132,13 +138,6 @@ const CTAOverlay = styled('div')`
   align-items: center;
   z-index: 1;
   background: rgba(255, 255, 255, 0.5);
-`;
-
-const StaticPanel = styled(FluidHeight)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

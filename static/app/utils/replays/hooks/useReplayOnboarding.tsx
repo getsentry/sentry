@@ -21,7 +21,7 @@ function getProjectList(selectedProjects: PageFilters['projects'], projects: Pro
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
-function useShouldShowOnboardingPanel() {
+export function useShouldShowOnboarding() {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -34,9 +34,9 @@ function useShouldShowOnboardingPanel() {
   return shouldShowOnboardingPanel;
 }
 
-function useReplayOnboardingSidebarPanel() {
+export function useReplayOnboardingSidebarPanel() {
   const {location} = useRouteContext();
-  const enabled = useShouldShowOnboardingPanel();
+  const enabled = useShouldShowOnboarding();
 
   useEffect(() => {
     if (enabled && location.hash === '#replay-sidequest') {
@@ -44,13 +44,11 @@ function useReplayOnboardingSidebarPanel() {
     }
   }, [enabled, location.hash]);
 
-  const activate = useCallback(event => {
+  const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = 'replay-sidequest';
     SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
   }, []);
 
-  return {enabled, activate};
+  return {enabled, activateSidebar};
 }
-
-export default useReplayOnboardingSidebarPanel;

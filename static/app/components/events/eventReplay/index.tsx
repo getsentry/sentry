@@ -3,9 +3,7 @@ import {useCallback} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {Event} from 'sentry/types/event';
-import useReplayOnboardingSidebarPanel from 'sentry/utils/replays/hooks/useReplayOnboardingSidebarPanel';
-
-import ReplayOnboardingPanel from './replayOnboardingPanel';
+import {useShouldShowOnboarding} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 
 type Props = {
   event: Event;
@@ -15,11 +13,12 @@ type Props = {
 };
 
 export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
-  const onboardingPanel = useReplayOnboardingSidebarPanel();
-  const component = useCallback(() => import('./replayContent'), []);
+  const showPanel = useShouldShowOnboarding();
+  const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
+  const replayPreview = useCallback(() => import('./replayPreview'), []);
 
-  if (onboardingPanel.enabled) {
-    return <ReplayOnboardingPanel {...onboardingPanel} />;
+  if (showPanel) {
+    return <LazyLoad component={onboardingPanel} />;
   }
 
   if (!replayId) {
@@ -29,7 +28,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
   return (
     <ErrorBoundary mini>
       <LazyLoad
-        component={component}
+        component={replayPreview}
         replaySlug={`${projectSlug}:${replayId}`}
         orgSlug={orgSlug}
         event={event}

@@ -15,7 +15,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useReplayOnboardingSidebarPanel from 'sentry/utils/replays/hooks/useReplayOnboardingSidebarPanel';
+import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +54,7 @@ function Replays({location}: Props) {
     eventView,
   });
 
-  const {enabled: shouldShowOnboardingPanel, activate: activateOnboardingSidebarPanel} =
+  const {enabled: shouldShowOnboardingPanel, activateSidebar} =
     useReplayOnboardingSidebarPanel();
 
   return (
@@ -71,7 +71,7 @@ function Replays({location}: Props) {
           <ReplaysFilters />
           {shouldShowOnboardingPanel ? (
             <ReplayOnboardingPanel>
-              <Button onClick={activateOnboardingSidebarPanel} priority="primary">
+              <Button onClick={activateSidebar} priority="primary">
                 {t('Get Started')}
               </Button>
               <Button
