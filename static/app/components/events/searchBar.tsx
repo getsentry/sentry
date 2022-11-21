@@ -73,7 +73,7 @@ const getMeasurementTags = (
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
     tags[key] = {
-      ...measurements[key],
+      ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
     };
     return tags;

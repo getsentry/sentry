@@ -16,6 +16,8 @@ from sentry.dynamic_sampling.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
+    Condition,
+    Inner,
     ReleaseRule,
     RuleType,
 )
@@ -23,7 +25,32 @@ from sentry.models import Project, Release
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz
-HEALTH_CHECK_GLOBS = ["*healthcheck*", "*healthy*", "*live*", "*ready*", "*heartbeat*", "*/health"]
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+]
+
+ALL_ENVIRONMENTS = "*"
+
+
+def _generate_environment_condition(environment: Optional[str]) -> Union[Condition, Inner]:
+    environment_condition = {
+        "op": "glob",
+        "name": "trace.environment",
+        "value": [environment if environment is not None else ALL_ENVIRONMENTS],
+    }
+
+    # In case we want to generate a rule for a trace without an environment we can use negations to express it as
+    # a trace that has an environment that doesn't match any environment.
+    if environment is None:
+        environment_condition = {"op": "not", "inner": environment_condition}  # type: ignore
+
+    return environment_condition  # type: ignore
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -91,10 +118,10 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
     boosted_releases_dict = {release.id: release.version for release in boosted_releases_objs}
 
     boosted_release_versions = []
-    for (release_id, timestamp) in boosted_release_in_cache:
+    for (release_id, environment, timestamp) in boosted_release_in_cache:
         if release_id not in boosted_releases_dict:
             continue
-        boosted_release_versions.append((boosted_releases_dict[release_id], timestamp))
+        boosted_release_versions.append((boosted_releases_dict[release_id], environment, timestamp))
 
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
     return cast(
@@ -111,7 +138,8 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             "op": "glob",
                             "name": "trace.release",
                             "value": [release_version],
-                        }
+                        },
+                        _generate_environment_condition(environment),
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
@@ -124,7 +152,9 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     ),
                 },
             }
-            for idx, (release_version, timestamp) in enumerate(boosted_release_versions)
+            for idx, (release_version, environment, timestamp) in enumerate(
+                boosted_release_versions
+            )
         ],
     )
 

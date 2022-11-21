@@ -195,7 +195,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             all_states = []
             disabled = True
 
-        fields = [
+        fields: list[dict[str, Any]] = [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",

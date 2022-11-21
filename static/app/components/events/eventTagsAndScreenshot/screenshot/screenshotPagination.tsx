@@ -1,72 +1,57 @@
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {ReactEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CursorHandler} from 'sentry/components/pagination';
+import {PanelHeader} from 'sentry/components/panels';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
-type Props = WithRouterProps & {
+type Props = {
   nextDisabled: boolean;
-  onCursor: CursorHandler;
+  onNext: ReactEventHandler;
+  onPrevious: ReactEventHandler;
   previousDisabled: boolean;
-  pageLinks?: string | null;
+  headerText?: string;
 };
 
-/*
-  HACK: Slight variation of the Pagination
-  component that allows the parent to control
-  enabling/disabling the pagination buttons.
-*/
 const ScreenshotPagination = ({
-  location,
-  onCursor,
-  pageLinks,
   previousDisabled,
   nextDisabled,
+  headerText,
+  onPrevious,
+  onNext,
 }: Props) => {
-  if (!pageLinks) {
-    return null;
-  }
-
-  const path = location.pathname;
-  const query = location.query;
-  const links = parseLinkHeader(pageLinks);
-
   return (
-    <Wrapper>
-      <ButtonBar merged>
-        <Button
-          icon={<IconChevron direction="left" size="sm" />}
-          aria-label={t('Previous')}
-          size="md"
-          disabled={previousDisabled}
-          onClick={() => {
-            onCursor?.(links.previous?.cursor, path, query, -1);
-          }}
-        />
-        <Button
-          icon={<IconChevron direction="right" size="sm" />}
-          aria-label={t('Next')}
-          size="md"
-          disabled={nextDisabled}
-          onClick={() => {
-            onCursor?.(links.next?.cursor, path, query, 1);
-          }}
-        />
-      </ButtonBar>
+    <Wrapper lightText>
+      <Button
+        icon={<IconChevron direction="left" size="xs" />}
+        aria-label={t('Previous')}
+        size="xs"
+        disabled={previousDisabled}
+        onClick={onPrevious}
+      />
+      <span data-test-id="pagination-header-text">{headerText}</span>
+      <Button
+        icon={<IconChevron direction="right" size="xs" />}
+        aria-label={t('Next')}
+        size="xs"
+        disabled={nextDisabled}
+        onClick={onNext}
+      />
     </Wrapper>
   );
 };
 
-const Wrapper = styled('div')`
+const Wrapper = styled(PanelHeader)`
+  margin: 0;
+  padding: 0;
+  border: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  margin: 0;
+  justify-content: space-between;
+  text-transform: none;
+  background: ${p => p.theme.background};
 `;
 
-export default withRouter(ScreenshotPagination);
+export default ScreenshotPagination;

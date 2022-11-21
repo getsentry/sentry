@@ -862,17 +862,59 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 100,
         }
 
+    def test_run_query_with_transactions_orderby(self):
+        for transaction_name in ["aaa", "zzz", "bbb"]:
+            self.store_transaction_metric(
+                100,
+                tags={"transaction": transaction_name},
+                project=self.project.id,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="-transaction",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 3
+        assert result["data"][0] == {
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "zzz",
+            ),
+            "project": self.project.id,
+            "p95_transaction_duration": 100,
+        }
+
+        assert result["data"][1] == {
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bbb",
+            ),
+            "project": self.project.id,
+            "p95_transaction_duration": 100,
+        }
+
+    # TODO: multiple groupby with counter
+
     def test_run_query_with_tag_orderby(self):
         with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
-                    "transaction",
+                    "title",
                     "project",
                     "p95(transaction.duration)",
                 ],
-                orderby="transaction",
+                orderby="title",
             )
             query.run_query("test_query")
 

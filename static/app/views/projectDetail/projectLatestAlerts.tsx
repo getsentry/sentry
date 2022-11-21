@@ -248,7 +248,7 @@ type StatusColorProps = {
 };
 
 const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
-  isResolved ? 'green300' : isWarning ? 'yellow300' : 'red300';
+  isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
 
 const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;

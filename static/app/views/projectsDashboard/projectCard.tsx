@@ -6,6 +6,7 @@ import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -318,12 +319,9 @@ const HeaderRow = styled('div')`
   color: ${p => p.theme.headingColor};
 `;
 
-const StyledProjectCard = styled('div')`
-  background-color: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
+const StyledProjectCard = styled(Panel)`
   min-height: 330px;
+  margin: 0;
 `;
 
 const FooterWrapper = styled('div')`
