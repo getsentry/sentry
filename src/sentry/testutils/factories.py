@@ -91,6 +91,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -254,6 +255,14 @@ class Factories:
         if owner:
             Factories.create_member(organization=org, user=owner, role="owner")
         return org
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_organization_mapping(org, **kwargs):
+        slug = kwargs.get("slug", org.slug)
+        kwargs["slug"] = slug
+        mapping = OrganizationMapping.objects.create(organization_id=org.id, **kwargs)
+        return mapping
 
     @staticmethod
     @exempt_from_silo_limits()
