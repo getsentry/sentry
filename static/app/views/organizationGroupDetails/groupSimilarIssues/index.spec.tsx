@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {
   render,
   renderGlobalModal,
@@ -9,6 +7,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GroupSimilarIssues from 'sentry/views/organizationGroupDetails/groupSimilarIssues';
+
+const MockNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => MockNavigate,
+}));
 
 describe('Issues Similar View', function () {
   let mock;
@@ -51,23 +54,6 @@ describe('Issues Similar View', function () {
     jest.clearAllMocks();
   });
 
-  it('renders initially with loading component', function () {
-    render(
-      <GroupSimilarIssues
-        project={project}
-        params={{orgId: 'org-slug', groupId: 'group-id'}}
-        location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
-      />,
-      {context: routerContext}
-    );
-
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-  });
-
   it('renders with mocked data', async function () {
     const wrapper = render(
       <GroupSimilarIssues
@@ -81,6 +67,8 @@ describe('Issues Similar View', function () {
       />,
       {context: routerContext}
     );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
     expect(wrapper.container).toSnapshot();
@@ -122,7 +110,7 @@ describe('Issues Similar View', function () {
       );
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(MockNavigate).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/321/similar/'
     );
   });

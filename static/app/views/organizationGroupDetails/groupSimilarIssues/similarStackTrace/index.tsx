@@ -75,7 +75,7 @@ function SimilarStackTrace({params, location, project}: Props) {
       loading,
       error,
     }) => {
-      if (similarItems) {
+      if (updatedSimilarItems) {
         setSimilarItems(updatedSimilarItems);
         setFilteredSimilarItems(updatedFilteredSimilarItems);
         setSimilarLinks(updatedSimilarLinks);
@@ -89,7 +89,7 @@ function SimilarStackTrace({params, location, project}: Props) {
         navigate(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
       }
     },
-    [navigate, similarItems, groupId, orgId]
+    [navigate, groupId, orgId]
   );
 
   useEffect(() => {
