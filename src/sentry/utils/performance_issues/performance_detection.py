@@ -949,8 +949,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans = []
 
     def _is_db_query(self, span: Span) -> bool:
-        op: str = span.get("op", "")
-        description: str = span.get("description", "")
+        op: str = span.get("op", "") or ""
+        description: str = span.get("description", "") or ""
         is_db_op = op == "db" or op.startswith("db.sql")
         is_query = "SELECT" in description.upper()  # TODO - make this more elegant
         return is_db_op and is_query
