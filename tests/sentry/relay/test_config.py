@@ -469,7 +469,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     for release, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            f"ds::r:{release}:e:prod",
+            release,
             timestamp,
         )
     with Feature(
@@ -528,14 +528,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["3.0"]},
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["prod"],
-                        },
-                    ],
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
                 },
                 "id": 1500,
                 "timeRange": {
@@ -549,14 +542,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["4.0"]},
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["prod"],
-                        },
-                    ],
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
                 },
                 "id": 1501,
                 "timeRange": {
@@ -570,14 +556,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["5.0"]},
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["prod"],
-                        },
-                    ],
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
                 },
                 "id": 1502,
                 "timeRange": {
@@ -591,14 +570,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["6.0"]},
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["prod"],
-                        },
-                    ],
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
                 },
                 "id": 1503,
                 "timeRange": {
@@ -612,14 +584,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["7.0"]},
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["prod"],
-                        },
-                    ],
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
                 },
                 "id": 1504,
                 "timeRange": {
