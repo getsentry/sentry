@@ -11,7 +11,9 @@ from sentry.utils import redis
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
 ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 ENVIRONMENT_SEPARATOR = ":e:"
-BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(r"^ds::r:(?P<release>\d+)(:e:(?P<environment>.+))?$")
+BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
+    r"^ds::r:(?P<release_id>\d+)(:e:(?P<environment>.+))?$"
+)
 
 
 class TooManyBoostedReleasesException(Exception):
@@ -68,10 +70,9 @@ def _extract_release_and_environment_from_cache_key(
     Extracts the release id and the environment from the cache key, in order to avoid storing the metadata also
     in the value field.
     """
-    match = BOOSTED_RELEASE_CACHE_KEY_REGEX.match(cache_key)
-    if match is not None:
+    if (match := BOOSTED_RELEASE_CACHE_KEY_REGEX.match(cache_key)) is not None:
         # If the cache key matches the new format, we will extract the necessary information.
-        release_id = match["release"]
+        release_id = match["release_id"]
         environment = match["environment"]
 
         if release_id and environment:
