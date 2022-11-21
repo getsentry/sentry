@@ -11,8 +11,6 @@ from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
 )
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -24,51 +22,60 @@ def test_outcomes_consumed():
 
     time = datetime(1985, 10, 26, 21, 00, 00)
     metrics_topic = Topic("snuba-generic-metrics")
-    counter_metric_id = indexer.resolve(
-        UseCaseKey.PERFORMANCE, 1, "d:transactions/duration@millisecond"
-    )
+    mapping = {
+        "a": {},
+        "b": {
+            "123": "d:transactions/duration@millisecond",
+            "456": "some_metric_name",
+        },
+    }
 
     buckets = [
         {  # Counter metric with wrong ID will not generate an outcome
-            "metric_id": 123,
+            "metric_id": 456,
             "type": "c",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 111,
             "value": 123.4,
+            "mapping_meta": mapping,
         },
         {  # Distribution metric with wrong ID will not generate an outcome
+            "metric_id": 456,
+            "type": "d",
+            "org_id": 1,
+            "project_id": 2,
+            "timestamp": 111,
+            "value": [1.0, 2.0],
+            "mapping_meta": mapping,
+        },
+        {  # Empty distribution will not generate an outcome
+            # NOTE: Should not be emitted by Relay anyway
             "metric_id": 123,
             "type": "d",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
-            "value": [1.0, 2.0],
-        },
-        {  # Empty distribution will not generate an outcome
-            # NOTE: Should not be emitted by Relay anyway
-            "metric_id": counter_metric_id,
-            "type": "d",
-            "org_id": 1,
-            "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 111,
             "value": [],
+            "mapping_meta": mapping,
         },
         {  # Valid distribution bucket emits an outcome
-            "metric_id": counter_metric_id,
+            "metric_id": 123,
             "type": "d",
             "org_id": 1,
             "project_id": 2,
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
+            "mapping_meta": mapping,
         },
         {  # Another bucket to introduce some noise
-            "metric_id": 123,
+            "metric_id": 456,
             "type": "c",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 111,
             "value": 123.4,
+            "mapping_meta": mapping,
         },
     ]
 
@@ -152,14 +159,19 @@ def test_outcomes_consumed():
 
 def test_consumer_backpressure():
     bucket = {
-        "metric_id": indexer.resolve(
-            UseCaseKey.PERFORMANCE, 1, "d:transactions/duration@millisecond"
-        ),
+        "metric_id": 123,
         "type": "d",
         "org_id": 1,
         "project_id": 2,
         "timestamp": 123456,
         "value": [1.0, 2.0, 3.0],
+        "mapping_meta": {
+            "a": {},
+            "b": {
+                "123": "d:transactions/duration@millisecond",
+                "456": "some_metric_name",
+            },
+        },
     }
     consumer = BillingTxCountMetricConsumerStrategy(commit=mock.Mock(), max_buffer_size=0)
 
