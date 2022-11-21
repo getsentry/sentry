@@ -5,14 +5,13 @@ import sentry_sdk
 from pytz import UTC
 
 from sentry import quotas
-from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_boosted_releases,
 )
 from sentry.dynamic_sampling.utils import (
-    BOOSTED_KEY_TRANSACTION_LIMIT,
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
     KEY_TRANSACTION_BOOST_FACTOR,
@@ -205,14 +204,7 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             )
             # Key Transaction boost
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
-                key_transactions = list(
-                    TeamKeyTransaction.objects.filter(
-                        organization_id=project.organization.id,
-                        project_team__project_id=project.id,
-                    )
-                    .values_list("transaction", flat=True)
-                    .distinct()[:BOOSTED_KEY_TRANSACTION_LIMIT]
-                )
+                key_transactions = get_key_transactions(project)
                 if key_transactions:
                     rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 

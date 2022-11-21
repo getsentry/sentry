@@ -88,9 +88,7 @@ class DiscoverSavedQuery(Model):
 class TeamKeyTransactionModelManager(BaseManager):
     @staticmethod
     def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
-        project = (
-            instance.project_team.project if hasattr(instance.project_team, "project") else None
-        )
+        project = getattr(instance.project_team, "project")
 
         if project is None:
             return
