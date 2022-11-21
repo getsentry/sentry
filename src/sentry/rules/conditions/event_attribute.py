@@ -5,8 +5,13 @@ from django import forms
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.condition_activity import ConditionActivity
+from sentry.types.condition_activity import (
+    DATASET_TO_COLUMN_NAME,
+    ConditionActivity,
+    get_dataset_columns,
+)
 
 # Maps attributes to snuba columns
 ATTR_CHOICES = {
@@ -273,7 +278,8 @@ class EventAttributeCondition(EventCondition):
     ) -> bool:
         try:
             attr = self.get_option("attribute").lower()
-            column = ATTR_CHOICES[attr].value.event_name
+            dataset = condition_activity.data["dataset"]
+            column = getattr(ATTR_CHOICES[attr].value, DATASET_TO_COLUMN_NAME[dataset])
             attribute_values = event_map[condition_activity.data["event_id"]][column]
 
             if isinstance(attribute_values, str):
@@ -287,9 +293,10 @@ class EventAttributeCondition(EventCondition):
         except (TypeError, KeyError):
             return False
 
-    def get_event_columns(self) -> Sequence[str]:
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
         attr = self.get_option("attribute")
         column = ATTR_CHOICES[attr]
         if column is None:
             raise NotImplementedError
-        return [column.value.event_name]
+        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns([column])
+        return columns
