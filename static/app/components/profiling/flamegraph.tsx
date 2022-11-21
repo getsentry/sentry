@@ -80,7 +80,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot, zoomIntoView} = useFlamegraphProfiles();
+  const {threadId, selectedRoot, zoomIntoFrame} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -166,9 +166,19 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       } else if (
         // When the profile changes, it may be because it finally loaded and if a zoom
         // was specified, this should be used as the initial view.
-        defined(zoomIntoView)
+        defined(zoomIntoFrame)
       ) {
-        newView.setConfigView(zoomIntoView);
+        const newConfigView = computeConfigViewWithStategy(
+          'min',
+          newView.configView,
+          new Rect(
+            zoomIntoFrame.start,
+            zoomIntoFrame.depth,
+            zoomIntoFrame.end - zoomIntoFrame.start,
+            1
+          )
+        );
+        newView.setConfigView(newConfigView);
         return newView;
       }
 
@@ -184,7 +194,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoView]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame]
   );
 
   useEffect(() => {

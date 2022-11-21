@@ -1,5 +1,4 @@
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 type SetProfilesThreadId = {
   payload: number;
@@ -21,10 +20,10 @@ type SetHighlightAllFrames = {
 
 type JumpToView = {
   payload: {
-    view: Rect;
+    frame: FlamegraphFrame;
     threadId?: number;
   };
-  type: 'jump to view';
+  type: 'jump to frame';
 };
 
 type FlamegraphProfilesAction =
@@ -37,7 +36,7 @@ export type FlamegraphProfiles = {
   highlightFrames: {name: string; package: string} | null;
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
-  zoomIntoView: Rect | null;
+  zoomIntoFrame: FlamegraphFrame | null;
 };
 
 export function flamegraphProfilesReducer(
@@ -59,15 +58,15 @@ export function flamegraphProfilesReducer(
       return {
         ...state,
         selectedRoot: null,
-        zoomIntoView: null,
+        zoomIntoFrame: null,
         threadId: action.payload,
       };
     }
-    case 'jump to view': {
+    case 'jump to frame': {
       return {
         ...state,
         threadId: action.payload.threadId ?? state.threadId,
-        zoomIntoView: action.payload.view,
+        zoomIntoFrame: action.payload.frame,
       };
     }
     default: {
