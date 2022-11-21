@@ -67,7 +67,12 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, float]]:
     expired_releases = []
     for release_id, timestamp in old_boosted_releases.items():
         if current_timestamp <= float(timestamp) + BOOSTED_RELEASE_TIMEOUT:
-            boosted_releases.append((int(release_id), float(timestamp)))
+            try:
+                # Compatibility fix for new keys "ds::r:1234:e:prod".
+                release_id = int(release_id)
+                boosted_releases.append((release_id, float(timestamp)))
+            except ValueError:
+                continue
         else:
             expired_releases.append(release_id)
 
