@@ -361,6 +361,7 @@ const RightAligned = styled('div')`
   display: block;
   flex-grow: 1;
   text-align: right;
+  padding-left: ${space(0.5)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
