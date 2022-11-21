@@ -38,6 +38,11 @@ describe('normalizeUrl', function () {
         '/acme/project-slug/getting-started/python',
         '/getting-started/project-slug/python',
       ],
+      ['/settings/projects/python/filters/', '/settings/projects/python/filters/'],
+      [
+        '/settings/projects/python/filters/discarded/',
+        '/settings/projects/python/filters/discarded/',
+      ],
     ];
     for (const scenario of cases) {
       result = normalizeUrl(scenario[0], location);
