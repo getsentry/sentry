@@ -4,12 +4,12 @@
 import {t} from 'sentry/locale';
 
 export enum PlatformCategory {
-  frontend,
-  mobile,
-  backend,
-  serverless,
-  desktop,
-  other,
+  FRONTEND,
+  MOBILE,
+  BACKEND,
+  SERVERLESS,
+  DESKTOP,
+  OTHER,
 }
 
 export const popularPlatformCategories = [

@@ -4,28 +4,35 @@ import {
   frontend,
   mobile,
   PlatformCategory,
+  PlatformKey,
   serverless,
 } from 'sentry/data/platformCategories';
-
-const platformCategoryMap = {};
-mobile.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.mobile));
-frontend.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.frontend));
-backend.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.backend));
-serverless.forEach(
-  platform => (platformCategoryMap[platform] = PlatformCategory.backend)
-);
-desktop.forEach(platform => (platformCategoryMap[platform] = PlatformCategory.backend));
 
 /**
  *
  * @param platform - a SDK platform, for example `node-express`, `javascript-react`
  * @returns - the platform category, for example `backend`, `serverless`
  */
-export function platformToCategory(platform: string | undefined): PlatformCategory {
-  if (!platform || !platformCategoryMap[platform]) {
-    return PlatformCategory.other;
+export function platformToCategory(platform: PlatformKey | undefined): PlatformCategory {
+  if (!platform) {
+    return PlatformCategory.OTHER;
   }
-  return platformCategoryMap[platform];
+  if (([...frontend] as string[]).includes(platform)) {
+    return PlatformCategory.FRONTEND;
+  }
+  if (([...backend] as string[]).includes(platform)) {
+    return PlatformCategory.BACKEND;
+  }
+  if (([...serverless] as string[]).includes(platform)) {
+    return PlatformCategory.SERVERLESS;
+  }
+  if (([...mobile] as string[]).includes(platform)) {
+    return PlatformCategory.MOBILE;
+  }
+  if (([...desktop] as string[]).includes(platform)) {
+    return PlatformCategory.DESKTOP;
+  }
+  return PlatformCategory.OTHER;
 }
 
 export function isNativePlatform(platform: string | undefined) {

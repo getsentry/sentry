@@ -117,23 +117,23 @@ const getPlatformColumns = (
   const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
 
   const categoryToColumnMap: {[key: string]: ColumnInfo} = {
-    [PlatformCategory.frontend]: {
+    [PlatformCategory.FRONTEND]: {
       fields: ['url', 'browser', ...replayField],
       columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
     },
-    [PlatformCategory.backend]: {
+    [PlatformCategory.BACKEND]: {
       fields: ['url', 'runtime'],
       columnTitles: [t('url'), t('runtime')],
     },
-    [PlatformCategory.mobile]: {
+    [PlatformCategory.MOBILE]: {
       fields: ['url'],
       columnTitles: [t('url')],
     },
-    [PlatformCategory.desktop]: {
+    [PlatformCategory.DESKTOP]: {
       fields: ['os'],
       columnTitles: [t('os')],
     },
-    [PlatformCategory.other]: {
+    [PlatformCategory.OTHER]: {
       fields: [],
       columnTitles: [],
     },
@@ -142,8 +142,8 @@ const getPlatformColumns = (
   let platformCategory = platformToCategory(platform);
 
   // backend end serverless have the same columns
-  if (platformCategory === PlatformCategory.serverless) {
-    platformCategory = PlatformCategory.backend;
+  if (platformCategory === PlatformCategory.SERVERLESS) {
+    platformCategory = PlatformCategory.BACKEND;
   }
 
   return categoryToColumnMap[platformCategory];
