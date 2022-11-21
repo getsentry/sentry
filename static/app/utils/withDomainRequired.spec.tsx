@@ -32,6 +32,7 @@ describe('normalizeUrl', function () {
       ['/settings/sentry/members/', '/settings/members/'],
       ['/organizations/albertos-apples/issues/', '/issues/'],
       ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
+      ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
     ];
     for (const scenario of cases) {
       result = normalizeUrl(scenario[0], location);
