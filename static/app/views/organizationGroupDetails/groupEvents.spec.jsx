@@ -234,14 +234,9 @@ describe('groupEvents', function () {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       const eventIdATag = screen.getByText('id123').closest('a');
-      const traceIdATag = screen.getByText('trace123').closest('a');
       expect(eventIdATag).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/1/events/id123/'
-      );
-      expect(traceIdATag).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/performance/trace/trace123/?'
       );
     });
 
@@ -468,6 +463,38 @@ describe('groupEvents', function () {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
+    });
+
+    it('requests for backend columns if backend project', async () => {
+      group.project.platform = 'node-express';
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.arrayContaining(['url', 'runtime']),
+          }),
+        })
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.not.arrayContaining(['browser']),
+          }),
+        })
+      );
     });
   });
 
