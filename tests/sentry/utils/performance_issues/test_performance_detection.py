@@ -884,7 +884,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_all_issue_count", 2),
                 call("_pi_sdk_name", ""),
                 call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
-                call("_pi_consecutive_db_fp", "1-GroupType.PERORMANCE_CONSECUTIVE_DB_OP"),
+                call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
                 call(
                     "_pi_consecutive_db",
                     {
@@ -958,7 +958,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_all_issue_count", 4),
                 call("_pi_sdk_name", "sentry.python"),
                 call("_pi_transaction", "aaaaaaaaaaaaaaaa"),
-                call("_pi_consecutive_db_fp", "1-GroupType.PERORMANCE_CONSECUTIVE_DB_OP"),
+                call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
                 call(
                     "_pi_consecutive_db",
                     {
