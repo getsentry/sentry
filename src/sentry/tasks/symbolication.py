@@ -203,18 +203,23 @@ def _do_symbolicate_event(
 
     symbolication_start_time = time()
 
-    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
-    submit_realtime_metrics = random.random() < submission_ratio
-
     def record_symbolication_duration():
         """
         Returns the symbolication duration so far, and optionally record the duration to the LPQ metrics if configured.
         """
         symbolication_duration = time() - symbolication_start_time
+
+        submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+        # we throw the dice on each record operation, otherwise an unlucky extremely slow event would never count
+        # towards the budget.
+        submit_realtime_metrics = random.random() < submission_ratio
         if submit_realtime_metrics:
             with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
                 try:
-                    realtime_metrics.record_project_duration(project_id, symbolication_duration)
+                    # we adjust the duration according to the `submission_ratio` so that the budgeting works
+                    # the same even considering sampling of metrics.
+                    recorded_duration = symbolication_duration / submission_ratio
+                    realtime_metrics.record_project_duration(project_id, recorded_duration)
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
         return symbolication_duration
