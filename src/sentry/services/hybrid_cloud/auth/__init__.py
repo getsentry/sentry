@@ -137,6 +137,10 @@ class AuthenticatedToken:
 
 @dataclass
 class AuthenticationContext:
+    """
+    The default of all values should be a valid, non authenticated context.
+    """
+
     auth: AuthenticatedToken | None = None
     user: APIUser | None = None
 

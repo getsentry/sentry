@@ -110,6 +110,8 @@ class DatabaseBackedAuthService(AuthService):
         handler: Any = RequestAuthenticationMiddleware()
         expired_user: User | None = None
         try:
+            # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
+            # called, from slightly different, middleware.
             handler.process_request(fake_request)
         except AuthUserPasswordExpired as e:
             expired_user = e.user
@@ -179,7 +181,7 @@ class FakeRequestDict:
     def __getitem__(self, item: str) -> str | bytes:
         result = self.d[item]
         if result is None:
-            raise KeyError(f"Key '{item}' does not exist")
+            raise KeyError(f"Key '{item!r}' does not exist")
         return result
 
     def __contains__(self, item: str) -> bool:
@@ -193,10 +195,22 @@ class FakeRequestDict:
 
 
 class FakeAuthenticationRequest:
+    """
+    Our authentication framework all speaks request objects -- it is not easily possible to replace all of the django
+    authentication helpers, backends, and other logic that is part of authentication, to speak some other sort of object,
+    or to be pure and simply return results.  They mutate "request" objects, and thus, we have to capture results by
+    "receiving" these mutations on a fake, generated context that is isolated for the purpose of calculating
+    authentication.  In some future, we may need or want to vendor our own custom authentication system so that, you
+    know, it returns pure results instead of expecting constantly to mutate full request objects, but hey! :shrug:.
+    """
+
     session: FakeRequestDict
     GET: FakeRequestDict
     POST: FakeRequestDict
     req: AuthenticationRequest
+
+    # These attributes are expected to be mutated when we call into the authentication middleware.  The result of those
+    # mutations becomes, the result of authentication.
     user: User | AnonymousUser | None
     user_from_signed_request: bool = False
     auth: Any
