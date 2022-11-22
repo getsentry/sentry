@@ -157,6 +157,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
         self.poll_producer(timeout)
         self.__commit_function(self.__produced_message_offsets)
+        self.__produced_message_offsets = {}
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         position = Position(message.next_offset, message.timestamp)
@@ -187,6 +188,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__producer.flush(timeout)
 
         self.__commit_function(self.__produced_message_offsets, force=True)
+        self.__produced_message_offsets = {}
 
 
 def get_streaming_metrics_consumer(
