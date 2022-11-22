@@ -60,7 +60,7 @@ function splitCrumbs({
   return crumbs.map((crumb, i) => (
     <SingleLinkSegment
       key={i}
-      path={firstUrl}
+      path={crumb.data?.to?.split('?')?.[0]}
       onClick={onClick ? () => onClick(crumb as Crumb) : null}
     />
   ));
@@ -82,11 +82,7 @@ function SingleLinkSegment({
     </Tooltip>
   );
   if (onClick) {
-    return (
-      <Link href="#" onClick={onClick}>
-        {content}
-      </Link>
-    );
+    return <Link onClick={onClick}>{content}</Link>;
   }
   return <Span>{content}</Span>;
 }
