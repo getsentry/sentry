@@ -81,8 +81,8 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
       );
 
       const counts = data.data.reduce((obj, record) => {
-        const key = record[fieldName];
-        const val = record['count_unique(replayId)'];
+        const key = record[fieldName] as string;
+        const val = record['count_unique(replayId)'] as number;
         obj[key] = val;
         return obj;
       }, zeroCounts);
