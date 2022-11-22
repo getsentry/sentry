@@ -85,14 +85,23 @@ def _update_lpq_eligibility(project_id: int) -> None:
     if exceeds_budget:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            _report_change(project_id=project_id, change="added", reason="budget")
+            _report_change(
+                project_id=project_id, change="added", reason="budget", used_budget=used_budget
+            )
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
-            _report_change(project_id=project_id, change="removed", reason="ineligible")
+            _report_change(
+                project_id=project_id,
+                change="removed",
+                reason="ineligible",
+                used_budget=used_budget,
+            )
 
 
-def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
+def _report_change(
+    project_id: int, change: Literal["added", "removed"], reason: str, used_budget: float
+) -> None:
     if not reason:
         reason = "unknown"
 
@@ -105,6 +114,7 @@ def _report_change(project_id: int, change: Literal["added", "removed"], reason:
         scope.set_level("warning")
         scope.set_tag("project", project_id)
         scope.set_tag("lpq_reason", reason)
+        scope.set_extra("used_budget", used_budget)
         sentry_sdk.capture_message(message)
 
 
