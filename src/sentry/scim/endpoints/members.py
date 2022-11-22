@@ -384,11 +384,13 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         else:
             role = organization.default_role
 
-        if role not in settings.SENTRY_SCIM_ALLOWED_ROLES:
-            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+        # Allow any role as long as it doesn't have `org:admin` permissions
+        allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
 
-        # Needed to stay compatible with allowed roles check in the serializer
-        allowed_roles = {roles.get(role) for role in settings.SENTRY_SCIM_ALLOWED_ROLES}
+        # Check for roles not found
+        # TODO: move this to the serializer verification
+        if role not in {role.id for role in allowed_roles}:
+            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
         serializer = OrganizationMemberSerializer(
             data={
@@ -409,6 +411,10 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 # we include conflict logic in the serializer, check to see if that was
                 # our error and if so, return a 409 so the scim IDP knows how to handle
                 raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+            if "role" in serializer.errors:
+                # TODO: Change this to an error pointing to a doc showing the workaround if they
+                # tried to provision an org admin
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
             raise SCIMApiError(detail=json.dumps(serializer.errors))
 
         result = serializer.validated_data

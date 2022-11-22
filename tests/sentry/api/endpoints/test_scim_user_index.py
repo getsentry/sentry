@@ -105,6 +105,17 @@ class SCIMMemberIndexTests(SCIMTestCase):
             assert member.role == "manager"
             member.delete()
 
+            # Empty org role -> default
+            CREATE_USER_POST_DATA["sentryOrgRole"] = ""
+            self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
+            member = OrganizationMember.objects.get(
+                organization=self.organization, email="test.user@okta.local"
+            )
+            assert member.role == self.organization.default_role
+            member.delete()
+
             # no sentry org role -> default
             del CREATE_USER_POST_DATA["sentryOrgRole"]
             self.get_success_response(
@@ -114,6 +125,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
                 organization=self.organization, email="test.user@okta.local"
             )
             assert member.role == self.organization.default_role
+            member.delete()
 
     def test_post_users_with_role_invalid(self):
         with self.feature({"organizations:scim-orgmember-roles": True}):
@@ -128,15 +140,14 @@ class SCIMMemberIndexTests(SCIMTestCase):
             }
 
             # Unallowed role
-            with self.settings(SENTRY_SCIM_ALLOWED_ROLES={"member"}):
-                CREATE_USER_POST_DATA["sentryOrgRole"] = "owner"
-                resp = self.get_error_response(
-                    self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
-                )
-                assert resp.data == {
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                    "detail": "Invalid organization role.",
-                }
+            CREATE_USER_POST_DATA["sentryOrgRole"] = "owner"
+            resp = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
+            )
+            assert resp.data == {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                "detail": "Invalid organization role.",
+            }
 
     def test_users_get_populated(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
