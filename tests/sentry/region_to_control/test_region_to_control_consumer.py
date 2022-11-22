@@ -48,9 +48,11 @@ def api_key(organization):
 def test_user_ip_event_with_deleted_user(region_to_control_strategy, user):
     message = make_message(
         {
-            "user_id": user.id,
-            "ip_address": "127.0.0.1",
-            "last_seen": datetime.datetime.now(),
+            "user_ip_event": {
+                "user_id": user.id,
+                "ip_address": "127.0.0.1",
+                "last_seen": datetime.datetime.now(),
+            }
         }
     )
     region_to_control_strategy.submit(message)
@@ -81,10 +83,12 @@ def test_region_to_control_with_deleted_user(region_to_control_strategy, user, o
 
     message = make_message(
         {
-            "actor": user,
-            "ip_address": "127.0.0.1",
-            "organization": organization,
-            "event": 0,
+            "audit_log_event": {
+                "actor_user_id": user.id,
+                "ip_address": "127.0.0.1",
+                "organization_id": organization.id,
+                "event": 0,
+            }
         }
     )
 
