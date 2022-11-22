@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 
@@ -31,7 +31,7 @@ describe('splitCrumbs', () => {
   const onClick = null;
   const startTimestampMs = 0;
 
-  it('should accept an empty list, and print that there are zero pages', async () => {
+  it('should accept an empty list, and print that there are zero pages', () => {
     const crumbs = [];
 
     const results = splitCrumbs({
@@ -42,10 +42,10 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(1);
 
     render(results[0]);
-    expect(await screen.findByText('0 Pages')).toBeInTheDocument();
+    expect(screen.getByText('0 Pages')).toBeInTheDocument();
   });
 
-  it('should accept one crumb and return that single segment', async () => {
+  it('should accept one crumb and return that single segment', () => {
     const crumbs = [PAGELOAD_CRUMB];
 
     const results = splitCrumbs({
@@ -56,10 +56,10 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(1);
 
     render(results[0]);
-    expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
   });
 
-  it('should accept three crumbs and return them all as individual segments', async () => {
+  it('should accept three crumbs and return them all as individual segments', () => {
     const crumbs = [PAGELOAD_CRUMB, NAV_CRUMB_BOOTSTRAP, NAV_CRUMB_UNDERSCORE];
 
     const results = splitCrumbs({
@@ -70,24 +70,24 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(3);
 
     render(results[0]);
-    expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
 
     render(results[1]);
     expect(
-      await screen.findByText(
+      screen.getByText(
         '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js'
       )
     ).toBeInTheDocument();
 
     render(results[2]);
     expect(
-      await screen.findByText(
+      screen.getByText(
         '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
       )
     ).toBeInTheDocument();
   });
 
-  it('should accept more than three crumbs and summarize the middle ones', async () => {
+  it('should accept more than three crumbs and summarize the middle ones', () => {
     const crumbs = [
       PAGELOAD_CRUMB,
       NAV_CRUMB_BOOTSTRAP,
@@ -104,20 +104,20 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(3);
 
     render(results[0]);
-    expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
 
     render(results[1]);
-    expect(await screen.findByText('3 Pages')).toBeInTheDocument();
+    expect(screen.getByText('3 Pages')).toBeInTheDocument();
 
     render(results[2]);
     expect(
-      await screen.findByText(
+      screen.getByText(
         '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
       )
     ).toBeInTheDocument();
   });
 
-  it('should show the summarized items on hover', async () => {
+  it('should show the summarized items on hover', () => {
     const crumbs = [
       PAGELOAD_CRUMB,
       {...NAV_CRUMB_BOOTSTRAP, id: 1},
@@ -134,10 +134,12 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(3);
 
     render(results[1]);
-    expect(await screen.findByText('3 Pages')).toBeInTheDocument();
-    expect(await screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getByText('3 Pages')).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
-    userEvent.hover(await screen.findByText('3 Pages'));
-    expect(await screen.findAllByRole('listitem')).toHaveLength(3);
+    userEvent.hover(screen.getByText('3 Pages'));
+    waitFor(() => {
+      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
   });
 });

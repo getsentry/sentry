@@ -7,7 +7,7 @@ import {CrumbWalker, StringWalker} from './urlWalker';
 
 describe('UrlWalker', () => {
   describe('StringWalker', () => {
-    it('should accept a list of strings and render a <ChevronDividedList />', async () => {
+    it('should accept a list of strings and render a <ChevronDividedList />', () => {
       const urls = [
         'https://sourcemaps.io/',
         '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
@@ -17,10 +17,10 @@ describe('UrlWalker', () => {
 
       render(<StringWalker urls={urls} />);
 
-      expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
-      expect(await screen.findByText('2 Pages')).toBeInTheDocument();
+      expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
+      expect(screen.getByText('2 Pages')).toBeInTheDocument();
       expect(
-        await screen.findByText(
+        screen.getByText(
           '/report/1669088971516_https%3A%2F%2Fcdn.ravenjs.com%2F3.17.0%2Fraven.min.js'
         )
       ).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('UrlWalker', () => {
       },
     }) as Crumb;
 
-    it('should accept a list of crumbs and render a <ChevronDividedList />', async () => {
+    it('should accept a list of crumbs and render a <ChevronDividedList />', () => {
       const crumbs = [
         PAGELOAD_CRUMB,
         NAV_CRUMB_BOOTSTRAP,
@@ -64,16 +64,16 @@ describe('UrlWalker', () => {
 
       render(<CrumbWalker crumbs={crumbs} replayRecord={replayRecord} />);
 
-      expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
-      expect(await screen.findByText('3 Pages')).toBeInTheDocument();
+      expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
+      expect(screen.getByText('3 Pages')).toBeInTheDocument();
       expect(
-        await screen.findByText(
+        screen.getByText(
           '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
         )
       ).toBeInTheDocument();
     });
 
-    it('should filter out non-navigation crumbs', async () => {
+    it('should filter out non-navigation crumbs', () => {
       const ERROR_CRUMB = TestStubs.Breadcrumb({
         type: BreadcrumbType.ERROR,
       });
@@ -81,7 +81,7 @@ describe('UrlWalker', () => {
       const crumbs = [ERROR_CRUMB];
 
       render(<CrumbWalker crumbs={crumbs} replayRecord={replayRecord} />);
-      expect(await screen.findByText('0 Pages')).toBeInTheDocument();
+      expect(screen.getByText('0 Pages')).toBeInTheDocument();
     });
   });
 });
