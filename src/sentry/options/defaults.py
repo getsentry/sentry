@@ -410,9 +410,7 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[])
 
-# Sample rate for opting in orgs into transaction metrics extraction.
-# NOTE: If this value is > 0.0, the extraction feature will be enabled for the
-#       given fraction of orgs even if the corresponding feature flag is disabled.
+# [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Sample rate for opting in orgs into the new transaction name handling.
