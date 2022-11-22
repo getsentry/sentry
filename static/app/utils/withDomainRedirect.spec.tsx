@@ -308,4 +308,70 @@ describe('withDomainRedirect', function () {
     expect(router.replace).toHaveBeenCalledTimes(1);
     expect(spyWithScope).toHaveBeenCalledTimes(1);
   });
+
+  it('redirect option that provides alternative redirect destination and preserves paths', function () {
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        replace: jest.fn(),
+        pathname: '/albertos-appls/money-making-app/getting-started/react-native',
+        search: '?q=123',
+        hash: '#hash',
+      },
+    });
+
+    const organization = TestStubs.Organization({
+      slug: 'albertos-apples',
+      features: ['customer-domains'],
+    });
+
+    const params = {
+      orgId: organization.slug,
+      projectId: 'money-making-app',
+      platform: 'react-native',
+    };
+    const {router, route, routerContext} = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        params,
+        routes: [
+          // /:orgId/:projectId/getting-started/:platform/
+          {path: '/', childRoutes: []},
+          {childRoutes: []},
+          {path: ':orgId/:projectId/getting-started/', indexRoute: {}, childRoutes: []},
+          {path: ':platform/', indexRoute: {}, childRoutes: []},
+        ],
+      },
+    });
+
+    const WrappedComponent = withDomainRedirect(MyComponent, {
+      redirect: [
+        {
+          from: '/:orgId/:projectId/getting-started/',
+          to: '/getting-started/:projectId/',
+        },
+      ],
+    });
+    const {container} = render(
+      <OrganizationContext.Provider value={organization}>
+        <WrappedComponent
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
+      </OrganizationContext.Provider>,
+      {context: routerContext}
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(router.replace).toHaveBeenCalledWith(
+      '/getting-started/money-making-app/react-native/?q=123#hash'
+    );
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(spyWithScope).toHaveBeenCalledTimes(1);
+  });
 });
