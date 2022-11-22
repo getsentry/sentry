@@ -23,6 +23,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
     @abstractmethod
     def create(
         self,
+        *,
         user: User,
         organization_id: int,
         slug: str,
@@ -49,6 +50,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     def create(
         self,
+        *,
         user: User,
         organization_id: int,
         slug: str,
@@ -103,6 +105,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 class APIBackedOrganizationMappingService(OrganizationMappingService):
     def create(
         self,
+        *,
         user: User,
         organization_id: int,
         slug: str,

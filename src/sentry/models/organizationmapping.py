@@ -19,8 +19,10 @@ class OrganizationMapping(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     slug = models.SlugField(unique=True)
+    # TODO(hybrid-cloud): Name is currently blank for all records. Updating an org name should happen for all applicable slugs.
+    name = models.CharField(max_length=64)
     created = models.DateTimeField(default=timezone.now)
-    stripe_id = models.CharField(max_length=255, db_index=True)
+    stripe_id = models.CharField(max_length=255, db_index=True, null=True)
     verified = models.BooleanField(default=False)
     # Creating an identical mapping should succeed, even if a record already exists
     # with this slug. We allow this IFF the idempotency key is identical

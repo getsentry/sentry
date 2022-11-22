@@ -60,11 +60,11 @@ class OrganizationMappingsEndpoint(Endpoint):
             try:
                 mapping = organization_mapping_service.create(
                     request.user,
-                    result.get("organization_id"),
-                    result.get("slug"),
-                    result.get("stripe_id"),
-                    result.get("idempotency_key"),
-                    result.get("region_name"),
+                    result["organization_id"],
+                    result["slug"],
+                    result["stripe_id"],
+                    result["idempotency_key"],
+                    result["region_name"],
                 )
                 return Response(serialize(mapping, request.user), status=201)
             except IntegrityError as e:
