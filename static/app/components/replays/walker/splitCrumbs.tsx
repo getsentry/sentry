@@ -82,6 +82,7 @@ function SingleLinkSegment({
     </Tooltip>
   );
   if (onClick) {
+    // TODO(replays): Add a href that deeplinks to `crumb.timestamp`
     return <Link onClick={onClick}>{content}</Link>;
   }
   return <Span>{content}</Span>;
