@@ -47,7 +47,8 @@ type Props = {
    */
   placeholder: string;
   project: Project;
-  incompatibleRule?: number | null;
+  incompatibleBanner?: number | null;
+  incompatibleRules?: number[] | null;
   ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
@@ -235,7 +236,8 @@ class RuleNodeList extends Component<Props> {
       disabled,
       error,
       selectType,
-      incompatibleRule,
+      incompatibleRules,
+      incompatibleBanner,
     } = this.props;
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
@@ -263,7 +265,8 @@ class RuleNodeList extends Component<Props> {
                 project={project}
                 disabled={disabled}
                 ownership={ownership}
-                incompatibleRule={incompatibleRule === idx}
+                incompatibleRule={incompatibleRules?.includes(idx)}
+                incompatibleBanner={incompatibleBanner === idx}
               />
             )
           )}

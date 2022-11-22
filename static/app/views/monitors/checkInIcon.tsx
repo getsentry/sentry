@@ -24,7 +24,7 @@ export default styled('div')<Props>`
             : p.status === 'ok'
             ? p.theme.success
             : p.status === 'missed'
-            ? p.theme.yellow300
+            ? p.theme.warning
             : p.theme.disabled
         };`};
 `;

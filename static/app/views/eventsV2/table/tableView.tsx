@@ -52,6 +52,7 @@ import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
+import {ContextType, QuickContextHoverWrapper} from './quickContext';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
@@ -113,7 +114,8 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location, isHomepage} = this.props;
+    const {organization, eventView, tableData, location, isHomepage, projects} =
+      this.props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -182,12 +184,31 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         isHomepage,
       });
 
+      const eventIdLink = (
+        <StyledLink data-test-id="view-event" to={target}>
+          {value}
+        </StyledLink>
+      );
+
+      if (!organization.features.includes('discover-quick-context')) {
+        return [
+          <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+            {eventIdLink}
+          </Tooltip>,
+        ];
+      }
+
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-          <StyledLink data-test-id="view-event" to={target}>
-            {value}
-          </StyledLink>
-        </Tooltip>,
+        <QuickContextHoverWrapper
+          key={`quickContextEventHover${rowIndex}`}
+          dataRow={dataRow}
+          contextType={ContextType.EVENT}
+          organization={organization}
+          projects={projects}
+          eventView={eventView}
+        >
+          {eventIdLink}
+        </QuickContextHoverWrapper>,
       ];
     }
     return [];

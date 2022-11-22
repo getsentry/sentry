@@ -8,7 +8,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagWithTopValues} from 'sentry/types';
+import {Project, TagWithTopValues} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -129,7 +129,12 @@ export default function TagFacetsBars({
               );
             })}
           </StyledButtonBar>
-          <BreakdownBars data={points} maxItems={MAX_ITEMS} />
+          <BreakdownBars
+            tag={state.selectedTag}
+            data={points}
+            maxItems={MAX_ITEMS}
+            project={project}
+          />
           <Button
             size="xs"
             to={getTagUrl(organization.slug, groupId)}
@@ -174,9 +179,12 @@ type Props = {
    */
   data: Point[];
   maxItems?: number;
+  project?: Project;
+  tag?: string;
 };
 
-function BreakdownBars({data, maxItems}: Props) {
+function BreakdownBars({data, maxItems, project, tag}: Props) {
+  const organization = useOrganization();
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
@@ -198,6 +206,17 @@ function BreakdownBars({data, maxItems}: Props) {
             <Link
               to={point.url}
               aria-label={t('Add %s to the search query', point.label)}
+              onClick={() => {
+                if (tag && project) {
+                  trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+                    tag,
+                    value: point.label,
+                    platform: project.platform,
+                    is_mobile: isMobilePlatform(project?.platform),
+                    organization,
+                  });
+                }
+              }}
             >
               {bar}
             </Link>

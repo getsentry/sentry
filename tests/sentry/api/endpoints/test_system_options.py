@@ -80,6 +80,12 @@ class SystemOptionsTest(APITestCase):
             assert response.status_code == 400
             assert response.data["error"] == "immutable_option"
 
+    def test_allowed_option_without_permission(self):
+        self.login_as(user=self.user, superuser=True)
+        response = self.client.put(self.url, {"system.admin-email": "new_admin@example.com"})
+        assert response.status_code == 200
+        assert options.get("system.admin-email") == "new_admin@example.com"
+
     def test_put_simple(self):
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")

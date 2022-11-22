@@ -145,6 +145,9 @@ type DefaultProps = {
    * their definitions may not overlap.
    */
   fieldDefinitionGetter: (key: string) => FieldDefinition | null;
+  id: string;
+  includeLabel: boolean;
+  name: string;
   /**
    * Called when the user makes a search
    */
@@ -317,9 +320,12 @@ type State = {
 
 class SmartSearchBar extends Component<DefaultProps & Props, State> {
   static defaultProps = {
+    id: 'smart-search-input',
+    includeLabel: true,
     defaultQuery: '',
     query: null,
     onSearch: function () {},
+    name: 'query',
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
@@ -1731,6 +1737,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {
       api,
       className,
+      id,
       savedSearchType,
       dropdownClassName,
       actionBarItems,
@@ -1738,9 +1745,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       placeholder,
       disabled,
       useFormWrapper,
+      includeLabel,
       inlineLabel,
       maxQueryLength,
       maxMenuHeight,
+      name,
       customPerformanceMetrics,
       supportedTags,
     } = this.props;
@@ -1759,9 +1768,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       <SearchInput
         type="text"
         placeholder={placeholder}
-        id="smart-search-input"
+        id={id}
         data-test-id="smart-search-input"
-        name="query"
+        name={name}
         ref={this.searchInput}
         autoComplete="off"
         value={query}
@@ -1817,10 +1826,16 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           visibleShortcuts={visibleShortcuts}
           runShortcut={this.runShortcutOnHotkeyPress}
         />
-        <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <IconSearch />
-          {inlineLabel}
-        </SearchLabel>
+        {includeLabel ? (
+          <SearchLabel htmlFor={id} aria-label={t('Search events')}>
+            <IconSearch />
+            {inlineLabel}
+          </SearchLabel>
+        ) : (
+          <SearchIconContainer>
+            <IconSearch />
+          </SearchIconContainer>
+        )}
 
         <InputWrapper>
           <Highlight>
@@ -1944,6 +1959,13 @@ const Container = styled('div')<{inputHasFocus: boolean}>`
     border-color: ${p.theme.focusBorder};
     box-shadow: 0 0 0 1px ${p.theme.focusBorder};
   `}
+`;
+
+const SearchIconContainer = styled('div')`
+  display: flex;
+  padding: ${space(0.5)} 0;
+  margin: 0;
+  color: ${p => p.theme.gray300};
 `;
 
 const SearchLabel = styled('label')`

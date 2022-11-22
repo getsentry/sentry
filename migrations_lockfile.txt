@@ -6,5 +6,5 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0341_reconstrain_savedsearch_pinning_fields
+sentry: 0343_drop_savedsearch_userdefault_fk_constraints_and_remove_state
 social_auth: 0001_initial

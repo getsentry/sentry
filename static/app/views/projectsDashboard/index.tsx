@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import LazyLoad from 'react-lazyload';
+import LazyLoad, {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -21,8 +21,9 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
-import {Organization, TeamWithProjects} from 'sentry/types';
+import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
@@ -39,6 +40,37 @@ type Props = {
   organization: Organization;
   teams: TeamWithProjects[];
 } & RouteComponentProps<{orgId: string}, {}>;
+
+function ProjectCardList({projects}: {projects: Project[]}) {
+  const organization = useOrganization();
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  // By default react-lazyload will only check for intesecting components on scroll
+  // This forceCheck call is necessary to recalculate when filtering projects
+  useEffect(() => {
+    forceCheck();
+  }, [projects]);
+
+  return (
+    <ProjectCards>
+      {sortProjects(projects).map(project => (
+        <LazyLoad
+          debounce={50}
+          height={330}
+          offset={400}
+          unmountIfInvisible
+          key={project.slug}
+        >
+          <ProjectCard
+            data-test-id={project.slug}
+            project={project}
+            hasProjectAccess={hasProjectAccess}
+          />
+        </LazyLoad>
+      ))}
+    </ProjectCards>
+  );
+}
 
 function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
   useEffect(() => {
@@ -62,7 +94,6 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
 
   const canCreateProjects = organization.access.includes('project:admin');
   const canJoinTeam = organization.access.includes('team:read');
-  const hasProjectAccess = organization.access.includes('project:read');
 
   const selectedTeams = getTeamParams(location ? location.query.team : '');
   const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
@@ -163,18 +194,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   query={projectQuery}
                 />
               </SearchAndSelectorWrapper>
-              <LazyLoad once debounce={50} height={300} offset={300}>
-                <ProjectCards>
-                  {sortProjects(filteredProjects).map(project => (
-                    <ProjectCard
-                      data-test-id={project.slug}
-                      key={project.slug}
-                      project={project}
-                      hasProjectAccess={hasProjectAccess}
-                    />
-                  ))}
-                </ProjectCards>
-              </LazyLoad>
+              <ProjectCardList projects={filteredProjects} />
             </Layout.Main>
           </Body>
           {showResources && <Resources organization={organization} />}

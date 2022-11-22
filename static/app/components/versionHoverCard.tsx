@@ -96,20 +96,7 @@ class VersionHoverCard extends Component<Props, State> {
     }
 
     return {
-      header: (
-        <HeaderWrapper>
-          {t('Release')}
-          <VersionWrapper>
-            <StyledVersion version={releaseVersion} truncate anchor={false} />
-
-            <Clipboard value={releaseVersion}>
-              <ClipboardIconWrapper>
-                <IconCopy size="xs" />
-              </ClipboardIconWrapper>
-            </Clipboard>
-          </VersionWrapper>
-        </HeaderWrapper>
-      ),
+      header: <VersionHoverHeader releaseVersion={releaseVersion} />,
       body: (
         <div>
           <div className="row">
@@ -187,6 +174,29 @@ class VersionHoverCard extends Component<Props, State> {
       <Hovercard {...this.props} header={header} body={body}>
         {this.props.children}
       </Hovercard>
+    );
+  }
+}
+
+interface VersionHoverHeaderProps {
+  releaseVersion: string;
+}
+
+export class VersionHoverHeader extends Component<VersionHoverHeaderProps> {
+  render() {
+    return (
+      <HeaderWrapper>
+        {t('Release')}
+        <VersionWrapper>
+          <StyledVersion version={this.props.releaseVersion} truncate anchor={false} />
+
+          <Clipboard value={this.props.releaseVersion}>
+            <ClipboardIconWrapper>
+              <IconCopy data-test-id="version-hover-header-copy-icon" size="xs" />
+            </ClipboardIconWrapper>
+          </Clipboard>
+        </VersionWrapper>
+      </HeaderWrapper>
     );
   }
 }

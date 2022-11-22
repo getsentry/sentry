@@ -30,7 +30,7 @@ export function EventTags({event, organization, projectId, location}: Props) {
   }
 
   const orgSlug = organization.slug;
-  const streamPath = `/organizations/${orgSlug}/issues/?referrer=event-tags`;
+  const streamPath = `/organizations/${orgSlug}/issues/`;
 
   return (
     <StyledClippedBox clipHeight={150}>
@@ -41,7 +41,7 @@ export function EventTags({event, organization, projectId, location}: Props) {
             tag={tag}
             projectId={projectId}
             organization={organization}
-            query={generateQueryWithTag(location.query, tag)}
+            query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
             streamPath={streamPath}
             meta={meta?.[index]}
           />

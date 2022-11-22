@@ -10,6 +10,7 @@ import {
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import toArray from 'sentry/utils/toArray';
 
 import {CommonStoreDefinition} from './types';
 
@@ -228,7 +229,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   setStateForId(map, idOrIds, newState) {
-    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    const ids = toArray(idOrIds);
 
     return ids.map(id => {
       const state = (map.has(id) && map.get(id)) || {};

@@ -207,12 +207,12 @@ class TestExcessiveEventDuration:
         assert not excessive_event_duration(project_id=1, durations=durations)
 
     def test_normal_rate_normal_duration(self) -> None:
-        # 1 event/s for 3m, 1-5m durations
+        # 1 event/s for 3m, 1-15s durations
         histograms = []
         for _ in range(10 * 6 * 3):
             hist = DurationsHistogram(bucket_size=10)
-            hist.incr(duration=60, count=5)
-            hist.incr(duration=180, count=5)
+            hist.incr(duration=1, count=5)
+            hist.incr(duration=15, count=5)
             histograms.append(hist)
         durations = BucketedDurationsHistograms(timestamp=0, width=10, histograms=histograms)
 

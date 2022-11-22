@@ -13,6 +13,7 @@ import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Plugin, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
 import AsyncView from 'sentry/views/asyncView';
@@ -213,7 +214,12 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
                   </div>
                 )}
                 <dt>{t('Version')}</dt>
-                <dd>{pluginDetails.version}</dd>
+                <dd>
+                  {getDynamicText({
+                    value: pluginDetails.version,
+                    fixed: '1.0.0',
+                  })}
+                </dd>
               </dl>
 
               {pluginDetails.description && (

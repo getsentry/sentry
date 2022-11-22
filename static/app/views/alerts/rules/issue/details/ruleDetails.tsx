@@ -191,7 +191,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     const incompatibleRule = findIncompatibleRules(this.state.rule);
     if (
-      incompatibleRule.type !== 'none' &&
+      (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) &&
       this.props.organization.features.includes('issue-alert-incompatible-rules')
     ) {
       return (

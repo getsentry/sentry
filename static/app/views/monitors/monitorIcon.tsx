@@ -18,7 +18,7 @@ export default styled('div')<{size: number; status: Status}>`
             : p.status === 'ok'
             ? p.theme.success
             : p.status === 'missed_checkin'
-            ? p.theme.yellow300
+            ? p.theme.warning
             : p.theme.disabled
         };`};
 `;

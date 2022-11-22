@@ -56,7 +56,12 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery, OrderBy
+from sentry.snuba.metrics.query import (
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
+)
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
@@ -529,7 +534,7 @@ def run_sessions_query(
             # We only return the top-N groups, based on the first field that is being
             # queried, assuming that those are the most relevant to the user.
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
-            orderby = OrderBy(primary_metric_field, Direction.DESC)
+            orderby = MetricOrderByField(field=primary_metric_field, direction=Direction.DESC)
 
     orderby_sequence = None
     if orderby is not None:
@@ -802,7 +807,7 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
 
 def _parse_orderby(
     query: QueryDefinition, fields: Mapping[SessionsQueryFunction, Field]
-) -> Optional[OrderBy]:
+) -> Optional[MetricOrderByField]:
     orderbys = query.raw_orderby
     if orderbys == []:
         return None
@@ -842,7 +847,7 @@ def _parse_orderby(
         # This can still happen when we filter by session.status
         raise InvalidParams(f"Cannot order by {field.name} with the current filters")
 
-    return OrderBy(field.metric_fields[0], direction)
+    return MetricOrderByField(field.metric_fields[0], direction)
 
 
 def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> MetricField:

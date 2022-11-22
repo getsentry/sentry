@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,7 +31,7 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):  # ty
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> StreamingHttpResponse:
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
