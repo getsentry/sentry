@@ -50,29 +50,6 @@ def get_link(
     return result
 
 
-def generate_context(parameters: Mapping[str, str]) -> Mapping[str, Optional[str]]:
-    return {
-        "file": parameters.get("file"),
-        "commit_id": parameters.get("commitId"),
-        "platform": parameters.get("platform"),
-        "sdk_name": parameters.get("sdkName"),
-        "abs_path": parameters.get("absPath"),
-        "module": parameters.get("module"),
-        "package": parameters.get("package"),
-    }
-
-
-def get_integrations(organization_id: int, user: str) -> Sequence[str]:
-    integrations = Integration.objects.filter(organizations=organization_id)
-    # TODO(meredith): should use get_provider.has_feature() instead once this is
-    # no longer feature gated and is added as an IntegrationFeature
-    return [
-        serialize(i, user)
-        for i in integrations
-        if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
-    ]
-
-
 def set_top_tags(scope: Scope, project: Project) -> None:
     scope.set_tag("project.slug", project.slug)
     scope.set_tag("organization.slug", project.organization.slug)
@@ -85,6 +62,20 @@ def set_top_tags(scope: Scope, project: Project) -> None:
 
 # This is to support mobile languages with non-fully-qualified file pathing.
 # We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
+def generate_mobile_frame(parameters: Any) -> Any:
+    abs_path = parameters.get("absPath")
+    module = parameters.get("module")
+    package = parameters.get("package")
+    frame = {}
+    if abs_path:
+        frame["abs_path"] = abs_path
+    if module:
+        frame["module"] = module
+    if package:
+        frame["package"] = package
+    return frame
+
+
 def try_path_munging(
     config: RepositoryProjectPathConfig, ctx: Mapping[str, Optional[str]]
 ) -> Mapping[str, str]:
