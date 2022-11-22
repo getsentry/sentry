@@ -25,6 +25,8 @@ describe('normalizeUrl', function () {
       // input, expected
       ['/settings/organization', '/settings/organization'],
       ['/settings/sentry/members/', '/settings/members/'],
+      ['/settings/sentry/members/3/', '/settings/members/3/'],
+      ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
       ['/settings/account/security/', '/settings/account/security/'],
       ['/settings/account/details/', '/settings/account/details/'],
       ['/organizations/new', '/organizations/new'],
