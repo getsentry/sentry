@@ -430,7 +430,7 @@ const Name = styled('div')`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.dangerText};
   margin-right: ${space(1)};
 `;
 

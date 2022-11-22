@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import toArray from 'sentry/utils/toArray';
 import {
   Dataset,
   Datasource,
@@ -192,9 +193,5 @@ export function getTeamParams(team?: string | string[]): string[] {
     return [];
   }
 
-  if (Array.isArray(team)) {
-    return team;
-  }
-
-  return [team];
+  return toArray(team);
 }

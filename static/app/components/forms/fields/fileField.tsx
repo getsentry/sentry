@@ -1,8 +1,17 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import FormField from 'sentry/components/forms/formField';
-import Input from 'sentry/components/input';
+import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import FormModel from 'sentry/components/forms/model';
+import {
+  Input,
+  InputGroup,
+  InputLeadingItems,
+  InputTrailingItems,
+} from 'sentry/components/inputGroup';
+import {t} from 'sentry/locale';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import {InputFieldProps} from './inputField';
@@ -21,19 +30,19 @@ export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'>
 // Until that is done though if you try to submit the form while this is uploading
 // you will just submit the form without the field.
 
-export default function FileField({accept, ...props}: FileFieldProps) {
-  const [isUploading, setUploading] = useState(false);
-
-  const handleFile = (onChange, e) => {
+export default function FileField({accept, hideControlState, ...props}: FileFieldProps) {
+  const [fileName, setFileName] = useState('');
+  const handleFile = (model, name, onChange, e) => {
     const file = e.target.files[0];
 
     const reader = new FileReader();
-    setUploading(true);
+    model.setSaving(name, true);
     reader.addEventListener(
       'load',
       () => {
+        setFileName(file.name);
         onChange([file.name, (reader.result as string).split(',')[1]], e);
-        setUploading(false);
+        model.setSaving(name, false);
       },
       false
     );
@@ -41,22 +50,62 @@ export default function FileField({accept, ...props}: FileFieldProps) {
   };
 
   return (
-    <FormField {...props}>
-      {({children: _children, onChange, ...fieldProps}) => (
-        <Fragment>
-          <Input
-            {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
-            type="file"
-            accept={accept?.join(', ')}
-            onChange={e => handleFile(onChange, e)}
-          />
-          {isUploading ? (
-            <div>This is a janky upload indicator. Wait to hit save!</div>
-          ) : (
-            ''
-          )}
-        </Fragment>
-      )}
+    <FormField {...props} hideControlState>
+      {({
+        children: _children,
+        onChange,
+        name,
+        model,
+        ...fieldProps
+      }: {
+        children: React.ReactNode;
+        model: FormModel;
+        name: string;
+        onChange: (value, event?: React.FormEvent<HTMLInputElement>) => void;
+      }) => {
+        return (
+          <InputGroup>
+            <InputLeadingItems disablePointerEvents>
+              <FileName hasFile={!!fileName}>
+                {fileName || t('No file selected')}
+              </FileName>
+            </InputLeadingItems>
+            <FileInput
+              {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
+              type="file"
+              name={name}
+              accept={accept?.join(', ')}
+              onChange={e => handleFile(model, name, onChange, e)}
+            />
+            {!hideControlState && (
+              <InputTrailingItems disablePointerEvents>
+                <FormFieldControlState name={name} model={model} />
+                <BrowseIndicator>Browse</BrowseIndicator>
+              </InputTrailingItems>
+            )}
+          </InputGroup>
+        );
+      }}
     </FormField>
   );
 }
+
+const FileName = styled('span')<{hasFile: boolean}>`
+  color: ${p => (p.hasFile ? p.theme.textColor : p.theme.subText)};
+`;
+
+const BrowseIndicator = styled('span')`
+  color: ${p => p.theme.activeText};
+`;
+
+const FileInput = styled(Input)`
+  cursor: pointer;
+  color: transparent;
+
+  ::file-selector-button {
+    display: none;
+  }
+  ::-webkit-file-upload-button {
+    display: none;
+  }
+`;

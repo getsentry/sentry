@@ -3,6 +3,15 @@
 
 import {t} from 'sentry/locale';
 
+export enum PlatformCategory {
+  FRONTEND,
+  MOBILE,
+  BACKEND,
+  SERVERLESS,
+  DESKTOP,
+  OTHER,
+}
+
 export const popularPlatformCategories = [
   'javascript',
   'javascript-react',
@@ -205,6 +214,26 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
 ]);
+
+export const profiling = [
+  // mobile
+  'android',
+  'apple-ios',
+  // nodejs
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  // python, WSGI only
+  'python',
+  'python-django',
+  'python-flask',
+  'python-sanic',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+];
 
 export const releaseHealth: PlatformKey[] = [
   // frontend

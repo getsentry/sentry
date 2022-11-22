@@ -5,7 +5,6 @@ import {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalytics
 import {IntegrationView} from './index';
 
 export enum StacktraceLinkEvents {
-  RECONFIGURE_SETUP = 'integrations.reconfigure_stacktrace_setup',
   COMPLETE_SETUP = 'integrations.stacktrace_complete_setup',
   OPEN_DOCS = 'integrations.stacktrace_docs_clicked',
   OPEN_LINK = 'integrations.stacktrace_link_clicked',
@@ -32,7 +31,6 @@ export type StacktraceLinkEventParameters = {
 };
 
 export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string> = {
-  [StacktraceLinkEvents.RECONFIGURE_SETUP]: 'Integrations: Reconfigure Stacktrace Setup',
   [StacktraceLinkEvents.COMPLETE_SETUP]: 'Integrations: Stacktrace Complete Setup',
   [StacktraceLinkEvents.OPEN_DOCS]: 'Integrations: Stacktrace Docs Clicked',
   [StacktraceLinkEvents.OPEN_LINK]: 'Integrations: Stacktrace Link Clicked',

@@ -13,6 +13,8 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -1307,6 +1309,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
+        self.wait_for_metric_count(
+            self.project,
+            1,
+            metric="measurements.something_custom",
+            mri="d:transactions/measurements.something_custom@millisecond",
+        )
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -1400,6 +1408,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
+        self.wait_for_metric_count(
+            self.project,
+            1,
+            metric=TransactionMetricKey.MEASUREMENTS_CLS.value,
+            mri=TransactionMRI.MEASUREMENTS_CLS.value,
+        )
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -1576,6 +1590,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_environment_query(self):
+        self.features["organizations:use-metrics-layer"] = True
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
             1,
@@ -1603,6 +1618,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
+        self.wait_for_metric_count(self.project, 2)
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -1640,6 +1656,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
+        self.wait_for_metric_count(self.project, 2)
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
@@ -1730,6 +1747,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["apdex()"] == "number"
 
     def test_apdex_project_threshold(self):
+        self.features["organizations:use-metrics-layer"] = True
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -1913,6 +1931,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "per_page": 50,
         }
 
+        self.wait_for_metric_count(self.project, 3)
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1

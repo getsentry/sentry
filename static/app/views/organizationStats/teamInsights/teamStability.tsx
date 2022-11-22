@@ -24,7 +24,7 @@ import {
 } from 'sentry/types';
 import {formatFloat} from 'sentry/utils/formatters';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -210,7 +210,7 @@ class TeamStability extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
+      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
         {`${round(Math.abs(trend), 3)}\u0025`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
       </SubText>
@@ -326,6 +326,6 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

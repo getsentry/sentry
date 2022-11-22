@@ -182,4 +182,36 @@ describe('Modals -> ScreenshotModal', function () {
     // This pagination doesn't use page links
     expect(getAttachmentsMock).not.toHaveBeenCalled();
   });
+
+  it('does not render pagination buttons when only one screenshot', function () {
+    const eventAttachment = TestStubs.EventAttachment();
+    const attachments = [eventAttachment];
+    render(
+      <Modal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        onDelete={jest.fn()}
+        onDownload={jest.fn()}
+        orgSlug={initialData.organization.slug}
+        projectSlug={project.slug}
+        eventAttachment={eventAttachment}
+        downloadUrl=""
+        attachments={attachments}
+        attachmentIndex={0}
+        groupId="group-id"
+        enablePagination
+      />,
+      {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      }
+    );
+
+    expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pagination-header-text')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
 });

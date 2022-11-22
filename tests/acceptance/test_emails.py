@@ -23,7 +23,6 @@ EMAILS = (
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
-    ("/debug/mail/report/", "report"),
     ("/debug/mail/mfa-added/", "mfa added"),
     ("/debug/mail/mfa-removed/", "mfa removed"),
     ("/debug/mail/recovery-codes-regenerated/", "recovery codes regenerated"),

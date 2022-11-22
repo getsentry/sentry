@@ -1,51 +1,116 @@
-from typing import Any, Mapping, Optional, Tuple
+import logging
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import configure_scope
+from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Integration, RepositoryProjectPathConfig
+from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.json import JSONData
+
+logger = logging.getLogger(__name__)
 
 
 def get_link(
-    config: RepositoryProjectPathConfig, filepath: str, default: str, version: Optional[str] = None
-) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
+) -> Dict[str, str]:
+    result = {}
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    link, attempted_url, error = None, None, None
+    link = None
     try:
-        link = install.get_stacktrace_link(config.repository, formatted_path, default, version)
+        link = install.get_stacktrace_link(
+            config.repository, formatted_path, config.default_branch, version
+        )
+
     except ApiError as e:
         if e.code != 403:
             raise
-        error = "integration_link_forbidden"
+        result["error"] = "integration_link_forbidden"
 
     # If the link was not found, attach the URL that we attempted.
-    if not link:
-        error = error or "file_not_found"
-        attempted_url = install.format_source_url(config.repository, formatted_path, default)
-    return link, attempted_url, error
+    if link:
+        result["sourceUrl"] = link
+    else:
+        result["error"] = result.get("error") or "file_not_found"
+        result["attemptedUrl"] = install.format_source_url(
+            config.repository, formatted_path, config.default_branch
+        )
+
+    return result
+
+
+# This is to support mobile languages with non-fully-qualified file pathing.
+# We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
+def generate_mobile_frame(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
+    abs_path = parameters.get("absPath")
+    module = parameters.get("module")
+    package = parameters.get("package")
+    frame = {}
+    if abs_path:
+        frame["abs_path"] = abs_path
+    if module:
+        frame["module"] = module
+    if package:
+        frame["package"] = package
+    return frame
+
+
+def set_top_tags(scope: Scope, project: Project) -> None:
+    scope.set_tag("project.slug", project.slug)
+    scope.set_tag("organization.slug", project.organization.slug)
+    try:
+        ea_org: bool = project.organization.flags.early_adopter.is_set
+        scope.set_tag("organization.early_adopter", ea_org)
+    except Exception:
+        # If errors arise we can then follow up with a fix
+        logger.exception("We failed to set the early adopter flag")
+
+
+def try_path_munging(
+    config: RepositoryProjectPathConfig,
+    filepath: str,
+    mobile_frame: Mapping[str, Optional[str]],
+    ctx: Mapping[str, Optional[str]],
+) -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    mobile_frame["filename"] = filepath  # type: ignore
+    munged_frames = munged_filename_and_frames(
+        str(ctx["platform"]), [mobile_frame], "munged_filename", sdk_name=str(ctx["sdk_name"])
+    )
+    if munged_frames:
+        munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
+        munged_filename = str(munged_frame.get("munged_filename"))
+        if munged_filename:
+            if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
+                config.stack_root
+            ):
+                result = {"error": "stack_root_mismatch"}
+            else:
+                result = get_link(config, munged_filename, ctx["commit_id"])
+
+    return result
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the
     provider of their choice.
 
-    `filepath`: The file path from the stack trace
+    `file`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
     `sdkName` (optional): The sdk.name associated with the event
@@ -55,26 +120,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        commit_id = request.GET.get("commitId")
-        platform = request.GET.get("platform")
-        sdk_name = request.GET.get("sdkName")
-        abs_path = request.GET.get("absPath")
-        module = request.GET.get("module")
-        package = request.GET.get("package")
-        frame = {}
-        if abs_path:
-            frame["abs_path"] = abs_path
-        if module:
-            frame["module"] = module
-        if package:
-            frame["package"] = package
-        result = {"config": None, "sourceUrl": None}
+        ctx = {
+            "commit_id": request.GET.get("commitId"),
+            "platform": request.GET.get("platform"),
+            "sdk_name": request.GET.get("sdkName"),
+        }
+        mobile_frame = generate_mobile_frame(request.GET)
+        result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
@@ -85,7 +143,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        last_error = None
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
         # the ordering is deterministic
@@ -93,62 +150,53 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
+        matched_code_mappings = []
         with configure_scope() as scope:
+            set_top_tags(scope, project)
             for config in configs:
-                if not filepath.startswith(config.stack_root) and not frame:
-                    last_error = "stack_root_mismatch"
+                if not filepath.startswith(config.stack_root) and not mobile_frame:
+                    result["error"] = "stack_root_mismatch"
                     continue
 
-                result["config"] = serialize(config, request.user)
+                outcome = get_link(config, filepath, ctx["commit_id"])
+                # For mobile we try a second time by munging the file path
+                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
+                if not outcome.get("sourceUrl") and mobile_frame:
+                    munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
+                    # If we failed to munge we should keep the original outcome
+                    if munging_outcome:
+                        outcome = munging_outcome
+
+                current_config = {"config": serialize(config, request.user), "outcome": outcome}
+                matched_code_mappings.append(current_config)
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
-                provider = result["config"]["provider"]["key"]
-                scope.set_tag("integration_provider", provider)
-                scope.set_tag("stacktrace_link.platform", platform)
+                provider = current_config["config"]["provider"]["key"]
+                scope.set_tag("integration_provider", provider)  # e.g. github
 
-                link, attempted_url, get_link_error = get_link(
-                    config, filepath, config.default_branch, commit_id
-                )
-
-                if not link and frame:
-                    frame["filename"] = filepath
-                    munged_frames = munged_filename_and_frames(
-                        platform, [frame], "munged_filename", sdk_name=sdk_name
-                    )
-                    if munged_frames:
-                        munged_frame: Mapping[str, Any] = munged_frames[1][0]
-                        munged_filename = str(munged_frame.get("munged_filename"))
-                        if munged_filename:
-                            if not filepath.startswith(
-                                config.stack_root
-                            ) and not munged_filename.startswith(config.stack_root):
-                                last_error = "stack_root_mismatch"
-                                continue
-
-                            link, attempted_url, error = get_link(
-                                config, munged_filename, config.default_branch, commit_id
-                            )
-
-                # it's possible for the link to be None, and in that
-                # case it means we could not find a match for the
-                # configuration
-                result["sourceUrl"] = link
-                if not link:
-                    last_error = get_link_error
-                    result["attemptedUrl"] = attempted_url
-                else:
-                    scope.set_tag("stacktrace_link.found", True)
+                if outcome.get("sourceUrl") and outcome["sourceUrl"]:
+                    result["sourceUrl"] = outcome["sourceUrl"]
                     # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
-            if last_error:
-                result["error"] = last_error
-                if last_error == "stack_root_mismatch":
-                    scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                else:
-                    scope.set_tag("stacktrace_link.found", False)
-                    scope.set_tag("stacktrace_link.error", "file_not_found")
+            found: bool = result["sourceUrl"] is not None
+            scope.set_tag("stacktrace_link.found", found)
+            scope.set_tag("stacktrace_link.platform", ctx["platform"])
+            if matched_code_mappings:
+                # Any code mapping that matches and its results will be returned
+                result["matched_code_mappings"] = matched_code_mappings
+                last = matched_code_mappings[-1]
+                result["config"] = last["config"]  # Backwards compatible
+                if not found:
+                    result["error"] = last["outcome"]["error"]  # Backwards compatible
+                    # When no code mapping have been matched we have not attempted a URL
+                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
+                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
+                    if result["error"] == "stack_root_mismatch":
+                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                    else:
+                        scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(

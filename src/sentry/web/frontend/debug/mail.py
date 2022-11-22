@@ -12,7 +12,6 @@ from typing import Any, MutableMapping
 
 import pytz
 from django.shortcuts import redirect
-from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -37,7 +36,6 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     Project,
-    Release,
     Rule,
     Team,
     User,
@@ -47,6 +45,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.testutils.helpers import override_options
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -452,13 +451,11 @@ def digest(request):
 
     # TODO: Refactor all of these into something more manageable.
     org = Organization(id=1, slug="example", name="Example Organization")
-
     project = Project(id=1, slug="example", name="Example Project", organization=org)
-
+    project.update_option("sentry:performance_issue_creation_rate", 1.0)
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-
     state = {
         "project": project,
         "groups": {},
@@ -466,9 +463,7 @@ def digest(request):
         "event_counts": {},
         "user_counts": {},
     }
-
     records = []
-
     group_generator = make_group_generator(random, project)
 
     for _ in range(random.randint(1, 30)):
@@ -511,6 +506,49 @@ def digest(request):
             state["event_counts"][group.id] = random.randint(10, 1e4)
             state["user_counts"][group.id] = random.randint(10, 1e4)
 
+    # add in performance issues
+    for i in range(random.randint(1, 3)):
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ):
+            perf_data = dict(
+                load_data(
+                    "transaction-n-plus-one",
+                )
+            )
+            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+            perf_event_manager = EventManager(perf_data)
+            perf_event_manager.normalize()
+            perf_data = perf_event_manager.get_data()
+            perf_event = perf_event_manager.save(project.id)
+
+        perf_event = perf_event.for_group(perf_event.groups[0])
+        # don't clobber error issue ids
+        perf_event.group.id = i + 100
+
+        perf_group = perf_event.group
+
+        records.append(
+            Record(
+                perf_event.event_id,
+                Notification(
+                    perf_event,
+                    random.sample(
+                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                    ),
+                ),
+                # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
+                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+            )
+        )
+        state["groups"][perf_group.id] = perf_group
+        state["event_counts"][perf_group.id] = random.randint(10, 1e4)
+        state["user_counts"][perf_group.id] = random.randint(10, 1e4)
+
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
@@ -522,121 +560,6 @@ def digest(request):
         html_template="sentry/emails/digests/body.html",
         text_template="sentry/emails/digests/body.txt",
         context=context,
-    ).render(request)
-
-
-@login_required
-def report(request):
-    from sentry.tasks import reports
-
-    random = get_random(request)
-
-    duration = 60 * 60 * 24 * 7
-    timestamp = to_timestamp(
-        reports.floor_to_utc_day(
-            to_datetime(
-                random.randint(
-                    to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                    to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                )
-            )
-        )
-    )
-
-    start, stop = interval = reports._to_interval(timestamp, duration)
-
-    organization = Organization(id=1, slug="example", name="Example")
-
-    projects = []
-    for i in range(0, random.randint(1, 8)):
-        name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
-        projects.append(
-            Project(
-                id=i,
-                organization=organization,
-                slug=slugify(name),
-                name=name,
-                date_added=start - timedelta(days=random.randint(0, 120)),
-            )
-        )
-
-    def make_release_generator():
-        id_sequence = itertools.count(1)
-        while True:
-            dt = to_datetime(random.randint(timestamp - (30 * 24 * 60 * 60), timestamp))
-            p = random.choice(projects)
-            yield Release(
-                id=next(id_sequence),
-                project=p,
-                organization_id=p.organization_id,
-                version="".join(random.choice("0123456789abcdef") for _ in range(40)),
-                date_added=dt,
-            )
-
-    def build_issue_summaries():
-        summaries = []
-        for i in range(3):
-            summaries.append(int(random.weibullvariate(10, 1) * random.paretovariate(0.5)))
-        return summaries
-
-    def build_usage_outcomes():
-        return (
-            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
-            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
-            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
-            int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
-        )
-
-    def build_report(project):
-        daily_maximum = random.randint(1000, 10000)
-
-        rollup = 60 * 60 * 24
-        series = [
-            (
-                timestamp + (i * rollup),
-                (
-                    # Issues
-                    random.randint(0, daily_maximum),
-                    # Transactions
-                    random.randint(0, daily_maximum),
-                ),
-            )
-            for i in range(0, 7)
-        ]
-
-        aggregates = [
-            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
-            for _ in range(0, 4)
-        ]
-
-        return reports.Report(
-            series,
-            aggregates,
-            build_issue_summaries(),
-            build_usage_outcomes(),
-            key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
-            key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
-        )
-
-    if random.random() < 0.85:
-        personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
-    else:
-        personal = {"resolved": 0, "users": 0}
-    html_template = "sentry/emails/reports/body.html"
-
-    return MailPreview(
-        html_template=html_template,
-        text_template="sentry/emails/reports/body.txt",
-        context={
-            "duration": reports.durations[duration],
-            "interval": {"start": reports.date_format(start), "stop": reports.date_format(stop)},
-            "report": reports.to_context(
-                organization, interval, {project: build_report(project) for project in projects}
-            ),
-            "organization": organization,
-            "personal": personal,
-            "user": request.user,
-        },
     ).render(request)
 
 

@@ -6,14 +6,54 @@ import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import PlayerDOMAlert from './playerDOMAlert';
 
+type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
+
 interface Props {
   className?: string;
+  isPreview?: boolean;
 }
 
-function BasePlayerRoot({className}: Props) {
+function useVideoSizeLogger({
+  videoDimensions,
+  windowDimensions,
+}: {
+  videoDimensions: Dimensions;
+  windowDimensions: Dimensions;
+}) {
+  const organization = useOrganization();
+  const [didLog, setDidLog] = useState<boolean>(false);
+  useEffect(() => {
+    if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
+      return;
+    }
+
+    const aspect_ratio =
+      videoDimensions.width > videoDimensions.height ? 'landscape' : 'portrait';
+
+    const scale = Math.min(
+      windowDimensions.width / videoDimensions.width,
+      windowDimensions.height / videoDimensions.height,
+      1
+    );
+    const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
+      typeof trackAdvancedAnalyticsEvent<'replay.render-player'>
+    >[1]['scale_bucket'];
+
+    trackAdvancedAnalyticsEvent('replay.render-player', {
+      organization,
+      aspect_ratio,
+      scale_bucket,
+    });
+    setDidLog(true);
+  }, [organization, windowDimensions, videoDimensions, didLog]);
+}
+
+function BasePlayerRoot({className, isPreview = false}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -24,10 +64,12 @@ function BasePlayerRoot({className}: Props) {
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState({
+  const [windowDimensions, setWindowDimensions] = useState<Dimensions>({
     width: 0,
     height: 0,
   });
+
+  useVideoSizeLogger({videoDimensions, windowDimensions});
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [initRoot]);
@@ -74,7 +116,7 @@ function BasePlayerRoot({className}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
-      <PlayerDOMAlert />
+      {!isPreview ? <PlayerDOMAlert /> : null}
     </SizingWindow>
   );
 }
