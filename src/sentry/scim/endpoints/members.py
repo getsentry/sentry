@@ -373,21 +373,23 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         - Sentry's SCIM API doesn't currently support setting users to inactive,
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
-        - you can provide a sentryOrgRole to provision alongside the new user
         """
 
         if (
             features.has("organizations:scim-orgmember-roles", organization, actor=None)
             and "sentryOrgRole" in request.data
+            and request.data["sentryOrgRole"]
         ):
-            role = request.data.get("sentryOrgRole").lower()
+            role = request.data["sentryOrgRole"].lower()
         else:
             role = organization.default_role
 
-        allowed_roles = roles.get_all()
-
-        if role not in {r.id for r in allowed_roles}:
+        if role not in settings.SENTRY_SCIM_ALLOWED_ROLES:
             raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+        # Needed to stay compatible with allowed roles check in the serializer
+        allowed_roles = {roles.get(role) for role in settings.SENTRY_SCIM_ALLOWED_ROLES}
+
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),

@@ -170,7 +170,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
         assert response.status_code == 400, response.data
         assert response.data == {
-            "schemas": "urn:ietf:params:scim:api:messages:2.0:Error",
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "detail": '{"Operations":["Ensure this field has no more than 100 elements."]}',
         }
 

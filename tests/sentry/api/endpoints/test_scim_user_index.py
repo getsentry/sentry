@@ -127,6 +127,17 @@ class SCIMMemberIndexTests(SCIMTestCase):
                 "detail": "Invalid organization role.",
             }
 
+            # Unallowed role
+            with self.settings(SENTRY_SCIM_ALLOWED_ROLES={"member"}):
+                CREATE_USER_POST_DATA["sentryOrgRole"] = "owner"
+                resp = self.get_error_response(
+                    self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
+                )
+                assert resp.data == {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Invalid organization role.",
+                }
+
     def test_users_get_populated(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])

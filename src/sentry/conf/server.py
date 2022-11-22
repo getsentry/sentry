@@ -1856,6 +1856,9 @@ SENTRY_TEAM_ROLES = (
     },
 )
 
+# Roles allowed by default = all sentry roles
+SENTRY_SCIM_ALLOWED_ROLES = {role["id"] for role in SENTRY_ROLES}
+
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
 SENTRY_DEFAULT_OPTIONS = {}
