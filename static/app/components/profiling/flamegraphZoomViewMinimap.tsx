@@ -4,7 +4,6 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
@@ -45,7 +44,6 @@ function FlamegraphZoomViewMinimap({
   >(null);
 
   const dispatch = useDispatchFlamegraphState();
-  const flamegraphSearch = useFlamegraphSearch();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
@@ -92,7 +90,7 @@ function FlamegraphZoomViewMinimap({
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
         flamegraphMiniMapView.fromConfigSpace(flamegraphMiniMapCanvas.physicalSpace),
-        flamegraphSearch.results
+        new Map()
       );
     };
 
@@ -106,7 +104,6 @@ function FlamegraphZoomViewMinimap({
     flamegraphMiniMapRenderer,
     scheduler,
     flamegraphMiniMapView,
-    flamegraphSearch.results,
   ]);
 
   useEffect(() => {
@@ -149,7 +146,6 @@ function FlamegraphZoomViewMinimap({
     flamegraphMiniMapView,
     scheduler,
     positionIndicatorRenderer,
-    flamegraphSearch.results,
   ]);
 
   const previousInteraction = usePrevious(lastInteraction);
