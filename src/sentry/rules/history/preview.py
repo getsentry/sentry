@@ -76,7 +76,7 @@ def preview(
         event_map = {}
         # if there is an event filter, retrieve event data
         if event_columns:
-            event_map = get_events(project, group_activity, event_columns)
+            event_map = get_events(project, group_activity, event_columns, start, end)
 
         if frequency_conditions:
             group_activity = apply_frequency_conditions(
@@ -232,6 +232,8 @@ def get_events(
     project: Project,
     group_activity: GroupActivityMap,
     columns: Dict[Dataset, List[str]],
+    start: datetime,
+    end: datetime,
 ) -> Dict[str, Any]:
     """
     Returns events that have caused issue state changes.
@@ -265,6 +267,8 @@ def get_events(
             continue
         kwargs = {
             "dataset": dataset,
+            "start": start,
+            "end": end,
             "filter_keys": {"project_id": [project.id]},
             "conditions": [("group_id", "IN", ids)],
             "orderby": ["group_id", "timestamp"],
@@ -300,6 +304,8 @@ def get_events(
         events.extend(
             raw_query(
                 dataset=dataset,
+                start=start,
+                end=end,
                 filter_keys={"project_id": [project.id]},
                 conditions=[("event_id", "IN", ids)],
                 selected_columns=columns[dataset],
