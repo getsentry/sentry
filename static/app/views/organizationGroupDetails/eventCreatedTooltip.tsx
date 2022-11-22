@@ -61,20 +61,16 @@ export default function EventCreatedTooltip({event}: Props) {
             <br />
             {dateReceived.format(format)}
           </dd>
-        </Fragment>
-      )}
-      {
-        <Fragment>
           <dt>{t('Latency')}</dt>
           <dd>
-            {dateCreated && dateReceived ? (
+            {dateCreated ? (
               formatDateDelta(dateCreated, dateReceived)
             ) : (
               <NotApplicableText>{t('n/a')}</NotApplicableText>
             )}
           </dd>
         </Fragment>
-      }
+      )}
     </DescriptionList>
   );
 }
