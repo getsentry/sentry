@@ -453,7 +453,7 @@ export interface DeviceContext
   timezone?: string;
 }
 
-export enum RuntimeContextKey {
+enum RuntimeContextKey {
   BUILD = 'build',
   NAME = 'name',
   RAW_DESCRIPTION = 'raw_description',
@@ -461,7 +461,7 @@ export enum RuntimeContextKey {
 }
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
-export interface RuntimeContext
+interface RuntimeContext
   extends Partial<Record<RuntimeContextKey, unknown>>,
     BaseContext {
   type: 'runtime';
