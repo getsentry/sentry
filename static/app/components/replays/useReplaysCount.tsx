@@ -41,6 +41,11 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     if (groupIds === undefined && transactionNames === undefined) {
       throw new Error('Missing groupId or transactionName in useReplaysCount()');
     }
+    if (groupIds !== undefined && transactionNames !== undefined) {
+      throw new Error(
+        'Unable to query both groupId and transactionName simultaneously in useReplaysCount()'
+      );
+    }
     if (groupIds && groupIds.length) {
       return [`issue.id:[${toArray(groupIds).join(',')}]`, 'issue.id'];
     }
