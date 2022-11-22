@@ -1,6 +1,5 @@
+import {DeviceContext, DeviceContextKeys} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
-
-import {DeviceData, DeviceKnownDataType} from './types';
 
 export function formatMemory(
   memory_size: number,
@@ -78,17 +77,17 @@ export const commonDisplayResolutions = {
   '3840x2160': '4K UHD',
 };
 
-export function getInferredData(data: DeviceData) {
-  const screenResolution = data[DeviceKnownDataType.SCREEN_RESOLUTION];
-  const screenWidth = data[DeviceKnownDataType.SCREEN_WIDTH_PIXELS];
-  const screenHeight = data[DeviceKnownDataType.SCREEN_HEIGHT_PIXELS];
+export function getInferredData(data: DeviceContext) {
+  const screenResolution = data[DeviceContextKeys.SCREEN_RESOLUTION];
+  const screenWidth = data[DeviceContextKeys.SCREEN_WIDTH_PIXELS];
+  const screenHeight = data[DeviceContextKeys.SCREEN_HEIGHT_PIXELS];
 
   if (screenResolution) {
     const displayResolutionDescription = commonDisplayResolutions[screenResolution];
 
     const commonData = {
       ...data,
-      [DeviceKnownDataType.SCREEN_RESOLUTION]: displayResolutionDescription
+      [DeviceContextKeys.SCREEN_RESOLUTION]: displayResolutionDescription
         ? `${screenResolution} (${displayResolutionDescription})`
         : screenResolution,
     };
@@ -99,8 +98,8 @@ export function getInferredData(data: DeviceData) {
       if (width && height) {
         return {
           ...commonData,
-          [DeviceKnownDataType.SCREEN_WIDTH_PIXELS]: Number(width),
-          [DeviceKnownDataType.SCREEN_HEIGHT_PIXELS]: Number(height),
+          [DeviceContextKeys.SCREEN_WIDTH_PIXELS]: Number(width),
+          [DeviceContextKeys.SCREEN_HEIGHT_PIXELS]: Number(height),
         };
       }
     }
@@ -114,7 +113,7 @@ export function getInferredData(data: DeviceData) {
 
     return {
       ...data,
-      [DeviceKnownDataType.SCREEN_RESOLUTION]: displayResolutionDescription
+      [DeviceContextKeys.SCREEN_RESOLUTION]: displayResolutionDescription
         ? `${displayResolution} (${displayResolutionDescription})`
         : displayResolution,
     };

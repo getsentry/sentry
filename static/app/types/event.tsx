@@ -357,20 +357,106 @@ export type Entry =
   | EntryGeneric
   | EntryResources;
 
-// Contexts
+// Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
+
+export interface BaseContext {
+  type: string;
+}
+
+export enum DeviceContextKeys {
+  NAME = 'name',
+  ARCH = 'arch',
+  BATTERY_LEVEL = 'battery_level',
+  BATTERY_STATUS = 'battery_status',
+  BOOT_TIME = 'boot_time',
+  BRAND = 'brand',
+  CHARGING = 'charging',
+  CPU_DESCRIPTION = 'cpu_description',
+  DEVICE_TYPE = 'device_type',
+  DEVICE_UNIQUE_IDENTIFIER = 'device_unique_identifier',
+  EXTERNAL_FREE_STORAGE = 'external_free_storage',
+  EXTERNAL_STORAGE_SIZE = 'external_storage_size',
+  EXTERNAL_TOTAL_STORAGE = 'external_total_storage',
+  FAMILY = 'family',
+  FREE_MEMORY = 'free_memory',
+  FREE_STORAGE = 'free_storage',
+  LOW_MEMORY = 'low_memory',
+  MANUFACTURER = 'manufacturer',
+  MEMORY_SIZE = 'memory_size',
+  MODEL = 'model',
+  MODEL_ID = 'model_id',
+  ONLINE = 'online',
+  ORIENTATION = 'orientation',
+  PROCESSOR_COUNT = 'processor_count',
+  PROCESSOR_FREQUENCY = 'processor_frequency',
+  SCREEN_DENSITY = 'screen_density',
+  SCREEN_DPI = 'screen_dpi',
+  SCREEN_HEIGHT_PIXELS = 'screen_height_pixels',
+  SCREEN_RESOLUTION = 'screen_resolution',
+  SCREEN_WIDTH_PIXELS = 'screen_width_pixels',
+  SIMULATOR = 'simulator',
+  STORAGE_SIZE = 'storage_size',
+  SUPPORTS_ACCELEROMETER = 'supports_accelerometer',
+  SUPPORTS_AUDIO = 'supports_audio',
+  SUPPORTS_GYROSCOPE = 'supports_gyroscope',
+  SUPPORTS_LOCATION_SERVICE = 'supports_location_service',
+  SUPPORTS_VIBRATION = 'supports_vibration',
+  USABLE_MEMORY = 'usable_memory',
+}
+
+type DeviceContextKeysFields = {[key in keyof typeof DeviceContextKeys]: unknown};
+
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
+export interface DeviceContext extends Partial<DeviceContextKeysFields>, BaseContext {
+  type: 'device';
+  [DeviceContextKeys.NAME]: string;
+  [DeviceContextKeys.ARCH]?: string;
+  [DeviceContextKeys.BATTERY_LEVEL]?: number;
+  [DeviceContextKeys.BATTERY_STATUS]?: string;
+  [DeviceContextKeys.BOOT_TIME]?: string;
+  [DeviceContextKeys.BRAND]?: string;
+  [DeviceContextKeys.CHARGING]?: boolean;
+  [DeviceContextKeys.CPU_DESCRIPTION]?: string;
+  [DeviceContextKeys.DEVICE_TYPE]?: string;
+  [DeviceContextKeys.DEVICE_UNIQUE_IDENTIFIER]?: string;
+  [DeviceContextKeys.EXTERNAL_FREE_STORAGE]?: number;
+  [DeviceContextKeys.EXTERNAL_STORAGE_SIZE]?: number;
+  [DeviceContextKeys.EXTERNAL_TOTAL_STORAGE]?: number;
+  [DeviceContextKeys.FAMILY]?: string;
+  [DeviceContextKeys.FREE_MEMORY]?: number;
+  [DeviceContextKeys.FREE_STORAGE]?: number;
+  [DeviceContextKeys.LOW_MEMORY]?: boolean;
+  [DeviceContextKeys.MANUFACTURER]?: string;
+  [DeviceContextKeys.MEMORY_SIZE]?: number;
+  [DeviceContextKeys.MODEL]?: string;
+  [DeviceContextKeys.MODEL_ID]?: string;
+  [DeviceContextKeys.ONLINE]?: boolean;
+  [DeviceContextKeys.ORIENTATION]?: 'portrait' | 'landscape';
+  [DeviceContextKeys.PROCESSOR_COUNT]?: number;
+  [DeviceContextKeys.PROCESSOR_FREQUENCY]?: number;
+  [DeviceContextKeys.SCREEN_DENSITY]?: number;
+  [DeviceContextKeys.SCREEN_DPI]?: number;
+  [DeviceContextKeys.SCREEN_HEIGHT_PIXELS]?: number;
+  [DeviceContextKeys.SCREEN_RESOLUTION]?: string;
+  [DeviceContextKeys.SCREEN_WIDTH_PIXELS]?: number;
+  [DeviceContextKeys.SIMULATOR]?: boolean;
+  [DeviceContextKeys.STORAGE_SIZE]?: number;
+  [DeviceContextKeys.SUPPORTS_ACCELEROMETER]?: boolean;
+  [DeviceContextKeys.SUPPORTS_AUDIO]?: boolean;
+  [DeviceContextKeys.SUPPORTS_GYROSCOPE]?: boolean;
+  [DeviceContextKeys.SUPPORTS_LOCATION_SERVICE]?: boolean;
+  [DeviceContextKeys.SUPPORTS_VIBRATION]?: boolean;
+  [DeviceContextKeys.USABLE_MEMORY]?: number;
+  // This field is deprecated in favour of timezone field in culture context
+  timezone?: string;
+}
+
 type RuntimeContext = {
   type: 'runtime';
   build?: string;
   name?: string;
   raw_description?: string;
   version?: number;
-};
-
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
-  type: string;
 };
 
 type OSContext = {

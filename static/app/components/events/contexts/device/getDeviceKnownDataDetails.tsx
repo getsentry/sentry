@@ -1,13 +1,21 @@
 import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import {DeviceContext, DeviceContextKeys, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
+import {getRelativeTimeFromEventDateCreated} from '../utils';
 
-import {DeviceData, DeviceKnownDataType} from './types';
 import {formatMemory, formatStorage} from './utils';
+
+export const deviceKnownDataValues = [
+  ...Object.keys(DeviceContextKeys),
+  // Added two general keys here to namespace the values
+  // tracks memory_size, free_memory, usable_memory
+  'memory',
+  // tracks storage_size, free_storage, external_storage_size, external_free_storage
+  'storage',
+];
 
 type Output = {
   subject: string;
@@ -15,9 +23,9 @@ type Output = {
 };
 
 type Props = {
-  data: DeviceData;
+  data: DeviceContext;
   event: Event;
-  type: DeviceKnownDataType;
+  type: keyof typeof deviceKnownDataValues;
 };
 
 export function getDeviceKnownDataDetails({
@@ -26,22 +34,22 @@ export function getDeviceKnownDataDetails({
   type,
 }: Props): Output | undefined {
   switch (type) {
-    case DeviceKnownDataType.NAME:
+    case DeviceContextKeys.NAME:
       return {
         subject: t('Name'),
         value: data.name,
       };
-    case DeviceKnownDataType.FAMILY:
+    case DeviceContextKeys.FAMILY:
       return {
         subject: t('Family'),
         value: data.family,
       };
-    case DeviceKnownDataType.MODEL_ID:
+    case DeviceContextKeys.MODEL_ID:
       return {
         subject: t('Model Id'),
         value: data.model_id,
       };
-    case DeviceKnownDataType.MODEL:
+    case DeviceContextKeys.MODEL:
       return {
         subject: t('Model'),
         value:
@@ -51,37 +59,32 @@ export function getDeviceKnownDataDetails({
             />
           ) : undefined,
       };
-    case DeviceKnownDataType.RENDERED_MODEL:
-      return {
-        subject: t('Rendered Model'),
-        value: data.renderedModel,
-      };
-    case DeviceKnownDataType.CPU_DESCRIPTION:
+    case DeviceContextKeys.CPU_DESCRIPTION:
       return {
         subject: t('CPU Description'),
         value: data.cpu_description,
       };
-    case DeviceKnownDataType.ARCH:
+    case DeviceContextKeys.ARCH:
       return {
         subject: t('Architecture'),
         value: data.arch,
       };
-    case DeviceKnownDataType.BATTERY_LEVEL:
+    case DeviceContextKeys.BATTERY_LEVEL:
       return {
         subject: t('Battery Level'),
         value: defined(data.battery_level) ? `${data.battery_level}%` : undefined,
       };
-    case DeviceKnownDataType.BATTERY_STATUS:
+    case DeviceContextKeys.BATTERY_STATUS:
       return {
         subject: t('Battery Status'),
         value: data.battery_status,
       };
-    case DeviceKnownDataType.ORIENTATION:
+    case DeviceContextKeys.ORIENTATION:
       return {
         subject: t('Orientation'),
         value: data.orientation,
       };
-    case DeviceKnownDataType.MEMORY:
+    case 'memory':
       const {memory_size, free_memory, usable_memory} = data;
       return {
         subject: t('Memory'),
@@ -90,7 +93,7 @@ export function getDeviceKnownDataDetails({
             ? formatMemory(memory_size, free_memory, usable_memory)
             : undefined,
       };
-    case DeviceKnownDataType.STORAGE:
+    case 'storage':
       const {storage_size, free_storage, external_storage_size, external_free_storage} =
         data;
       return {
@@ -105,40 +108,12 @@ export function getDeviceKnownDataDetails({
               )
             : undefined,
       };
-    case DeviceKnownDataType.FREE_STORAGE: {
-      return {
-        subject: t('Free Storage'),
-        value: data.free_storage ? <FileSize bytes={data.free_storage} /> : undefined,
-      };
-    }
-    case DeviceKnownDataType.STORAGE_SIZE: {
-      return {
-        subject: t('Storage Size'),
-        value: data.storage_size ? <FileSize bytes={data.storage_size} /> : undefined,
-      };
-    }
-    case DeviceKnownDataType.EXTERNAL_STORAGE_SIZE: {
-      return {
-        subject: t('External Storage Size'),
-        value: data.external_storage_size ? (
-          <FileSize bytes={data.external_storage_size} />
-        ) : undefined,
-      };
-    }
-    case DeviceKnownDataType.EXTERNAL_FREE_STORAGE: {
-      return {
-        subject: t('External Free Storage'),
-        value: data.external_free_storage ? (
-          <FileSize bytes={data.external_free_storage} />
-        ) : undefined,
-      };
-    }
-    case DeviceKnownDataType.SIMULATOR:
+    case DeviceContextKeys.SIMULATOR:
       return {
         subject: t('Simulator'),
         value: data.simulator,
       };
-    case DeviceKnownDataType.BOOT_TIME:
+    case DeviceContextKeys.BOOT_TIME:
       return {
         subject: t('Boot Time'),
         value: getRelativeTimeFromEventDateCreated(
@@ -146,99 +121,72 @@ export function getDeviceKnownDataDetails({
           data.boot_time
         ),
       };
-    case DeviceKnownDataType.TIMEZONE:
-      return {
-        subject: t('Timezone'),
-        value: data.timezone,
-      };
-    case DeviceKnownDataType.DEVICE_TYPE:
+    case DeviceContextKeys.DEVICE_TYPE:
       return {
         subject: t('Device Type'),
         value: data.device_type,
       };
-    case DeviceKnownDataType.ARCHS:
-      return {
-        subject: t('Architectures'),
-        value: data.archs,
-      };
-    case DeviceKnownDataType.BRAND:
+    case DeviceContextKeys.BRAND:
       return {
         subject: t('Brand'),
         value: data.brand,
       };
-    case DeviceKnownDataType.CHARGING:
+    case DeviceContextKeys.CHARGING:
       return {
         subject: t('Charging'),
         value: data.charging,
       };
-    case DeviceKnownDataType.CONNECTION_TYPE:
-      return {
-        subject: t('Connection Type'),
-        value: data.connection_type,
-      };
-    case DeviceKnownDataType.ID:
-      return {
-        subject: t('Id'),
-        value: data.id,
-      };
-    case DeviceKnownDataType.LANGUAGE:
-      return {
-        subject: t('Language'),
-        value: defined(data.language)
-          ? getFullLanguageDescription(data.language)
-          : undefined,
-      };
-    case DeviceKnownDataType.LOW_MEMORY:
+    case DeviceContextKeys.LOW_MEMORY:
       return {
         subject: t('Low Memory'),
         value: data.low_memory,
       };
-    case DeviceKnownDataType.FREE_MEMORY:
+    case DeviceContextKeys.FREE_MEMORY:
       return {
         subject: t('Free Memory'),
         value: data.free_memory ? <FileSize bytes={data.free_memory} /> : undefined,
       };
-    case DeviceKnownDataType.MEMORY_SIZE:
+    case DeviceContextKeys.MEMORY_SIZE:
       return {
         subject: t('Memory Size'),
         value: data.memory_size ? <FileSize bytes={data.memory_size} /> : undefined,
       };
-    case DeviceKnownDataType.USABLE_MEMORY:
+    case DeviceContextKeys.USABLE_MEMORY:
       return {
         subject: t('Usable Memory'),
         value: data.usable_memory ? <FileSize bytes={data.usable_memory} /> : undefined,
       };
-    case DeviceKnownDataType.MANUFACTURER:
+    case DeviceContextKeys.MANUFACTURER:
       return {
         subject: t('Manufacturer'),
         value: data.manufacturer,
       };
-    case DeviceKnownDataType.ONLINE:
+    case DeviceContextKeys.ONLINE:
       return {
         subject: t('Online'),
         value: data.online,
       };
-    case DeviceKnownDataType.SCREEN_DENSITY:
+    case DeviceContextKeys.SCREEN_DENSITY:
       return {
         subject: t('Screen Density'),
         value: data.screen_density,
       };
-    case DeviceKnownDataType.SCREEN_DPI:
+    case DeviceContextKeys.SCREEN_DPI:
       return {
         subject: t('Screen DPI'),
         value: data.screen_dpi,
       };
-    case DeviceKnownDataType.SCREEN_HEIGHT_PIXELS:
+    case DeviceContextKeys.SCREEN_HEIGHT_PIXELS:
       return {
         subject: t('Screen Height Pixels'),
         value: data.screen_height_pixels,
       };
-    case DeviceKnownDataType.SCREEN_RESOLUTION:
+    case DeviceContextKeys.SCREEN_RESOLUTION:
       return {
         subject: t('Screen Resolution'),
         value: data.screen_resolution,
       };
-    case DeviceKnownDataType.SCREEN_WIDTH_PIXELS:
+    case DeviceContextKeys.SCREEN_WIDTH_PIXELS:
       return {
         subject: t('Screen Width Pixels'),
         value: data.screen_width_pixels,
