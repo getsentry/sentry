@@ -17,13 +17,25 @@ type Options = {
   transactionNames?: string | string[];
 };
 
+type CountState = Record<string, undefined | number>;
+
 function useReplaysCount({groupIds, transactionNames, organization, project}: Options) {
   const api = useApi();
   const location = useLocation();
 
-  const [replayCounts, setReplayCounts] = useState<Record<string, undefined | number>>(
-    {}
-  );
+  const [replayCounts, setReplayCounts] = useState<CountState>({});
+
+  const zeroCounts = useMemo(() => {
+    const ids = toArray(groupIds || []);
+    const names = toArray(transactionNames || []);
+    return ([] as string[])
+      .concat(ids)
+      .concat(names)
+      .reduce((record, key) => {
+        record[key] = 0;
+        return record;
+      }, {} as CountState);
+  }, [groupIds, transactionNames]);
 
   const [condition, fieldName] = useMemo(() => {
     if (groupIds === undefined && transactionNames === undefined) {
@@ -73,12 +85,12 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
         const val = record['count_unique(replayId)'];
         obj[key] = val;
         return obj;
-      }, {});
+      }, zeroCounts);
       setReplayCounts(counts);
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, location, organization.slug, condition, fieldName, eventView]);
+  }, [api, location, organization.slug, condition, fieldName, zeroCounts, eventView]);
 
   useEffect(() => {
     const hasSessionReplay =
