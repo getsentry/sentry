@@ -897,7 +897,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                         "event_manager.dynamic_sampling_observe_latest_release"
                     ) as metrics_tags:
                         try:
-                            environment, platform = _extract_latest_release_data(data)
+                            environment = _extract_latest_release_data(data)
                             release_observed_in_last_24h = observe_release(
                                 project_id, release.id, environment
                             )
@@ -926,16 +926,14 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                             sentry_sdk.capture_exception()
 
 
-def _extract_latest_release_data(data: EventDict) -> Tuple[str, str]:
+def _extract_latest_release_data(data: EventDict) -> Tuple[str]:
     environment = data.get("environment", None)
     # We handle the case in which the users sets the empty string as environment, for us that
     # is equal to having no environment at all.
     if environment == "":
         environment = None
 
-    platform = data.get("platform", None)
-
-    return environment, platform
+    return environment
 
 
 @metrics.wraps("save_event.get_event_user_many")

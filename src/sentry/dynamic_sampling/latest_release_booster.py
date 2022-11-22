@@ -173,6 +173,11 @@ class BoostedRelease:
     timestamp: float
 
 
+def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
+    release_projects = release.projects.filter(id__in=[project_id])
+    return release_projects[0] if len(release_projects) > 0 else None
+
+
 def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedRelease]:
     """
     Returns a list of boosted releases augmented with additional information such as release version and platform.
@@ -184,7 +189,7 @@ def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedR
     # We get the ids of the last limit-th releases.
     boosted_releases_ids = [release_id for (release_id, _, _) in cached_boosted_releases[-limit:]]
     boosted_releases_metadata = {
-        release.id: (release.version, release.projects.filter(id__in=[project_id])[0])
+        release.id: (release.version, _get_project_platform_from_release(release, project_id))
         for release in Release.objects.filter(id__in=boosted_releases_ids)
     }
 
