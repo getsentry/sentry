@@ -356,6 +356,8 @@ def alert(request):
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
+            "environment": random.randint(0, 1) > 0 and "prod" or None,
+            "issue_owners_reason": random.randint(0, 1) > 0 and "all members" or None,
             # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
             #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),

@@ -63,10 +63,15 @@
 
 <div class="container">
   <div class="inner">
-    <h2 style="margin-bottom: 15px">
+    <h2 {% if issue_owners_reason %}style="margin-bottom: 4px"{% else %}style="margin-bottom: 16px"{% endif %}>
         New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
         {% if environment %} in {{ environment }}{% endif %}
     </h2>
+    {% if issue_owners_reason %}
+      <div class="event-owners">
+        We notified {{ issue_owners_reason }} in the {{ project_label }} project of this issue
+      </div>
+    {% endif %}
 
     {% if enhanced_privacy %}
       <div class="event">
