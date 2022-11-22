@@ -1,6 +1,5 @@
-import copy
 import logging
-from typing import Dict, Mapping, Optional, Sequence
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +13,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -130,9 +130,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             "platform": request.GET.get("platform"),
             "sdk_name": request.GET.get("sdkName"),
         }
-
         mobile_frame = generate_mobile_frame(request.GET)
-        result = {"config": None, "sourceUrl": None}
+        result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
