@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -96,10 +97,19 @@ def CreateStubFromBase(
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
             from django.test import override_settings
 
+            from sentry.services.hybrid_cloud.auth import AuthenticationContext
+
             with override_settings(SILO_MODE=target_mode):
                 if cb := getattr(hc_test_stub, "cb", None):
                     cb(self.backing_service, method_name, *args, **kwds)
-                return getattr(self.backing_service, method_name)(*args, **kwds)
+                method = getattr(self.backing_service, method_name)
+                call_args = inspect.getcallargs(method, *args, **kwds)
+
+                auth_context: AuthenticationContext = AuthenticationContext()
+                if "auth_context" in call_args:
+                    auth_context = call_args["auth_context"]
+                with auth_context.applied_to_request():
+                    return method(*args, **kwds)
 
         return method
 

@@ -9,7 +9,7 @@ from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    control_silo_only_model,
     sane_repr,
 )
 from sentry.models.apiscopes import HasApiScopes
@@ -25,7 +25,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
-@region_silo_only_model
+@control_silo_only_model
 class ApiToken(Model, HasApiScopes):
     __include_in_export__ = True
 
