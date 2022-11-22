@@ -136,8 +136,8 @@ const getPlatformColumns = (
       columnTitles: [t('url')],
     },
     [PlatformCategory.DESKTOP]: {
-      fields: ['os'],
-      columnTitles: [t('os')],
+      fields: [],
+      columnTitles: [],
     },
     [PlatformCategory.OTHER]: {
       fields: [],
