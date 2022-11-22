@@ -18,7 +18,7 @@ def make_message(data: Mapping[str, Any]) -> Message[KafkaPayload]:
     return Message(
         Partition(Topic("region-to-control"), 0),
         0,
-        KafkaPayload(None, json.dumps(data), []),
+        KafkaPayload(None, json.dumps(data).encode("utf-8"), []),
         datetime.datetime.now(),
     )
 
