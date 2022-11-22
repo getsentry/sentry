@@ -1,30 +1,31 @@
-from __future__ import annotations
-
 import logging
-import time
-from collections import deque
-from concurrent.futures import Future
-from datetime import datetime
-from typing import Any, Deque, Dict, Mapping, NamedTuple, Optional, Sequence, TypedDict, cast
-
-import sentry_sdk
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
-from arroyo.backends.kafka.configuration import (
-    build_kafka_configuration,
-    build_kafka_consumer_configuration,
+from datetime import datetime, timedelta
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+    cast,
 )
-from arroyo.commit import CommitPolicy
+
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import Commit, Message, Partition, Position
+from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
 from sentry.constants import DataCategory
+from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
-from sentry.utils.outcomes import Outcome, track_outcome_custom_publish
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +33,13 @@ logger = logging.getLogger(__name__)
 def get_metrics_billing_consumer(
     group_id: str,
     auto_offset_reset: str,
+    force_topic: Union[str, None],
+    force_cluster: Union[str, None],
     max_batch_size: int,
     max_batch_time: int,
-    max_buffer_size: int,
 ) -> StreamProcessor[KafkaPayload]:
-    topic = settings.KAFKA_SNUBA_GENERIC_METRICS
-    cluster = settings.KAFKA_TOPICS[topic]["cluster"]
-    bootstrap_servers = _get_bootstrap_servers(cluster)
-
-    batch_time_secs = max_batch_time / 1000
-    commit_policy = CommitPolicy(
-        min_commit_frequency_sec=batch_time_secs, min_commit_messages=max_batch_size
-    )
+    topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
+    bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
@@ -55,12 +51,14 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(max_buffer_size),
-        commit_policy=commit_policy,
+        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
+        commit_policy=IMMEDIATE,
     )
 
 
-def _get_bootstrap_servers(cluster: str) -> Sequence[str]:
+def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Sequence[str]:
+    cluster = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+
     options = get_kafka_consumer_cluster_options(cluster)
     servers = options["bootstrap.servers"]
     if isinstance(servers, (list, tuple)):
@@ -69,15 +67,18 @@ def _get_bootstrap_servers(cluster: str) -> Sequence[str]:
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, max_buffer_size: int) -> None:
-        self._max_buffer_size = max_buffer_size
+    def __init__(self, max_batch_size: int, max_batch_time: int):
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = max_batch_time
 
     def create_with_partitions(
         self,
-        commit: Commit,
+        commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit, max_buffer_size=self._max_buffer_size)
+        return BillingTxCountMetricConsumerStrategy(
+            commit, self.__max_batch_size, self.__max_batch_time
+        )
 
 
 class MetricsBucket(TypedDict):
@@ -91,14 +92,6 @@ class MetricsBucket(TypedDict):
     metric_id: int
     timestamp: int
     value: Any
-    mapping_meta: Dict[str, Dict[str, str]]
-
-
-class MetricsBucketBilling(NamedTuple):
-    #: None represents no billing outcomes. The instance still exists to commit
-    # the metric bucket.
-    billing_future: Optional[Future[Message[KafkaPayload]]]
-    metrics_msg: Message[KafkaPayload]
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -108,135 +101,48 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     buckets.
     """
 
-    counter_metric_name = "d:transactions/duration@millisecond"
+    #: The ID of the metric used to count transactions
+    metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
 
     def __init__(
         self,
-        commit: Commit,
-        max_buffer_size: int,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        max_batch_size: int,
+        max_batch_time: int,
     ) -> None:
-        self._closed: bool = False
-        self._commit = commit
-
-        self._producers: Dict[str, KafkaProducer] = {}
-        # Especially on incidents generating big backlogs, we must expect a lot
-        # of removals from the beginning of a big FIFO. A dequeue provides O(1)
-        # time on removing items from the beginning; while a regular list takes
-        # O(n).
-        self._ongoing_billing_outcomes: Deque[MetricsBucketBilling] = deque()
-        self._max_buffer_size = max_buffer_size
+        self.__commit = commit
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = timedelta(milliseconds=max_batch_time)
+        self.__messages_since_last_commit = 0
+        self.__last_commit = datetime.now()
+        self.__ready_to_commit: MutableMapping[Partition, Position] = {}
+        self.__closed = False
 
     def poll(self) -> None:
-        while self._ongoing_billing_outcomes:
-            self._process_metrics_billing_bucket(timeout=None)
-
-    def _process_metrics_billing_bucket(
-        self, timeout: Optional[float] = None, force: bool = False
-    ) -> None:
-        """
-        Takes the first billing outcome from the queue and if it's completed,
-        commits the metrics bucket.
-
-        When a future has thrown an exception, logs it and commits the bucket
-        anyway. wait_time is used to wait on the future to finish; if `None` is
-        provided and the future is not completed, no action is taken.
-        """
-        if len(self._ongoing_billing_outcomes) < 1:
-            return
-
-        billing_future, metrics_msg = self._ongoing_billing_outcomes[0]
-        if billing_future:
-            try:
-                if not timeout and not billing_future.done():
-                    return
-                billing_future.result(timeout)
-            except Exception:
-                logger.error(
-                    "Async future failed in billing metrics consumer.",
-                    exc_info=billing_future.exception(),
-                    extra={"offset": metrics_msg.offset},
-                )
-
-        self._ongoing_billing_outcomes.popleft()
-        mapping = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
-        self._commit(mapping, force)
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        deadline = time.time() + timeout if timeout else None
-
-        while self._ongoing_billing_outcomes:
-            now = time.time()
-            time_left = deadline - now if deadline else None
-
-            if time_left is not None and time_left <= 0:
-                logger.warning(
-                    f"join timed out, items left in the queue: {len(self._ongoing_billing_outcomes)}"
-                )
-                break
-
-            self._process_metrics_billing_bucket(time_left, force=True)
-
-        self._close_producers()
+        if self._should_commit():
+            self._bulk_commit()
 
     def terminate(self) -> None:
         self.close()
 
-        if len(self._ongoing_billing_outcomes) > 0:
-            logger.warning(f"terminated, items dropped: {len(self._ongoing_billing_outcomes)}")
-        while self._ongoing_billing_outcomes:
-            ongoing_work, _ = self._ongoing_billing_outcomes.popleft()
-            if ongoing_work:
-                ongoing_work.cancel()
-
-        self._close_producers()
-
-    def _close_producers(self) -> None:
-        for producer in self._producers.values():
-            producer.close()
-
     def close(self) -> None:
-        self._closed = True
+        self.__closed = True
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self._closed
+        assert not self.__closed
+        self.__messages_since_last_commit += 1
 
-        if len(self._ongoing_billing_outcomes) >= self._max_buffer_size:
-            raise MessageRejected
+        payload = self._get_payload(message)
+        self._produce_billing_outcomes(payload)
+        self._mark_commit_ready(message)
 
-        bucket_payload = self._get_bucket_payload(message)
-        quantity = self._count_processed_transactions(bucket_payload)
-
-        if quantity < 1:
-            # We still want to commmit buckets that don't generate billing
-            # outcomes, since the consumer has already processed them. To keep
-            # the offset order when committing, we still need to go through the
-            # futures queue.
-            future = None
-        else:
-            future = track_outcome_custom_publish(
-                self._produce,
-                org_id=bucket_payload["org_id"],
-                project_id=bucket_payload["project_id"],
-                key_id=None,
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=datetime.now(),
-                event_id=None,
-                category=DataCategory.TRANSACTION,
-                quantity=quantity,
-            )
-
-        self._ongoing_billing_outcomes.append(MetricsBucketBilling(future, message))
-
-    def _get_bucket_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
+    def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
     def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
-        metric_name = self._get_metric_name(bucket_payload)
-        if metric_name != self.counter_metric_name:
+        if bucket_payload["metric_id"] != self.metric_id:
             return 0
-
         value = bucket_payload["value"]
         try:
             return len(value)
@@ -244,31 +150,46 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # Unexpected value type for this metric ID, skip.
             return 0
 
-    def _get_metric_name(self, bucket_payload: MetricsBucket) -> Optional[str]:
-        metric_id = str(bucket_payload["metric_id"])
+    def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
+        quantity = self._count_processed_transactions(payload)
+        if quantity < 1:
+            return
 
-        for mapping in bucket_payload.get("mapping_meta", {}).values():
-            metric_name = mapping.get(metric_id)
-            if metric_name is not None:
-                return metric_name
-
-        sentry_sdk.set_context("Metrics bucket", {"payload": bucket_payload})
-        raise ValueError("Metric ID does not exist in the bucket's mapping.")
-
-    def _produce(
-        self, cluster_name: str, topic_name: str, payload: str
-    ) -> Future[Message[KafkaPayload]]:
-        if cluster_name not in self._producers:
-            self._producers[cluster_name] = self._get_billing_producer(cluster_name)
-
-        billing_payload = KafkaPayload(key=None, value=payload.encode("utf-8"), headers=[])
-        return self._producers[cluster_name].produce(
-            destination=Topic(topic_name),
-            payload=billing_payload,
+        # track_outcome does not guarantee to deliver the outcome, making this
+        # an at-most-once delivery.
+        #
+        # If it turns out that we drop too many outcomes on shutdown,
+        # we may have to revisit this part to achieve a
+        # better approximation of exactly-once delivery.
+        track_outcome(
+            org_id=payload["org_id"],
+            project_id=payload["project_id"],
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(payload["timestamp"]),
+            event_id=None,
+            category=DataCategory.TRANSACTION,
+            quantity=quantity,
         )
 
-    def _get_billing_producer(self, cluster_name: str) -> KafkaProducer:
-        servers = _get_bootstrap_servers(cluster_name)
-        return KafkaProducer(
-            build_kafka_configuration(default_config={}, bootstrap_servers=servers)
-        )
+    def _mark_commit_ready(self, message: Message[KafkaPayload]) -> None:
+        self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self._bulk_commit()
+
+    def _should_commit(self) -> bool:
+        if not self.__ready_to_commit:
+            return False
+        if self.__messages_since_last_commit >= self.__max_batch_size:
+            return True
+        if self.__last_commit + self.__max_batch_time <= datetime.now():
+            return True
+        return False
+
+    def _bulk_commit(self) -> None:
+        self.__commit(self.__ready_to_commit)
+        self.__ready_to_commit = {}
+        self.__messages_since_last_commit = 0
+        self.__last_commit = datetime.now()
