@@ -9,7 +9,7 @@ import {getRelativeTimeFromEventDateCreated} from '../utils';
 import {formatMemory, formatStorage} from './utils';
 
 export const deviceKnownDataValues = [
-  ...Object.keys(DeviceContextKeys),
+  ...Object.values(DeviceContextKeys),
   // Added two general keys here to namespace the values
   // tracks memory_size, free_memory, usable_memory
   'memory',
