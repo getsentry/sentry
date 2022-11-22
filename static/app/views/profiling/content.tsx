@@ -136,7 +136,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                       'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production. [link: Read the docs].',
                       {
                         link: (
-                          <ExternalLink href="https://dev.getsentry.net:7999/organizations/sentry/profiling/" />
+                          <ExternalLink href="https://docs.sentry.io/product/profiling/" />
                         ),
                       }
                     )}
