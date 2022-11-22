@@ -1,4 +1,3 @@
-import copy
 import logging
 from typing import Mapping, Optional, Sequence
 
@@ -19,11 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_link(
-    config: RepositoryProjectPathConfig, ctx: Mapping[str, Optional[str]]
+    config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
 ) -> Mapping[str, str]:
     result = {}
-    filepath = str(ctx["file"])
-    version = ctx["commit_id"]
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
@@ -92,10 +89,7 @@ def try_path_munging(
     config: RepositoryProjectPathConfig, ctx: Mapping[str, Optional[str]]
 ) -> Mapping[str, str]:
     result: Mapping[str, str] = {}
-    munged_ctx = dict(copy.deepcopy(ctx))
-    filepath = str(munged_ctx["file"])
-    # XXX: Change munged_filename_and_frames to make some of these unnecessary
-    munged_ctx["filename"] = filepath
+    filepath = str(ctx["file"])
     munged_frames = munged_filename_and_frames(
         str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
     )
@@ -104,13 +98,12 @@ def try_path_munging(
         munged_filename = str(munged_frame.get("munged_filename"))
         logger.info(f"We are going to attempt some munging (New filepath: {munged_filename}).")
         if munged_filename:
-            munged_ctx["filename"] = munged_filename
             if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
                 config.stack_root
             ):
                 result = {"error": "stack_root_mismatch"}
             else:
-                result = get_link(config, munged_ctx)
+                result = get_link(config, munged_filename, ctx["commit_id"])
 
     return result
 
@@ -162,7 +155,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     result["error"] = "stack_root_mismatch"
                     continue
 
-                outcome = get_link(config, ctx)  # If this fails we have an invalid code mapping
+                # If this fails we have an invalid code mapping
+                outcome = get_link(config, filepath, ctx["commit_id"])
                 if not outcome.get("sourceUrl"):
                     munging_outcome = try_path_munging(config, ctx)
                     # If we failed to munge we should keep the original outcome
@@ -193,11 +187,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 if not found:
                     result["error"] = last["outcome"]["error"] or result["error"]
                     result["attemptedUrl"] = last["outcome"]["attemptedUrl"]  # Backwards compatible
-                    # This means that the matched code mappings were invalid
-                    # scope.set_tag("stacktrace_link.error", "file_not_found")
-            # No code mapping matched, thus, not matched_code_mappings
-            if result.get("error") == "stack_root_mismatch":
-                scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+
+            if result.get("error"):
+                scope.set_tag("stacktrace_link.error", result["error"])
 
         if result["config"]:
             analytics.record(
