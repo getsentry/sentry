@@ -138,9 +138,8 @@ def get_issue_state_activity(
         except NotImplementedError:
             raise PreviewException
 
-    k = lambda a: a.timestamp
     for activities in group_activity.values():
-        activities.sort(key=k)
+        activities.sort(key=lambda a: a.timestamp)
 
     return group_activity
 
@@ -240,8 +239,7 @@ def get_top_groups(
     for result in bulk_raw_query(query_params, use_cache=True):
         groups.extend(result.get("data", []))
 
-    k = lambda x: x["groupCount"]
-    sorted_groups = sorted(groups, key=k, reverse=True)
+    sorted_groups = sorted(groups, key=lambda x: int(x["groupCount"]), reverse=True)
 
     top_groups = {group["group_id"] for group in sorted_groups[:FREQUENCY_CONDITION_GROUP_LIMIT]}
     return {
