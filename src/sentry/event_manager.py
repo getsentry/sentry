@@ -714,9 +714,11 @@ def _run_background_grouping(project: Project, job: Job) -> None:
         sentry_sdk.capture_exception()
 
 
-def _get_job_category(data: Mapping[str, Any]) -> DataCategory:
+def _get_job_category(data: Mapping[str, Any], organization: Organization) -> DataCategory:
     event_type = data.get("type")
-    if event_type == "transaction":
+    if event_type == "transaction" and features.has(
+        "organizations:transaction-metrics-extraction", organization
+    ):
         # TODO: This logic should move into sentry-relay, but I'm not sure
         # about the consequences of making `from_event_type` return
         # `TRANSACTION_INDEXED` unconditionally.
@@ -758,9 +760,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
 
-        job["category"] = _get_job_category(data)
+        event._project_cache = project = projects[job["project_id"]]
+        job["category"] = _get_job_category(data, project.organization)
         job["platform"] = event.platform
-        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are

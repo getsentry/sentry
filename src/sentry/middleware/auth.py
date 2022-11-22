@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import base64
+
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
@@ -8,8 +12,11 @@ from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.models import UserIP
+from sentry.services.hybrid_cloud.auth import AuthenticationRequest, auth_service
+from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
-from sentry.utils.linksign import process_signature
+from sentry.utils.linksign import find_signature, process_signature
+from sentry.utils.types import Any
 
 
 def get_user(request):
@@ -35,12 +42,27 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                UserIP.log(user, request.META["REMOTE_ADDR"])
+                if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                    UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
 
 
 class AuthenticationMiddleware(MiddlewareMixin):
+    @property
+    def impl(self) -> Any:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return RequestAuthenticationMiddleware()
+        return HybridCloudAuthenticationMiddleware()
+
+    def process_request(self, request: Request):
+        return self.impl.process_request(request)
+
+    def process_exception(self, request: Request, exception):
+        return self.impl.process_exception(request, exception)
+
+
+class RequestAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: Request):
         request.user_from_signed_request = False
 
@@ -80,3 +102,43 @@ class AuthenticationMiddleware(MiddlewareMixin):
             from sentry.web.frontend.accounts import expired
 
             return expired(request, exception.user)
+
+
+class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
+    def process_request(self, request: Request):
+        from sentry.web.frontend.accounts import expired
+
+        auth_result = auth_service.authenticate(request=authentication_request_from(request))
+        request.user_from_signed_request = auth_result.user_from_signed_request
+
+        if auth_result.auth is not None:
+            request.auth = auth_result.auth
+        if auth_result.expired:
+            return expired(request, auth_result.user)
+        elif auth_result.user is not None:
+            request.user = auth_result.user
+            UserIP.log(auth_result.user, request.META["REMOTE_ADDR"])
+        else:
+            request.user = AnonymousUser()
+
+
+def authentication_request_from(request: Request) -> AuthenticationRequest:
+    return AuthenticationRequest(
+        backend=request.session.get("_auth_user_backend", None),
+        user_id=request.session.get("_auth_user_id", None),
+        user_hash=request.session.get("_auth_user_hash", None),
+        nonce=request.session.get("_nonce", None),
+        remote_addr=request.META["REMOTE_ADDR"],
+        signature=find_signature(request),
+        absolute_url=request.build_absolute_uri(),
+        path=request.path,
+        authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
+    )
+
+
+def _normalize_to_b64(input: str | bytes | None) -> str | None:
+    if input is None:
+        return None
+    if isinstance(input, str):
+        input = input.encode("utf8")
+    return base64.b64encode(input).decode("utf8")
