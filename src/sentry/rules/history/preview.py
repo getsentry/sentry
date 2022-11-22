@@ -244,10 +244,9 @@ def get_top_groups(
     sorted_groups = sorted(groups, key=k, reverse=True)
 
     top_groups = {group["group_id"] for group in sorted_groups[:FREQUENCY_CONDITION_GROUP_LIMIT]}
-    top_activity = {
+    return {
         group: activity for group, activity in condition_activity.items() if group in top_groups
     }
-    return top_activity
 
 
 def get_group_dataset(condition_activity: GroupActivityMap) -> Dict[int, Dataset]:
@@ -258,11 +257,10 @@ def get_group_dataset(condition_activity: GroupActivityMap) -> Dict[int, Dataset
     group_categories = Group.objects.filter(id__in=condition_activity.keys()).values_list(
         "id", "type"
     )
-    dataset_map = {
+    return {
         group[0]: GROUP_CATEGORY_TO_DATASET.get(GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])))
         for group in group_categories
     }
-    return dataset_map
 
 
 def get_events(
