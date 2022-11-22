@@ -1,3 +1,4 @@
+import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types';
 
 export function extraQueryParameter(): URLSearchParams {
@@ -36,7 +37,7 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
 // For the Sandbox, we are testing a new walkthrough. This affects a few different components of Sentry including the Onboarding Sidebar, Onboarding Tasks, the Demo End Modal, Demo Sign Up Modal, Guides, and more.
 // Outside of the Sandbox, this should have no effect on other elements of Sentry.
 export function isDemoWalkthrough(): boolean {
-  return localStorage.getItem('new-walkthrough') === '1';
+  return ConfigStore.get('demoMode') && localStorage.getItem('new-walkthrough') === '1';
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.
