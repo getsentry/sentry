@@ -1252,8 +1252,12 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     offender_span_ids=[span.get("span_id", None)],
                 )
 
-    def _is_file_io_on_main_thread(self, span: Span):
-        return span.get("data", {}).get("blocked_ui_thread", False)
+    def _is_file_io_on_main_thread(self, span: Span) -> bool:
+        data = span.get("data", {})
+        if data is None:
+            return False
+        # doing is True since the value can be any type
+        return data.get("blocked_ui_thread", False) is True
 
 
 # Reports metrics and creates spans for detection
