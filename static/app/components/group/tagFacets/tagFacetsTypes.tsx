@@ -1,14 +1,14 @@
 import {ReactNode} from 'react';
 
-import {Environment, Project, TagWithTopValues} from 'sentry/types';
+import {Environment, Group, Project, TagWithTopValues} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 export type TagFacetsProps = {
   environments: Environment[];
-  groupId: string;
+  group: Group;
+  project: Project;
   tagKeys: string[];
   event?: Event;
-  project?: Project;
   tagFormatter?: (
     tagsData: Record<string, TagWithTopValues>
   ) => Record<string, TagWithTopValues>;
