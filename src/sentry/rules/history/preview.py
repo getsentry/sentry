@@ -17,11 +17,11 @@ from sentry.types.condition_activity import (
     ConditionActivityType,
 )
 from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
-from sentry.utils.snuba import parse_snuba_datetime, raw_query
+from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
 ConditionFunc = Callable[[Sequence[bool]], bool]
-GroupActivityMap = Dict[str, List[ConditionActivity]]
+GroupActivityMap = Dict[int, List[ConditionActivity]]
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -179,7 +179,7 @@ def get_fired_groups(
     start: datetime,
     frequency: timedelta,
     event_map: Dict[str, Any],
-) -> Sequence[str]:
+) -> Sequence[int]:
     """
     Applies filter objects to the condition activity, returns the group ids of activities that pass the filters
     """
@@ -204,7 +204,7 @@ def get_top_groups(
     start: datetime,
     end: datetime,
     condition_activity: GroupActivityMap,
-    dataset_map: Dict[str, Dataset],
+    dataset_map: Dict[int, Dataset],
 ) -> GroupActivityMap:
     """
     Filters the activity to contain only groups that have the most events in the past 2 weeks.
@@ -214,7 +214,7 @@ def get_top_groups(
     datasets = {dataset_map.get(group) for group in condition_activity.keys()}
 
     # queries each dataset for top x groups and then gets top x overall
-    groups = []
+    query_params = []
     for dataset in datasets:
         if dataset is None:
             continue
@@ -234,7 +234,11 @@ def get_top_groups(
         if dataset == Dataset.Transactions:
             kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
             kwargs["aggregations"].append(("arrayJoin", ["group_ids"], "group_id"))
-        groups.extend(raw_query(**kwargs).get("data", []))
+        query_params.append(SnubaQueryParams(**kwargs))
+
+    groups = []
+    for result in bulk_raw_query(query_params, use_cache=True):
+        groups.extend(result.get("data", []))
 
     k = lambda x: x["groupCount"]
     sorted_groups = sorted(groups, key=k, reverse=True)
@@ -246,7 +250,7 @@ def get_top_groups(
     return top_activity
 
 
-def get_group_dataset(condition_activity: GroupActivityMap) -> Dict[str, Dataset]:
+def get_group_dataset(condition_activity: GroupActivityMap) -> Dict[int, Dataset]:
     """
     Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
     If the dataset is not found/supported, it is mapped to None.
@@ -359,7 +363,7 @@ def apply_frequency_conditions(
     group_activity: GroupActivityMap,
     frequency_conditions: Conditions,
     condition_match: str,
-    dataset_map: Dict[str, Dataset],
+    dataset_map: Dict[int, Dataset],
 ) -> GroupActivityMap:
     """
     Applies frequency conditions to issue state activity.
@@ -401,7 +405,7 @@ def get_frequency_buckets(
     project: Project,
     start: datetime,
     end: datetime,
-    group_id: str,
+    group_id: int,
     dataset: Dataset,
 ) -> Sequence[Dict[str, Any]]:
     """
