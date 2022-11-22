@@ -48,6 +48,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     CONSECUTIVE_DB_OP = "consecutive_db"
+    FILE_IO_MAIN_THREAD = "file_io_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -62,12 +63,14 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread-creation",
 }
 
 
@@ -298,6 +301,11 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": 0,  # ms
             "consecutive_count_threshold": 2,
         },
+        DetectorType.FILE_IO_MAIN_THREAD: [
+            {
+                "duration_threshold": settings["file_io_main_thread_duration_threshold"],
+            }
+        ],
     }
 
 
@@ -321,6 +329,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
         ),
+        DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
     }
 
     for _, detector in detectors.items():
@@ -1203,6 +1212,48 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+
+class FileIOMainThreadDetector(PerformanceDetector):
+    """
+    Checks for a file io span on the main thread
+    """
+
+    __slots__ = ("spans_involved", "stored_problems")
+
+    settings_key = DetectorType.FILE_IO_MAIN_THREAD
+
+    def init(self):
+        self.spans_involved = {}
+        self.most_recent_start_time = {}
+        self.most_recent_hash = {}
+        self.stored_problems = {}
+
+    def visit_span(self, span: Span):
+        if self._is_file_io_on_main_thread(span):
+            settings_for_span = self.settings_for_span(span)
+            if not settings_for_span:
+                return
+
+            op, span_id, op_prefix, span_duration, settings = settings_for_span
+            if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
+                call_stack = ".".join(
+                    [item["function"] for item in span.get("data", {}).get("call_stack", [])]
+                ).encode("utf8")
+                hashed_stack = hashlib.sha1(call_stack).hexdigest()
+                fingerprint = f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+                self.stored_problems[fingerprint] = PerformanceProblem(
+                    fingerprint=fingerprint,
+                    op=span.get("op"),
+                    desc=span.get("description", ""),
+                    parent_span_ids=[],
+                    type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                    cause_span_ids=[span.get("span_id", None)],
+                    offender_span_ids=[span.get("span_id", None)],
+                )
+
+    def _is_file_io_on_main_thread(self, span: Span):
+        return span.get("data", {}).get("blocked_ui_thread", False)
 
 
 # Reports metrics and creates spans for detection

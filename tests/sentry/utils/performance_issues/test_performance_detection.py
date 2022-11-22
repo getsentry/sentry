@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, call, patch
 
+import pytest
+
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
@@ -28,10 +30,12 @@ from sentry.utils.performance_issues.performance_span_issue import PerformanceSp
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
     "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
+    "performance.issues.file_io_main_thread-creation": 1.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
     "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
+    "performance.issues.file_io_main_thread-creation": 0.0,
 }
 
 
@@ -60,6 +64,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     ]
 
 
+@pytest.mark.django_db
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -977,6 +982,26 @@ class PerformanceDetectionTest(unittest.TestCase):
                     },
                 ),
                 call("_pi_slow_span", "bbbbbbbbbbbbbbbb"),
+            ]
+        )
+
+    def test_detects_file_io_main_thread(self):
+        file_io_event = EVENTS["file-io-on-main-thread"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(file_io_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call("_pi_all_issue_count", 1),
+                call("_pi_sdk_name", "sentry.java.android.timber"),
+                call("_pi_transaction", "c119e45a9d724b1891df4651ebf9e6db"),
+                call(
+                    "_pi_file_io_main_thread_fp",
+                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-2fdacf08551ceadba1cb7cf4eace5e288be4f9cf",
+                ),
+                call("_pi_file_io_main_thread", "054ba3a374d543eb"),
             ]
         )
 

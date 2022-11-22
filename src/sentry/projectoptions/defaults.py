@@ -102,6 +102,8 @@ register(
         "n_plus_one_db_issue_rate": 0,
         "n_plus_one_db_count": 5,
         "n_plus_one_db_duration_threshold": 500,
+        # 16ms is when frame drops will start being evident
+        "file_io_main_thread_duration_threshold": 16,
     },
 )
 
