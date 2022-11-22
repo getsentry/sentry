@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from urllib.parse import urlencode
 
 from django.core import signing
@@ -36,11 +38,15 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     return signed_link
 
 
+def find_signature(request) -> str | None:
+    return request.GET.get("_") or request.POST.get("_sentry_request_signature")
+
+
 def process_signature(request, max_age=60 * 60 * 24 * 10):
     """Given a request object this validates the signature from the
     current request and returns the user.
     """
-    sig = request.GET.get("_") or request.POST.get("_sentry_request_signature")
+    sig = find_signature(request)
     if not sig or sig.count(":") < 2:
         return None
 
