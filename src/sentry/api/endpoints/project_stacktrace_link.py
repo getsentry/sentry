@@ -187,11 +187,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 last = matched_code_mappings[-1]
                 result["config"] = last["config"]  # Backwards compatible
                 if not found:
-                    result["error"] = last["outcome"]["error"] or result["error"]
-                    result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
-
-            if result.get("error"):
-                scope.set_tag("stacktrace_link.error", result["error"])
+                    result["error"] = last["outcome"]["error"]  # Backwards compatible
+                    # When no code mapping have been matched we have not attempted a URL
+                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
+                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
+                    if result["error"] == "stack_root_mismatch":
+                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                    else:
+                        scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(
