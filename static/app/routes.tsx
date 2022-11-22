@@ -1152,83 +1152,130 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const alertRoutes = (
-    <Route
-      path="/organizations/:orgId/alerts/"
-      component={make(() => import('sentry/views/alerts'))}
-    >
-      <IndexRoute component={make(() => import('sentry/views/alerts/list/incidents'))} />
-      <Route path="rules/">
-        <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
-        <Route
-          path="details/:ruleId/"
-          component={make(() => import('sentry/views/alerts/rules/metric/details'))}
+  const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    return (
+      <Fragment>
+        <IndexRoute
+          component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
-        <Route
-          path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
+        <Route path="rules/">
+          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
           <Route
-            path=":ruleId/"
-            component={make(() => import('sentry/views/alerts/edit'))}
+            path="details/:ruleId/"
+            component={make(() => import('sentry/views/alerts/rules/metric/details'))}
           />
-        </Route>
-        <Route
-          path=":projectId/:ruleId/details/"
-          component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-        >
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-            )}
-          />
-        </Route>
-      </Route>
-      <Route path="metric-rules/">
-        <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
-        <Route
-          path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
-            path=":ruleId/"
-            component={make(() => import('sentry/views/alerts/edit'))}
-          />
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <IndexRedirect
+              to={
+                forCustomerDomain
+                  ? '/alerts/rules/'
+                  : '/organizations/:orgId/alerts/rules/'
+              }
+            />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+          <Route
+            path=":projectId/:ruleId/details/"
+            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
+          >
+            <IndexRoute
+              component={make(
+                () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
+              )}
+            />
+          </Route>
         </Route>
-      </Route>
-      <Route
-        path="wizard/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
-      </Route>
-      <Route
-        path="new/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <IndexRedirect to="/organizations/:orgId/alerts/wizard/" />
-        <Route
-          path=":alertType/"
-          component={make(() => import('sentry/views/alerts/create'))}
-        />
-      </Route>
-      <Route
-        path=":alertId/"
-        component={make(() => import('sentry/views/alerts/incidentRedirect'))}
-      />
-      <Route
-        path=":projectId/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <Route path="new/" component={make(() => import('sentry/views/alerts/create'))} />
+        <Route path="metric-rules/">
+          <IndexRedirect
+            to={
+              forCustomerDomain ? '/alerts/rules/' : '/organizations/:orgId/alerts/rules/'
+            }
+          />
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <IndexRedirect
+              to={
+                forCustomerDomain
+                  ? '/alerts/rules/'
+                  : '/organizations/:orgId/alerts/rules/'
+              }
+            />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
         <Route
           path="wizard/"
-          component={make(() => import('sentry/views/alerts/wizard'))}
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
+        </Route>
+        <Route
+          path="new/"
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <IndexRedirect
+            to={
+              forCustomerDomain
+                ? '/alerts/wizard/'
+                : '/organizations/:orgId/alerts/wizard/'
+            }
+          />
+          <Route
+            path=":alertType/"
+            component={make(() => import('sentry/views/alerts/create'))}
+          />
+        </Route>
+        <Route
+          path=":alertId/"
+          component={make(() => import('sentry/views/alerts/incidentRedirect'))}
         />
+        <Route
+          path=":projectId/"
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <Route
+            path="new/"
+            component={make(() => import('sentry/views/alerts/create'))}
+          />
+          <Route
+            path="wizard/"
+            component={make(() => import('sentry/views/alerts/wizard'))}
+          />
+        </Route>
+      </Fragment>
+    );
+  };
+
+  const alertRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/alerts/"
+          component={withDomainRequired(make(() => import('sentry/views/alerts')))}
+          key="orgless-alerts-route"
+        >
+          {alertChildRoutes({forCustomerDomain: true})}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/alerts/"
+        component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
+        key="org-alerts"
+      >
+        {alertChildRoutes({forCustomerDomain: false})}
       </Route>
-    </Route>
+    </Fragment>
   );
 
   const monitorsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
@@ -1929,7 +1976,7 @@ function buildRoutes() {
     <Fragment>
       {usingCustomerDomain ? (
         <Route
-          path="/:projectId/getting-started/"
+          path="/getting-started/:projectId/"
           component={withDomainRequired(
             make(() => import('sentry/views/projectInstall/gettingStarted'))
           )}
@@ -1941,7 +1988,16 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted'))
+          make(() => import('sentry/views/projectInstall/gettingStarted')),
+          {
+            redirect: [
+              {
+                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
+                from: '/:orgId/:projectId/getting-started/',
+                to: '/getting-started/:projectId/',
+              },
+            ],
+          }
         )}
         key="org-getting-started"
       >
