@@ -567,6 +567,7 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue has happened at least {x} times (Note: this is approximate)',
@@ -575,7 +576,8 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
       userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.paste(screen.getByDisplayValue('10'), '-');
+      userEvent.clear(screen.getByDisplayValue('10'));
+      userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });

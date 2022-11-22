@@ -1036,11 +1036,10 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Automatically extract metrics during ingestion.
-    #
-    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
-    # gradual slowdown when this is enabled for too many projects.
+    # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Extraction metrics for transactions during ingestion.
+    "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
     # sampled/unsampled performance data.
     "organizations:metrics-performance-alerts": False,

@@ -357,20 +357,108 @@ export type Entry =
   | EntryGeneric
   | EntryResources;
 
-// Contexts
+// Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
+
+export interface BaseContext {
+  type: string;
+}
+
+export enum DeviceContextKey {
+  ARCH = 'arch',
+  BATTERY_LEVEL = 'battery_level',
+  BATTERY_STATUS = 'battery_status',
+  BOOT_TIME = 'boot_time',
+  BRAND = 'brand',
+  CHARGING = 'charging',
+  CPU_DESCRIPTION = 'cpu_description',
+  DEVICE_TYPE = 'device_type',
+  DEVICE_UNIQUE_IDENTIFIER = 'device_unique_identifier',
+  EXTERNAL_FREE_STORAGE = 'external_free_storage',
+  EXTERNAL_STORAGE_SIZE = 'external_storage_size',
+  EXTERNAL_TOTAL_STORAGE = 'external_total_storage',
+  FAMILY = 'family',
+  FREE_MEMORY = 'free_memory',
+  FREE_STORAGE = 'free_storage',
+  LOW_MEMORY = 'low_memory',
+  MANUFACTURER = 'manufacturer',
+  MEMORY_SIZE = 'memory_size',
+  MODEL = 'model',
+  MODEL_ID = 'model_id',
+  NAME = 'name',
+  ONLINE = 'online',
+  ORIENTATION = 'orientation',
+  PROCESSOR_COUNT = 'processor_count',
+  PROCESSOR_FREQUENCY = 'processor_frequency',
+  SCREEN_DENSITY = 'screen_density',
+  SCREEN_DPI = 'screen_dpi',
+  SCREEN_HEIGHT_PIXELS = 'screen_height_pixels',
+  SCREEN_RESOLUTION = 'screen_resolution',
+  SCREEN_WIDTH_PIXELS = 'screen_width_pixels',
+  SIMULATOR = 'simulator',
+  STORAGE_SIZE = 'storage_size',
+  SUPPORTS_ACCELEROMETER = 'supports_accelerometer',
+  SUPPORTS_AUDIO = 'supports_audio',
+  SUPPORTS_GYROSCOPE = 'supports_gyroscope',
+  SUPPORTS_LOCATION_SERVICE = 'supports_location_service',
+  SUPPORTS_VIBRATION = 'supports_vibration',
+  USABLE_MEMORY = 'usable_memory',
+}
+
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
+export interface DeviceContext
+  extends Partial<Record<DeviceContextKey, unknown>>,
+    BaseContext {
+  type: 'device';
+  [DeviceContextKey.NAME]: string;
+  [DeviceContextKey.ARCH]?: string;
+  [DeviceContextKey.BATTERY_LEVEL]?: number;
+  [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BOOT_TIME]?: string;
+  [DeviceContextKey.BRAND]?: string;
+  [DeviceContextKey.CHARGING]?: boolean;
+  [DeviceContextKey.CPU_DESCRIPTION]?: string;
+  [DeviceContextKey.DEVICE_TYPE]?: string;
+  [DeviceContextKey.DEVICE_UNIQUE_IDENTIFIER]?: string;
+  [DeviceContextKey.EXTERNAL_FREE_STORAGE]?: number;
+  [DeviceContextKey.EXTERNAL_STORAGE_SIZE]?: number;
+  [DeviceContextKey.EXTERNAL_TOTAL_STORAGE]?: number;
+  [DeviceContextKey.FAMILY]?: string;
+  [DeviceContextKey.FREE_MEMORY]?: number;
+  [DeviceContextKey.FREE_STORAGE]?: number;
+  [DeviceContextKey.LOW_MEMORY]?: boolean;
+  [DeviceContextKey.MANUFACTURER]?: string;
+  [DeviceContextKey.MEMORY_SIZE]?: number;
+  [DeviceContextKey.MODEL]?: string;
+  [DeviceContextKey.MODEL_ID]?: string;
+  [DeviceContextKey.ONLINE]?: boolean;
+  [DeviceContextKey.ORIENTATION]?: 'portrait' | 'landscape';
+  [DeviceContextKey.PROCESSOR_COUNT]?: number;
+  [DeviceContextKey.PROCESSOR_FREQUENCY]?: number;
+  [DeviceContextKey.SCREEN_DENSITY]?: number;
+  [DeviceContextKey.SCREEN_DPI]?: number;
+  [DeviceContextKey.SCREEN_HEIGHT_PIXELS]?: number;
+  [DeviceContextKey.SCREEN_RESOLUTION]?: string;
+  [DeviceContextKey.SCREEN_WIDTH_PIXELS]?: number;
+  [DeviceContextKey.SIMULATOR]?: boolean;
+  [DeviceContextKey.STORAGE_SIZE]?: number;
+  [DeviceContextKey.SUPPORTS_ACCELEROMETER]?: boolean;
+  [DeviceContextKey.SUPPORTS_AUDIO]?: boolean;
+  [DeviceContextKey.SUPPORTS_GYROSCOPE]?: boolean;
+  [DeviceContextKey.SUPPORTS_LOCATION_SERVICE]?: boolean;
+  [DeviceContextKey.SUPPORTS_VIBRATION]?: boolean;
+  [DeviceContextKey.USABLE_MEMORY]?: number;
+  // This field is deprecated in favour of locale field in culture context
+  language?: string;
+  // This field is deprecated in favour of timezone field in culture context
+  timezone?: string;
+}
+
 type RuntimeContext = {
   type: 'runtime';
   build?: string;
   name?: string;
   raw_description?: string;
   version?: number;
-};
-
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
-  type: string;
 };
 
 type OSContext = {
