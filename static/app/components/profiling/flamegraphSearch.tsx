@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
-import debounce from 'lodash/debounce';
 
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons';
@@ -201,6 +200,7 @@ function FlamegraphSearch({
   const search = useFlamegraphSearch();
   const dispatch = useDispatchFlamegraphState();
   const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
+
   const allFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
       return flamegraphs.reduce(
@@ -242,26 +242,21 @@ function FlamegraphSearch({
     }
   }, [search.results, search.index, onZoomIntoFrame]);
 
-  const handleChange = useMemo(
-    () =>
-      debounce(value => {
-        if (!value) {
-          dispatch({type: 'clear search'});
-          return;
-        }
-        dispatch({
-          type: 'set results',
-          payload: {
-            results: frameSearch(value, allFrames, searchIndex),
-            query: value,
-          },
-        });
+  const handleChange: (value: string) => void = useCallback(
+    value => {
+      if (!value) {
+        dispatch({type: 'clear search'});
+        return;
+      }
 
-        dispatch({
-          type: 'set search index position',
-          payload: 0,
-        });
-      }),
+      dispatch({
+        type: 'set results',
+        payload: {
+          results: frameSearch(value, allFrames, searchIndex),
+          query: value,
+        },
+      });
+    },
     [dispatch, allFrames, searchIndex]
   );
 
