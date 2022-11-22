@@ -4,6 +4,7 @@ import {DeviceEventContext} from 'sentry/components/events/contexts/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
 import {UserEventContext} from 'sentry/components/events/contexts/user';
 import {FILTER_MASK} from 'sentry/constants';
+import {DeviceContext} from 'sentry/types';
 
 describe('User', function () {
   it("displays filtered values but doesn't use them for avatar", function () {
@@ -63,7 +64,8 @@ describe('User', function () {
 });
 
 describe('Device', function () {
-  const device = {
+  const device: DeviceContext = {
+    type: 'device',
     name: 'Device Name',
     screen_resolution: '3840x2160',
     screen_width_pixels: 3840,
@@ -100,7 +102,7 @@ describe('Device', function () {
         screen.getByTestId('device-context-screen_resolution-value')
       ).toHaveTextContent(
         `${device.screen_resolution} (${
-          commonDisplayResolutions[device.screen_resolution]
+          commonDisplayResolutions[device.screen_resolution as string]
         })`
       );
     });
@@ -129,7 +131,7 @@ describe('Device', function () {
         screen.getByTestId('device-context-screen_resolution-value')
       ).toHaveTextContent(
         `${device.screen_resolution} (${
-          commonDisplayResolutions[device.screen_resolution]
+          commonDisplayResolutions[device.screen_resolution as string]
         })`
       );
     });
