@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+from typing import Any, Mapping
 from unittest.mock import Mock
 
 import pytest
@@ -11,6 +12,14 @@ from sentry.region_to_control.consumer import ProcessRegionToControlMessage
 from sentry.region_to_control.messages import RegionToControlMessage
 from sentry.testutils.factories import Factories
 from sentry.utils import json
+
+
+def make_message(data: Mapping[str, Any]) -> Message[KafkaPayload]:
+    return Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(None, json.dumps(data), []),
+        datetime.datetime.now(),
+    )
 
 
 @pytest.fixture
@@ -36,18 +45,12 @@ def api_key(organization):
 
 @pytest.mark.django_db(transaction=True)
 def test_user_ip_event_with_deleted_user(region_to_control_strategy, user):
-    message = Message(
-        Partition(Topic("region-to-control"), 0),
-        KafkaPayload(
-            value=json.dumps(
-                {
-                    "user_id": user.id,
-                    "ip_address": "127.0.0.1",
-                    "last_seen": datetime.datetime.now(),
-                }
-            )
-        ),
-        datetime.datetime.now(),
+    message = make_message(
+        {
+            "user_id": user.id,
+            "ip_address": "127.0.0.1",
+            "last_seen": datetime.datetime.now(),
+        }
     )
     region_to_control_strategy.submit(message)
 
@@ -75,19 +78,13 @@ def test_actor_key_not_serializable(api_key, user, organization):
 def test_region_to_control_with_deleted_user(region_to_control_strategy, user, organization):
     assert AuditLogEntry.objects.count() == 0
 
-    message = Message(
-        Partition(Topic("region-to-control"), 0),
-        KafkaPayload(
-            value=json.dumps(
-                {
-                    "actor": user,
-                    "ip_address": "127.0.0.1",
-                    "organization": organization,
-                    "event": 0,
-                }
-            )
-        ),
-        datetime.datetime.now(),
+    message = make_message(
+        {
+            "actor": user,
+            "ip_address": "127.0.0.1",
+            "organization": organization,
+            "event": 0,
+        }
     )
 
     region_to_control_strategy.submit(message)
@@ -113,11 +110,7 @@ def test_no_op_message(region_to_control_strategy, user):
         user_ip_event=None, audit_log_event=None
     )
 
-    message = Message(
-        Partition(Topic("region-to-control"), 0),
-        KafkaPayload(value="{}"),
-        datetime.datetime.now(),
-    )
+    message = make_message({})
 
     region_to_control_strategy.submit(message)
 
@@ -141,11 +134,7 @@ def test_no_op_message(region_to_control_strategy, user):
     ],
 )
 def test_user_ip_event_regression(region_to_control_strategy, user, user_ip_event):
-    message = Message(
-        Partition(Topic("region-to-control"), 0),
-        KafkaPayload(value=json.dumps({"user_ip_event": user_ip_event(user)})),
-        datetime.datetime.now(),
-    )
+    message = make_message({"user_ip_event": user_ip_event(user)})
 
     region_to_control_strategy.submit(message)
 
@@ -182,11 +171,7 @@ def test_user_ip_event_regression(region_to_control_strategy, user, user_ip_even
 def test_audit_log_event_regression(
     region_to_control_strategy, user, audit_log_event, organization
 ):
-    message = Message(
-        Partition(Topic("region-to-control"), 0),
-        KafkaPayload(value=json.dumps({"audit_log_event": audit_log_event(user, organization)})),
-        datetime.datetime.now(),
-    )
+    message = make_message({"audit_log_event": audit_log_event(user, organization)})
     region_to_control_strategy.submit(message)
 
     assert AuditLogEntry.objects.count() == 1
