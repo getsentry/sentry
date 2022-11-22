@@ -77,7 +77,7 @@ export default function ReplayOnboardingPanel() {
           </ButtonBar>
         </ButtonList>
       </div>
-      <Illustration src={replaysInlineOnboarding} />
+      <Illustration src={replaysInlineOnboarding} width={220} height={112} alt="" />
     </StyledOnboardingPanel>
   );
 }
