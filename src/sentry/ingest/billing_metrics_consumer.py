@@ -127,9 +127,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._max_buffer_size = max_buffer_size
 
     def poll(self) -> None:
-        while self._ongoing_billing_outcomes:
-            if not self._process_metrics_billing_bucket(timeout=None):
-                return
+        while self._process_metrics_billing_bucket(timeout=None):
+            pass
 
     def _process_metrics_billing_bucket(
         self, timeout: Optional[float] = None, force: bool = False
