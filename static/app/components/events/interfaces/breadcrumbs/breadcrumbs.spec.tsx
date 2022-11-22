@@ -6,6 +6,8 @@ import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
+const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding', () => ({
   __esModule: true,
   useShouldShowOnboarding: () => true,
@@ -32,8 +34,6 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
     }),
   };
 });
-
-const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;

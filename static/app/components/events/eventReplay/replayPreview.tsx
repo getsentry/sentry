@@ -101,10 +101,8 @@ const PlayerContainer = styled(FluidHeight)`
 `;
 
 const StaticPanel = styled(FluidHeight)`
-  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 const CTAOverlay = styled('div')`

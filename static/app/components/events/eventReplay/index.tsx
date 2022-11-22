@@ -9,7 +9,7 @@ type Props = {
   event: Event;
   orgSlug: string;
   projectSlug: string;
-  replayId?: string;
+  replayId: undefined | string;
 };
 
 export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
@@ -18,7 +18,11 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
   if (showPanel) {
-    return <LazyLoad component={onboardingPanel} />;
+    return (
+      <ErrorBoundary mini>
+        <LazyLoad component={onboardingPanel} />
+      </ErrorBoundary>
+    );
   }
 
   if (!replayId) {
