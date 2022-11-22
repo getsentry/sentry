@@ -364,7 +364,6 @@ export interface BaseContext {
 }
 
 export enum DeviceContextKey {
-  NAME = 'name',
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
   BATTERY_STATUS = 'battery_status',
@@ -385,6 +384,7 @@ export enum DeviceContextKey {
   MEMORY_SIZE = 'memory_size',
   MODEL = 'model',
   MODEL_ID = 'model_id',
+  NAME = 'name',
   ONLINE = 'online',
   ORIENTATION = 'orientation',
   PROCESSOR_COUNT = 'processor_count',
@@ -404,10 +404,10 @@ export enum DeviceContextKey {
   USABLE_MEMORY = 'usable_memory',
 }
 
-type DeviceContextKeyFields = {[key in keyof typeof DeviceContextKey]: unknown};
-
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
-export interface DeviceContext extends Partial<DeviceContextKeyFields>, BaseContext {
+export interface DeviceContext
+  extends Partial<Record<DeviceContextKey, unknown>>,
+    BaseContext {
   type: 'device';
   [DeviceContextKey.NAME]: string;
   [DeviceContextKey.ARCH]?: string;
@@ -447,6 +447,8 @@ export interface DeviceContext extends Partial<DeviceContextKeyFields>, BaseCont
   [DeviceContextKey.SUPPORTS_LOCATION_SERVICE]?: boolean;
   [DeviceContextKey.SUPPORTS_VIBRATION]?: boolean;
   [DeviceContextKey.USABLE_MEMORY]?: number;
+  // This field is deprecated in favour of locale field in culture context
+  language?: string;
   // This field is deprecated in favour of timezone field in culture context
   timezone?: string;
 }
