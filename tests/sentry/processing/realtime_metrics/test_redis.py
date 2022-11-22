@@ -369,23 +369,23 @@ def test_get_used_budget_for_project_missing_project(
 def test_get_used_budget_for_project_different_bucket_sizes(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:110", 1000)
+    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:110", 1000 * 120)
     redis_cluster.set("symbolicate_event_low_priority:budget:5:42:110", 2000)
 
     with freeze_time(datetime.fromtimestamp(113)):
         budget = store.get_used_budget_for_project(project_id=42)
 
-    assert budget == 1
+    assert int(budget) == 1
 
 
 def test_get_used_budget_for_projects_with_gap(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store._budget_time_window = 40
-    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:110", 3000)
-    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:150", 17000)
+    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:110", 3000 * 40)
+    redis_cluster.set("symbolicate_event_low_priority:budget:10:42:150", 17000 * 40)
 
     with freeze_time(datetime.fromtimestamp(154)):
         budget = store.get_used_budget_for_project(project_id=42)
 
-    assert budget == 20
+    assert int(budget) == 20

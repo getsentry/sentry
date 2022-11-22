@@ -135,9 +135,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
-    def get_used_budget_for_project(self, project_id: int) -> int:
+    def get_used_budget_for_project(self, project_id: int) -> float:
         """
-        Returns the total used budget during the configured sliding time window for some given project.
+        Returns the total used budget during the configured sliding time window for some given project,
+        averaged over the configured time window.
         """
         timestamp = int(time())
 
@@ -150,7 +151,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
         counts = self.cluster.mget(keys)
-        return int(sum(int(c) if c else 0 for c in counts) / 1000)
+
+        total_sum = sum(int(c) if c else 0 for c in counts)
+
+        # the counts in redis are in ms resolution.
+        return total_sum / 1000 / self._budget_time_window
 
     def get_lpq_projects(self) -> Set[int]:
         """

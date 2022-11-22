@@ -16,8 +16,8 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
     def projects(self) -> Iterable[int]:
         yield from ()
 
-    def get_used_budget_for_project(self, project_id: int) -> int:
-        return 0
+    def get_used_budget_for_project(self, project_id: int) -> float:
+        return 0.0
 
     def get_lpq_projects(self) -> Set[int]:
         return set()

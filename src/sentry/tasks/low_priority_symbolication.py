@@ -9,7 +9,6 @@ This has three major tasks, executed in the following general order:
 """
 
 import logging
-import time
 from typing import Literal
 
 import sentry_sdk
@@ -40,11 +39,10 @@ def scan_for_suspect_projects() -> None:
 
 def _scan_for_suspect_projects() -> None:
     suspect_projects = set()
-    now = int(time.time())
 
     for project_id in realtime_metrics.projects():
         suspect_projects.add(project_id)
-        update_lpq_eligibility.delay(project_id=project_id, cutoff=now)
+        update_lpq_eligibility.delay(project_id=project_id)
 
     # Prune projects we definitely know shouldn't be in the queue any more.
     # `update_lpq_eligibility` should handle removing suspect projects from the list if it turns
@@ -66,31 +64,23 @@ def _scan_for_suspect_projects() -> None:
     ignore_result=True,
     soft_time_limit=10,
 )
-def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
+def update_lpq_eligibility(project_id: int) -> None:
     """
     Given a project ID, determines whether the project belongs in the low priority queue and
     removes or assigns it accordingly to the low priority queue.
-
-    `cutoff` is a posix timestamp that specifies an end time for the historical data this method
-    should consider when calculating a project's eligibility. In other words, only data recorded
-    before `cutoff` should be considered.
     """
-    _update_lpq_eligibility(project_id, cutoff)
+    _update_lpq_eligibility(project_id)
 
 
-def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
-    # TODO: It may be a good idea to figure out how to debounce especially if this is
-    # executing more than 10s after cutoff.
-
+def _update_lpq_eligibility(project_id: int) -> None:
     used_budget = realtime_metrics.get_used_budget_for_project(project_id)
 
     # NOTE: tagging this metrics with `tags={"project_id": project_id}` would
     # have too excessive cardinality to use in production.
-    metrics.timing("symbolication.lpq.computation.used_budget", len(used_budget))
+    metrics.timing("symbolication.lpq.computation.used_budget", used_budget)
 
-    # FIXME(swatinem): make this limit configurable
-    # options = settings.SENTRY_LPQ_OPTIONS
-    exceeds_budget = used_budget > 500
+    options = settings.SENTRY_LPQ_OPTIONS
+    exceeds_budget = used_budget > options["project_budget"]
 
     if exceeds_budget:
         was_added = realtime_metrics.add_project_to_lpq(project_id)

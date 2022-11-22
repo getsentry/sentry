@@ -2720,37 +2720,16 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the event counter.
+    # Number of seconds of the sliding symbolicate_event budgeting window.
+    #
+    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
+    # defined below.
+    "budget_time_window": 5 * 60,
+    # The bucket size of the project budget metric.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "counter_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event rates per project.
     #
-    # symbolicate_event tasks report the rates of events per project to redis
-    # so that projects that exceed a reasonable rate can be sent to the low
-    # priority queue. This setting determines how long we keep these rates
-    # around.
-    #
-    # The LPQ selection is computed using the rate of the most recent events covered by this
-    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
-    # exact implementation.
-    "counter_time_window": 10 * 60,
-    # The bucket size of the processing duration histogram.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "duration_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event durations per project.
-    #
-    # symbolicate_event tasks report the processing durations of events per project to redis
-    # so that projects that exceed a reasonable duration can be sent to the low
-    # priority queue. This setting determines how long we keep these duration values
-    # around.
-    #
-    # The LPQ selection is computed using the durations of the most recent events covered by
-    # this time window.  See
-    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
-    # implementation.
-    "duration_time_window": 3 * 60,
+    "budget_bucket_size": 10,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #
@@ -2760,38 +2739,20 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 }
 
 # Tunable knobs for automatic LPQ eligibility.
-# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
-# This sampling rate needs to be considered when tuning any of the cutoff rates.
 #
-# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
-# event processing times.
+# LPQ eligibility is based on the spent budget in a sliding time window
+# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
 #
-# A project is eligible for the LPQ based on event rate if
-# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
-# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
-# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+# The `project_budget` option is defined as the average per-second
+# "symbolication time budget" a project can spend.
+# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
+# this works.
 #
-# A project is eligible for the LPQ based on processing duration if it averages more than
-# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
-# of event processing durations in that window exceeds `min_p75_duration` seconds. See
-# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+# This value is already adjusted according to the
+# `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # The period that is considered for "recent events".
-    # Has to be a multiple of `counter_bucket_size` above.
-    "recent_event_period": 60,
-    # The minimum rate of events *per second* a project needs to have
-    # in the `recent_event_period` to be eligible for the LPQ.
-    "min_recent_event_rate": 5,
-    # The ratio of recent event rate over average event rate above which a project is eligible
-    # for the LPQ.
-    "recent_event_multiple": 4,
-    # The minimum rate of events *per minute* a project needs to have
-    # in the `duration_time_window` to be eligible for the LPQ.
-    "min_events_per_minute": 15,
-    # A project is considered for the LPQ if the p75 event processing time
-    # exceeds configured value.
-    # This considers events that *finished* during the last `duration_time_window`.
-    "min_p75_duration": 30,
+    # This is the per-project budget in per-second "symbolication time budget".
+    "project_budget": 10.0
 }
 
 # XXX(meredith): Temporary metrics indexer

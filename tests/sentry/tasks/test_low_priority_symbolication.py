@@ -92,11 +92,11 @@ class TestUpdateLpqEligibility:
         store.add_project_to_lpq(17)
         assert store.get_lpq_projects() == {17}
 
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == set()
 
     def test_no_metrics_not_in_lpq(self, store: RealtimeMetricsStore) -> None:
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == set()
 
     @freeze_time(datetime.fromtimestamp(1147))
@@ -105,7 +105,7 @@ class TestUpdateLpqEligibility:
 
         store.record_project_duration(17, 1000000.0)
 
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == {17}
 
     @freeze_time(datetime.fromtimestamp(0))
@@ -114,17 +114,17 @@ class TestUpdateLpqEligibility:
 
         store.record_project_duration(17, 1000000.0)
 
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == {17}
 
     def test_not_eligible_in_lpq(self, store: RealtimeMetricsStore) -> None:
         store.add_project_to_lpq(17)
 
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == set()
 
     def test_not_eligible_not_lpq(self, store: RealtimeMetricsStore) -> None:
-        _update_lpq_eligibility(project_id=17, cutoff=10)
+        _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == set()
 
     @freeze_time(datetime.fromtimestamp(0))
@@ -135,12 +135,12 @@ class TestUpdateLpqEligibility:
 
         store.record_project_duration(17, 1000000.0)
 
-        _update_lpq_eligibility(17, 10)
+        _update_lpq_eligibility(17)
         assert store.get_lpq_projects() == set()
 
     def test_not_eligible_recently_moved(self, store: RedisRealtimeMetricsStore) -> None:
         store._backoff_timer = 10
         store.add_project_to_lpq(17)
 
-        _update_lpq_eligibility(17, 10)
+        _update_lpq_eligibility(17)
         assert store.get_lpq_projects() == {17}

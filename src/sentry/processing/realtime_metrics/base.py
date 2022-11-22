@@ -51,9 +51,10 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def get_used_budget_for_project(self, project_id: int) -> int:
+    def get_used_budget_for_project(self, project_id: int) -> float:
         """
-        Returns the total used budget during the configured sliding time window for some given project.
+        Returns the total used budget during the configured sliding time window for some given project,
+        averaged over the configured time window.
         """
         raise NotImplementedError
 
