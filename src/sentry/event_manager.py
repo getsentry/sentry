@@ -926,14 +926,14 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                             sentry_sdk.capture_exception()
 
 
-def _extract_latest_release_data(data: EventDict) -> Tuple[str]:
+def _extract_latest_release_data(data: EventDict) -> Optional[str]:
     environment = data.get("environment", None)
     # We handle the case in which the users sets the empty string as environment, for us that
     # is equal to having no environment at all.
     if environment == "":
         environment = None
 
-    return environment
+    return environment  # type:ignore
 
 
 @metrics.wraps("save_event.get_event_user_many")

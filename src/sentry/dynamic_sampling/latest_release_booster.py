@@ -7,7 +7,7 @@ from django.conf import settings
 from pytz import UTC
 
 from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
-from sentry.models import Release
+from sentry.models import Project, Release
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
@@ -173,7 +173,7 @@ class BoostedRelease:
     timestamp: float
 
 
-def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
+def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[Project]:
     release_projects = release.projects.filter(id__in=[project_id])
     return release_projects[0] if len(release_projects) > 0 else None
 
@@ -201,7 +201,7 @@ def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedR
                 BoostedRelease(
                     version=release_version,
                     environment=environment,
-                    platform=release_project.platform,
+                    platform=release_project.platform,  # type:ignore
                     timestamp=timestamp,
                 )
             )

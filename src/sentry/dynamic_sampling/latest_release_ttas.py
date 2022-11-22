@@ -1,3 +1,5 @@
+from typing import Optional
+
 # This static list is the first step towards a smarter implementation of the latest release boosting. The idea behind
 # this implementation is to obtain a list of time to adoptions per platform and use that as the boost duration.
 #
@@ -126,5 +128,5 @@ LATEST_RELEASE_TTAS = {
 DEFAULT_TTA = 3600
 
 
-def get_tta_for_platform(platform: str) -> int:
-    return LATEST_RELEASE_TTAS.get(platform, DEFAULT_TTA)
+def get_tta_for_platform(platform: Optional[str]) -> int:
+    return LATEST_RELEASE_TTAS.get(platform, DEFAULT_TTA) if platform else DEFAULT_TTA
