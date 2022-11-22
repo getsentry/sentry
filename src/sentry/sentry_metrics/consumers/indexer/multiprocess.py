@@ -15,7 +15,6 @@ from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.ingest.slicing import Sliceable
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
@@ -248,7 +247,7 @@ def get_metrics_producer_strategy(
 ) -> Any:
     if config.is_output_sliced:
         if config.use_case_id == UseCaseKey.PERFORMANCE:
-            sliceable = Sliceable("generic_metrics")
+            sliceable = "generic_metrics"
         else:
             raise SlicingConfigurationException(
                 f"Slicing not supported for " f"{config.use_case_id}"

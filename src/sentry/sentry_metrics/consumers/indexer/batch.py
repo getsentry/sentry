@@ -21,7 +21,7 @@ from arroyo.types import Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch, OutputMessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
@@ -208,8 +208,8 @@ class IndexerBatch:
         self,
         mapping: Mapping[int, Mapping[str, Optional[int]]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
-    ) -> OutputMessageBatch:
-        new_messages: OutputMessageBatch = []
+    ) -> IndexerOutputMessageBatch:
+        new_messages: IndexerOutputMessageBatch = []
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()

@@ -6,7 +6,7 @@ from arroyo.types import Message
 from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch, OutputMessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
@@ -45,7 +45,7 @@ class MessageProcessor:
     def process_messages(
         self,
         outer_message: Message[MessageBatch],
-    ) -> OutputMessageBatch:
+    ) -> IndexerOutputMessageBatch:
         """
         We have an outer_message Message() whose payload is a batch of Message() objects.
 

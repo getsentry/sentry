@@ -20,7 +20,7 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
-    OutputMessageBatch,
+    IndexerOutputMessageBatch,
     get_config,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import get_metrics_producer_strategy
@@ -31,7 +31,7 @@ from sentry.utils.batching_kafka_consumer import create_topics
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStep[OutputMessageBatch]):
+class Unbatcher(ProcessingStep[IndexerOutputMessageBatch]):
     def __init__(
         self,
         next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
@@ -42,7 +42,7 @@ class Unbatcher(ProcessingStep[OutputMessageBatch]):
     def poll(self) -> None:
         self.__next_step.poll()
 
-    def submit(self, message: Message[OutputMessageBatch]) -> None:
+    def submit(self, message: Message[IndexerOutputMessageBatch]) -> None:
         assert not self.__closed
 
         for transformed_message in message.payload:

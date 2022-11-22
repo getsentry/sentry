@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, List, MutableMapping, Optional, Set, Union
+from typing import Any, List, MutableMapping, MutableSequence, Optional, Set, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -14,7 +14,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayl
 from sentry.utils import kafka_config, metrics
 
 MessageBatch = List[Message[KafkaPayload]]
-OutputMessageBatch = List[Message[Union[RoutingPayload, KafkaPayload]]]
+IndexerOutputMessageBatch = MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
 
 logger = logging.getLogger(__name__)
 
