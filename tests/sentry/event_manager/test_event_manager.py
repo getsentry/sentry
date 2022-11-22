@@ -1809,6 +1809,79 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert o.kwargs["outcome"] == Outcome.ACCEPTED
         assert o.kwargs["category"] == DataCategory.ERROR
 
+    def test_transaction_outcome_accepted(self):
+        """
+        Without metrics extraction, we count the number of accepted transaction
+        events in the TRANSACTION data category. This maintains compatibility
+        with Sentry installations that do not have a metrics pipeline.
+        """
+
+        manager = EventManager(
+            make_event(
+                transaction="wait",
+                contexts={
+                    "trace": {
+                        "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
+                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                        "span_id": "bf5be759039ede9a",
+                    }
+                },
+                spans=[],
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
+                type="transaction",
+                platform="python",
+            )
+        )
+        manager.normalize()
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature({"organizations:transaction-metrics-extraction": False}):
+                manager.save(self.project.id)
+
+        assert_mock_called_once_with_partial(
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION
+        )
+
+    def test_transaction_indexed_outcome_accepted(self):
+        """
+        With metrics extraction, we count the number of accepted transaction
+        events in the TRANSACTION_INDEXED data category. The TRANSACTION data
+        category contains the number of metrics from
+        ``billing_metrics_consumer``.
+        """
+
+        manager = EventManager(
+            make_event(
+                transaction="wait",
+                contexts={
+                    "trace": {
+                        "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
+                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                        "span_id": "bf5be759039ede9a",
+                    }
+                },
+                spans=[],
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
+                type="transaction",
+                platform="python",
+            )
+        )
+        manager.normalize()
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:transaction-metrics-extraction"):
+                manager.save(self.project.id)
+
+        assert_mock_called_once_with_partial(
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
+        )
+
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
