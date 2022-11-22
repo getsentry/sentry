@@ -24,7 +24,6 @@ describe('getDeviceKnownDataDetails', function () {
     }
 
     expect(allKnownData).toEqual([
-      {subject: 'Name', value: ''},
       {subject: 'Architecture', value: 'x86'},
       {subject: 'Battery Level', value: '100%'},
       {subject: 'Battery Status', value: undefined},
@@ -40,6 +39,7 @@ describe('getDeviceKnownDataDetails', function () {
       expect.objectContaining({subject: 'Memory Size'}),
       expect.objectContaining({subject: 'Model'}),
       {subject: 'Model Id', value: 'NYC'},
+      {subject: 'Name', value: ''},
       {subject: 'Online', value: true},
       {subject: 'Orientation', value: 'portrait'},
       {subject: 'Screen Density', value: 3},
