@@ -302,7 +302,8 @@ def get_detection_settings(project_id: Optional[str] = None):
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
-                "duration_threshold": settings["file_io_main_thread_duration_threshold"],
+                # 16ms is when frame drops will start being evident
+                "duration_threshold": 16,
             }
         ],
     }
