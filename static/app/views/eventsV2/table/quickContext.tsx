@@ -147,6 +147,8 @@ function IssueContext(props: IssueContextProps) {
     }
   );
 
+  // NOTE: Suspect commits are generated from the first event of an issue.
+  // Therefore, all events for an issue have the same suspect commits.
   const {
     isLoading: eventLoading,
     isError: eventError,
