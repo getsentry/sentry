@@ -202,7 +202,7 @@ const ReplayControls = ({
         </StyledScrubber>
         <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
       </TimeAndScrubber>
-      <ButtonBar>
+      <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
         <Button
           size="sm"
