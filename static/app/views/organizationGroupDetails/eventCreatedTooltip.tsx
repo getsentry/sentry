@@ -36,16 +36,22 @@ export default function EventCreatedTooltip({event}: Props) {
   const user = ConfigStore.get('user');
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
-  const dateCreated = moment(event.dateCreated);
+  const dateCreated = event.dateCreated ? moment(event.dateCreated) : null;
   const dateReceived = event.dateReceived ? moment(event.dateReceived) : null;
 
   return (
     <DescriptionList>
       <dt>{t('Occurred')}</dt>
       <dd>
-        {dateCreated.format('ll')}
-        <br />
-        {dateCreated.format(format)}
+        {dateCreated ? (
+          <Fragment>
+            {dateCreated.format('ll')}
+            <br />
+            {dateCreated.format(format)}
+          </Fragment>
+        ) : (
+          <NotApplicableText>{t('n/a')}</NotApplicableText>
+        )}
       </dd>
       {dateReceived && (
         <Fragment>
@@ -55,10 +61,20 @@ export default function EventCreatedTooltip({event}: Props) {
             <br />
             {dateReceived.format(format)}
           </dd>
-          <dt>{t('Latency')}</dt>
-          <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
         </Fragment>
       )}
+      {
+        <Fragment>
+          <dt>{t('Latency')}</dt>
+          <dd>
+            {dateCreated && dateReceived ? (
+              formatDateDelta(dateCreated, dateReceived)
+            ) : (
+              <NotApplicableText>{t('n/a')}</NotApplicableText>
+            )}
+          </dd>
+        </Fragment>
+      }
     </DescriptionList>
   );
 }
@@ -69,4 +85,8 @@ const DescriptionList = styled('dl')`
   gap: ${space(0.75)} ${space(1)};
   text-align: left;
   margin: 0;
+`;
+
+const NotApplicableText = styled('span')`
+  color: ${p => p.theme.subText};
 `;
