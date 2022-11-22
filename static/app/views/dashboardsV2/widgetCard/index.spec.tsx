@@ -583,7 +583,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        showWidgetViewerButton
         index="10"
         isPreview
       />

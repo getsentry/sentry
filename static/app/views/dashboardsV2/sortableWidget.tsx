@@ -2,8 +2,6 @@ import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 import {DashboardFilters, Widget} from './types';
@@ -16,7 +14,6 @@ type Props = {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
-  organization: Organization;
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
@@ -27,7 +24,6 @@ type Props = {
 
 function SortableWidget(props: Props) {
   const {
-    organization,
     widget,
     isEditing,
     widgetLimitReached,
@@ -50,7 +46,6 @@ function SortableWidget(props: Props) {
     onDuplicate,
     showContextMenu: true,
     isPreview,
-    showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
     index,
     dashboardFilters,
     renderErrorMessage: errorMessage => {
@@ -72,7 +67,7 @@ function SortableWidget(props: Props) {
   );
 }
 
-export default withOrganization(SortableWidget);
+export default SortableWidget;
 
 const GridWidgetWrapper = styled('div')`
   height: 100%;

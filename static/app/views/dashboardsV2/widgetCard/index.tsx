@@ -65,7 +65,6 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
-  showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -159,7 +158,6 @@ class WidgetCard extends Component<Props, State> {
       onDuplicate,
       onDelete,
       isEditing,
-      showWidgetViewerButton,
       router,
       location,
       index,
@@ -183,7 +181,6 @@ class WidgetCard extends Component<Props, State> {
         onDuplicate={onDuplicate}
         onEdit={onEdit}
         onDelete={onDelete}
-        showWidgetViewerButton={showWidgetViewerButton}
         router={router}
         location={location}
         index={index}
