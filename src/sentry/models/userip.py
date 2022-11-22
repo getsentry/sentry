@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -6,6 +8,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models import User
 from sentry.region_to_control.messages import UserIpEvent
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.geo import geo_by_addr
 
 
@@ -28,7 +31,7 @@ class UserIP(Model):
     __repr__ = sane_repr("user_id", "ip_address")
 
     @classmethod
-    def log(cls, user: User, ip_address: str):
+    def log(cls, user: User | APIUser, ip_address: str):
         # Only log once every 5 minutes for the same user/ip_address pair
         # since this is hit pretty frequently by all API calls in the UI, etc.
         cache_key = f"userip.log:{user.id}:{ip_address}"
@@ -37,7 +40,7 @@ class UserIP(Model):
             cache.set(cache_key, 1, 300)
 
 
-def _perform_log(user: User, ip_address: str):
+def _perform_log(user: User | APIUser, ip_address: str):
     from sentry.region_to_control.producer import user_ip_service
 
     try:
