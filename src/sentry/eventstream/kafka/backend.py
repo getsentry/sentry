@@ -22,10 +22,13 @@ from sentry.eventstream.kafka.postprocessworker import (
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, kafka, metrics
+from sentry.utils import json, metrics
 from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.kafka_config import (
+    get_kafka_consumer_cluster_options,
+    get_kafka_producer_cluster_options,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +43,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
-        return kafka.producers.get(topic)
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_options = get_kafka_producer_cluster_options(cluster_name)
+        return Producer(cluster_options)
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -327,6 +332,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         def handler(signum, frame):
             consumer.signal_shutdown()
+            self.get_producer().flush()
 
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
