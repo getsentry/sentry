@@ -192,6 +192,7 @@ describe('RuleNode', () => {
     expect(screen.getByPlaceholderText('100')).toBeInTheDocument();
 
     userEvent.type(screen.getByPlaceholderText('100'), '721');
+    userEvent.click(document.body);
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '721');
   });
 
