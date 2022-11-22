@@ -453,13 +453,23 @@ export interface DeviceContext
   timezone?: string;
 }
 
-type RuntimeContext = {
+enum RuntimeContextKey {
+  BUILD = 'build',
+  NAME = 'name',
+  RAW_DESCRIPTION = 'raw_description',
+  VERSION = 'version',
+}
+
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
+interface RuntimeContext
+  extends Partial<Record<RuntimeContextKey, unknown>>,
+    BaseContext {
   type: 'runtime';
-  build?: string;
-  name?: string;
-  raw_description?: string;
-  version?: number;
-};
+  [RuntimeContextKey.BUILD]?: string;
+  [RuntimeContextKey.NAME]?: string;
+  [RuntimeContextKey.RAW_DESCRIPTION]?: string;
+  [RuntimeContextKey.VERSION]?: number;
+}
 
 type OSContext = {
   build: string;
