@@ -3,18 +3,21 @@ import datetime
 import logging
 
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import Message, Partition, Topic
 
 from sentry.models import ApiKey, AuditLogEntry, UserIP
-from sentry.region_to_control.consumer import RegionToControlConsumerWorker
-from sentry.region_to_control.messages import RegionToControlMessage, UserIpEvent
+from sentry.region_to_control.consumer import ProcessRegionToControlMessage
+from sentry.region_to_control.messages import RegionToControlMessage
 from sentry.testutils.factories import Factories
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def region_to_control_consumer_worker():
-    return RegionToControlConsumerWorker()
+def region_to_control_strategy():
+    return ProcessRegionToControlMessage()
 
 
 @pytest.fixture
@@ -33,19 +36,27 @@ def api_key(organization):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_user_ip_event_with_deleted_user(region_to_control_consumer_worker, user):
-    message = RegionToControlMessage(
-        user_ip_event=UserIpEvent(
-            user_id=user.id, ip_address="127.0.0.1", last_seen=datetime.datetime.now()
-        )
+def test_user_ip_event_with_deleted_user(region_to_control_strategy, user):
+    message = Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(
+            value=json.dumps(
+                {
+                    "user_id": user.id,
+                    "ip_address": "127.0.0.1",
+                    "last_seen": datetime.datetime.now(),
+                }
+            )
+        ),
+        datetime.datetime.now(),
     )
-    region_to_control_consumer_worker.flush_batch([message])
+    region_to_control_strategy.submit(message)
 
     assert UserIP.objects.count() == 1
 
     user.delete()
 
-    region_to_control_consumer_worker.flush_batch([message])
+    region_to_control_strategy.submit(message)
 
     assert UserIP.objects.count() == 0
 
@@ -62,18 +73,25 @@ def test_actor_key_not_serializable(api_key, user, organization):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_region_to_control_with_deleted_user(region_to_control_consumer_worker, user, organization):
+def test_region_to_control_with_deleted_user(region_to_control_strategy, user, organization):
     assert AuditLogEntry.objects.count() == 0
 
-    message = RegionToControlMessage(
-        audit_log_event=AuditLogEntry(
-            actor=user,
-            ip_address="127.0.0.1",
-            organization=organization,
-            event=0,
-        ).as_kafka_event()
+    message = Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(
+            value=json.dumps(
+                {
+                    "actor": user,
+                    "ip_address": "127.0.0.1",
+                    "organization": organization,
+                    "event": 0,
+                }
+            )
+        ),
+        datetime.datetime.now(),
     )
-    region_to_control_consumer_worker.flush_batch([message])
+
+    region_to_control_strategy.submit(message)
 
     assert AuditLogEntry.objects.count() == 1
     assert AuditLogEntry.objects.first().actor_id is not None
@@ -82,7 +100,7 @@ def test_region_to_control_with_deleted_user(region_to_control_consumer_worker, 
     user.delete()
     assert AuditLogEntry.objects.count() == 1
 
-    region_to_control_consumer_worker.flush_batch([message])
+    region_to_control_strategy.submit(message)
 
     assert AuditLogEntry.objects.count() == 2
 
@@ -91,12 +109,18 @@ def test_region_to_control_with_deleted_user(region_to_control_consumer_worker, 
 
 
 @pytest.mark.django_db
-def test_no_op_message(region_to_control_consumer_worker, user):
+def test_no_op_message(region_to_control_strategy, user):
     assert dataclasses.asdict(RegionToControlMessage()) == dict(
         user_ip_event=None, audit_log_event=None
     )
 
-    region_to_control_consumer_worker.flush_batch([RegionToControlMessage()])
+    message = Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(value="{}"),
+        datetime.datetime.now(),
+    )
+
+    region_to_control_strategy.submit(message)
 
     assert UserIP.objects.count() == 0
 
@@ -117,10 +141,14 @@ def test_no_op_message(region_to_control_consumer_worker, user):
         ),
     ],
 )
-def test_user_ip_event_regression(region_to_control_consumer_worker, user, user_ip_event):
-    region_to_control_consumer_worker.flush_batch(
-        [RegionToControlMessage.from_payload(dict(user_ip_event=user_ip_event(user)))]
+def test_user_ip_event_regression(region_to_control_strategy, user, user_ip_event):
+    message = Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(value=json.dumps({"user_ip_event": user_ip_event(user)})),
+        datetime.datetime.now(),
     )
+
+    region_to_control_strategy.submit(message)
 
     assert UserIP.objects.count() == 1
 
@@ -153,14 +181,13 @@ def test_user_ip_event_regression(region_to_control_consumer_worker, user, user_
     ],
 )
 def test_audit_log_event_regression(
-    region_to_control_consumer_worker, user, audit_log_event, organization
+    region_to_control_strategy, user, audit_log_event, organization
 ):
-    region_to_control_consumer_worker.flush_batch(
-        [
-            RegionToControlMessage.from_payload(
-                dict(audit_log_event=audit_log_event(user, organization))
-            )
-        ]
+    message = Message(
+        Partition(Topic("region-to-control"), 0),
+        KafkaPayload(value=json.dumps({"audit_log_event": audit_log_event(user, organization)})),
+        datetime.datetime.now(),
     )
+    region_to_control_strategy.submit(message)
 
     assert AuditLogEntry.objects.count() == 1
