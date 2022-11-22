@@ -215,7 +215,6 @@ function importSentrySampledProfile(
       ),
       environment: input.environment,
       platform: input.platform,
-      version: input.version,
       profileID: input.event_id,
 
       // these don't really work for multiple transactions

@@ -342,6 +342,10 @@ register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORI
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
+# Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
+# Set this value of the fraction of projects that you want to use it for.
+register("processing.sourcemapcache-processor", default=0.0)
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -406,9 +410,7 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[])
 
-# Sample rate for opting in orgs into transaction metrics extraction.
-# NOTE: If this value is > 0.0, the extraction feature will be enabled for the
-#       given fraction of orgs even if the corresponding feature flag is disabled.
+# [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Sample rate for opting in orgs into the new transaction name handling.

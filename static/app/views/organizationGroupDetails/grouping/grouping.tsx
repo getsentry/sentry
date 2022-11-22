@@ -20,6 +20,7 @@ import space from 'sentry/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import toArray from 'sentry/utils/toArray';
 import withApi from 'sentry/utils/withApi';
 
 import ErrorMessage from './errorMessage';
@@ -153,7 +154,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
       const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
+      setActiveGroupingLevelDetails(toArray(data));
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);

@@ -44,6 +44,7 @@ import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
@@ -214,15 +215,15 @@ class MetricChart extends PureComponent<Props, State> {
           <SectionHeading>{t('Summary')}</SectionHeading>
           <StyledSectionValue>
             <ValueItem>
-              <IconCheckmark color="green300" isCircled />
+              <IconCheckmark color="successText" isCircled />
               {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
             </ValueItem>
             <ValueItem>
-              <IconWarning color="yellow300" />
+              <IconWarning color="warningText" />
               {warningPercent ? warningPercent.toFixed(2) : 0}%
             </ValueItem>
             <ValueItem>
-              <IconFire color="red300" />
+              <IconFire color="errorText" />
               {criticalPercent ? criticalPercent.toFixed(2) : 0}%
             </ValueItem>
           </StyledSectionValue>
@@ -350,9 +351,7 @@ class MetricChart extends PureComponent<Props, State> {
                     tooltip={{
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
-                        const pointSeries = Array.isArray(seriesParams)
-                          ? seriesParams
-                          : [seriesParams];
+                        const pointSeries = toArray(seriesParams);
                         const {marker, data: pointData, seriesName} = pointSeries[0];
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(

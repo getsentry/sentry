@@ -7,6 +7,7 @@ import moment from 'moment';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {DataPoint} from 'sentry/types/echarts';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import toArray from 'sentry/utils/toArray';
 
 import {truncationFormatter} from '../utils';
 
@@ -182,9 +183,7 @@ function getFormatter({
       ].join('');
     }
 
-    const seriesParams = Array.isArray(seriesParamsOrParam)
-      ? seriesParamsOrParam
-      : [seriesParamsOrParam];
+    const seriesParams = toArray(seriesParamsOrParam);
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when

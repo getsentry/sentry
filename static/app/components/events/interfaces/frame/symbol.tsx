@@ -159,7 +159,7 @@ const FileNameTooltip = styled(Tooltip)`
 `;
 
 const Filename = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
 `;
 
 export const FunctionNameToggleIcon = styled(IconFilter, {

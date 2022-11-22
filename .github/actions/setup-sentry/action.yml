@@ -205,4 +205,8 @@ runs:
 
         docker ps -a
 
-        ./$WORKDIR/scripts/devservices-healthcheck.sh
+        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
+        # without needing to fork it. The path needed is the one where tools are located
+        cd "$WORKDIR"
+        python3 -u -S -m tools.devservices_healthcheck
+        cd -

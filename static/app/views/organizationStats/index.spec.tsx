@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -17,7 +17,7 @@ describe('OrganizationStats', function () {
     datetime: {
       start: null,
       end: null,
-      period: '24h',
+      period: DEFAULT_STATS_PERIOD,
       utc: false,
     },
   };
@@ -33,6 +33,7 @@ describe('OrganizationStats', function () {
     router,
     organization,
     ...router,
+    selection: defaultSelection,
     route: {},
     params: {orgId: organization.slug as string},
     routeParams: {},
@@ -60,14 +61,11 @@ describe('OrganizationStats', function () {
   /**
    * Features and Alerts
    */
-
-  it('renders header state wihout tabs', () => {
+  it('renders header state without tabs', () => {
     const newOrg = initializeOrg();
-    const newProps = {
-      ...defaultProps,
-      organization: newOrg.organization,
-    };
-    render(<OrganizationStats {...newProps} />, {context: newOrg.routerContext});
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
     expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
@@ -112,6 +110,7 @@ describe('OrganizationStats', function () {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
         groupBy: ['category', 'outcome'],
+        project: [],
         field: ['sum(quantity)'],
       },
       UsageStatsPerMin: {
@@ -124,7 +123,7 @@ describe('OrganizationStats', function () {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
         groupBy: ['outcome', 'project'],
-        project: '-1',
+        project: [],
         field: ['sum(quantity)'],
         category: 'error',
       },
@@ -206,11 +205,9 @@ describe('OrganizationStats', function () {
       },
       {query: {}}
     );
-    const newProps = {
-      ...defaultProps,
-      location: dummyLocation as any,
-    };
-    render(<OrganizationStats {...newProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />, {
+      context: routerContext,
+    });
 
     const projectLinks = screen.getAllByTestId('badge-display-name');
     expect(projectLinks.length).toBeGreaterThan(0);
@@ -220,6 +217,151 @@ describe('OrganizationStats', function () {
         'href',
         expect.not.stringMatching(leakingRegex)
       );
+    }
+  });
+
+  /**
+   * Project Selection
+   */
+  it('renders with no projects selected', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
+
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+
+    mockRequest.mock.calls.forEach(([_path, {query}]) => {
+      // Ignore UsageStatsPerMin's query
+      if (query?.statsPeriod === '5m') {
+        return;
+      }
+      expect(query.project).toEqual(defaultSelection.projects);
+    });
+  });
+
+  it('renders with multiple projects selected', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+
+    const selectedProjects = [1, 2];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProjects,
+    };
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        organization={newOrg.organization}
+        selection={newSelection}
+      />,
+      {context: newOrg.routerContext}
+    );
+    act(() => PageFiltersStore.updateProjects(selectedProjects, []));
+
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: {
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
+          groupBy: ['category', 'outcome'],
+          project: selectedProjects,
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+  });
+
+  it('renders with a single project selected', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+    const selectedProject = [1];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProject,
+    };
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        organization={newOrg.organization}
+        selection={newSelection}
+      />,
+      {context: newOrg.routerContext}
+    );
+    act(() => PageFiltersStore.updateProjects(selectedProject, []));
+
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    // Doesn't render for single project view
+    expect(screen.queryByTestId('usage-stats-table')).not.toBeInTheDocument();
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: {
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
+          groupBy: ['category', 'outcome'],
+          project: selectedProject,
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+  });
+
+  /**
+   * Feature Flagging
+   */
+  it('renders legacy organization stats without appropriate flags', () => {
+    const selectedProject = [1];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProject,
+    };
+    for (const features of [
+      ['team-insights'],
+      ['team-insights', 'project-stats'],
+      ['team-insights', 'global-views'],
+    ]) {
+      const newOrg = initializeOrg();
+      newOrg.organization.features = features;
+      render(
+        <OrganizationStats
+          {...defaultProps}
+          organization={newOrg.organization}
+          selection={newSelection}
+        />,
+        {context: newOrg.routerContext}
+      );
+      act(() => PageFiltersStore.updateProjects(selectedProject, []));
+      expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+      expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+      cleanup();
     }
   });
 });

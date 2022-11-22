@@ -8,7 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import QueryCount from 'sentry/components/queryCount';
-import {Item, TabList} from 'sentry/components/tabs';
+import {Item, TabList, Tabs} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
@@ -153,54 +153,57 @@ function IssueListHeader({
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {organization.features.includes('issue-list-saved-searches-v2') ? (
-        <TabList
+        <StyledTabs
           onSelectionChange={key =>
             trackTabClick(key === EXTRA_TAB_KEY ? query : key.toString())
           }
           selectedKey={savedSearchTabActive ? EXTRA_TAB_KEY : query}
-          hideBorder
         >
-          {[
-            ...visibleTabs.map(
-              ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
-                const to = {
-                  query: {
-                    ...queryParms,
-                    query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
-                  },
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                };
+          <TabList hideBorder>
+            {[
+              ...visibleTabs.map(
+                ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
+                  const to = {
+                    query: {
+                      ...queryParms,
+                      query: tabQuery,
+                      sort:
+                        tabQuery === Query.FOR_REVIEW
+                          ? IssueSortOptions.INBOX
+                          : sortParam,
+                    },
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                  };
 
-                return (
-                  <Item key={tabQuery} to={to} textValue={queryName}>
-                    <IssueListHeaderTabContent
-                      tooltipTitle={tooltipTitle}
-                      tooltipHoverable={tooltipHoverable}
-                      name={queryName}
-                      count={queryCounts[tabQuery]?.count}
-                      hasMore={queryCounts[tabQuery]?.hasMore}
-                      query={tabQuery}
-                    />
-                  </Item>
-                );
-              }
-            ),
-            <Item
-              hidden={!savedSearchTabActive}
-              key={EXTRA_TAB_KEY}
-              to={{query: queryParms, pathname: location.pathname}}
-              textValue={savedSearch?.name ?? t('Custom Search')}
-            >
-              <IssueListHeaderTabContent
-                name={savedSearch?.name ?? t('Custom Search')}
-                count={queryCount}
-                query={query}
-              />
-            </Item>,
-          ]}
-        </TabList>
+                  return (
+                    <Item key={tabQuery} to={to} textValue={queryName}>
+                      <IssueListHeaderTabContent
+                        tooltipTitle={tooltipTitle}
+                        tooltipHoverable={tooltipHoverable}
+                        name={queryName}
+                        count={queryCounts[tabQuery]?.count}
+                        hasMore={queryCounts[tabQuery]?.hasMore}
+                        query={tabQuery}
+                      />
+                    </Item>
+                  );
+                }
+              ),
+              <Item
+                hidden={!savedSearchTabActive}
+                key={EXTRA_TAB_KEY}
+                to={{query: queryParms, pathname: location.pathname}}
+                textValue={savedSearch?.name ?? t('Custom Search')}
+              >
+                <IssueListHeaderTabContent
+                  name={savedSearch?.name ?? t('Custom Search')}
+                  count={queryCount}
+                  query={query}
+                />
+              </Item>,
+            ]}
+          </TabList>
+        </StyledTabs>
       ) : (
         <Layout.HeaderNavTabs underlined>
           {visibleTabs.map(
@@ -278,4 +281,8 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-top: ${space(2)};
     margin-bottom: 0;
   }
+`;
+
+const StyledTabs = styled(Tabs)`
+  grid-column: 1/-1;
 `;

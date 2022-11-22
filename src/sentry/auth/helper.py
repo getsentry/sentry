@@ -435,7 +435,7 @@ class AuthIdentityHandler:
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponse:
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
         not present.
@@ -751,7 +751,7 @@ class AuthHelper(Pipeline):
         )
 
     @transaction.atomic  # type: ignore
-    def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
+    def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:
         """
         The login flow executes both with anonymous and authenticated users.
 

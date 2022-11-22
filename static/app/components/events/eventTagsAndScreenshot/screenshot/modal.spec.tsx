@@ -145,4 +145,73 @@ describe('Modals -> ScreenshotModal', function () {
       );
     });
   });
+
+  it('renders with previous and next buttons when passed attachments and index', function () {
+    const eventAttachment = TestStubs.EventAttachment();
+    const attachments = [eventAttachment, TestStubs.EventAttachment({id: '2'})];
+    render(
+      <Modal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        onDelete={jest.fn()}
+        onDownload={jest.fn()}
+        orgSlug={initialData.organization.slug}
+        projectSlug={project.slug}
+        eventAttachment={eventAttachment}
+        downloadUrl=""
+        attachments={attachments}
+        attachmentIndex={0}
+        groupId="group-id"
+        enablePagination
+      />,
+      {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
+    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('1 of 2');
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('2 of 2');
+
+    // This pagination doesn't use page links
+    expect(getAttachmentsMock).not.toHaveBeenCalled();
+  });
+
+  it('does not render pagination buttons when only one screenshot', function () {
+    const eventAttachment = TestStubs.EventAttachment();
+    const attachments = [eventAttachment];
+    render(
+      <Modal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        onDelete={jest.fn()}
+        onDownload={jest.fn()}
+        orgSlug={initialData.organization.slug}
+        projectSlug={project.slug}
+        eventAttachment={eventAttachment}
+        downloadUrl=""
+        attachments={attachments}
+        attachmentIndex={0}
+        groupId="group-id"
+        enablePagination
+      />,
+      {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      }
+    );
+
+    expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pagination-header-text')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
 });

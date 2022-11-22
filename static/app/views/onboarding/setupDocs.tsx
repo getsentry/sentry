@@ -174,6 +174,11 @@ function SetupDocs({
       // If no projects remaining, then we can leave
       !project
     ) {
+      // marke onboarding as complete
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
       browserHistory.push(
         `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
       );
@@ -370,7 +375,7 @@ const Content = styled(motion.div)`
 
   code {
     font-size: 87.5%;
-    color: ${p => p.theme.pink300};
+    color: ${p => p.theme.pink400};
   }
 
   pre code {

@@ -81,7 +81,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           </CTAOverlayLink>
 
           <StaticPanel>
-            <ReplayPlayer />
+            <ReplayPlayer isPreview />
           </StaticPanel>
         </FluidHeight>
 
