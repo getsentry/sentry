@@ -30,6 +30,12 @@ def get_hours(time: timedelta) -> int:
 @freeze_time()
 @region_silo_test
 class ProjectRulePreviewTest(TestCase):
+    def setUp(self):
+        self.transaction_data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+
     def _set_up_first_seen(self):
         hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
@@ -328,10 +334,7 @@ class ProjectRulePreviewTest(TestCase):
 
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        ).copy()
+        event = self.transaction_data.copy()
         event.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
@@ -404,10 +407,7 @@ class ProjectRulePreviewTest(TestCase):
         issue = error.group
         issue.update(first_seen=prev_hour)
 
-        event = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        ).copy()
+        event = self.transaction_data.copy()
         event.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
@@ -446,6 +446,12 @@ class ProjectRulePreviewTest(TestCase):
 @freeze_time()
 @region_silo_test
 class FrequencyConditionTest(TestCase):
+    def setUp(self):
+        self.transaction_data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+
     def test_top_groups(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         activity = {i: [] for i in range(FREQUENCY_CONDITION_GROUP_LIMIT + 1)}
@@ -515,10 +521,7 @@ class FrequencyConditionTest(TestCase):
 
     def test_transaction(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        ).copy()
+        event = self.transaction_data.copy()
         event.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),

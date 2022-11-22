@@ -248,7 +248,8 @@ def get_top_groups(
 
 def get_group_dataset(condition_activity: GroupActivityMap) -> Dict[str, Dataset]:
     """
-    Returns a dict that maps each group to its dataset
+    Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
+    If the dataset is not found/supported, it is mapped to None.
     """
     group_categories = Group.objects.filter(id__in=condition_activity.keys()).values_list(
         "id", "type"
