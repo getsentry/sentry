@@ -1,5 +1,6 @@
+import copy
 import logging
-from typing import Mapping, Optional, Sequence
+from typing import Dict, Mapping, Optional, Sequence
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,19 +51,9 @@ def get_link(
     return result
 
 
-def set_top_tags(scope: Scope, project: Project) -> None:
-    scope.set_tag("project.slug", project.slug)
-    scope.set_tag("organization.slug", project.organization.slug)
-    try:
-        scope.set_tag("organization.early_adopter", project.organization.flags.early_adopter)
-    except Exception:
-        # If errors arise we can then follow up with a fix
-        logger.exception("We failed to set the early adopter flag")
-
-
 # This is to support mobile languages with non-fully-qualified file pathing.
 # We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
-def generate_mobile_frame(parameters: Any) -> Any:
+def generate_mobile_frame(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
     abs_path = parameters.get("absPath")
     module = parameters.get("module")
     package = parameters.get("package")
@@ -76,18 +67,30 @@ def generate_mobile_frame(parameters: Any) -> Any:
     return frame
 
 
+def set_top_tags(scope: Scope, project: Project) -> None:
+    scope.set_tag("project.slug", project.slug)
+    scope.set_tag("organization.slug", project.organization.slug)
+    try:
+        scope.set_tag("organization.early_adopter", project.organization.flags.early_adopter)
+    except Exception:
+        # If errors arise we can then follow up with a fix
+        logger.exception("We failed to set the early adopter flag")
+
+
 def try_path_munging(
-    config: RepositoryProjectPathConfig, ctx: Mapping[str, Optional[str]]
+    config: RepositoryProjectPathConfig,
+    filepath: str,
+    mobile_frame: Mapping[str, Optional[str]],
+    ctx: Mapping[str, Optional[str]],
 ) -> Mapping[str, str]:
     result: Mapping[str, str] = {}
-    filepath = str(ctx["file"])
+    mobile_frame["filename"] = filepath  # type: ignore
     munged_frames = munged_filename_and_frames(
-        str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
+        str(ctx["platform"]), [mobile_frame], "munged_filename", sdk_name=str(ctx["sdk_name"])
     )
     if munged_frames:
         munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
         munged_filename = str(munged_frame.get("munged_filename"))
-        logger.info(f"We are going to attempt some munging (New filepath: {munged_filename}).")
         if munged_filename:
             if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
                 config.stack_root
@@ -117,17 +120,28 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
 
     def get(self, request: Request, project: Project) -> Response:
-        ctx = generate_context(request.GET)
-        filepath = ctx["file"]
+        # should probably feature gate
+        filepath = request.GET.get("file")
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        result = {
-            "config": None,
-            "sourceUrl": None,
-            # It's unclear where this is used or why it's returned in the endpoint
-            "integrations": get_integrations(project.organization_id, request.user),
+        ctx = {
+            "commit_id": request.GET.get("commitId"),
+            "platform": request.GET.get("platform"),
+            "sdk_name": request.GET.get("sdkName"),
         }
+
+        mobile_frame = generate_mobile_frame(request.GET)
+        result = {"config": None, "sourceUrl": None}
+
+        integrations = Integration.objects.filter(organizations=project.organization_id)
+        # TODO(meredith): should use get_provider.has_feature() instead once this is
+        # no longer feature gated and is added as an IntegrationFeature
+        result["integrations"] = [
+            serialize(i, request.user)
+            for i in integrations
+            if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
+        ]
 
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
@@ -140,15 +154,15 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         with configure_scope() as scope:
             set_top_tags(scope, project)
             for config in configs:
-                # If all code mappings fail to match a stack_root it means that there's no working code mapping
-                if not filepath.startswith(config.stack_root):
-                    # Later on, if there are matching code mappings this will be overwritten
+                if not filepath.startswith(config.stack_root) and not mobile_frame:
                     result["error"] = "stack_root_mismatch"
                     continue
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
-                if not outcome.get("sourceUrl"):
-                    munging_outcome = try_path_munging(config, ctx)
+                # For mobile we try a second time by munging the file path
+                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
+                if not outcome.get("sourceUrl") and mobile_frame:
+                    munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
                     # If we failed to munge we should keep the original outcome
                     if munging_outcome:
                         outcome = munging_outcome
@@ -170,22 +184,25 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             scope.set_tag("stacktrace_link.found", found)
             scope.set_tag("stacktrace_link.platform", ctx["platform"])
             if matched_code_mappings:
-                # Any code mapping that matched and its associated outcome will be returned
-                result["matched_code_mappings"] = matched_code_mappings  # type: ignore
+                # Any code mapping that matches and its results will be returned
+                result["matched_code_mappings"] = matched_code_mappings
                 last = matched_code_mappings[-1]
                 result["config"] = last["config"]  # Backwards compatible
                 if not found:
-                    result["error"] = last["outcome"]["error"] or result["error"]
-                    result["attemptedUrl"] = last["outcome"]["attemptedUrl"]  # Backwards compatible
-
-            if result.get("error"):
-                scope.set_tag("stacktrace_link.error", result["error"])
+                    result["error"] = last["outcome"]["error"]  # Backwards compatible
+                    # When no code mapping have been matched we have not attempted a URL
+                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
+                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
+                    if result["error"] == "stack_root_mismatch":
+                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                    else:
+                        scope.set_tag("stacktrace_link.error", "file_not_found")
 
         if result["config"]:
             analytics.record(
                 "integration.stacktrace.linked",
-                provider=result["config"]["provider"]["key"],  # type: ignore
-                config_id=result["config"]["id"],  # type: ignore
+                provider=result["config"]["provider"]["key"],
+                config_id=result["config"]["id"],
                 project_id=project.id,
                 organization_id=project.organization_id,
                 filepath=filepath,
