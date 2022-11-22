@@ -2,7 +2,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {CrumbWalker, StringWalker} from './urlWalker';
 
@@ -29,9 +28,7 @@ describe('UrlWalker', () => {
   });
 
   describe('CrumbWalker', () => {
-    const mockReplayRecord = {
-      startedAt: new Date(),
-    } as ReplayRecord;
+    const {replayRecord} = TestStubs.ReplayReaderParams();
 
     const PAGELOAD_CRUMB = TestStubs.Breadcrumb({
       id: 4,
@@ -65,7 +62,7 @@ describe('UrlWalker', () => {
         NAV_CRUMB_UNDERSCORE,
       ];
 
-      render(<CrumbWalker crumbs={crumbs} replayRecord={mockReplayRecord} />);
+      render(<CrumbWalker crumbs={crumbs} replayRecord={replayRecord} />);
 
       expect(await screen.findByText('https://sourcemaps.io/')).toBeInTheDocument();
       expect(await screen.findByText('3 Pages')).toBeInTheDocument();
@@ -83,7 +80,7 @@ describe('UrlWalker', () => {
 
       const crumbs = [ERROR_CRUMB];
 
-      render(<CrumbWalker crumbs={crumbs} replayRecord={mockReplayRecord} />);
+      render(<CrumbWalker crumbs={crumbs} replayRecord={replayRecord} />);
       expect(await screen.findByText('0 Pages')).toBeInTheDocument();
     });
   });
