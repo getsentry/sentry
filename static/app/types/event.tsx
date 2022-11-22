@@ -363,7 +363,7 @@ export interface BaseContext {
   type: string;
 }
 
-export enum DeviceContextKeys {
+export enum DeviceContextKey {
   NAME = 'name',
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
@@ -404,49 +404,49 @@ export enum DeviceContextKeys {
   USABLE_MEMORY = 'usable_memory',
 }
 
-type DeviceContextKeysFields = {[key in keyof typeof DeviceContextKeys]: unknown};
+type DeviceContextKeyFields = {[key in keyof typeof DeviceContextKey]: unknown};
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
-export interface DeviceContext extends Partial<DeviceContextKeysFields>, BaseContext {
+export interface DeviceContext extends Partial<DeviceContextKeyFields>, BaseContext {
   type: 'device';
-  [DeviceContextKeys.NAME]: string;
-  [DeviceContextKeys.ARCH]?: string;
-  [DeviceContextKeys.BATTERY_LEVEL]?: number;
-  [DeviceContextKeys.BATTERY_STATUS]?: string;
-  [DeviceContextKeys.BOOT_TIME]?: string;
-  [DeviceContextKeys.BRAND]?: string;
-  [DeviceContextKeys.CHARGING]?: boolean;
-  [DeviceContextKeys.CPU_DESCRIPTION]?: string;
-  [DeviceContextKeys.DEVICE_TYPE]?: string;
-  [DeviceContextKeys.DEVICE_UNIQUE_IDENTIFIER]?: string;
-  [DeviceContextKeys.EXTERNAL_FREE_STORAGE]?: number;
-  [DeviceContextKeys.EXTERNAL_STORAGE_SIZE]?: number;
-  [DeviceContextKeys.EXTERNAL_TOTAL_STORAGE]?: number;
-  [DeviceContextKeys.FAMILY]?: string;
-  [DeviceContextKeys.FREE_MEMORY]?: number;
-  [DeviceContextKeys.FREE_STORAGE]?: number;
-  [DeviceContextKeys.LOW_MEMORY]?: boolean;
-  [DeviceContextKeys.MANUFACTURER]?: string;
-  [DeviceContextKeys.MEMORY_SIZE]?: number;
-  [DeviceContextKeys.MODEL]?: string;
-  [DeviceContextKeys.MODEL_ID]?: string;
-  [DeviceContextKeys.ONLINE]?: boolean;
-  [DeviceContextKeys.ORIENTATION]?: 'portrait' | 'landscape';
-  [DeviceContextKeys.PROCESSOR_COUNT]?: number;
-  [DeviceContextKeys.PROCESSOR_FREQUENCY]?: number;
-  [DeviceContextKeys.SCREEN_DENSITY]?: number;
-  [DeviceContextKeys.SCREEN_DPI]?: number;
-  [DeviceContextKeys.SCREEN_HEIGHT_PIXELS]?: number;
-  [DeviceContextKeys.SCREEN_RESOLUTION]?: string;
-  [DeviceContextKeys.SCREEN_WIDTH_PIXELS]?: number;
-  [DeviceContextKeys.SIMULATOR]?: boolean;
-  [DeviceContextKeys.STORAGE_SIZE]?: number;
-  [DeviceContextKeys.SUPPORTS_ACCELEROMETER]?: boolean;
-  [DeviceContextKeys.SUPPORTS_AUDIO]?: boolean;
-  [DeviceContextKeys.SUPPORTS_GYROSCOPE]?: boolean;
-  [DeviceContextKeys.SUPPORTS_LOCATION_SERVICE]?: boolean;
-  [DeviceContextKeys.SUPPORTS_VIBRATION]?: boolean;
-  [DeviceContextKeys.USABLE_MEMORY]?: number;
+  [DeviceContextKey.NAME]: string;
+  [DeviceContextKey.ARCH]?: string;
+  [DeviceContextKey.BATTERY_LEVEL]?: number;
+  [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BOOT_TIME]?: string;
+  [DeviceContextKey.BRAND]?: string;
+  [DeviceContextKey.CHARGING]?: boolean;
+  [DeviceContextKey.CPU_DESCRIPTION]?: string;
+  [DeviceContextKey.DEVICE_TYPE]?: string;
+  [DeviceContextKey.DEVICE_UNIQUE_IDENTIFIER]?: string;
+  [DeviceContextKey.EXTERNAL_FREE_STORAGE]?: number;
+  [DeviceContextKey.EXTERNAL_STORAGE_SIZE]?: number;
+  [DeviceContextKey.EXTERNAL_TOTAL_STORAGE]?: number;
+  [DeviceContextKey.FAMILY]?: string;
+  [DeviceContextKey.FREE_MEMORY]?: number;
+  [DeviceContextKey.FREE_STORAGE]?: number;
+  [DeviceContextKey.LOW_MEMORY]?: boolean;
+  [DeviceContextKey.MANUFACTURER]?: string;
+  [DeviceContextKey.MEMORY_SIZE]?: number;
+  [DeviceContextKey.MODEL]?: string;
+  [DeviceContextKey.MODEL_ID]?: string;
+  [DeviceContextKey.ONLINE]?: boolean;
+  [DeviceContextKey.ORIENTATION]?: 'portrait' | 'landscape';
+  [DeviceContextKey.PROCESSOR_COUNT]?: number;
+  [DeviceContextKey.PROCESSOR_FREQUENCY]?: number;
+  [DeviceContextKey.SCREEN_DENSITY]?: number;
+  [DeviceContextKey.SCREEN_DPI]?: number;
+  [DeviceContextKey.SCREEN_HEIGHT_PIXELS]?: number;
+  [DeviceContextKey.SCREEN_RESOLUTION]?: string;
+  [DeviceContextKey.SCREEN_WIDTH_PIXELS]?: number;
+  [DeviceContextKey.SIMULATOR]?: boolean;
+  [DeviceContextKey.STORAGE_SIZE]?: number;
+  [DeviceContextKey.SUPPORTS_ACCELEROMETER]?: boolean;
+  [DeviceContextKey.SUPPORTS_AUDIO]?: boolean;
+  [DeviceContextKey.SUPPORTS_GYROSCOPE]?: boolean;
+  [DeviceContextKey.SUPPORTS_LOCATION_SERVICE]?: boolean;
+  [DeviceContextKey.SUPPORTS_VIBRATION]?: boolean;
+  [DeviceContextKey.USABLE_MEMORY]?: number;
   // This field is deprecated in favour of timezone field in culture context
   timezone?: string;
 }
