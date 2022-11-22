@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+from unittest.mock import Mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -14,7 +15,8 @@ from sentry.utils import json
 
 @pytest.fixture
 def region_to_control_strategy():
-    return ProcessRegionToControlMessage()
+    next_step = Mock()
+    return ProcessRegionToControlMessage(next_step)
 
 
 @pytest.fixture
