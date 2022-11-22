@@ -28,7 +28,7 @@ class DatabaseBackedUserService(UserService):
         self,
         user_ids: List[int],
         *,
-        detailed: UserSerializeType,
+        detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext | None = None,
     ) -> List[Any]:
         api_user = auth_context.user if auth_context else None
