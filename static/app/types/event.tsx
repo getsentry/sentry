@@ -465,10 +465,10 @@ export interface RuntimeContext
   extends Partial<Record<RuntimeContextKey, unknown>>,
     BaseContext {
   type: 'runtime';
-  build?: string;
-  name?: string;
-  raw_description?: string;
-  version?: number;
+  [RuntimeContextKey.BUILD]?: string;
+  [RuntimeContextKey.NAME]?: string;
+  [RuntimeContextKey.RAW_DESCRIPTION]?: string;
+  [RuntimeContextKey.VERSION]?: number;
 }
 
 type OSContext = {
