@@ -1,12 +1,8 @@
-import type {
-  PlainRoute,
-  Route,
-  RouteComponentProps,
-  RouteContextInterface,
-} from 'react-router';
+import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
+import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -132,7 +128,6 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-  'analytics:track-button-clicks': TrackButtonClicks;
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
@@ -232,6 +227,7 @@ export type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:track-buttons': (props: ButtonProps) => (e: React.MouseEvent) => void;
 };
 
 /**
@@ -365,24 +361,6 @@ type AnalyticsTrackEventV2 = (
     time?: number;
   }
 ) => void;
-
-/**
- * Automatic Button Click Tracking
- */
-type TrackButtonClicks = (opts: {
-  organization: Organization;
-  routes: PlainRoute[];
-  data?: {
-    icon?: string;
-    id?: string;
-    link?: string;
-    name?: string;
-    priority?: string;
-    text?: string;
-  };
-  eventKey?: string;
-  eventName?: string;
-}) => void;
 
 /**
  * Trigger ad hoc analytics tracking in the hook store.
