@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
@@ -6,6 +7,7 @@ from django.conf import settings
 from pytz import UTC
 
 from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
+from sentry.models import Release
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
@@ -110,7 +112,7 @@ def observe_release(project_id: int, release_id: int, environment: Optional[str]
     return release_observed == "1"  # type: ignore
 
 
-def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
+def get_and_delete_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -149,7 +151,7 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
     Function that adds a release to the list of active boosted releases for a given project.
     """
     # Called here for expired releases cleanup
-    get_boosted_releases(project_id)
+    get_and_delete_boosted_releases(project_id)
 
     cache_key = generate_cache_key_for_boosted_releases_hash(project_id)
     redis_client = get_redis_client_for_ds()
@@ -161,3 +163,42 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
         datetime.utcnow().replace(tzinfo=UTC).timestamp(),
     )
     redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
+
+
+@dataclass(frozen=True)
+class BoostedRelease:
+    version: str
+    environment: Optional[str]
+    platform: Optional[str]
+    timestamp: float
+
+
+def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedRelease]:
+    """
+    Returns a list of boosted releases augmented with additional information such as release version and platform.
+    """
+    cached_boosted_releases = get_and_delete_boosted_releases(project_id)
+    if not cached_boosted_releases:
+        return []
+
+    # We get the ids of the last limit-th releases.
+    boosted_releases_ids = [release_id for (release_id, _, _) in cached_boosted_releases[-limit:]]
+    boosted_releases_metadata = {
+        release.id: (release.version, release.projects.filter(id__in=[project_id])[0])
+        for release in Release.objects.filter(id__in=boosted_releases_ids)
+    }
+
+    boosted_releases = []
+    for (release_id, environment, timestamp) in cached_boosted_releases:
+        if release_id in boosted_releases_metadata:
+            (release_version, release_project) = boosted_releases_metadata[release_id]
+            boosted_releases.append(
+                BoostedRelease(
+                    version=release_version,
+                    environment=environment,
+                    platform=release_project.platform,
+                    timestamp=timestamp,
+                )
+            )
+
+    return boosted_releases

@@ -25,7 +25,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
-    get_boosted_releases,
+    get_and_delete_boosted_releases,
     get_redis_client_for_ds,
 )
 from sentry.event_manager import (
@@ -3026,7 +3026,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
 
             assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
-            assert get_boosted_releases(self.project.id) == []
+            assert get_and_delete_boosted_releases(self.project.id) == []
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
@@ -3062,7 +3062,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 ts,
             )
 
-            assert get_boosted_releases(self.project.id) == [
+            assert get_and_delete_boosted_releases(self.project.id) == [
                 (self.release.id, None, ts),
                 (release_2.id, None, ts),
                 (release_2.id, self.environment1.name, ts),
@@ -3106,7 +3106,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
                 == "1"
             )
-            assert get_boosted_releases(self.project.id) == [
+            assert get_and_delete_boosted_releases(self.project.id) == [
                 (release_3.id, self.environment1.name, time())
             ]
 
