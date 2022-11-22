@@ -156,19 +156,20 @@ class ProjectStacktraceLinkTest(APITestCase):
             self.project.slug,
             qs_params={
                 "file": self.filepath,
+                # Required values for munging
                 "absPath": "abs_path",
                 "module": "module",
                 "package": "package",
             },
         )
 
-        assert response.data["config"] == self.expected_configurations(self.code_mapping2)
+        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
         assert (
             response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/usr/src/getsrc/sentry/src/sentry/src/sentry/utils/safe.py"
+            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
         )
 
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
@@ -199,28 +200,19 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
-    @mock.patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-    )
-    def test_file_stack_root_mismatch_and_munge_frame_fallback_stack_root_mismatch(
-        self, mock_integration, mock_munger
-    ):
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_file_no_stack_root_matches(self, mock_integration, mock_munger):
         mock_integration.return_value = None
         mock_munger.return_value = ("munged_filename", [{"munged_filename": "munged"}])
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            qs_params={
-                "file": "something/else/" + self.filepath,
-                "absPath": "any",
-                "module": "any",
-                "package": "any",
-            },
+            qs_params={"file": "something/else/" + self.filepath},
         )
-        assert mock_integration.call_count == 2  # As many code mappings there are for this project
-        assert response.data["config"] == self.expected_configurations(self.code_mapping2)
+        # No code mappings match, thus, no call
+        assert mock_integration.call_count == 0
+        assert response.data["config"] is None
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
