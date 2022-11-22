@@ -203,15 +203,16 @@ class UserSerializer(Serializer):  # type: ignore
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
             organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
+            auth_identity_organizations = organization_service.get_organizations(
+                user_id=None,
+                scope=None,
+                only_visible=False,
+                organization_ids=list(organization_ids),
+            )
             orgs_by_id: Mapping[int, ApiOrganization] = {
-                o.id: o
-                for o in organization_service.get_organizations(
-                    user_id=None,
-                    scope=None,
-                    only_visible=False,
-                    organization_ids=list(organization_ids),
-                )
+                o.id: o for o in auth_identity_organizations
             }
+
             d["identities"] = [
                 {
                     "id": str(i.id),

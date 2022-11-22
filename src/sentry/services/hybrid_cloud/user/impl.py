@@ -12,7 +12,7 @@ from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.user import APIUser, UserService
+from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, UserService
 
 
 class DatabaseBackedUserService(UserService):
@@ -28,14 +28,14 @@ class DatabaseBackedUserService(UserService):
         self,
         user_ids: List[int],
         *,
-        detailed: int = 0,
+        detailed: UserSerializeType,
         auth_context: AuthenticationContext | None = None,
     ) -> List[Any]:
         api_user = auth_context.user if auth_context else None
         serializer = UserSerializer()
-        if detailed == 1:
+        if detailed == UserSerializeType.DETAILED:
             serializer = DetailedUserSerializer()
-        if detailed == 2:
+        if detailed == UserSerializeType.SELF_DETAILED:
             serializer = DetailedSelfUserSerializer()
 
         return serialize(  # type: ignore

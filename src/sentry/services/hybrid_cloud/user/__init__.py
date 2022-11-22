@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, fields
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -37,6 +38,12 @@ class APIUser:
 
     def class_name(self) -> str:
         return "User"
+
+
+class UserSerializeType(IntEnum):
+    SIMPLE = 0
+    DETAILED = 1
+    SELF_DETAILED = 2
 
 
 class UserService(InterfaceWithLifecycle):
@@ -101,7 +108,7 @@ class UserService(InterfaceWithLifecycle):
         self,
         user_ids: List[int],
         *,
-        detailed: int = 0,
+        detailed: UserSerializeType,
         auth_context: AuthenticationContext | None = None,
     ) -> List[Any]:
         """

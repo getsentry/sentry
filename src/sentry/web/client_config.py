@@ -12,7 +12,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import UserSerializeType, user_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -230,17 +230,18 @@ def get_client_config(request=None):
         },
     }
     if user and user.is_authenticated:
+        (serialized_user,) = user_service.serialize_users(
+            [user.id],
+            detailed=UserSerializeType.SELF_DETAILED,
+            auth_context=AuthenticationContext(
+                auth=getattr(request, "auth", None),
+                user=request.user,
+            ),
+        )
         context.update(
             {
                 "isAuthenticated": True,
-                "user": user_service.serialize_users(
-                    [user.id],
-                    detailed=2,
-                    auth_context=AuthenticationContext(
-                        auth=getattr(request, "auth", None),
-                        user=request.user,
-                    ),
-                )[0],
+                "user": serialized_user,
             }
         )
 

@@ -74,6 +74,7 @@ def make_user_request_from_org(org=None):
 @request_factory
 def make_user_request_from_non_existant_org(org=None):
     request, user = make_user_request_from_org(org)
+    # This is a non existant value that will fail lookup.
     request.session["activeorg"] = 47381
     return request, user
 
