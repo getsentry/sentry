@@ -203,7 +203,7 @@ def _do_symbolicate_event(
 
     symbolication_start_time = time()
 
-    def record_symbolication_duration():
+    def record_symbolication_duration() -> float:
         """
         Returns the symbolication duration so far, and optionally record the duration to the LPQ metrics if configured.
         """

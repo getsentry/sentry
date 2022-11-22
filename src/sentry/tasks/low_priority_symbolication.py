@@ -55,7 +55,9 @@ def _scan_for_suspect_projects() -> None:
     realtime_metrics.remove_projects_from_lpq(expired_projects)
 
     for project_id in expired_projects:
-        _report_change(project_id=project_id, change="removed", reason="no metrics")
+        _report_change(
+            project_id=project_id, change="removed", reason="no metrics", used_budget=0.0
+        )
 
 
 @instrumented_task(  # type: ignore
