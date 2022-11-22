@@ -2,11 +2,13 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Monitor} from './types';
 
@@ -18,6 +20,7 @@ const MonitorOnboarding = ({monitor}: Props) => {
   const checkInUrl = `https://sentry.io/api/0/monitors/${monitor.id}/checkins/`;
   const checkInDetailsUrl = `${checkInUrl}{checkInId}/`;
 
+  const organization = useOrganization();
   return (
     <Panel>
       <PanelHeader>{t('How to instrument monitors')}</PanelHeader>
@@ -26,10 +29,15 @@ const MonitorOnboarding = ({monitor}: Props) => {
           <StyledListItem>
             <OnboardingText>
               {tct(
-                'To report the start of a job execution using [linkDocs:DSN authentication]',
+                'To report the start of a job execution using [linkDocs:DSN authentication], use the following request (your DSN can be found [linkProjectDSN:here])',
                 {
                   linkDocs: (
                     <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
+                  ),
+                  linkProjectDSN: (
+                    <Link
+                      to={`/settings/${organization.slug}/projects/${monitor.project.slug}/keys/`}
+                    />
                   ),
                 }
               )}
