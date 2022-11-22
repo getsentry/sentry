@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,13 +13,14 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
 
 def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
-) -> Any:
+) -> Dict[str, str]:
     result = {}
     oi = config.organization_integration
     integration = oi.integration
@@ -52,7 +53,7 @@ def get_link(
 
 # This is to support mobile languages with non-fully-qualified file pathing.
 # We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
-def generate_mobile_frame(parameters: Any) -> Any:
+def generate_mobile_frame(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
     abs_path = parameters.get("absPath")
     module = parameters.get("module")
     package = parameters.get("package")
@@ -80,22 +81,22 @@ def set_top_tags(scope: Scope, project: Project) -> None:
 def try_path_munging(
     config: RepositoryProjectPathConfig,
     filepath: str,
-    mobile_frame: Any,
-    ctx: Any,
-) -> Any:
-    result = {}
-    mobile_frame["filename"] = filepath
+    mobile_frame: Mapping[str, Optional[str]],
+    ctx: Mapping[str, Optional[str]],
+) -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    mobile_frame["filename"] = filepath  # type: ignore
     munged_frames = munged_filename_and_frames(
-        ctx["platform"], [mobile_frame], "munged_filename", sdk_name=ctx["sdk_name"]
+        str(ctx["platform"]), [mobile_frame], "munged_filename", sdk_name=str(ctx["sdk_name"])
     )
     if munged_frames:
-        munged_frame: Mapping[str, Any] = munged_frames[1][0]
+        munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
         munged_filename = str(munged_frame.get("munged_filename"))
         if munged_filename:
             if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
                 config.stack_root
             ):
-                result["error"] = "stack_root_mismatch"
+                result = {"error": "stack_root_mismatch"}
             else:
                 result = get_link(config, munged_filename, ctx["commit_id"])
 
@@ -103,7 +104,7 @@ def try_path_munging(
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the
@@ -119,7 +120,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:
@@ -131,7 +132,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             "sdk_name": request.GET.get("sdkName"),
         }
         mobile_frame = generate_mobile_frame(request.GET)
-        result = {"config": None, "sourceUrl": None}
+        result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
