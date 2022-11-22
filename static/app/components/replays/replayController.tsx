@@ -197,9 +197,9 @@ const ReplayControls = ({
       <ReplayPlayPauseBar />
       <TimeAndScrubber isCompact={isCompact}>
         <Time>{formatTime(currentTime)}</Time>
-        <ScrubberMouseTracking>
+        <StyledScrubber>
           <PlayerScrubber />
-        </ScrubberMouseTracking>
+        </StyledScrubber>
         <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
       </TimeAndScrubber>
       <ButtonBar>
@@ -242,6 +242,12 @@ const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
 
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const StyledScrubber = styled(ScrubberMouseTracking)`
+  height: 32px;
+  display: flex;
+  align-items: center;
 `;
 
 export default ReplayControls;
