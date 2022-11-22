@@ -17,7 +17,7 @@ function ChevronDividedList({items}: Props) {
         return i === 0
           ? li
           : [
-              <Item key={`${i}-chev`}>
+              <Item key={`${i}-chev`} role="separator">
                 <Chevron>
                   <IconChevron color="gray300" size="xs" direction="right" />
                 </Chevron>

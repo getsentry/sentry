@@ -1,4 +1,5 @@
 import heapq
+import logging
 from datetime import timedelta
 from functools import partial, reduce
 
@@ -42,6 +43,8 @@ from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 date_format = partial(dateformat.format, format_string="F jS, Y")
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationReportContext:
@@ -93,6 +96,28 @@ class ProjectContext:
         return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
 
 
+def check_if_project_is_empty(project_ctx):
+    """
+    Check if this project has any content we could show in an email.
+    """
+    return (
+        not project_ctx.key_errors
+        and not project_ctx.key_transactions
+        and not project_ctx.key_performance_issues
+        and not project_ctx.accepted_error_count
+        and not project_ctx.dropped_error_count
+        and not project_ctx.accepted_transaction_count
+        and not project_ctx.dropped_transaction_count
+    )
+
+
+def check_if_ctx_is_empty(ctx):
+    """
+    Check if the context is empty. If it is, we don't want to send an email.
+    """
+    return all(check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects.values())
+
+
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.weekly_reports.schedule_organizations",
@@ -129,6 +154,7 @@ def prepare_organization_report(
 ):
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
+    set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes
@@ -150,6 +176,15 @@ def prepare_organization_report(
         fetch_key_error_groups(ctx)
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
+
+    report_is_available = not check_if_ctx_is_empty(ctx)
+    set_tag("report.available", report_is_available)
+
+    if not report_is_available:
+        logger.info(
+            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+        )
+        return
 
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
@@ -612,7 +647,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count * item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
         )
         # Calculate total
         (
@@ -802,6 +837,9 @@ def render_template_context(ctx, user):
 def send_email(ctx, user, dry_run=False, email_override=None):
     template_ctx = render_template_context(ctx, user)
     if not template_ctx:
+        logger.debug(
+            f"Skipping report for {ctx.organization.id} to {user}, no qualifying reports to deliver."
+        )
         return
 
     message = MessageBuilder(
