@@ -19,6 +19,9 @@ type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDes
 /**
  * Normalize a URL for customer domains based on the current route state
  */
+export function normalizeUrl(path: string): string;
+export function normalizeUrl(path: LocationDescriptor): LocationDescriptor;
+export function normalizeUrl(path: LocationTarget, location?: Location): LocationTarget;
 export function normalizeUrl(path: LocationTarget, location?: Location): LocationTarget {
   if (!window.__initialData?.customerDomain) {
     return path;
