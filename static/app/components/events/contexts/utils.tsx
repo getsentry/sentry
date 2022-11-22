@@ -6,7 +6,6 @@ import moment from 'moment-timezone';
 import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -72,38 +71,6 @@ export function getRelativeTimeFromEventDateCreated(
       <RelativeTime>{relativeTime}</RelativeTime>
     </Fragment>
   );
-}
-
-// Typescript doesn't have types for DisplayNames yet and that's why the type assertion "any" is needed below.
-// There is currently an open PR that intends to introduce the types https://github.com/microsoft/TypeScript/pull/44022
-export function getFullLanguageDescription(locale: string) {
-  const sentryAppLanguageCode = ConfigStore.get('languageCode');
-
-  const [languageAbbreviation, countryAbbreviation] = locale.includes('_')
-    ? locale.split('_')
-    : locale.split('-');
-
-  try {
-    const languageNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
-      type: 'language',
-    });
-
-    const languageName = languageNames.of(languageAbbreviation);
-
-    if (countryAbbreviation) {
-      const regionNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
-        type: 'region',
-      });
-
-      const countryName = regionNames.of(countryAbbreviation.toUpperCase());
-
-      return `${languageName} (${countryName})`;
-    }
-
-    return languageName;
-  } catch {
-    return locale;
-  }
 }
 
 export function geKnownData<Data, DataType>({

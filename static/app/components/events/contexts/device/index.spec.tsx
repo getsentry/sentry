@@ -2,9 +2,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
-import {DeviceData} from 'sentry/components/events/contexts/device/types';
+import {DeviceContext} from 'sentry/types';
 
-export const deviceMockData = {
+export const deviceMockData: DeviceContext = {
   screen_resolution: '1136x768',
   orientation: 'portrait',
   family: 'Android',
@@ -23,7 +23,6 @@ export const deviceMockData = {
   screen_density: 3,
   type: 'device',
   charging: true,
-  locale: 'US',
   model_id: 'NYC',
   brand: 'google',
   storage_size: 817143808,
@@ -33,9 +32,7 @@ export const deviceMockData = {
   name: '', // redacted
   free_storage: 508784640,
   model: 'Android SDK built for x86',
-  uuid: 'abadcade-feed-dead-beef-baddadfeeded',
-  archs: ['x86'],
-} as unknown as DeviceData;
+};
 
 export const deviceContextMetaMockData = {
   name: {
