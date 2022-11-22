@@ -173,7 +173,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             topic = self.topic
 
-        producer = self.__producers[topic]
+        producer = self.get_producer(topic)
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
