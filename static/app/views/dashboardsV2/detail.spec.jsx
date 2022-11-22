@@ -90,6 +90,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/issues/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -878,7 +882,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={initialData.organizaiton}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', templateId: 'default-template'}}
           router={initialData.router}
           location={initialData.router.location}
