@@ -3,7 +3,6 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {metric} from 'sentry/utils/analytics';
@@ -534,9 +533,8 @@ describe('ProjectAlertsCreate', function () {
     const organization = TestStubs.Organization({
       features: ['issue-alert-incompatible-rules'],
     });
-    const errorText = t(
-      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
-    );
+    const errorText =
+      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});
