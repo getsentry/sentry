@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
@@ -34,7 +35,13 @@ function ScrubberMouseTracking({children}: Props) {
     onPositionChange: handlePositionChange,
   });
 
-  return <div {...mouseTrackingProps}>{children}</div>;
+  return <MouseTracking {...mouseTrackingProps}>{children}</MouseTracking>;
 }
+
+const MouseTracking = styled('div')`
+  height: 32px;
+  display: flex;
+  align-items: center;
+`;
 
 export default ScrubberMouseTracking;
