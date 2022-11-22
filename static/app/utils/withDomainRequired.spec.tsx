@@ -24,13 +24,15 @@ describe('normalizeUrl', function () {
     const cases = [
       // input, expected
       ['/settings/organization', '/settings/organization'],
+      ['/settings/sentry/members/', '/settings/members/'],
+      ['/settings/account/security/', '/settings/account/security/'],
+      ['/settings/account/details/', '/settings/account/details/'],
       ['/organizations/new', '/organizations/new'],
       ['/organizations/new/', '/organizations/new/'],
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
-      ['/settings/sentry/members/', '/settings/members/'],
       ['/organizations/albertos-apples/issues/', '/issues/'],
       ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
       ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
