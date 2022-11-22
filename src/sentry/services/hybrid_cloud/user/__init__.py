@@ -108,7 +108,7 @@ class UserService(InterfaceWithLifecycle):
         self,
         user_ids: List[int],
         *,
-        detailed: UserSerializeType,
+        detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext | None = None,
     ) -> List[Any]:
         """

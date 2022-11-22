@@ -139,8 +139,8 @@ from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
+    MetricOrderByField,
     MetricsQuery,
-    OrderBy,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -1410,9 +1410,10 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
+        project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
-        orderby: Optional[Sequence[OrderBy]] = None,
+        orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
         offset: Optional[Offset] = None,
         include_totals: bool = True,
@@ -1426,7 +1427,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
         return MetricsQuery(
             org_id=self.organization.id,
-            project_ids=[self.project.id],
+            project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
             start=start,
             end=end,

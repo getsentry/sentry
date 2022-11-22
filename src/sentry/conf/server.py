@@ -1036,11 +1036,10 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Automatically extract metrics during ingestion.
-    #
-    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
-    # gradual slowdown when this is enabled for too many projects.
+    # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Extraction metrics for transactions during ingestion.
+    "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
     # sampled/unsampled performance data.
     "organizations:metrics-performance-alerts": False,
@@ -2878,6 +2877,11 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
+
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
