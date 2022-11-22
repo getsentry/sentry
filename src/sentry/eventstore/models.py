@@ -705,7 +705,8 @@ class IssueOccurrence:
     # categories, even if the backing data type doesn't explicitly have Events
     fingerprint: Sequence[str]
     issue_title: str
-    # subtitle: str # We haven't defined what this will look like just yet
+    # Exact format not decided yet, but this will be a string regardless
+    subtitle: str
     resource_id: str | None
     # Extra context around how the problem was detected. Used to display grouping information on
     # the issue details page, and will be available for use in UI customizations.
