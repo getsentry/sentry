@@ -128,27 +128,28 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def poll(self) -> None:
         while self._ongoing_billing_outcomes:
-            self._process_metrics_billing_bucket(timeout=None)
+            if not self._process_metrics_billing_bucket(timeout=None):
+                return
 
     def _process_metrics_billing_bucket(
         self, timeout: Optional[float] = None, force: bool = False
-    ) -> None:
+    ) -> bool:
         """
         Takes the first billing outcome from the queue and if it's completed,
-        commits the metrics bucket.
+        commits the metrics bucket. Returns whether the consumer committed.
 
         When a future has thrown an exception, logs it and commits the bucket
         anyway. wait_time is used to wait on the future to finish; if `None` is
         provided and the future is not completed, no action is taken.
         """
         if len(self._ongoing_billing_outcomes) < 1:
-            return
+            return False
 
         billing_future, metrics_msg = self._ongoing_billing_outcomes[0]
         if billing_future:
             try:
                 if not timeout and not billing_future.done():
-                    return
+                    return False
                 billing_future.result(timeout)
             except Exception:
                 logger.error(
@@ -160,6 +161,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._ongoing_billing_outcomes.popleft()
         mapping = {metrics_msg.partition: Position(metrics_msg.next_offset, datetime.now())}
         self._commit(mapping, force)
+        return True
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None

@@ -177,3 +177,30 @@ def test_consumer_backpressure():
 
     with pytest.raises(MessageRejected):
         consumer.submit(bucket)
+
+
+def test_non_blocking_poll():
+    """Uncompleted futures must not block the consumer's poll operation.
+
+    In a `poll` operation, calling `future.done()` multiple times results in the
+    consumer being blocked until the future is completed. When the number of
+    messages to process is big, the consumer can't keep up and generates a huge
+    backlog.
+    """
+    future = mock.Mock()
+
+    def mock_done():
+        if mock_done.calls > 0:
+            pytest.fail("Undone future checked multiple times.")
+        mock_done.calls += 1
+        return False
+
+    mock_done.calls = 0
+
+    future.done = mock_done
+
+    consumer = BillingTxCountMetricConsumerStrategy(commit=mock.Mock(), max_buffer_size=0)
+    consumer._ongoing_billing_outcomes = [(future, {})]
+    consumer.poll()
+
+    assert mock_done.calls == 1
