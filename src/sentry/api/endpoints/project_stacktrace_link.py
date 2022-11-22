@@ -1,17 +1,20 @@
+import logging
 from typing import Any, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import configure_scope
+from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Integration, RepositoryProjectPathConfig
+from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+
+logger = logging.getLogger(__name__)
 
 
 def get_link(
@@ -63,6 +66,16 @@ def generate_mobile_frame(parameters: Any) -> Any:
     return frame
 
 
+def set_top_tags(scope: Scope, project: Project) -> None:
+    scope.set_tag("project.slug", project.slug)
+    scope.set_tag("organization.slug", project.organization.slug)
+    try:
+        scope.set_tag("organization.early_adopter", project.organization.flags.early_adopter)
+    except Exception:
+        # If errors arise we can then follow up with a fix
+        logger.exception("We failed to set the early adopter flag")
+
+
 def try_path_munging(
     config: RepositoryProjectPathConfig,
     filepath: str,
@@ -95,7 +108,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     users can go from the file in the stack trace to the
     provider of their choice.
 
-    `filepath`: The file path from the stack trace
+    `file`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
     `sdkName` (optional): The sdk.name associated with the event
@@ -137,17 +150,18 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         )
         matched_code_mappings = []
         with configure_scope() as scope:
-            scope.set_tag("project.slug", project.slug)
-            scope.set_tag("organization.slug", project.organization.slug)
+            set_top_tags(scope, project)
             for config in configs:
-                if not filepath.startswith(config.stack_root) and not mobile_frame:
+                # If all code mappings fail to match a stack_root it means that there's no working code mapping
+                if not filepath.startswith(config.stack_root):
+                    # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
-                # For mobile we try a second time by munging the file path
-                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
-                if not outcome.get("sourceUrl") and mobile_frame:
+                # In some cases the stack root matches and it can either be that we have
+                # an invalid code mapping or that munging is expect it to work
+                if not outcome.get("sourceUrl"):
                     munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
                     # If we failed to munge we should keep the original outcome
                     if munging_outcome:
@@ -166,7 +180,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     break
 
             # Post-processing before exiting scope context
-            found = result.get("sourceUrl")
+            found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
             scope.set_tag("stacktrace_link.platform", ctx["platform"])
             if matched_code_mappings:
@@ -175,14 +189,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 last = matched_code_mappings[-1]
                 result["config"] = last["config"]  # Backwards compatible
                 if not found:
-                    result["error"] = last["outcome"]["error"]  # Backwards compatible
-                    # When no code mapping have been matched we have not attempted a URL
-                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
-                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
-                    if result["error"] == "stack_root_mismatch":
-                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    else:
-                        scope.set_tag("stacktrace_link.error", "file_not_found")
+                    result["error"] = last["outcome"]["error"] or result["error"]
+                    result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
+
+            if result.get("error"):
+                scope.set_tag("stacktrace_link.error", result["error"])
 
         if result["config"]:
             analytics.record(
