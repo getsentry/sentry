@@ -686,13 +686,7 @@ class Event(BaseEvent):
 class IssueEvidence:
     name: str
     value: str
-    # Feels like we need more attributes to allow us to decide which things to include in verbose and
-    # condensed displays. We'll use all the evidence in issue details and emails, but only important
-    # rows in slack, for example. Some thoughts:
-    # important: bool
-    # include_in: Sequence[str] # List of places this should be included in, like UI, email, slack.
-    # Maybe too configurable? Also doesn't expand well as we add more integration types. Could be
-    # more general like: UI, alerts_email, alerts_messaging, integration_ticketing, etc.
+    important: bool
 
 
 @dataclass
@@ -713,7 +707,12 @@ class IssueOccurrence:
     issue_title: str
     # subtitle: str # We haven't defined what this will look like just yet
     resource_id: str | None
+    # Extra context around how the problem was detected. Used to display grouping information on
+    # the issue details page, and will be available for use in UI customizations.
     evidence_data: Mapping[str, Any]
+    # Extra context around the problem that will be displayed as a default in the UI and alerts.
+    # This should be human-readable. One of these entries should be marked as `important` for use
+    # in more space restricted integrations.
     evidence_display: Sequence[IssueEvidence]
     type: GroupType
     detection_time: datetime
