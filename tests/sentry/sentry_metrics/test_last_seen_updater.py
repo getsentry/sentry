@@ -11,7 +11,7 @@ from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_
 from sentry.sentry_metrics.consumers.last_seen_updater import (
     KeepAliveMessageFilter,
     LastSeenUpdaterMessageFilter,
-    _last_seen_updater_processing_factory,
+    LastSeenUpdaterStrategyFactory,
     _update_stale_last_seen,
     retrieve_db_read_keys,
 )
@@ -96,8 +96,10 @@ def test_retrieve_db_read_keys_meta_field_bad_json():
 class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
     def processing_factory():
-        return _last_seen_updater_processing_factory(
-            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES),
+        return LastSeenUpdaterStrategyFactory(
+            use_case_id=get_ingest_config(
+                UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES
+            ).use_case_id,
             max_batch_time=1.0,
             max_batch_size=1,
         )

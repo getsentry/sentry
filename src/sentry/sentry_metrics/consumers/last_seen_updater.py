@@ -1,19 +1,21 @@
 import datetime
 import functools
+from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Mapping, Optional, Set, Union
+from typing import Any, Callable, Mapping, Optional, Set, Union
 
 import rapidjson
-from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
-from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.processing.strategies.factory import KafkaConsumerStrategyFactory, StreamMessageFilter
-from arroyo.types import TPayload
+from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.collect import CollectStep
+from arroyo.processing.strategies.filter import FilterStep
+from arroyo.processing.strategies.transform import TransformStep
+from arroyo.types import Message, Partition, Position, Topic
 from django.utils import timezone
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
@@ -30,7 +32,18 @@ def get_metrics():  # type: ignore
     return metrics
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
+class StreamMessageFilter:
+    """
+    A filter over messages coming from a stream. Can be used to pre filter
+    messages during consumption but potentially for other use cases as well.
+    """
+
+    @abstractmethod
+    def should_drop(self, message: Message[KafkaPayload]) -> bool:
+        raise NotImplementedError
+
+
+class LastSeenUpdaterMessageFilter(StreamMessageFilter):
     def __init__(self, metrics: Any) -> None:
         self.__metrics = metrics
 
@@ -54,7 +67,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
         return FetchType.DB_READ.value not in str(header_value)
 
 
-class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
+class KeepAliveMessageFilter(StreamMessageFilter):
     """
     A message filter that wraps another message filter, and ensures that at
     most `consecutive_drop_limit` messages are dropped in a row. If the wrapped
@@ -75,14 +88,12 @@ class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
     for correctness.
     """
 
-    def __init__(
-        self, inner_filter: StreamMessageFilter[TPayload], consecutive_drop_limit: int
-    ) -> None:
+    def __init__(self, inner_filter: StreamMessageFilter, consecutive_drop_limit: int) -> None:
         self.inner_filter = inner_filter
         self.consecutive_drop_count = 0
         self.consecutive_drop_limit = consecutive_drop_limit
 
-    def should_drop(self, message: Message[TPayload]) -> bool:
+    def should_drop(self, message: Message[KafkaPayload]) -> bool:
         if not self.inner_filter.should_drop(message):
             self.consecutive_drop_count = 0
             return False
@@ -155,21 +166,39 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-def _last_seen_updater_processing_factory(
-    max_batch_size: int, max_batch_time: float, ingest_config: MetricsIngestConfiguration
-) -> KafkaConsumerStrategyFactory:
-    return KafkaConsumerStrategyFactory(
-        max_batch_time=max_batch_time,
-        max_batch_size=max_batch_size,
-        processes=None,
-        input_block_size=None,
-        output_block_size=None,
-        process_message=retrieve_db_read_keys,
-        prefilter=KeepAliveMessageFilter(LastSeenUpdaterMessageFilter(metrics=get_metrics()), 100),
-        collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
-        ),
-    )
+class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self,
+        use_case_id: UseCaseKey,
+        max_batch_size: int,
+        max_batch_time: float,
+    ) -> None:
+        self.__use_case_id = use_case_id
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = max_batch_time
+        self.__metrics = get_metrics()
+        self.__prefilter = KeepAliveMessageFilter(
+            LastSeenUpdaterMessageFilter(metrics=self.__metrics), 100
+        )
+
+    def __should_accept(self, message: Message[KafkaPayload]) -> bool:
+        return not self.__prefilter.should_drop(message)
+
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        collect_step = CollectStep(
+            lambda: LastSeenUpdaterCollector(
+                metrics=self.__metrics, table=TABLE_MAPPING[self.__use_case_id]
+            ),
+            commit,
+            self.__max_batch_size,
+            self.__max_batch_time,
+        )
+
+        return FilterStep(self.__should_accept, TransformStep(retrieve_db_read_keys, collect_step))
 
 
 def get_last_seen_updater(
@@ -186,9 +215,12 @@ def get_last_seen_updater(
     tables. This enables us to do deletions of tag keys/values that haven't been
     accessed over the past N days (generally, 90).
     """
-    processing_factory = _last_seen_updater_processing_factory(
-        max_batch_size, max_batch_time, ingest_config
+    processing_factory = LastSeenUpdaterStrategyFactory(
+        ingest_config.use_case_id,
+        max_batch_size=max_batch_size,
+        max_batch_time=max_batch_time,
     )
+
     return StreamProcessor(
         KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
         Topic(ingest_config.output_topic),
