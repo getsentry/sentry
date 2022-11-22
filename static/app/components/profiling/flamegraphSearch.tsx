@@ -339,7 +339,7 @@ function FlamegraphSearch({
               borderless
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
-              onClick={onNextSearchClick}
+              onClick={onPreviousSearchClick}
             />
             <SearchBarTrailingButton
               type="button"
@@ -347,7 +347,7 @@ function FlamegraphSearch({
               borderless
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
-              onClick={onPreviousSearchClick}
+              onClick={onNextSearchClick}
             />
           </Fragment>
         )
