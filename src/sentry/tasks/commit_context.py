@@ -43,7 +43,10 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
-            metrics.incr("sentry.tasks.process_commit_context.start")
+            metrics.incr(
+                "sentry.tasks.process_commit_context.start",
+                tags={"event": event_id, "group": group_id, "project": project_id},
+            )
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
