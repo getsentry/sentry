@@ -19,15 +19,8 @@ if TYPE_CHECKING:
     __realtime_metrics_store__ = RealtimeMetricsStore()
     validate = __realtime_metrics_store__.validate
     record_project_duration = __realtime_metrics_store__.record_project_duration
-    # FIXME(swatinem): remove the outdated metrics
-    increment_project_event_counter = __realtime_metrics_store__.increment_project_event_counter
-    increment_project_duration_counter = (
-        __realtime_metrics_store__.increment_project_duration_counter
-    )
     projects = __realtime_metrics_store__.projects
     get_used_budget_for_project = __realtime_metrics_store__.get_used_budget_for_project
-    get_counts_for_project = __realtime_metrics_store__.get_counts_for_project
-    get_durations_for_project = __realtime_metrics_store__.get_durations_for_project
     get_lpq_projects = __realtime_metrics_store__.get_lpq_projects
     is_lpq_project = __realtime_metrics_store__.is_lpq_project
     add_project_to_lpq = __realtime_metrics_store__.add_project_to_lpq

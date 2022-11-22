@@ -1,5 +1,5 @@
 import logging
-from itertools import chain
+from time import time
 from typing import Iterable, Sequence, Set
 
 from sentry.exceptions import InvalidConfiguration
@@ -19,51 +19,35 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def __init__(
         self,
         cluster: str,
-        counter_bucket_size: int,
-        counter_time_window: int,
-        duration_bucket_size: int,
-        duration_time_window: int,
+        budget_bucket_size: int,
+        budget_time_window: int,
         backoff_timer: int,
     ) -> None:
         """Creates a RedisRealtimeMetricsStore.
 
-        "cluster" is the name of the Redis cluster to use. "counter_bucket_size" is the size
-        in seconds of the buckets that timestamps will be sorted into when a project's event counter is incremented.
-        "counter_time_window" is the duration in seconds for which event counters are considered relevant (see the documentation of get_counts_for_project).
+        "cluster" is the name of the Redis cluster to use. "budget_bucket_size" is the size
+        in seconds of the buckets that timestamps will be sorted into when a project's event duration is recorded.
+        "budget_time_window" is the duration in seconds for which budget counts are considered relevant (see the documentation of record_project_duration).
         A value of 0 will result in only the most recent bucket being kept.
-
-        "duration_bucket_size" and "duration_time_window" function like their "counter*" siblings,
-        but for processing duration metrics.
         """
 
         self.cluster = redis.redis_clusters.get(cluster)
-        self._counter_bucket_size = counter_bucket_size
-        self._counter_time_window = counter_time_window
-        self._duration_bucket_size = duration_bucket_size
-        self._duration_time_window = duration_time_window
+        self._budget_bucket_size = budget_bucket_size
+        self._budget_time_window = budget_time_window
         self._prefix = "symbolicate_event_low_priority"
         self._backoff_timer = backoff_timer
 
         self.validate()
 
     def validate(self) -> None:
-        if not 0 < self._counter_bucket_size <= 60:
-            raise InvalidConfiguration("counter bucket size must be 1-60 seconds")
+        if not 0 < self._budget_bucket_size <= 60:
+            raise InvalidConfiguration("budget bucket size must be 1-60 seconds")
 
-        if not 0 < self._duration_bucket_size <= 60:
-            raise InvalidConfiguration("duration bucket size must be 1-60 seconds")
+        if self._budget_time_window < 60:
+            raise InvalidConfiguration("budget time window must be at least a minute")
 
-        if self._counter_time_window < 60:
-            raise InvalidConfiguration("counter time window must be at least a minute")
-
-        if self._duration_time_window < 60:
-            raise InvalidConfiguration("duration time window must be at least a minute")
-
-    def _counter_key_prefix(self) -> str:
-        return f"{self._prefix}:counter:{self._counter_bucket_size}"
-
-    def _duration_key_prefix(self) -> str:
-        return f"{self._prefix}:duration:{self._duration_bucket_size}"
+    def _budget_key_prefix(self) -> str:
+        return f"{self._prefix}:budget:{self._budget_bucket_size}"
 
     def _backoff_key_prefix(self) -> str:
         return f"{self._prefix}:backoff"
@@ -115,44 +99,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This method will "punish" slow events in particular, as our main goal is
         to maintain throughput with limited concurrency.
         """
-        raise NotImplementedError
+        timestamp = int(time())
 
-    # FIXME(swatinem): remove the outdated metrics
-    def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
-        """Increment the event counter for the given project_id.
+        timestamp -= timestamp % self._budget_bucket_size
 
-        The counter is used to track the rate of events for the project.
-        Calling this increments the counter of the current
-        time-window bucket with "timestamp" providing the time of the event
-        in seconds since the UNIX epoch (i.e., as returned by time.time()).
-        """
+        key = f"{self._budget_key_prefix()}:{project_id}:{timestamp}"
 
-        timestamp -= timestamp % self._counter_bucket_size
-
-        key = f"{self._counter_key_prefix()}:{project_id}:{timestamp}"
+        # the duration internally is stores as ms
+        duration = int(duration * 1000)
 
         with self.cluster.pipeline() as pipeline:
-            pipeline.incr(key)
-            pipeline.expire(key, self._counter_time_window + self._counter_bucket_size)
-            pipeline.execute()
-
-    def increment_project_duration_counter(
-        self, project_id: int, timestamp: int, duration: int
-    ) -> None:
-        """Increments the duration counter for the given project_id and duration.
-
-        The counter is used to track the processing time of events for the project.
-        Calling this increments the counter of the current time-window bucket with "timestamp" providing
-        the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
-        """
-        timestamp -= timestamp % self._duration_bucket_size
-
-        key = f"{self._duration_key_prefix()}:{project_id}:{timestamp}"
-        duration -= duration % 10
-
-        with self.cluster.pipeline() as pipeline:
-            pipeline.hincrby(key, duration, 1)
-            pipeline.expire(key, self._duration_time_window + self._duration_bucket_size)
+            pipeline.incrby(key, duration)
+            pipeline.expire(key, self._budget_time_window + self._budget_bucket_size)
             pipeline.execute()
 
     def projects(self) -> Iterable[int]:
@@ -164,15 +122,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
 
         already_seen = set()
-        # Normally if there's a duration entry for a project then there should be a counter
-        # entry for it as well, but double check both to be safe
-        all_keys = chain(
-            self.cluster.scan_iter(
-                match=self._counter_key_prefix() + ":*",
-            ),
-            self.cluster.scan_iter(
-                match=self._duration_key_prefix() + ":*",
-            ),
+        all_keys = self.cluster.scan_iter(
+            match=self._budget_key_prefix() + ":*",
         )
 
         for item in all_keys:
@@ -186,79 +137,20 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def get_used_budget_for_project(self, project_id: int) -> int:
         """
-        Returns the total used budget with during the configured sliding time window for some given project.
+        Returns the total used budget during the configured sliding time window for some given project.
         """
-        raise NotImplementedError
+        timestamp = int(time())
 
-    def get_counts_for_project(self, project_id: int, timestamp: int) -> base.BucketedCounts:
-        """Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
-        made during that time for some given project.
-
-        The first bucket returned is the one that `timestamp - self._counter_time_window`
-        falls into. The last bucket returned is the one that `timestamp` falls into.
-
-        This may throw an exception if there is some sort of issue fetching counts from the redis
-        store.
-        """
-        bucket_size = self._counter_bucket_size
+        bucket_size = self._budget_bucket_size
         now_bucket = timestamp - timestamp % bucket_size
 
-        first_bucket = timestamp - self._counter_time_window
+        first_bucket = timestamp - self._budget_time_window
         first_bucket = first_bucket - first_bucket % bucket_size
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
-        keys = [f"{self._counter_key_prefix()}:{project_id}:{ts}" for ts in buckets]
+        keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
         counts = self.cluster.mget(keys)
-        return base.BucketedCounts(
-            timestamp=buckets[0], width=bucket_size, counts=[int(c) if c else 0 for c in counts]
-        )
-
-    def get_durations_for_project(
-        self, project_id: int, timestamp: int
-    ) -> base.BucketedDurationsHistograms:
-        """Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
-        symbolication durations made during some timestamp for some given project.
-
-        The first bucket returned is the one that `timestamp - self._duration_time_window`
-        falls into. The last bucket returned is the one that `timestamp` falls into.
-
-        For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
-
-        - `duration` represents the amount of time it took for a symbolication request to complete.
-        Durations are bucketed by 10secs, meaning that a `duration` of `30` covers all requests that
-        took between 30-39 seconds.
-
-        - `count` is the number of symbolication requests that took some amount of time within the
-        range of `[duration, duration+10)` to complete.
-
-        This may throw an exception if there is some sort of issue fetching durations from the redis
-        store.
-        """
-        bucket_size = self._duration_bucket_size
-        now_bucket = timestamp - timestamp % bucket_size
-
-        first_bucket = timestamp - self._duration_time_window
-        first_bucket = first_bucket - first_bucket % bucket_size
-
-        buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
-
-        with self.cluster.pipeline() as pipeline:
-            for ts in buckets:
-                pipeline.hgetall(f"{self._duration_key_prefix()}:{project_id}:{ts}")
-            histograms = pipeline.execute()
-
-        all_histograms = []
-        for ts, histogram_redis in zip(buckets, histograms):
-            histogram = base.DurationsHistogram(bucket_size=10)
-            for duration, count in histogram_redis.items():
-                histogram.incr(int(duration), int(count))
-            all_histograms.append(histogram)
-
-        return base.BucketedDurationsHistograms(
-            timestamp=first_bucket,
-            width=bucket_size,
-            histograms=all_histograms,
-        )
+        return int(sum(int(c) if c else 0 for c in counts) / 1000)
 
     def get_lpq_projects(self) -> Set[int]:
         """

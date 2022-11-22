@@ -18,11 +18,6 @@ from django.conf import settings
 from sentry import options
 from sentry.killswitches import normalize_value
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import (
-    BucketedCounts,
-    BucketedDurationsHistograms,
-    DurationsHistogram,
-)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -87,68 +82,24 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     # TODO: It may be a good idea to figure out how to debounce especially if this is
     # executing more than 10s after cutoff.
 
-    event_counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
-    durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
+    used_budget = realtime_metrics.get_used_budget_for_project(project_id)
 
-    excessive_rate = excessive_event_rate(project_id, event_counts)
-    excessive_duration = excessive_event_duration(project_id, durations)
+    # NOTE: tagging this metrics with `tags={"project_id": project_id}` would
+    # have too excessive cardinality to use in production.
+    metrics.timing("symbolication.lpq.computation.used_budget", len(used_budget))
 
-    if excessive_rate or excessive_duration:
+    # FIXME(swatinem): make this limit configurable
+    # options = settings.SENTRY_LPQ_OPTIONS
+    exceeds_budget = used_budget > 500
+
+    if exceeds_budget:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            reason = "rate" if excessive_rate else "duration"
-            if excessive_rate and excessive_duration:
-                reason = "rate-duration"
-            _report_change(project_id=project_id, change="added", reason=reason)
+            _report_change(project_id=project_id, change="added", reason="budget")
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
             _report_change(project_id=project_id, change="removed", reason="ineligible")
-
-
-def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
-    """Whether the project is sending too many symbolication requests."""
-    options = settings.SENTRY_LPQ_OPTIONS
-
-    average_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
-    recent_rate = event_counts.rate(period=options["recent_event_period"])
-
-    # Note, We had these tagged with tags={"project_id": project_id} during our initial
-    # evaluation, however the cardinality for this is really too high to leave that on
-    # forever in production.
-    metrics.gauge("symbolication.lpq.computation.rate.total", average_rate)
-    metrics.gauge("symbolication.lpq.computation.rate.recent", recent_rate)
-
-    return bool(
-        recent_rate > options["min_recent_event_rate"]
-        and recent_rate > options["recent_event_multiple"] * average_rate
-    )
-
-
-def excessive_event_duration(project_id: int, durations: BucketedDurationsHistograms) -> bool:
-    """Whether the project's symbolication requests are taking too long to process."""
-    options = settings.SENTRY_LPQ_OPTIONS
-
-    total_histogram = DurationsHistogram(bucket_size=durations.histograms[0].bucket_size)
-    for histogram in durations.histograms:
-        total_histogram.incr_from(histogram)
-
-    try:
-        p75_duration = total_histogram.percentile(0.75)
-    except ValueError:
-        return False
-    events_per_minute = total_histogram.total_count() / (durations.total_time() / 60)
-
-    # Note, We had these tagged with tags={"project_id": project_id} during our initial
-    # evaluation, however the cardinality for this is really too high to leave that on
-    # forever in production.
-    metrics.gauge("symbolication.lpq.computation.durations.p75", p75_duration)
-    metrics.gauge("symbolication.lpq.computation.durations.events_per_minutes", events_per_minute)
-
-    return bool(
-        events_per_minute > options["min_events_per_minute"]
-        and p75_duration > options["min_p75_duration"]
-    )
 
 
 def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
