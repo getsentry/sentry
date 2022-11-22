@@ -17,6 +17,7 @@ from sentry.utils import json
 def make_message(data: Mapping[str, Any]) -> Message[KafkaPayload]:
     return Message(
         Partition(Topic("region-to-control"), 0),
+        0,
         KafkaPayload(None, json.dumps(data), []),
         datetime.datetime.now(),
     )
