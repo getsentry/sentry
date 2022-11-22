@@ -205,12 +205,12 @@ class OrganizationIndexEndpoint(Endpoint):
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
                     organization_mapping_service.create(
-                        request.user,
-                        org.id,
-                        org.slug,
-                        org.stripe_id,
-                        result.get("idempotency_key", ""),
-                        settings.SENTRY_REGION or "us",
+                        user=request.user,
+                        organization_id=org.id,
+                        slug=org.slug,
+                        stripe_id=org.stripe_id,
+                        idempotency_key=result.get("idempotency_key", ""),
+                        region_name=settings.SENTRY_REGION or "us",
                     )
 
                     om = OrganizationMember.objects.create(

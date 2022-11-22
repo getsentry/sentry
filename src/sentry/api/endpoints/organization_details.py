@@ -495,12 +495,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization, changed_data = serializer.save()
                 if "slug" in changed_data:
                     organization_mapping_service.create(
-                        request.user,
-                        organization.id,
-                        organization.slug,
-                        organization.stripe_id,
-                        request.data.get("idempotency_key", ""),
-                        settings.SENTRY_REGION or "us",
+                        user=request.user,
+                        organization_id=organization.id,
+                        slug=organization.slug,
+                        stripe_id=organization.stripe_id,
+                        idempotency_key=request.data.get("idempotency_key", ""),
+                        region_name=settings.SENTRY_REGION or "us",
                     )
 
             if was_pending_deletion:

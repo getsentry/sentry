@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0341_reconstrain_savedsearch_pinning_fields"),
+        ("sentry", "0343_drop_savedsearch_userdefault_fk_constraints_and_remove_state"),
     ]
 
     operations = [
@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
                 ("stripe_id", models.CharField(max_length=255, db_index=True, null=True)),
                 ("verified", models.BooleanField(default=False)),
                 ("idempotency_key", models.CharField(max_length=48)),
-                ("region_name", models.CharField(max_length=48, null=True)),
+                ("region_name", models.CharField(max_length=48)),
             ],
             options={
                 "db_table": "sentry_organizationmapping",

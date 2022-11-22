@@ -14,7 +14,6 @@ from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
-from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -505,6 +504,13 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
+# Settings related to SiloMode
+SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
+FAIL_ON_UNAVAILABLE_API_CALL = False
+SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
+
+DISALLOWED_CUSTOMER_DOMAINS = []
+
 import random
 
 
@@ -815,7 +821,8 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
+# This is brittle. We can't use SiloMode constants because of the settings import
+if SILO_MODE in ["MONOLITH", "CONTROL"]:
     CELERYBEAT_SCHEDULE.update(
         {
             "hybrid-cloud-organizationmapping-repair": {
@@ -2912,13 +2919,6 @@ SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
-
-# Settings related to SiloMode
-SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
-FAIL_ON_UNAVAILABLE_API_CALL = False
-SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
-
-DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
