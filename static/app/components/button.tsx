@@ -3,7 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {getButtonHook} from 'sentry/components/buttonClick';
+import {useButtonHook} from 'sentry/components/buttonClick';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -175,7 +175,7 @@ function BaseButton({
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
   // Intercept onClick and propagate
-  const handleClick = getButtonHook({
+  const handleClick = useButtonHook({
     disabled,
     busy,
     onClick,
