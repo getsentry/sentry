@@ -20,7 +20,7 @@ from sentry.utils import json, metrics
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
-    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}){tags}"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -90,7 +90,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
             channel_id=self.get_option("channel_id"),
-            tags="[{}]".format(", ".join(tags)),
+            tags=" and show tags " + "[{}]".format(", ".join(tags)) + " in notification"
+            if tags != [""]
+            else "",
         )
 
     def get_tags_list(self) -> Sequence[str]:
