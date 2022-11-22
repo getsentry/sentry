@@ -3,6 +3,15 @@
 
 import {t} from 'sentry/locale';
 
+export enum PlatformCategory {
+  FRONTEND,
+  MOBILE,
+  BACKEND,
+  SERVERLESS,
+  DESKTOP,
+  OTHER,
+}
+
 export const popularPlatformCategories = [
   'javascript',
   'javascript-react',

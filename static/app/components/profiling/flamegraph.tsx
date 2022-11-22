@@ -21,6 +21,7 @@ import {
   ProfileDragDropImportProps,
 } from 'sentry/components/profiling/profileDragDropImport';
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
+import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -79,7 +80,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot} = useFlamegraphProfiles();
+  const {threadId, selectedRoot, zoomIntoFrame} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -145,35 +146,59 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         theme: flamegraphTheme,
       });
 
-      // if the profile or the config space of the flamegraph has changed, we do not
-      // want to persist the config view. This is to avoid a case where the new config space
-      // is larger than the previous one, meaning the new view could now be zoomed in even
-      // though the user did not fire any zoom events.
       if (
+        // if the profile or the config space of the flamegraph has changed, we do not
+        // want to persist the config view. This is to avoid a case where the new config space
+        // is larger than the previous one, meaning the new view could now be zoomed in even
+        // though the user did not fire any zoom events.
         previousView?.flamegraph.profile === newView.flamegraph.profile &&
         previousView.configSpace.equals(newView.configSpace)
       ) {
-        // if we're still looking at the same profile but only a preference other than
-        // left heavy has changed, we do want to persist the config view
-        if (previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy) {
+        if (
+          // if we're still looking at the same profile but only a preference other than
+          // left heavy has changed, we do want to persist the config view
+          previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+        ) {
           newView.setConfigView(
             previousView.configView.withHeight(newView.configView.height)
           );
         }
+      } else if (
+        // When the profile changes, it may be because it finally loaded and if a zoom
+        // was specified, this should be used as the initial view.
+        defined(zoomIntoFrame)
+      ) {
+        const newConfigView = computeConfigViewWithStategy(
+          'min',
+          newView.configView,
+          new Rect(
+            zoomIntoFrame.start,
+            zoomIntoFrame.depth,
+            zoomIntoFrame.end - zoomIntoFrame.start,
+            1
+          )
+        );
+        newView.setConfigView(newConfigView);
+        return newView;
       }
 
       // Because we render empty flamechart while we fetch the data, we need to make sure
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
-      if (position.view && previousView?.flamegraph === FALLBACK_FLAMEGRAPH) {
+      if (
+        position.view &&
+        !position.view.isEmpty() &&
+        previousView?.flamegraph === FALLBACK_FLAMEGRAPH
+      ) {
         newView.setConfigView(position.view);
       }
 
       return newView;
     },
+
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphTheme, flamegraphCanvas]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame]
   );
 
   useEffect(() => {
