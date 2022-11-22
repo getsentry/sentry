@@ -27,7 +27,6 @@ type Props = {
 
 function SortableWidget(props: Props) {
   const {
-    organization,
     widget,
     isEditing,
     widgetLimitReached,
@@ -50,7 +49,6 @@ function SortableWidget(props: Props) {
     onDuplicate,
     showContextMenu: true,
     isPreview,
-    showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
     index,
     dashboardFilters,
     renderErrorMessage: errorMessage => {

@@ -90,7 +90,7 @@ describe('Modals -> WidgetViewerModal', function () {
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
-        features: ['discover-query', 'widget-viewer-modal'],
+        features: ['discover-query'],
         apdexThreshold: 400,
       },
       router: {
