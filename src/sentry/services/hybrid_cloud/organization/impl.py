@@ -182,11 +182,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         pass
 
     def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
     ) -> List[ApiOrganization]:
-        if user_id is None:
-            return []
-        organizations = self._query_organizations(user_id, scope, only_visible)
+        if user_id is not None:
+            organizations = self._query_organizations(user_id, scope, only_visible)
+        elif organization_ids is not None:
+            qs = Organization.objects.filter(id__in=organization_ids)
+            if only_visible:
+                qs = qs.filter(status=OrganizationStatus.VISIBLE)
+            organizations = list(qs)
+        else:
+            organizations = []
         return [self._serialize_organization(o) for o in organizations]
 
     def _query_organizations(

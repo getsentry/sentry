@@ -21,14 +21,21 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
+    # TODO: This should return ApiOrganizationSummary objects, since we cannot realistically span out requests and
+    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
     @abstractmethod
     def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
     ) -> List["ApiOrganization"]:
         """
-        When user_id is set, returns all organization and membership data associated with that user id given
-        a scope and visibility requirement.  When user_id is None, provides all organizations across the entire
-        system.
+        When user_id is set, returns all organizations associated with that user id given
+        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
+        set of organizations matching those ids, ignore scope and user_id.
+
         When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
         organization will be returned. NOTE: related resources, including membership, projects, and teams, will
         ALWAYS filter by status=VISIBLE.  To pull projects or teams that are not visible, use a different service
@@ -169,11 +176,14 @@ class ApiOrganizationFlags:
 
 
 @dataclass
-class ApiOrganization:
+class ApiOrganizationSummary:
     slug: str = ""
     id: int = -1
     name: str = ""
 
+
+@dataclass
+class ApiOrganization(ApiOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
     teams: List[ApiTeam] = field(default_factory=list)
