@@ -1096,7 +1096,7 @@ SENTRY_FEATURES = {
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
-    "organizations:widget-viewer-modal": False,
+    "organizations:widget-viewer-modal": True,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
