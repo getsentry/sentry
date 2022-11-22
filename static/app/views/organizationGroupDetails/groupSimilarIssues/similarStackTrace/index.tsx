@@ -45,14 +45,14 @@ function SimilarStackTrace({params, location, project}: Props) {
     filtered: [],
     pageLinks: null,
   });
-  const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
 
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
 
   const fetchData = useCallback(() => {
-    setState('loading');
+    setStatus('loading');
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
@@ -87,7 +87,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           filtered: updatedFilteredSimilarItems,
           pageLinks: updatedSimilarLinks,
         });
-        setState(error ? 'error' : loading ? 'loading' : 'ready');
+        setStatus(error ? 'error' : loading ? 'loading' : 'ready');
         return;
       }
 
@@ -144,7 +144,7 @@ function SimilarStackTrace({params, location, project}: Props) {
   const hasSimilarItems =
     hasSimilarityFeature &&
     (items.similar.length > 0 || items.filtered.length > 0) &&
-    state === 'ready';
+    status === 'ready';
 
   const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
@@ -169,8 +169,8 @@ function SimilarStackTrace({params, location, project}: Props) {
             </ButtonBar>
           )}
         </HeaderWrapper>
-        {state === 'loading' && <LoadingIndicator />}
-        {state === 'error' && (
+        {status === 'loading' && <LoadingIndicator />}
+        {status === 'error' && (
           <LoadingError
             message={t('Unable to load similar issues, please try again later')}
             onRetry={fetchData}
