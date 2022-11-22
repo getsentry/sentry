@@ -1,5 +1,7 @@
-import {deviceKnownDataValues} from 'sentry/components/events/contexts/device';
-import {getDeviceKnownDataDetails} from 'sentry/components/events/contexts/device/getDeviceKnownDataDetails';
+import {
+  deviceKnownDataValues,
+  getDeviceKnownDataDetails,
+} from 'sentry/components/events/contexts/device/getDeviceKnownDataDetails';
 
 import {deviceMockData} from './index.spec';
 
