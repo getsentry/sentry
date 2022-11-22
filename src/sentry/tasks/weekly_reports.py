@@ -647,7 +647,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count * item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
         )
         # Calculate total
         (
