@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
-) -> Mapping[str, str]:
+) -> Dict[str, str]:
     result = {}
     oi = config.organization_integration
     integration = oi.integration
@@ -82,8 +82,8 @@ def try_path_munging(
     filepath: str,
     mobile_frame: Mapping[str, Optional[str]],
     ctx: Mapping[str, Optional[str]],
-) -> Mapping[str, str]:
-    result: Mapping[str, str] = {}
+) -> Dict[str, str]:
+    result: Dict[str, str] = {}
     mobile_frame["filename"] = filepath  # type: ignore
     munged_frames = munged_filename_and_frames(
         str(ctx["platform"]), [mobile_frame], "munged_filename", sdk_name=str(ctx["sdk_name"])
