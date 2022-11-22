@@ -155,7 +155,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     result["error"] = "stack_root_mismatch"
                     continue
 
-                # If this fails we have an invalid code mapping
                 outcome = get_link(config, filepath, ctx["commit_id"])
                 if not outcome.get("sourceUrl"):
                     munging_outcome = try_path_munging(config, ctx)

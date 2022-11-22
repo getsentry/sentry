@@ -199,11 +199,9 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert response.data["sourceUrl"] == "https://github.com/repo/path/to/munged/file.py"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_no_stack_root_matches(self, mock_integration, mock_munger):
+    def test_file_no_stack_root_matches(self, mock_integration):
         mock_integration.return_value = None
-        mock_munger.return_value = ("munged_filename", [{"munged_filename": "munged"}])
 
         response = self.get_success_response(
             self.organization.slug,
