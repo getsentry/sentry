@@ -3,11 +3,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {useButtonHook} from 'sentry/components/buttonClick';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+import useButtonHook from 'sentry/components/useButtonHook';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
