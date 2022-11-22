@@ -34,7 +34,7 @@ const useGetHook = () => {
   return handleClick;
 };
 
-export function useButtonHook({
+export default function useButtonHook({
   disabled,
   busy,
   onClick,
