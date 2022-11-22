@@ -38,14 +38,18 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.assign_transaction_partitions_randomly = True
+        self.__producers = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
         return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        cluster_options = get_kafka_producer_cluster_options(cluster_name)
-        return Producer(cluster_options)
+        if topic not in self.__producers:
+            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+            cluster_options = get_kafka_producer_cluster_options(cluster_name)
+            self.__producers[topic] = Producer(cluster_options)
+
+        return self.__producers[topic]
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -169,7 +173,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             topic = self.topic
 
-        producer = self.get_producer(topic)
+        producer = self.__producers[topic]
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
@@ -332,7 +336,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         def handler(signum, frame):
             consumer.signal_shutdown()
-            self.get_producer().flush()
+            for producer in self.__producers.values():
+                producer.flush()
 
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
