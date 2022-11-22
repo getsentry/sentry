@@ -206,7 +206,7 @@ describe('Breadcrumbs', () => {
         enabled: true,
         activateSidebar: jest.fn(),
       });
-      render(
+      const {container} = render(
         <Breadcrumbs
           {...props}
           event={TestStubs.Event({
@@ -220,7 +220,7 @@ describe('Breadcrumbs', () => {
       );
 
       expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-      expect(screen).toSnapshot();
+      expect(container).toSnapshot();
     });
 
     it('should render a replay when there is a replayId', async function () {
@@ -229,7 +229,7 @@ describe('Breadcrumbs', () => {
         enabled: false,
         activateSidebar: jest.fn(),
       });
-      render(
+      const {container} = render(
         <Breadcrumbs
           {...props}
           event={TestStubs.Event({
@@ -243,7 +243,7 @@ describe('Breadcrumbs', () => {
       );
 
       expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-      expect(screen).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });
