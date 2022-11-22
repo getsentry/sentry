@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -675,22 +674,8 @@ def metrics_parallel_consumer(**options):
 @log_options()
 @batching_kafka_options("billing-metrics-consumer")
 @configuration
-@click.option(
-    "max_buffer_size",
-    "--max-buffer-size",
-    type=int,
-    default=10_000,
-    help="Maximum size of the buffer queue, before producing outcomes.",
-)
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
-
-    unsupported_options = ["force_cluster", "force_topic"]
-    logger = logging.getLogger("billing-metrics-consumer")
-    for opt in unsupported_options:
-        if opt in options:
-            logger.info(f"Overriding {opt} not supported, it's automatically handled.")
-            options.pop(opt)
 
     consumer = get_metrics_billing_consumer(**options)
     consumer.run()
