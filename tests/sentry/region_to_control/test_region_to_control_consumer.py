@@ -1,6 +1,5 @@
 import dataclasses
 import datetime
-import logging
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -11,8 +10,6 @@ from sentry.region_to_control.consumer import ProcessRegionToControlMessage
 from sentry.region_to_control.messages import RegionToControlMessage
 from sentry.testutils.factories import Factories
 from sentry.utils import json
-
-logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
