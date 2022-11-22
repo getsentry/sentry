@@ -131,7 +131,7 @@ describe('Device', function () {
         screen.getByTestId('device-context-screen_resolution-value')
       ).toHaveTextContent(
         `${device.screen_resolution} (${
-          commonDisplayResolutions[device.screen_resolution as string]
+          commonDisplayResolutions[String(device.screen_resolution)]
         })`
       );
     });
