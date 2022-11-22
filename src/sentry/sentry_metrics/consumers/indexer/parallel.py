@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Callable, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
@@ -83,8 +83,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_msg_batch_time: float,
         max_parallel_batch_size: int,
         max_parallel_batch_time: float,
-        max_batch_size: int,
-        max_batch_time: float,
         processes: int,
         input_block_size: int,
         output_block_size: int,
@@ -101,10 +99,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__max_parallel_batch_size = max_parallel_batch_size
         self.__max_parallel_batch_time = max_parallel_batch_time
 
-        # This is the batch size used to decide when to commit on Kafka.
-        self.__commit_max_batch_size = max_batch_size
-        self.__commit_max_batch_time = max_batch_time
-
         self.__processes = processes
 
         self.__input_block_size = input_block_size
@@ -112,7 +106,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
@@ -120,9 +114,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             Unbatcher(
                 SimpleProduceStep(
                     commit_function=commit,
-                    commit_max_batch_size=self.__commit_max_batch_size,
-                    # This is in seconds
-                    commit_max_batch_time=self.__commit_max_batch_time / 1000,
                     output_topic=self.__config.output_topic,
                 ),
             ),
@@ -171,8 +162,6 @@ def get_parallel_metrics_consumer(
         max_msg_batch_time=max_msg_batch_time,
         max_parallel_batch_size=max_parallel_batch_size,
         max_parallel_batch_time=max_parallel_batch_time,
-        max_batch_size=max_batch_size,
-        max_batch_time=max_batch_time,
         processes=processes,
         input_block_size=input_block_size,
         output_block_size=output_block_size,
@@ -186,5 +175,8 @@ def get_parallel_metrics_consumer(
         KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
         Topic(indexer_profile.input_topic),
         processing_factory,
-        IMMEDIATE,
+        CommitPolicy(
+            min_commit_frequency_sec=max_parallel_batch_time / 1000,
+            min_commit_messages=max_parallel_batch_size,
+        ),
     )
