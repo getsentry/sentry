@@ -70,7 +70,8 @@ def set_top_tags(scope: Scope, project: Project) -> None:
     scope.set_tag("project.slug", project.slug)
     scope.set_tag("organization.slug", project.organization.slug)
     try:
-        scope.set_tag("organization.early_adopter", project.organization.flags.early_adopter)
+        ea_org: bool = project.organization.flags.early_adopter.is_set
+        scope.set_tag("organization.early_adopter", ea_org)
     except Exception:
         # If errors arise we can then follow up with a fix
         logger.exception("We failed to set the early adopter flag")
