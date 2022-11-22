@@ -6,10 +6,10 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model, region_silo_only_model
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team
-    from sentry.services.hybrid_cloud.user import APIUser
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -25,7 +25,6 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "APIUser"]]:
 
 def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "APIUser"]:
     from sentry.models import Team, User
-    from sentry.services.hybrid_cloud.user import user_service
 
     if cls is User:
         user = user_service.get_by_actor_id(actor_id)
@@ -45,7 +44,6 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "APIUser"]:
         return Team.objects.get(id=id)
 
     if cls is User:
-        from sentry.services.hybrid_cloud.user import user_service
 
         user = user_service.get_user(id)
         if user is None:
@@ -153,7 +151,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :return:
         """
         from sentry.models import User
-        from sentry.services.hybrid_cloud.user import user_service
 
         if not actors:
             return []
