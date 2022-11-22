@@ -65,11 +65,11 @@ def get_rate_limit_key(
 
     from django.contrib.auth.models import AnonymousUser
 
-    from sentry.auth.system import SystemToken
+    from sentry.auth.system import is_system_auth
     from sentry.models import ApiKey, ApiToken
 
     # Don't Rate Limit System Token Requests
-    if isinstance(request_auth, SystemToken):
+    if is_system_auth(request_auth):
         return None
 
     if isinstance(request_auth, ApiToken) and request_user:
