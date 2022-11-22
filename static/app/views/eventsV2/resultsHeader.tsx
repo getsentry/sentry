@@ -9,11 +9,12 @@ import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Label} from 'sentry/components/editableText';
 import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -148,7 +149,17 @@ class ResultsHeader extends Component<Props, State> {
           {isHomepage ? (
             <StyledTitle>
               <GuideAnchor target="discover_landing_header">
-                <Label isDisabled>{t('Discover')}</Label>
+                {t('Discover')}
+                <PageHeadingQuestionTooltip
+                  title={tct(
+                    'Create queries to get insights into the health of your system. [link: Read the docs].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/discover-queries/" />
+                      ),
+                    }
+                  )}
+                />
               </GuideAnchor>
             </StyledTitle>
           ) : (
