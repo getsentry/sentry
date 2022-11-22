@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -56,29 +55,27 @@ export default function FiltersBar({
         <EnvironmentPageFilter disabled={isEditingDashboard} />
         <DatePageFilter alignDropdown="left" disabled={isEditingDashboard} />
       </PageFilterBar>
-      <Feature features={['dashboards-top-level-filter']}>
-        <Fragment>
+      <Fragment>
+        <FilterButtons>
+          <FilterButton>
+            <ReleasesProvider organization={organization} selection={selection}>
+              <ReleasesSelectControl
+                handleChangeFilter={onDashboardFilterChange}
+                selectedReleases={selectedReleases}
+                isDisabled={isEditingDashboard}
+              />
+            </ReleasesProvider>
+          </FilterButton>
+        </FilterButtons>
+        {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons>
-            <FilterButton>
-              <ReleasesProvider organization={organization} selection={selection}>
-                <ReleasesSelectControl
-                  handleChangeFilter={onDashboardFilterChange}
-                  selectedReleases={selectedReleases}
-                  isDisabled={isEditingDashboard}
-                />
-              </ReleasesProvider>
-            </FilterButton>
+            <Button priority="primary" onClick={onSave}>
+              {t('Save')}
+            </Button>
+            <Button onClick={onCancel}>{t('Cancel')}</Button>
           </FilterButtons>
-          {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-            <FilterButtons>
-              <Button priority="primary" onClick={onSave}>
-                {t('Save')}
-              </Button>
-              <Button onClick={onCancel}>{t('Cancel')}</Button>
-            </FilterButtons>
-          )}
-        </Fragment>
-      </Feature>
+        )}
+      </Fragment>
     </Wrapper>
   );
 }

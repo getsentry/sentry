@@ -495,14 +495,11 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          let newModifiedDashboard = modifiedDashboard;
-          if (organization.features.includes('dashboards-top-level-filter')) {
-            newModifiedDashboard = {
-              ...cloneDashboard(modifiedDashboard),
-              ...getCurrentPageFilters(location),
-              filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
-            };
-          }
+          const newModifiedDashboard = {
+            ...cloneDashboard(modifiedDashboard),
+            ...getCurrentPageFilters(location),
+            filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
+          };
           createDashboard(
             api,
             organization.slug,
@@ -724,7 +721,6 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId} = params;
 
     const hasUnsavedFilters =
-      organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);

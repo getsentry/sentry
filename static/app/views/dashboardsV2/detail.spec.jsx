@@ -473,7 +473,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -795,13 +794,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug'}}
           router={initialData.router}
           location={{
@@ -841,13 +834,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', templateId: 'default-template'}}
           router={initialData.router}
           location={{
@@ -891,13 +878,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organizaiton}
           params={{orgId: 'org-slug', templateId: 'default-template'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -932,7 +913,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -994,7 +974,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1039,7 +1018,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1094,7 +1072,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1155,7 +1132,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1212,7 +1188,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1250,7 +1225,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1295,7 +1269,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1352,7 +1325,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1413,7 +1385,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {

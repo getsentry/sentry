@@ -184,10 +184,6 @@ describe('add to dashboard modal', () => {
   });
 
   it('applies dashboard saved filters to visualization', async function () {
-    initialData.organization = {
-      ...initialData.organization,
-      features: ['dashboards-top-level-filter'],
-    };
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -307,11 +303,6 @@ describe('add to dashboard modal', () => {
   });
 
   it('navigates to the widget builder with saved filters', async () => {
-    initialData.organization = {
-      ...initialData.organization,
-      features: ['dashboards-top-level-filter'],
-    };
-
     render(
       <AddToDashboardModal
         Header={stubEl}

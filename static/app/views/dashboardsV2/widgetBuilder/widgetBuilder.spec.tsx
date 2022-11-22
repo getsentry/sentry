@@ -1083,7 +1083,7 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         params: {orgId: 'org-slug'},
         query: {statsPeriod: '90d'},
-        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+        orgFeatures: defaultOrgFeatures,
       });
 
       expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
@@ -1117,7 +1117,7 @@ describe('WidgetBuilder', function () {
         },
         params: {orgId: 'org-slug'},
         query: {statsPeriod: '90d'},
-        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+        orgFeatures: defaultOrgFeatures,
       });
 
       await waitFor(() => {

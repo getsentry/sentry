@@ -134,10 +134,7 @@ function AddToDashboardModal({
       pathname,
       query: {
         ...widgetAsQueryParams,
-        ...(organization.features.includes('dashboards-top-level-filter') &&
-        selectedDashboard
-          ? getSavedPageFilters(selectedDashboard)
-          : {}),
+        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
       },
     });
     closeModal();
@@ -217,11 +214,9 @@ function AddToDashboardModal({
           />
         </Wrapper>
         <Wrapper>
-          {organization.features.includes('dashboards-top-level-filter')
-            ? t(
-                'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
-              )
-            : t('This is a preview of how the widget will appear in your dashboard.')}
+          {t(
+            'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+          )}
         </Wrapper>
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
@@ -245,15 +240,12 @@ function AddToDashboardModal({
                   isEditing={false}
                   widgetLimitReached={false}
                   selection={
-                    organization.features.includes('dashboards-top-level-filter') &&
                     selectedDashboard
                       ? getSavedFiltersAsPageFilters(selectedDashboard)
                       : selection
                   }
                   dashboardFilters={
-                    organization.features.includes('dashboards-top-level-filter')
-                      ? getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-                      : {}
+                    getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
                   }
                   widget={widget}
                   showStoredAlert
