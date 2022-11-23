@@ -1038,6 +1038,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Normalize transaction names during ingestion.
+    "organizations:transaction-name-normalize": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
