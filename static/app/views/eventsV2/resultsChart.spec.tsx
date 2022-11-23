@@ -44,9 +44,6 @@ describe('EventsV2 > ResultsChart', function () {
     render(
       <ResultsChart
         router={TestStubs.router()}
-        disableProcessedBaselineToggle
-        setShowBaseline={() => undefined}
-        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}
@@ -81,9 +78,6 @@ describe('EventsV2 > ResultsChart', function () {
     render(
       <ResultsChart
         router={TestStubs.router()}
-        disableProcessedBaselineToggle
-        setShowBaseline={() => undefined}
-        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}
@@ -117,9 +111,6 @@ describe('EventsV2 > ResultsChart', function () {
     render(
       <ResultsChart
         router={TestStubs.router()}
-        disableProcessedBaselineToggle
-        setShowBaseline={() => undefined}
-        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}

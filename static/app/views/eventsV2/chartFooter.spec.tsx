@@ -40,7 +40,6 @@ describe('EventsV2 > ChartFooter', function () {
 
     const chartFooter = (
       <ChartFooter
-        organization={organization}
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
@@ -51,8 +50,6 @@ describe('EventsV2 > ChartFooter', function () {
         onTopEventsChange={() => undefined}
         onIntervalChange={() => undefined}
         topEvents="5"
-        showBaseline={false}
-        setShowBaseline={() => undefined}
         eventView={eventView}
       />
     );
@@ -86,7 +83,6 @@ describe('EventsV2 > ChartFooter', function () {
 
     const chartFooter = (
       <ChartFooter
-        organization={organization}
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
@@ -97,8 +93,6 @@ describe('EventsV2 > ChartFooter', function () {
         onTopEventsChange={() => undefined}
         onIntervalChange={() => undefined}
         topEvents={limit}
-        showBaseline={false}
-        setShowBaseline={() => undefined}
         eventView={eventView}
       />
     );
@@ -109,14 +103,10 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {
-    const organization = TestStubs.Organization({
-      features,
-    });
     let yAxis = ['count()'];
 
     const chartFooter = (
       <ChartFooter
-        organization={organization}
         total={100}
         yAxisValue={yAxis}
         yAxisOptions={yAxisOptions}
@@ -127,8 +117,6 @@ describe('EventsV2 > ChartFooter', function () {
         onTopEventsChange={() => undefined}
         onIntervalChange={() => undefined}
         topEvents="5"
-        showBaseline={false}
-        setShowBaseline={() => undefined}
         eventView={eventView}
       />
     );
