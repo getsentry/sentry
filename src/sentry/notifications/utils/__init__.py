@@ -409,13 +409,14 @@ def get_transaction_data(event: Event) -> Any:
 def get_default_data(event: Event) -> Any:
     """Get data about a generic issue type to populate alert emails."""
 
-    # do some stuff here to parse the event data you want
-    # this is a guess at the data format and may be incorrect
-    default_evidence = [
-        ("Row 1 Name", "Row 1 Value"),
-        ("Row 2 Name", "Row 2 Value"),
-        ("Row 3 Name", "Row 3 Value"),
-    ]
+    # leaving this in for now as test data
+    # default_evidence = [
+    #     ["Row 1 Name", "Row 1 Value"],
+    #     ["Row 2 Name", "Row 2 Value"],
+    #     ["Row 3 Name", "Row 3 Value"],
+    # ]
+
+    default_evidence = event.occurrence.evidence_display
     context = {}
     for row in default_evidence:
         context[row[0]] = row[1]
@@ -424,6 +425,7 @@ def get_default_data(event: Event) -> Any:
 
 
 def default_email_html(context: Any) -> Any:
+    """Format issue evidence into a (stringified) HTML table for emails"""
     return render_to_string("sentry/emails/default_table.html", {"data": context})
 
 
