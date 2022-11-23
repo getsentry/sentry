@@ -326,6 +326,7 @@ def fetch_key_error_groups(ctx):
         return
 
     group_id_to_group = {}
+    # should we limit to a specific project?
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
@@ -340,10 +341,19 @@ def fetch_key_error_groups(ctx):
     group_id_to_group_history = {g.group_id: g for g in group_history}
 
     for project_ctx in ctx.projects.values():
-        project_ctx.key_errors = [
-            (group_id_to_group[group_id], group_id_to_group_history.get(group_id, None), count)
-            for group_id, count in project_ctx.key_errors
-        ]
+        # note Snuba might have groups that have since been deleted
+        # we should just ignore those
+        project_ctx.key_errors = filter(
+            lambda x: x[0] is not None,
+            [
+                (
+                    group_id_to_group.get(group_id),
+                    group_id_to_group_history.get(group_id, None),
+                    count,
+                )
+                for group_id, count in project_ctx.key_errors
+            ],
+        )
 
 
 def project_key_transactions(ctx, project):
