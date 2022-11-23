@@ -261,9 +261,10 @@ class BaseGroupSidebar extends Component<Props, State> {
           organization={organization}
           features={['issue-details-tag-improvements']}
         >
-          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
+          {isMobilePlatform(project.platform) && (
             <TagFacets
               environments={environments}
+              groupId={group.id}
               tagKeys={MOBILE_TAGS}
               event={event}
               title={
@@ -274,7 +275,6 @@ class BaseGroupSidebar extends Component<Props, State> {
               tagFormatter={MOBILE_TAGS_FORMATTER}
               style="distributions"
               project={project}
-              group={group}
             />
           )}
         </Feature>

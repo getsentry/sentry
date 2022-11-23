@@ -11,7 +11,6 @@ import {Event} from 'sentry/types/event';
 const {organization} = initializeOrg();
 describe('Tag Facets', function () {
   let tagsMock;
-  const group = TestStubs.Group();
   const project = TestStubs.Project();
 
   beforeEach(function () {
@@ -98,7 +97,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="bars"
@@ -119,7 +118,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="bars"
@@ -160,7 +159,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
@@ -186,7 +185,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -209,7 +208,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -229,7 +228,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -269,7 +268,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -323,7 +322,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -360,7 +359,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="breakdowns"
@@ -381,7 +380,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="breakdowns"
@@ -424,7 +423,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
@@ -450,7 +449,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -473,7 +472,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -493,7 +492,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -517,7 +516,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -552,7 +551,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -606,7 +605,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           tagFormatter={MOBILE_TAGS_FORMATTER}
@@ -643,7 +642,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
@@ -664,7 +663,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
@@ -691,7 +690,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
@@ -714,7 +713,7 @@ describe('Tag Facets', function () {
       render(
         <TagFacets
           environments={[]}
-          group={group}
+          groupId="1"
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"

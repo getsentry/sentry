@@ -30,13 +30,13 @@ type State = {
 const MAX_ITEMS = 5;
 
 export default function TagFacetsBars({
+  groupId,
   tagKeys,
   environments,
   event,
   tagFormatter,
   title,
   project,
-  group,
 }: TagFacetsProps) {
   const [state, setState] = useState<State>({
     tagsData: {},
@@ -50,7 +50,7 @@ export default function TagFacetsBars({
   useEffect(() => {
     const fetchData = async () => {
       // Fetch the top values for the current group's top tags.
-      const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
+      const data = await api.requestPromise(`/issues/${groupId}/tags/`, {
         query: {
           key: tagKeys,
           environment: environments.map(env => env.name),
@@ -74,12 +74,12 @@ export default function TagFacetsBars({
     });
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, JSON.stringify(environments), group.id, tagKeys]);
+  }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
-  const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${state.selectedTag}/?referrer=tag-distribution-meter`;
+  const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${state.selectedTag}/?referrer=tag-distribution-meter`;
   const points =
     tagsData[state.selectedTag]?.topValues.map(({name, value, count}) => {
       const isTagValueOfCurrentEvent =
@@ -137,7 +137,7 @@ export default function TagFacetsBars({
           />
           <Button
             size="xs"
-            to={getTagUrl(organization.slug, group.id)}
+            to={getTagUrl(organization.slug, groupId)}
             onClick={() => {
               trackAdvancedAnalyticsEvent(
                 'issue_group_details.tags.show_all_tags.clicked',

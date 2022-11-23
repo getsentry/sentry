@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import Button from 'sentry/components/button';
-import {deviceNameMapper} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -17,22 +16,19 @@ import {TagFacetsProps} from './tagFacetsTypes';
 
 type State = {
   loading: boolean;
-  selectedTag: string;
-  showMore: boolean;
   tagsData: Record<string, TagWithTopValues>;
 };
 
 export default function TagFacetsDistributions({
   tagKeys,
   environments,
-  group,
+  groupId,
   title,
+  tagFormatter,
 }: TagFacetsProps) {
   const [state, setState] = useState<State>({
     tagsData: {},
-    selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
     loading: true,
-    showMore: false,
   });
   const organization = useOrganization();
   const api = useApi();
@@ -40,7 +36,7 @@ export default function TagFacetsDistributions({
   useEffect(() => {
     const fetchData = async () => {
       // Fetch the top values for the current group's top tags.
-      const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
+      const data = await api.requestPromise(`/issues/${groupId}/tags/`, {
         query: {
           key: tagKeys,
           environment: environments.map(env => env.name),
@@ -48,14 +44,10 @@ export default function TagFacetsDistributions({
         },
       });
       const tagsData = keyBy(data, 'key');
-      const defaultSelectedTag = tagKeys.find(tagKey =>
-        Object.keys(tagsData).includes(tagKey)
-      );
       setState({
         ...state,
         tagsData,
         loading: false,
-        selectedTag: defaultSelectedTag ?? state.selectedTag,
       });
     };
     setState({...state, loading: true});
@@ -64,61 +56,60 @@ export default function TagFacetsDistributions({
     });
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, JSON.stringify(environments), group.id, tagKeys]);
+  }, [api, JSON.stringify(environments), groupId, tagKeys]);
+
+  const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
+  const sortedTagKeys = Object.keys(tagsData).sort();
 
   return (
     <SidebarSection.Wrap>
-      <SidebarSection.Title>{title || t('Most Impacted Tags')}</SidebarSection.Title>
-      <Content>
-        {!state.tagsData ? (
-          <TagPlaceholders>
-            <Placeholder height="40px" />
-            <Placeholder height="40px" />
-            <Placeholder height="40px" />
-            <Placeholder height="40px" />
-          </TagPlaceholders>
-        ) : (
-          <React.Fragment>
-            {Object.keys(state.tagsData).map(tagKey => {
-              const tagWithTopValues = state.tagsData[tagKey];
-              const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-              const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+      {state.loading || !tagsData ? (
+        <TagPlaceholders>
+          <Placeholder height="40px" />
+          <Placeholder height="40px" />
+          <Placeholder height="40px" />
+          <Placeholder height="40px" />
+        </TagPlaceholders>
+      ) : (
+        <React.Fragment>
+          <SidebarSection.Title>{title || t('Most Impacted Tags')}</SidebarSection.Title>
+          <Content>
+            <React.Fragment>
+              {sortedTagKeys.map(tagKey => {
+                const tagWithTopValues = tagsData[tagKey];
+                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                const topValuesTotal = tagWithTopValues
+                  ? tagWithTopValues.totalValues
+                  : 0;
 
-              const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tagKey}/?referrer=tag-distribution-meter`;
+                const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/?referrer=tag-distribution-meter`;
 
-              const segments = topValues
-                ? topValues.map(value => ({
-                    ...value,
-                    name: deviceNameMapper(value.name || '') || value.name,
-                    url,
-                  }))
-                : [];
+                const segments = topValues
+                  ? topValues.map(value => ({
+                      ...value,
+                      url,
+                    }))
+                  : [];
 
-              return (
-                <TagFacetsDistributionMeter
-                  key={tagKey}
-                  title={tagKey}
-                  totalValues={topValuesTotal}
-                  segments={segments}
-                  onTagClick={() => undefined}
-                />
-              );
-            })}
-            <ShowAllButtonContainer>
-              <Button size="xs" to={getTagUrl(organization.slug, group.id)}>
-                {t('View All Tags')}
-              </Button>
-            </ShowAllButtonContainer>
-          </React.Fragment>
-        )}
-        {group.tags.length === 0 && (
-          <p data-test-id="no-tags">
-            {environments.length
-              ? t('No tags found in the selected environments')
-              : t('No tags found')}
-          </p>
-        )}
-      </Content>
+                return (
+                  <TagFacetsDistributionMeter
+                    key={tagKey}
+                    title={tagKey}
+                    totalValues={topValuesTotal}
+                    segments={segments}
+                    onTagClick={() => undefined}
+                  />
+                );
+              })}
+              <ShowAllButtonContainer>
+                <Button size="xs" to={getTagUrl(organization.slug, groupId)}>
+                  {t('View All Tags')}
+                </Button>
+              </ShowAllButtonContainer>
+            </React.Fragment>
+          </Content>
+        </React.Fragment>
+      )}
     </SidebarSection.Wrap>
   );
 }
