@@ -231,6 +231,7 @@ def get_top_groups(
             "limit": FREQUENCY_CONDITION_GROUP_LIMIT,
         }
         if dataset == Dataset.Transactions:
+            kwargs["having"] = kwargs["conditions"]
             kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
             kwargs["aggregations"].append(("arrayJoin", ["group_ids"], "group_id"))
         query_params.append(SnubaQueryParams(**kwargs))
@@ -310,8 +311,9 @@ def get_events(
         if dataset.value == Dataset.Transactions.value:
             # this query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
             """
+            kwargs["having"] = kwargs["conditions"]
+            kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
             kwargs["aggregations"] = [("arrayJoin", ["group_ids"], "group_id")]
-            kwargs["having"] = kwargs.pop("conditions")
             """
             continue
         query_params.append(SnubaQueryParams(**kwargs))
