@@ -1,4 +1,5 @@
 import {lazy, Profiler, Suspense, useCallback, useEffect, useRef} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -11,7 +12,7 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA, ORG_SLUG_REGEX} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -26,7 +27,7 @@ import SystemAlerts from './systemAlerts';
 
 type Props = {
   children: React.ReactNode;
-};
+} & RouteComponentProps<{orgId?: string}, {}>;
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -34,7 +35,7 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({children}: Props) {
+function App({children, params}: Props) {
   useColorscheme();
 
   const api = useApi();
@@ -97,6 +98,21 @@ function App({children}: Props) {
     });
   }, [api]);
 
+  const {sentryUrl} = ConfigStore.get('links');
+  const {orgId} = params;
+  const isOrgSlugValid = orgId ? ORG_SLUG_REGEX.test(orgId) : true;
+
+  useEffect(() => {
+    if (orgId === undefined) {
+      return;
+    }
+
+    if (!isOrgSlugValid) {
+      window.location.replace(sentryUrl);
+      return;
+    }
+  }, [orgId, sentryUrl, isOrgSlugValid]);
+
   useEffect(() => {
     loadOrganizations();
     checkInternalHealth();
@@ -155,6 +171,10 @@ function App({children}: Props) {
           <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
         </Suspense>
       );
+    }
+
+    if (!isOrgSlugValid) {
+      return null;
     }
 
     return children;
