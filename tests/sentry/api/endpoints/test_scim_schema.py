@@ -1,13 +1,8 @@
-from django.urls import reverse
-
 from sentry.testutils import SCIMTestCase
 
 
 class SCIMSchemaEndpointTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-schema-index"
+
     def test_schema_200s(self):
-        url = reverse(
-            "sentry-api-0-organization-scim-schema-index",
-            args=[self.organization.slug],
-        )
-        response = self.client.get(url)
-        assert response.status_code == 200, response.content
+        self.get_success_response(self.organization.slug)
