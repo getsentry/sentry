@@ -646,6 +646,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
+          tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
         {
           organization,
@@ -667,6 +668,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
+          tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
         {
           organization,
@@ -717,6 +719,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={MOBILE_TAGS}
           style="distributions"
+          tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
         {
           organization,
