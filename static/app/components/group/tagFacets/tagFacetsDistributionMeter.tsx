@@ -1,10 +1,10 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
+import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -12,30 +12,29 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
+const COLORS = [
+  '#3A3387',
+  '#5F40A3',
+  '#8C4FBD',
+  '#B961D3',
+  '#DE76E4',
+  '#EF91E8',
+  '#F7B2EC',
+  '#FCD8F4',
+  '#FEEBF9',
+  '#FFF7FD',
+];
+
 type Props = {
   segments: TagSegment[];
   title: string;
   totalValues: number;
   colors?: string[];
   onTagClick?: (title: string, value: TagSegment) => void;
-  renderEmpty?: () => React.ReactNode;
-  renderError?: () => React.ReactNode;
-  renderLoading?: () => React.ReactNode;
-  showReleasePackage?: boolean;
-  showTitle?: boolean;
-};
-
-type SegmentValue = {
-  index: number;
-  onClick: () => void;
-  to: LocationDescriptor;
 };
 
 function TagFacetsDistributionMeter({
   colors = COLORS,
-  renderEmpty = () => <p>{t('No recent data.')}</p>,
-  showReleasePackage = false,
-  showTitle = true,
   segments,
   title,
   totalValues,
@@ -62,7 +61,6 @@ function TagFacetsDistributionMeter({
                 version={largestSegment.name}
                 anchor={false}
                 tooltipRawVersion
-                withPackage={showReleasePackage}
                 truncate
               />
             </Label>
@@ -90,7 +88,11 @@ function TagFacetsDistributionMeter({
 
   function renderSegments() {
     if (totalValues === 0) {
-      return <SegmentBar>{renderEmpty()}</SegmentBar>;
+      return (
+        <SegmentBar>
+          <p>{t('No recent data.')}</p>
+        </SegmentBar>
+      );
     }
 
     return (
@@ -168,7 +170,7 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      {showTitle && renderTitle()}
+      {renderTitle()}
       {!expanded ? renderSegments() : null}
       {expanded ? renderLegend() : null}
     </TagSummary>
@@ -176,19 +178,6 @@ function TagFacetsDistributionMeter({
 }
 
 export default TagFacetsDistributionMeter;
-
-const COLORS = [
-  '#3A3387',
-  '#5F40A3',
-  '#8C4FBD',
-  '#B961D3',
-  '#DE76E4',
-  '#EF91E8',
-  '#F7B2EC',
-  '#FCD8F4',
-  '#FEEBF9',
-  '#FFF7FD',
-];
 
 const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
