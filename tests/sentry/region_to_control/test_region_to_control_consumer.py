@@ -87,7 +87,9 @@ def test_region_to_control_with_deleted_user(region_to_control_strategy, user, o
                 "actor_user_id": user.id,
                 "ip_address": "127.0.0.1",
                 "organization_id": organization.id,
-                "event": 0,
+                "event_id": 0,
+                "time_of_creation": "2000-01-01T00:00:00.000000Z",
+                "actor_label": "Zach",
             }
         }
     )
