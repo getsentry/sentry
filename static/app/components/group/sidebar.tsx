@@ -242,6 +242,10 @@ class BaseGroupSidebar extends Component<Props, State> {
     const projectId = project.slug;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
 
+    // Evenly split style between distributions and bars for AB testing
+    const tagFacetsStyle =
+      parseInt(organization.id, 10) % 2 === 1 ? 'distributions' : 'bars';
+
     return (
       <Container>
         {!hasIssueActionsV2 && (
@@ -273,7 +277,7 @@ class BaseGroupSidebar extends Component<Props, State> {
                 </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
-              style="bars"
+              style={tagFacetsStyle}
               project={project}
             />
           )}
