@@ -280,5 +280,3 @@ export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),
 };
-
-export const ORG_SLUG_REGEX = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$');
