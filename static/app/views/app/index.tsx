@@ -12,12 +12,13 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA, ORG_SLUG_REGEX} from 'sentry/constants';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
@@ -100,7 +101,7 @@ function App({children, params}: Props) {
 
   const {sentryUrl} = ConfigStore.get('links');
   const {orgId} = params;
-  const isOrgSlugValid = orgId ? ORG_SLUG_REGEX.test(orgId) : true;
+  const isOrgSlugValid = orgId ? isValidOrgSlug(orgId) : true;
 
   useEffect(() => {
     if (orgId === undefined) {
