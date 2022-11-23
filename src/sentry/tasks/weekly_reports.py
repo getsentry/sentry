@@ -326,7 +326,6 @@ def fetch_key_error_groups(ctx):
         return
 
     group_id_to_group = {}
-    # should we limit to a specific project?
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
