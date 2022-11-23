@@ -292,6 +292,8 @@ def get_events(
     columns = {k: v + ["event_id"] for k, v in columns.items()}
     events = []
 
+    query_params = []
+    # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
         if dataset not in columns:
             continue
@@ -312,42 +314,44 @@ def get_events(
             kwargs["having"] = kwargs.pop("conditions")
             """
             continue
+        query_params.append(SnubaQueryParams(**kwargs))
 
-        events.extend(
-            # retrieves the first event for each group
-            raw_query(**kwargs).get("data", [])
-        )
-
-    if group_ids:
-        # store event_ids for CREATE_ISSUE condition activities
-        group_map = {event["group_id"]: event["event_id"] for event in events}
-        for group, activities in group_activity.items():
-            # if there is a CREATE_ISSUE activity, it must be the first
-            if activities[0].type == ConditionActivityType.CREATE_ISSUE:
-                event_id = group_map.get(group, None)
-                if event_id is not None:
-                    activities[0].data["event_id"] = event_id
-
+    # query events by event_id
     for dataset, ids in event_ids.items():
         if dataset not in columns:
             continue
-        events.extend(
-            raw_query(
+        query_params.append(
+            SnubaQueryParams(
                 dataset=dataset,
                 start=start,
                 end=end,
                 filter_keys={"project_id": [project.id]},
                 conditions=[("event_id", "IN", ids)],
                 selected_columns=columns[dataset],
-            ).get("data", [])
+            )
         )
 
-    # the keys and values of tags come in 2 separate lists, pair them up together
-    for event in events:
-        if "tags.key" in event and "tags.value" in event:
-            keys = event.pop("tags.key")
-            values = event.pop("tags.value")
-            event["tags"] = {k: v for k, v in zip(keys, values)}
+    group_map = {}
+    for result in bulk_raw_query(query_params):
+        event_data = result.get("data", [])
+        events.extend(event_data)
+        for event in event_data:
+            if "tags.key" in event and "tags.value" in event:
+                # the keys and values of tags come in 2 separate lists, pair them up together
+                keys = event.pop("tags.key")
+                values = event.pop("tags.value")
+                event["tags"] = {k: v for k, v in zip(keys, values)}
+            if "group_id" in event:
+                group_map[event["group_id"]] = event["event_id"]
+
+    if group_map:
+        # store event_ids for CREATE_ISSUE condition activities
+        for group, activities in group_activity.items():
+            # if there is a CREATE_ISSUE activity, it must be the first
+            if activities[0].type == ConditionActivityType.CREATE_ISSUE:
+                event_id = group_map.get(group, None)
+                if event_id is not None:
+                    activities[0].data["event_id"] = event_id
 
     return {event["event_id"]: event for event in events}
 
