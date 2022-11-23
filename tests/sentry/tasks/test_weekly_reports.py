@@ -285,3 +285,24 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             "error_count": 1,
             "transaction_count": 3,
         }
+
+    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    def test_empty_report(self, mock_send_email):
+        now = timezone.now()
+
+        # date is out of range
+        ten_days_ago = now - timedelta(days=10)
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(ten_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        assert mock_send_email.call_count == 0
