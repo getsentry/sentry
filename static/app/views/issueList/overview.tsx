@@ -53,6 +53,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -927,7 +928,7 @@ class IssueListOverview extends Component<Props, State> {
       !isEqual(query, this.props.location.query)
     ) {
       browserHistory.push({
-        pathname: path,
+        pathname: normalizeUrl(path),
         query,
       });
       this.setState({issuesLoading: true});

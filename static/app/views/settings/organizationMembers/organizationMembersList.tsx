@@ -241,7 +241,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, organization, routes} = this.props;
+    const {params, organization} = this.props;
     const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {name: orgName, access} = organization;
 
@@ -325,7 +325,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           <PanelBody>
             {members.map(member => (
               <OrganizationMemberRow
-                routes={routes}
                 params={params}
                 key={member.id}
                 member={member}

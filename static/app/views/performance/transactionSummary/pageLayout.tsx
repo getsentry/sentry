@@ -19,6 +19,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
 
@@ -165,7 +166,7 @@ function PageLayout(props: Props) {
         });
       }
 
-      browserHistory.push(getNewRoute(newTab));
+      browserHistory.push(normalizeUrl(getNewRoute(newTab)));
     },
     [getNewRoute, tab, organization, location, projects]
   );

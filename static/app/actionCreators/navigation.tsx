@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 // TODO(ts): figure out better typing for react-router here
 export function navigateTo(
@@ -44,6 +45,6 @@ export function navigateTo(
         project: projectById.id,
       });
     }
-    router.push(to);
+    router.push(normalizeUrl(to));
   }
 }

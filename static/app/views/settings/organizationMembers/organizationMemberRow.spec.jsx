@@ -27,7 +27,7 @@ describe('OrganizationMemberRow', function () {
 
   const defaultProps = {
     routes: [],
-    orgId: 'org-slug',
+    params: {orgId: 'org-slug'},
     orgName: 'Organization Name',
     status: '',
     requireLink: false,

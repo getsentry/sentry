@@ -97,4 +97,22 @@ describe('navigation ActionCreator', () => {
     expect(navigateTo('/settings/:orgId', router)).toBe();
     expect(openModal).toHaveBeenCalled();
   });
+
+  it('normalizes URLs for customer domains', function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+    navigateTo('/settings/org-slug/projects/', router);
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/settings/projects/');
+
+    router.location.query.project = '2';
+    navigateTo('/settings/org-slug/projects/:projectId/alerts/', router);
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
+  });
 });

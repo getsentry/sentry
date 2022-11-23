@@ -8,6 +8,7 @@ import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcru
 jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
+  let initialData;
   const {organization, project, routerContext} = initializeOrg();
   const organizations = [
     organization,
@@ -34,7 +35,12 @@ describe('OrganizationCrumb', function () {
     );
 
   beforeEach(function () {
+    initialData = window.__initialData;
     browserHistory.push.mockReset();
+    window.location.assign.mockReset();
+  });
+  afterEach(function () {
+    window.__initalData = initialData;
   });
 
   it('switches organizations on settings index', function () {
@@ -119,5 +125,47 @@ describe('OrganizationCrumb', function () {
     switchOrganization();
 
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
+  });
+
+  it('switches organizations for child route with customer domains', function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+
+    const routes = [
+      {path: '/', childRoutes: []},
+      {childRoutes: []},
+      {path: '/foo/', childRoutes: []},
+      {childRoutes: []},
+      {path: ':bar', childRoutes: []},
+      {path: '/settings/', name: 'Settings'},
+      {name: 'Organizations', path: ':orgId/', childRoutes: []},
+      {childRoutes: []},
+      {path: 'api-keys/', name: 'API Key'},
+    ];
+    const route = routes[6];
+    const orgs = [
+      organization,
+      TestStubs.Organization({
+        id: '234',
+        slug: 'acme',
+        features: ['customer-domains'],
+        links: {
+          organizationUrl: 'https://acme.sentry.io',
+        },
+      }),
+    ];
+
+    renderComponent({routes, route, organizations: orgs});
+    switchOrganization();
+
+    // The double slug doesn't actually show up as we have more routing context present.
+    expect(window.location.assign).toHaveBeenCalledWith(
+      'https://acme.sentry.io/settings/acme/api-keys/'
+    );
   });
 });
