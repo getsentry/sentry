@@ -8,7 +8,6 @@ import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
@@ -34,7 +33,6 @@ function BreadcrumbItem({
   onClick,
 }: Props) {
   const {title, description} = getDetails(crumb, startTimestampMs);
-  const {setActiveTab} = useActiveReplayTab();
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -47,22 +45,8 @@ function BreadcrumbItem({
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
       onClick?.(crumb, e);
-
-      switch (crumb.type) {
-        case 'navigation':
-        case 'debug':
-          setActiveTab('network');
-          break;
-        case 'ui':
-          setActiveTab('dom');
-          break;
-        case 'error':
-        default:
-          setActiveTab('console');
-          break;
-      }
     },
-    [crumb, setActiveTab, onClick]
+    [crumb, onClick]
   );
 
   return (
