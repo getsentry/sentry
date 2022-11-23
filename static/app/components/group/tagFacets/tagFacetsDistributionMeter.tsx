@@ -6,7 +6,6 @@ import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
-import Version from 'sentry/components/version';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -51,29 +50,12 @@ function TagFacetsDistributionMeter({
       );
     }
 
-    const largestSegment = segments[0];
-    const renderLabel = () => {
-      switch (title) {
-        case 'release':
-          return (
-            <Label>
-              <Version
-                version={largestSegment.name}
-                anchor={false}
-                tooltipRawVersion
-                truncate
-              />
-            </Label>
-          );
-        default:
-          return <Label>{largestSegment.name || t('n/a')}</Label>;
-      }
-    };
-
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>{renderLabel()}</TitleDescription>
+        <TitleDescription>
+          <Label>{segments[0].name || t('n/a')}</Label>
+        </TitleDescription>
         <StyledChevron
           direction={expanded ? 'up' : 'down'}
           size="md"
@@ -138,19 +120,6 @@ function TagFacetsDistributionMeter({
     );
   }
 
-  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
-  const hasOther = totalVisible < totalValues;
-
-  if (hasOther) {
-    segments.push({
-      isOther: true,
-      name: t('Other'),
-      value: 'other',
-      count: totalValues - totalVisible,
-      url: '',
-    });
-  }
-
   function renderLegend(tooltip: boolean = false) {
     return (
       <LegendGrid>
@@ -166,6 +135,19 @@ function TagFacetsDistributionMeter({
         })}
       </LegendGrid>
     );
+  }
+
+  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < totalValues;
+
+  if (hasOther) {
+    segments.push({
+      isOther: true,
+      name: t('Other'),
+      value: 'other',
+      count: totalValues - totalVisible,
+      url: '',
+    });
   }
 
   return (
