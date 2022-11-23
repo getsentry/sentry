@@ -5,6 +5,7 @@ import TextCopyInput, {
   StyledCopyButton,
   StyledInput,
 } from 'sentry/components/textCopyInput';
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 
@@ -21,10 +22,11 @@ function ReplayCurrentUrl() {
   const replayRecord = replay.getReplay();
   const crumbs = replay.getRawCrumbs();
 
+  const url = getCurrentUrl(replayRecord, crumbs, currentTime);
   return (
-    <UrlCopyInput size="sm">
-      {getCurrentUrl(replayRecord, crumbs, currentTime)}
-    </UrlCopyInput>
+    <Tooltip title={url} isHoverable showOnlyOnOverflow>
+      <UrlCopyInput size="sm">{url}</UrlCopyInput>
+    </Tooltip>
   );
 }
 
