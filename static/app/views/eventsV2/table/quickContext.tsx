@@ -8,7 +8,6 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import {
   getStacktrace,
@@ -125,7 +124,11 @@ type IssueContextProps = {
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
 
-  const {isLoading, isError, data} = useQuery<Group>(
+  const {
+    isLoading: issueLoading,
+    isError: issueError,
+    data: issue,
+  } = useQuery<Group>(
     [
       `/issues/${props.dataRow['issue.id']}/`,
       {
@@ -144,21 +147,28 @@ function IssueContext(props: IssueContextProps) {
     }
   );
 
+  // NOTE: Suspect commits are generated from the first event of an issue.
+  // Therefore, all events for an issue have the same suspect commits.
+  const {
+    isLoading: eventLoading,
+    isError: eventError,
+    data: event,
+  } = useQuery<Event>([`/issues/${props.dataRow['issue.id']}/events/oldest/`], {
+    staleTime: fiveMinutesInMs,
+  });
+
   const renderStatus = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextHeader>
-          {statusTitle}
-          <FeatureBadge type="alpha" />
-        </ContextHeader>
+        <ContextHeader>{statusTitle}</ContextHeader>
         <ContextBody>
-          {data.status === 'ignored' ? (
+          {issue.status === 'ignored' ? (
             <IconMute
               data-test-id="quick-context-ignored-icon"
               color="gray500"
               size="sm"
             />
-          ) : data.status === 'resolved' ? (
+          ) : issue.status === 'resolved' ? (
             <IconCheckmark color="gray500" size="sm" />
           ) : (
             <IconNot
@@ -167,30 +177,33 @@ function IssueContext(props: IssueContextProps) {
               size="sm"
             />
           )}
-          <StatusText>{data.status}</StatusText>
+          <StatusText>{issue.status}</StatusText>
         </ContextBody>
       </IssueContextContainer>
     );
 
   const renderAssigneeSelector = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo group={data} projectId={data.project.id} />
+        <AssignedTo group={issue} projectId={issue.project.id} />
       </IssueContextContainer>
     );
 
   const renderSuspectCommits = () =>
-    props.eventID &&
-    data && (
+    event &&
+    event.eventID &&
+    issue && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
-          project={data.project}
-          eventId={props.eventID}
+          project={issue.project}
+          eventId={event.eventID}
           commitRow={QuickContextCommitRow}
         />
       </IssueContextContainer>
     );
 
+  const isLoading = issueLoading || eventLoading;
+  const isError = issueError || eventError;
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -404,7 +417,6 @@ function EventContext(props: EventContextProps) {
                 </Tooltip>
               )}
             </Title>
-            <FeatureBadge type="alpha" />
           </ContextHeader>
           <EventContextBody>
             {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
