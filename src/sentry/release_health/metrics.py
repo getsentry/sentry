@@ -21,6 +21,7 @@ from typing import (
 
 import pytz
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
+from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
 
@@ -65,6 +66,13 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics import (
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricsQuery,
+    get_series,
+)
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
@@ -1400,6 +1408,45 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return [extract_row_info(row) for row in result["data"]]
 
+    def _build_metrics_query(
+        self,
+        select: Sequence[MetricField],
+        where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
+        groupby: Optional[Sequence[MetricGroupByField]] = None,
+        orderby: Optional[Sequence[OrderBy]] = None,
+        limit: Optional[Limit] = None,
+        offset: Optional[Offset] = None,
+        include_totals: bool = True,
+        include_series: bool = True,
+        start: datetime = None,
+        end: datetime = None,
+        granularity_in_seconds: int = 3600,
+        project_ids: List[ProjectId] = None,
+    ):
+        return MetricsQuery(
+            org_id=self._get_org_id(project_ids),
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=granularity_in_seconds),
+            where=where,
+            groupby=groupby,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            include_totals=include_totals,
+            include_series=include_series,
+        )
+
+    def _run_metrics_query(self, metrics_query: MetricsQuery, project_ids: Sequence[ProjectId]):
+        get_series(
+            list(Project.objects.filter(id__in=project_ids)),
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -1407,6 +1454,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Mapping[ProjectRelease, str]:
         if now is None:
             now = datetime.now(pytz.utc)
+
+        project_ids: List[ProjectId] = [x[0] for x in project_releases]
+
+        query = self._build_metrics_query(
+            select=[
+                # TODO: we should do min on "bucketed_time" instead of "value" as in RawOp.
+                MetricField(
+                    op="min",
+                    metric_mri=SessionMRI.SESSION.value,
+                    alias="",
+                ),
+            ],
+            where=[],
+            groupby=[],
+        )
+        result = self._run_metrics_query(query, project_ids)
 
         # TODO: assumption about retention?
         start = now - timedelta(days=90)
