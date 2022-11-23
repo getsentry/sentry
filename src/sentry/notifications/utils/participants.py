@@ -202,7 +202,8 @@ def get_owner_reason(
     if target_identifier:
         return None
 
-    if notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    # Not an issue alert
+    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
         return None
 
     # Describe why an issue owner was notified
