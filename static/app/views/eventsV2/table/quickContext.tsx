@@ -94,7 +94,7 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
     case ContextType.RELEASE:
       return (
         <HoverHeader
-          title="Release"
+          title={t('Release')}
           copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
           copyContent={dataRow.release}
         />
@@ -102,7 +102,7 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
     case ContextType.EVENT:
       return (
         <HoverHeader
-          title="Event ID"
+          title={t('Event ID')}
           copyLabel={getShortEventId(dataRow.id)}
           copyContent={dataRow.id}
         />
@@ -687,7 +687,7 @@ const NoContextWrapper = styled('div')`
   color: ${p => p.theme.subText};
   height: 50px;
   padding: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   flex-direction: column;
   align-items: center;

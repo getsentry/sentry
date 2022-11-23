@@ -598,7 +598,6 @@ describe('Quick Context', function () {
         body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
       });
 
-      delete defaultRow.title;
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
