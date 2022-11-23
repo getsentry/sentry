@@ -83,7 +83,7 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.has_code_mappings", has_code_mappings)
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
-            scope.set_tag("stacktrace_link.in_app", "site-packages" in ctx["file"])
+            scope.set_tag("stacktrace_link.in_app", "site-packages" in str(ctx["file"]))
     except Exception:
         # If errors arises we can still proceed
         logger.exception("We failed to set a tag.")
@@ -187,7 +187,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
                 matched_code_mappings.append(current_config)
-
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
