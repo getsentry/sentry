@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,14 +8,12 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import {
   getStacktrace,
   StackTracePreviewContent,
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {Body, Hovercard} from 'sentry/components/hovercard';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -126,7 +124,11 @@ type IssueContextProps = {
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
 
-  const {isLoading, isError, data} = useQuery<Group>(
+  const {
+    isLoading: issueLoading,
+    isError: issueError,
+    data: issue,
+  } = useQuery<Group>(
     [
       `/issues/${props.dataRow['issue.id']}/`,
       {
@@ -145,21 +147,28 @@ function IssueContext(props: IssueContextProps) {
     }
   );
 
+  // NOTE: Suspect commits are generated from the first event of an issue.
+  // Therefore, all events for an issue have the same suspect commits.
+  const {
+    isLoading: eventLoading,
+    isError: eventError,
+    data: event,
+  } = useQuery<Event>([`/issues/${props.dataRow['issue.id']}/events/oldest/`], {
+    staleTime: fiveMinutesInMs,
+  });
+
   const renderStatus = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextHeader>
-          {statusTitle}
-          <FeatureBadge type="alpha" />
-        </ContextHeader>
+        <ContextHeader>{statusTitle}</ContextHeader>
         <ContextBody>
-          {data.status === 'ignored' ? (
+          {issue.status === 'ignored' ? (
             <IconMute
               data-test-id="quick-context-ignored-icon"
               color="gray500"
               size="sm"
             />
-          ) : data.status === 'resolved' ? (
+          ) : issue.status === 'resolved' ? (
             <IconCheckmark color="gray500" size="sm" />
           ) : (
             <IconNot
@@ -168,30 +177,33 @@ function IssueContext(props: IssueContextProps) {
               size="sm"
             />
           )}
-          <StatusText>{data.status}</StatusText>
+          <StatusText>{issue.status}</StatusText>
         </ContextBody>
       </IssueContextContainer>
     );
 
   const renderAssigneeSelector = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo group={data} projectId={data.project.id} />
+        <AssignedTo group={issue} projectId={issue.project.id} />
       </IssueContextContainer>
     );
 
   const renderSuspectCommits = () =>
-    props.eventID &&
-    data && (
+    event &&
+    event.eventID &&
+    issue && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
-          project={data.project}
-          eventId={props.eventID}
+          project={issue.project}
+          eventId={event.eventID}
           commitRow={QuickContextCommitRow}
         />
       </IssueContextContainer>
     );
 
+  const isLoading = issueLoading || eventLoading;
+  const isError = issueError || eventError;
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -285,38 +297,20 @@ function ReleaseContext(props: BaseContextProps) {
     );
   };
 
-  const renderReleaseDetails = () => {
-    const statusText = data?.status === 'open' ? t('Active') : t('Archived');
+  const renderReleaseAuthors = () => {
     return (
-      <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-        <ContextHeader>
-          {t('Release Details')}
-          <FeatureBadge type="alpha" />
-        </ContextHeader>
-        <ContextBody>
-          <StyledKeyValueTable>
-            <KeyValueTableRow keyName={t('Status')} value={statusText} />
-            {data?.status === 'open' && (
-              <Fragment>
-                <KeyValueTableRow
-                  keyName={t('Created')}
-                  value={<TimeSince date={data.dateCreated} />}
-                />
-                <KeyValueTableRow
-                  keyName={t('First Event')}
-                  value={
-                    data.firstEvent ? <TimeSince date={data.firstEvent} /> : '\u2014'
-                  }
-                />
-                <KeyValueTableRow
-                  keyName={t('Last Event')}
-                  value={data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
-                />
-              </Fragment>
+      data && (
+        <ReleaseContextContainer data-test-id="quick-context-release-details-container">
+          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+          <ReleaseAuthorsBody>
+            {data.commitCount === 0 ? (
+              <IconNot color="gray500" size="md" />
+            ) : (
+              <StyledAvatarList users={data.authors} maxVisibleAvatars={10} />
             )}
-          </StyledKeyValueTable>
-        </ContextBody>
-      </ReleaseContextContainer>
+          </ReleaseAuthorsBody>
+        </ReleaseContextContainer>
+      )
     );
   };
 
@@ -333,23 +327,25 @@ function ReleaseContext(props: BaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  const renderIssueCountAndAuthors = () =>
+  const renderReleaseDetails = () =>
     data && (
       <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
         <ContextRow>
           <div>
-            <ContextHeader>{t('New Issues')}</ContextHeader>
-            <ReleaseStatusBody>{data.newGroups}</ReleaseStatusBody>
+            <ContextHeader>{t('Created')}</ContextHeader>
+            <ReleaseBody>
+              <TimeSince date={data.dateCreated} />
+            </ReleaseBody>
           </div>
           <div>
-            <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
-            <ReleaseAuthorsBody>
-              {data.commitCount === 0 ? (
-                <IconNot color="gray500" size="md" />
-              ) : (
-                <AvatarList users={data.authors} />
-              )}
-            </ReleaseAuthorsBody>
+            <ContextHeader>{t('Last Event')}</ContextHeader>
+            <ReleaseBody>
+              {data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
+            </ReleaseBody>
+          </div>
+          <div>
+            <ContextHeader>{t('New Issues')}</ContextHeader>
+            <ContextBody>{data.newGroups}</ContextBody>
           </div>
         </ContextRow>
       </ReleaseContextContainer>
@@ -362,7 +358,7 @@ function ReleaseContext(props: BaseContextProps) {
   return (
     <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
-      {renderIssueCountAndAuthors()}
+      {renderReleaseAuthors()}
       {renderLastCommit()}
     </Wrapper>
   );
@@ -421,7 +417,6 @@ function EventContext(props: EventContextProps) {
                 </Tooltip>
               )}
             </Title>
-            <FeatureBadge type="alpha" />
           </ContextHeader>
           <EventContextBody>
             {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
@@ -517,6 +512,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
     <HoverWrapper>
       <StyledHovercard
         showUnderline
+        displayTimeout={400}
         delay={HOVER_DELAY}
         header={getHoverHeader(dataRow, contextType)}
         body={getHoverBody(
@@ -596,6 +592,11 @@ const ContextBody = styled('div')`
   align-items: center;
 `;
 
+const ReleaseBody = styled(ContextBody)<{}>`
+  font-size: 13px;
+  color: ${p => p.theme.subText};
+`;
+
 const EventContextBody = styled(ContextBody)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
@@ -611,7 +612,7 @@ const StatusText = styled('span')`
 const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  width: 300px;
+  width: 320px;
   padding: ${space(1.5)};
 `;
 
@@ -625,11 +626,6 @@ const NoContextWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-`;
-
-const StyledKeyValueTable = styled(KeyValueTable)`
-  width: 100%;
-  margin: 0;
 `;
 
 const ReleaseContextContainer = styled(ContextContainer)`
@@ -663,11 +659,12 @@ const ContextRow = styled('div')`
 `;
 
 const ReleaseAuthorsBody = styled(ContextBody)`
-  justify-content: right;
+  justify-content: left;
+  margin: 0;
 `;
 
-const ReleaseStatusBody = styled('h4')`
-  margin-bottom: 0;
+const StyledAvatarList = styled(AvatarList)`
+  margin: 0 ${space(0.75)};
 `;
 
 const StackTraceWrapper = styled('div')`

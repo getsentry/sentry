@@ -171,7 +171,7 @@ def generate_boost_key_transaction_rule(
             "op": "or",
             "inner": [
                 {
-                    "op": "glob",
+                    "op": "eq",
                     "name": "event.transaction",
                     "value": key_transactions,
                     "options": {"ignoreCase": True},

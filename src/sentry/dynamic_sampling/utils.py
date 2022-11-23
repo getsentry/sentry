@@ -21,7 +21,7 @@ class RuleType(Enum):
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTHCHECKS_RULE = "ignoreHealthChecks"
-    BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransaction"
+    BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
 
 
 DEFAULT_BIASES: List[Bias] = [

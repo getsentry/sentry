@@ -1038,6 +1038,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Normalize transaction names during ingestion.
+    "organizations:transaction-name-normalize": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1095,8 +1097,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
-    # Enable widget viewer modal in dashboards
-    "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.

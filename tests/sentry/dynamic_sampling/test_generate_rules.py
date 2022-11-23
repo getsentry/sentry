@@ -125,7 +125,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)
@@ -142,7 +142,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["/foo"],
                     }
@@ -179,7 +179,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     team_a = Factories.create_team(organization=default_project.organization, name="Team A")
@@ -205,7 +205,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["/foo"],
                     }
@@ -242,7 +242,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)
@@ -262,7 +262,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": [f"/foo_{i:02d}" for i in range(BOOSTED_KEY_TRANSACTION_LIMIT)],
                     }
