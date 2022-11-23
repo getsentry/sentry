@@ -2102,7 +2102,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
-        path="profile/:projectId/:eventId"
+        path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profileGroupProvider'))}
       >
         <Route

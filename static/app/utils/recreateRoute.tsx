@@ -29,7 +29,13 @@ type Options = {
  */
 export default function recreateRoute(to: string | PlainRoute, options: Options): string {
   const {routes, params, location, stepBack} = options;
-  const paths = routes.map(({path}) => path || '');
+  const paths = routes.map(({path}) => {
+    path = path || '';
+    if (path.length > 0 && !path.endsWith('/')) {
+      path = `${path}/`;
+    }
+    return path;
+  });
   let lastRootIndex: number;
   let routeIndex: number | undefined;
 

@@ -16,7 +16,7 @@ const projectRoutes = [
   {childRoutes: []},
   {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/', childRoutes: []},
+  {name: 'Projects', path: ':projectId', childRoutes: []},
   {name: 'Alerts', path: 'alerts/'},
 ];
 
@@ -59,7 +59,7 @@ describe('recreateRoute', function () {
       {path: 'api-keys/', name: 'API Key'},
     ];
 
-    expect(recreateRoute(r[4], {routes: r, params})).toBe('/foo/bar');
+    expect(recreateRoute(r[4], {routes: r, params})).toBe('/foo/bar/');
   });
 
   it('returns correct path to a string (at the end of the routes)', function () {
