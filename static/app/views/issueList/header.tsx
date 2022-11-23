@@ -19,6 +19,7 @@ import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import SavedSearchTab from './savedSearchTab';
@@ -173,7 +174,7 @@ function IssueListHeader({
             {[
               ...visibleTabs.map(
                 ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
-                  const to = {
+                  const to = normalizeUrl({
                     query: {
                       ...queryParms,
                       query: tabQuery,
@@ -183,7 +184,7 @@ function IssueListHeader({
                           : sortParam,
                     },
                     pathname: `/organizations/${organization.slug}/issues/`,
-                  };
+                  });
 
                   return (
                     <Item key={tabQuery} to={to} textValue={queryName}>
@@ -218,7 +219,7 @@ function IssueListHeader({
         <Layout.HeaderNavTabs underlined>
           {visibleTabs.map(
             ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
-              const to = {
+              const to = normalizeUrl({
                 query: {
                   ...queryParms,
                   query: tabQuery,
@@ -226,7 +227,7 @@ function IssueListHeader({
                     tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
                 },
                 pathname: `/organizations/${organization.slug}/issues/`,
-              };
+              });
 
               return (
                 <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>

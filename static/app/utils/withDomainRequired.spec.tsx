@@ -1,9 +1,107 @@
 import {RouteComponentProps} from 'react-router';
+import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import withDomainRequired from 'sentry/utils/withDomainRequired';
+import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
+describe('normalizeUrl', function () {
+  let result;
+
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    } as any;
+  });
+
+  it('replaces paths in strings', function () {
+    const location = TestStubs.location();
+    const cases = [
+      // input, expected
+      ['/settings/organization', '/settings/organization'],
+      ['/settings/sentry/members/', '/settings/members/'],
+      ['/settings/sentry/members/3/', '/settings/members/3/'],
+      ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
+      ['/settings/account/security/', '/settings/account/security/'],
+      ['/settings/account/details/', '/settings/account/details/'],
+      ['/organizations/new', '/organizations/new'],
+      ['/organizations/new/', '/organizations/new/'],
+      ['/join-request/acme', '/join-request/'],
+      ['/join-request/acme/', '/join-request/'],
+      ['/onboarding/acme/', '/onboarding/'],
+      ['/onboarding/acme/project/', '/onboarding/project/'],
+      ['/organizations/albertos-apples/issues/', '/issues/'],
+      ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
+      ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
+      [
+        '/acme/project-slug/getting-started/python',
+        '/getting-started/project-slug/python',
+      ],
+      ['/settings/projects/python/filters/', '/settings/projects/python/filters/'],
+      [
+        '/settings/projects/python/filters/discarded/',
+        '/settings/projects/python/filters/discarded/',
+      ],
+    ];
+    for (const scenario of cases) {
+      result = normalizeUrl(scenario[0], location);
+      expect(result).toEqual(scenario[1]);
+    }
+  });
+
+  it('replaces pathname in objects', function () {
+    const location = TestStubs.location();
+    result = normalizeUrl({pathname: '/settings/organization'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/organization');
+
+    result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/members');
+
+    result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/issues');
+
+    result = normalizeUrl(
+      {
+        pathname: '/organizations/albertos-apples/issues',
+        query: {q: 'all'},
+      },
+      location
+    );
+    // @ts-ignore
+    expect(result.pathname).toEqual('/issues');
+  });
+
+  it('replaces pathname in function callback', function () {
+    const location = TestStubs.location();
+    function objectCallback(_loc: Location): LocationDescriptorObject {
+      return {pathname: '/settings/organization'};
+    }
+    result = normalizeUrl(objectCallback, location);
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/organization');
+
+    function stringCallback(_loc: Location): LocationDescriptor {
+      return '/organizations/a-long-slug/discover/';
+    }
+    result = normalizeUrl(stringCallback, location);
+    expect(result).toEqual('/discover/');
+  });
+
+  it('errors on functions without location', function () {
+    function objectCallback(_loc: Location): LocationDescriptorObject {
+      return {pathname: '/settings/organization'};
+    }
+    expect(() => normalizeUrl(objectCallback)).toThrow();
+  });
+});
 
 describe('withDomainRequired', function () {
   type Props = RouteComponentProps<{orgId: string}, {}>;

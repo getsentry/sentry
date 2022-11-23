@@ -347,11 +347,17 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                   setScrollBarWidth(0);
                 }
               }}
-              noContentRenderer={() => (
-                <EmptyStateWarning withIcon small>
-                  {t('No related network requests found.')}
-                </EmptyStateWarning>
-              )}
+              noContentRenderer={() =>
+                networkSpans.length === 0 ? (
+                  <EmptyStateWarning withIcon={false} small>
+                    {t('No related network requests recorded')}
+                  </EmptyStateWarning>
+                ) : (
+                  <EmptyStateWarning withIcon small>
+                    {t('No results found')}
+                  </EmptyStateWarning>
+                )
+              }
             />
           )}
         </AutoSizer>
