@@ -1,7 +1,5 @@
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
@@ -13,24 +11,25 @@ import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   activeTab: 'stream' | 'rules';
-  router: InjectedRouter;
 };
 
-const AlertHeader = ({router, activeTab}: Props) => {
+const AlertHeader = ({activeTab}: Props) => {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const navigateTo = useNavigationControl();
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
   const handleNavigateToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`, router);
+    navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`);
   };
 
   const alertRulesLink = (

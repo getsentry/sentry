@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import AutoComplete from 'sentry/components/autoComplete';
 import SearchSources from 'sentry/components/search/sources';
 import ApiSource from 'sentry/components/search/sources/apiSource';
@@ -14,8 +13,8 @@ import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 
 import {Result} from './sources/types';
 import List from './list';
@@ -82,15 +81,14 @@ function Search({
   searchOptions,
   sources,
 }: SearchProps): React.ReactElement {
-  const router = useRouter();
-
   const params = useParams<{orgId: string}>();
+  const navigateTo = useNavigationControl();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent(`${entryPoint}.open`, {
       organization: null,
     });
   }, [entryPoint]);
-
   const handleSelectItem = useCallback(
     (item: Result['item'], state?: AutoComplete<Result['item']>['state']) => {
       if (!item) {
@@ -132,9 +130,9 @@ function Search({
 
       const nextPath = replaceRouterParams(item.to, params);
 
-      navigateTo(nextPath, router, item.configUrl);
+      navigateTo(nextPath, item.configUrl);
     },
-    [entryPoint, router, params]
+    [entryPoint, params, navigateTo]
   );
 
   const saveQueryMetrics = useCallback(

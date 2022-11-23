@@ -258,13 +258,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, router, location} = this.props;
+    const {params, location} = this.props;
     const {orgId} = params;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="stream" />
+          <AlertHeader activeTab="stream" />
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (

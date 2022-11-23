@@ -3,7 +3,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button, {ButtonProps} from 'sentry/components/button';
@@ -14,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import {
   AlertType,
   AlertWizardAlertNames,
@@ -126,8 +125,9 @@ const CreateAlertButton = ({
   onEnter,
   ...buttonProps
 }: CreateAlertButtonProps) => {
-  const router = useRouter();
   const api = useApi();
+  const navigateTo = useNavigationControl();
+
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
     if (referrer) {
@@ -146,7 +146,7 @@ const CreateAlertButton = ({
     event.preventDefault();
     onEnter?.();
 
-    navigateTo(createAlertUrl(':projectId'), router);
+    navigateTo(createAlertUrl(':projectId'));
   }
 
   async function enableAlertsMemberWrite() {

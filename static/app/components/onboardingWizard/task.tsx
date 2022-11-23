@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Avatar from 'sentry/components/avatar';
 import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
@@ -17,6 +16,7 @@ import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentr
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -57,7 +57,8 @@ type Props = {
 function Task(props: Props) {
   const {task, onSkip, onMarkComplete, forwardedRef, organization} = props;
   const routeContext = useRouteContext();
-  const {router} = routeContext;
+  const navigateTo = useNavigationControl();
+
   const handleSkip = () => {
     recordAnalytics(task, organization, 'skipped');
     onSkip(task.task);
@@ -82,7 +83,7 @@ function Task(props: Props) {
     if (task.actionType === 'app') {
       const url = new URL(task.location, window.location.origin);
       url.searchParams.append('referrer', 'onboarding_task');
-      navigateTo(url.toString(), router);
+      navigateTo(url.toString());
     }
   };
 

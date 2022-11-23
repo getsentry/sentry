@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -20,6 +19,7 @@ import {
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
@@ -209,43 +209,45 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
-      action: ({router}) => {
+      action: () => {
         // Use `features?.` because getsentry has a different `Organization` type/payload
-        if (!organization.features?.includes('performance-onboarding-checklist')) {
-          window.open(
-            'https://docs.sentry.io/product/performance/getting-started/',
-            '_blank'
-          );
-          return;
-        }
+        return () => {
+          const navigateTo = useNavigationControl();
 
-        // TODO: add analytics here for this specific action.
+          if (!organization.features?.includes('performance-onboarding-checklist')) {
+            window.open(
+              'https://docs.sentry.io/product/performance/getting-started/',
+              '_blank'
+            );
+            return;
+          }
 
-        if (!projects) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
-          return;
-        }
+          // TODO: add analytics here for this specific action.
 
-        const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
-          filterProjects(projects);
+          if (!projects) {
+            navigateTo(`/organizations/${organization.slug}/performance/`);
+            return;
+          }
 
-        if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
-          return;
-        }
+          const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
+            filterProjects(projects);
 
-        if (projectsForOnboarding.length) {
+          if (projectsWithoutFirstTransactionEvent.length <= 0) {
+            navigateTo(`/organizations/${organization.slug}/performance/`);
+            return;
+          }
+
+          if (projectsForOnboarding.length) {
+            navigateTo(
+              `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`
+            );
+            return;
+          }
+
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
-            router
+            `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`
           );
-          return;
-        }
-
-        navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
-          router
-        );
+        };
       },
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>

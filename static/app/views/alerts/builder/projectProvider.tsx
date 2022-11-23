@@ -2,13 +2,13 @@ import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
@@ -24,6 +24,7 @@ type RouteParams = {
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();
+  const navigateTo = useNavigationControl();
   const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location: props.location});
@@ -57,8 +58,7 @@ function AlertBuilderProjectProvider(props: Props) {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`,
-      props.router
+      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`
     );
   }
 

@@ -28,7 +28,7 @@ describe('AlertHeader', () => {
   });
 
   it('should pass global selection project to create alert button', () => {
-    render(<AlertHeader activeTab="stream" router={TestStubs.router()} />, {
+    render(<AlertHeader activeTab="stream" />, {
       context: routerContext,
       organization,
     });

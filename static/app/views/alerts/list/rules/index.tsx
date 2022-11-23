@@ -261,13 +261,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderBody() {
-    const {params, router} = this.props;
+    const {params} = this.props;
     const {orgId} = params;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="rules" />
+          <AlertHeader activeTab="rules" />
           {this.renderList()}
         </PageFiltersContainer>
       </SentryDocumentTitle>

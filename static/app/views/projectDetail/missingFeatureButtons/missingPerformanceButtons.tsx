@@ -1,4 +1,3 @@
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -6,7 +5,7 @@ import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigationControl} from 'sentry/utils/useNavigationControl';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -16,8 +15,7 @@ type Props = {
 };
 
 function MissingPerformanceButtons({organization}: Props) {
-  const router = useRouter();
-
+  const navigateTo = useNavigationControl();
   function handleTourAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
       eventKey: 'project_detail.performance_tour.advance',
@@ -52,8 +50,7 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             // TODO: add analytics here for this specific action.
             navigateTo(
-              `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`,
-              router
+              `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`
             );
           }}
         >
