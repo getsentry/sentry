@@ -1,13 +1,7 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -376,7 +370,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('version-hover-header-copy-icon')).toBeInTheDocument();
     });
 
-    it('Renders Release details for active release', async () => {
+    it('Renders Release details for release', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
         body: mockedReleaseWithHealth,
@@ -386,38 +380,12 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
-
-      const definitions = screen.getAllByRole('definition');
-      const terms = screen.getAllByRole('term');
-
-      expect(within(terms[0]).getByText(/Status/i)).toBeInTheDocument();
-      expect(within(definitions[0]).getByText(/Active/i)).toBeInTheDocument();
-      expect(within(terms[1]).getByText(/Created/i)).toBeInTheDocument();
-      expect(within(definitions[1]).getByText(/7 years ago/i)).toBeInTheDocument();
-      expect(within(terms[2]).getByText(/First Event/i)).toBeInTheDocument();
-      expect(within(definitions[2]).getByText(/7 years ago/i)).toBeInTheDocument();
-      expect(within(terms[3]).getByText(/Last Event/i)).toBeInTheDocument();
-      expect(within(definitions[3]).getByText(/6 years ago/i)).toBeInTheDocument();
-    });
-
-    it('Renders Release details for archived release', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-        body: {...mockedReleaseWithHealth, status: 'closed'},
-      });
-
-      renderQuickContextContent(defaultRow, ContextType.RELEASE);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
-
-      expect(screen.getByText(/Status/i)).toBeInTheDocument();
-      expect(screen.getByText(/Archived/i)).toBeInTheDocument();
-      expect(screen.queryByText(/Created/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/First Event/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Last Event/i)).not.toBeInTheDocument();
+      expect(await screen.findByText(/Created/i)).toBeInTheDocument();
+      expect(screen.getByText(/7 years ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/Last Event/i)).toBeInTheDocument();
+      expect(screen.getByText(/6 years ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/New Issues/i)).toBeInTheDocument();
+      expect(screen.getByText(/21/i)).toBeInTheDocument();
     });
 
     it('Renders Last Commit', async () => {
@@ -432,20 +400,6 @@ describe('Quick Context', function () {
 
       expect(await screen.findByText(/Last Commit/i)).toBeInTheDocument();
       expect(screen.getByTestId('quick-context-commit-row')).toBeInTheDocument();
-    });
-
-    it('Renders New Issues Count', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-        body: mockedReleaseWithHealth,
-      });
-
-      renderQuickContextContent(defaultRow, ContextType.RELEASE);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      expect(await screen.findByText(/New Issues/i)).toBeInTheDocument();
-      expect(screen.getByText(/21/i)).toBeInTheDocument();
     });
 
     it('Renders Commit Count and Author when user is NOT in list of authors', async () => {

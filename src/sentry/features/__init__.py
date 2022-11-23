@@ -167,7 +167,6 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
-default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
