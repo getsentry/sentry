@@ -117,7 +117,7 @@ describe('splitCrumbs', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show the summarized items on hover', () => {
+  it('should show the summarized items on hover', async () => {
     const crumbs = [
       PAGELOAD_CRUMB,
       {...NAV_CRUMB_BOOTSTRAP, id: 1},
@@ -138,7 +138,7 @@ describe('splitCrumbs', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
     userEvent.hover(screen.getByText('3 Pages'));
-    waitFor(() => {
+    await waitFor(() => {
       expect(screen.getAllByRole('listitem')).toHaveLength(3);
     });
   });

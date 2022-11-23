@@ -104,6 +104,8 @@ describe('normalizeUrl', function () {
   });
 });
 
+const originalLocation = window.location;
+
 describe('withDomainRequired', function () {
   type Props = RouteComponentProps<{orgId: string}, {}>;
   const MyComponent = (props: Props) => {
@@ -133,6 +135,10 @@ describe('withDomainRequired', function () {
         sentryUrl: 'https://sentry.io',
       },
     } as any;
+  });
+
+  afterEach(function () {
+    window.location = originalLocation;
   });
 
   it('redirects to sentryUrl in non-customer domain world', function () {
