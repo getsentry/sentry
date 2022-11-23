@@ -12,26 +12,18 @@ class FileSystemNodeStorage(NodeStorage):
     A filesystem-backed backend for storing node data.
     """
 
-    def get(self, id):
+    def _get_bytes(self, id):
         path = os.path.join(dirname, STORAGE_PATH, f"{id}.json")
         print("GET", path)
-        with open(path) as file:
-            data = json.loads(file.read())
+
+        with open(path, "rb") as file:
+            data = file.read()
 
         return data
 
-    def _set(self, id, data):
+    def _set_bytes(self, id, data, ttl=0):
         path = os.path.join(dirname, STORAGE_PATH, f"{id}.json")
         print("SET", path)
 
-        with open(path, "w") as file:
-            file.write(json.dumps(data))
-
-    def delete(self, id):
-        path = os.path.join(dirname, STORAGE_PATH, f"{id}.json")
-        print("DELETE", path)
-        os.remove(path)
-
-    save = _set
-    set = _set
-    set_subkeys = _set
+        with open(path, "wb") as file:
+            file.write(data)
