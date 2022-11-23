@@ -556,6 +556,19 @@ class FrequencyConditionTest(TestCase):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group not in result
 
+    def test_no_activity_event_filter(self):
+        conditions = [
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert not result
+
 
 @freeze_time()
 @region_silo_test
