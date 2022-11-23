@@ -101,8 +101,6 @@ export const TimelineScrubber = styled(Scrubber)`
 
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple100};
-    border-top-left-radius: 3px;
-    border-bottom-left-radius: 3px;
   }
 
   /**
@@ -121,25 +119,48 @@ export const TimelineScrubber = styled(Scrubber)`
 export const PlayerScrubber = styled(Scrubber)`
   height: ${space(0.5)};
 
-  :hover {
-    margin-block: -${space(0.25)};
-    height: ${space(1)};
-  }
-
   ${Meter} {
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.surface400};
   }
 
   ${RangeWrapper} {
-    height: ${space(0.5)};
+    height: 32px;
+    top: -14px;
   }
-  :hover ${RangeWrapper} {
-    height: ${space(0.75)};
+  ${Range},
+  ${SliderAndInputWrapper} {
+    height: 100%;
+  }
+  input {
+    margin: 0;
   }
 
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
+  ${MouseTrackingValue} {
+    background: ${p => p.theme.gray200};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
+  ${PlaybackTimeValue}:after,
+  ${MouseTrackingValue}:after {
+    content: '';
+    display: block;
+    width: ${space(2)};
+    height: ${space(2)}; /* equal to width */
+    pointer-events: none;
+    box-sizing: content-box;
+    border-radius: ${space(2)}; /* greater than or equal to width */
+    border: solid ${p => p.theme.white};
+    border-width: ${space(0.25)};
+    position: absolute;
+    top: -${space(1)}; /* Half of the height */
+    right: -${space(1.5)}; /* Half of (width + borderWidth) */
+    z-index: ${p => p.theme.zIndex.initial};
   }
 
   /**
@@ -149,25 +170,7 @@ export const PlayerScrubber = styled(Scrubber)`
    *           PlaybackTimeValue @ 20s
    */
   ${PlaybackTimeValue}:after {
-    content: '';
-    display: block;
-    width: ${space(2)};
-    height: ${space(2)}; /* equal to width */
-    z-index: ${p => p.theme.zIndex.initial};
-    pointer-events: none;
     background: ${p => p.theme.purple300};
-    box-sizing: content-box;
-    border-radius: ${space(2)}; /* greater than or equal to width */
-    border: solid ${p => p.theme.white};
-    border-width: ${space(0.5)};
-    position: absolute;
-    top: -${space(1)}; /* Half the width */
-    right: -${space(1.5)}; /* Half of (width + borderWidth) */
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-  :hover ${PlaybackTimeValue}:after {
-    opacity: 1;
   }
 
   /*
@@ -178,19 +181,6 @@ export const PlayerScrubber = styled(Scrubber)`
    *      MouseTrackingValue @ 10s
    */
   ${MouseTrackingValue}:after {
-    content: '';
-    display: block;
-    width: ${space(0.5)};
-    height: ${space(1.5)};
-    pointer-events: none;
-    background: ${p => p.theme.purple200};
-    box-sizing: content-box;
-    position: absolute;
-    top: -${space(0.5)};
-    right: -1px;
-  }
-  :hover ${MouseTrackingValue}:after {
-    height: ${space(2)};
-    top: -${space(0.5)};
+    background: ${p => p.theme.gray200};
   }
 `;
