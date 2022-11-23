@@ -696,13 +696,13 @@ class IssueOccurrence:
     have 0-M `IssueOccurrences` associated with it, and each `IssueOccurrence` is associated with
     one `Event`.
 
-    Longer term, we will change this relationship so that each `IssueOccurrence` is the primary row
-    and is passed around, and has an optional `Event` associated with it.
+    Longer term, we might change this relationship so that each `IssueOccurrence` is the primary
+    piece of data that is passed around. It would have an `Event` associated with it.
     """
 
     id: str
-    event_id: str  # Maybe optional? Although I think that we should create an event for all issue
-    # categories, even if the backing data type doesn't explicitly have Events
+    # Event id pointing to an event in nodestore
+    event_id: str
     fingerprint: Sequence[str]
     issue_title: str
     # Exact format not decided yet, but this will be a string regardless
