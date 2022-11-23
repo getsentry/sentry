@@ -375,7 +375,7 @@ def test_get_used_budget_for_project_different_bucket_sizes(
     with freeze_time(datetime.fromtimestamp(113)):
         budget = store.get_used_budget_for_project(project_id=42)
 
-    assert int(budget) == 1
+    assert round(budget) == 1
 
 
 def test_get_used_budget_for_projects_with_gap(
@@ -385,7 +385,7 @@ def test_get_used_budget_for_projects_with_gap(
     redis_cluster.set("symbolicate_event_low_priority:budget:10:42:110", 3000 * 40)
     redis_cluster.set("symbolicate_event_low_priority:budget:10:42:150", 17000 * 40)
 
-    with freeze_time(datetime.fromtimestamp(154)):
+    with freeze_time(datetime.fromtimestamp(151)):
         budget = store.get_used_budget_for_project(project_id=42)
 
-    assert int(budget) == 20
+    assert round(budget) == 20

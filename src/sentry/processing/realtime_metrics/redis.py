@@ -152,10 +152,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
         counts = self.cluster.mget(keys)
 
+        total_time_window = timestamp - first_bucket
         total_sum = sum(int(c) if c else 0 for c in counts)
 
         # the counts in redis are in ms resolution.
-        return total_sum / 1000 / self._budget_time_window
+        return total_sum / total_time_window / 1000
 
     def get_lpq_projects(self) -> Set[int]:
         """

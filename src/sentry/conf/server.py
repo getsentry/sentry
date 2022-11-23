@@ -2724,7 +2724,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     #
     # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
     # defined below.
-    "budget_time_window": 5 * 60,
+    "budget_time_window": 2 * 60,
     # The bucket size of the project budget metric.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2755,7 +2755,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 SENTRY_LPQ_OPTIONS = {
     # This is the per-project budget in per-second "symbolication time budget".
     #
-    # This has been arbitrarily chosen as `5` for now, which means an average of:
+    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
