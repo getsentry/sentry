@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
+from sentry.dynamic_sampling.bias_rules_generator import HEALTH_CHECK_GLOBS, generate_rules
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
 from sentry.models import Release
 from sentry.testutils import TestCase
 from sentry.utils import json

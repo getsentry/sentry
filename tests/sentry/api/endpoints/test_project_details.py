@@ -1880,7 +1880,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         """
         Tests the case when an organization was in EA/LA and has setup previously Dynamic Sampling rules,
         and now they have migrated to an AM2 plan, but haven't manipulated the bias toggles yet so they get the
-        default biases. This also ensures that they no longer receive the deprecated dynamic sampling rules.
+        default rules. This also ensures that they no longer receive the deprecated dynamic sampling rules.
         """
 
         self.project.update_option("sentry:dynamic_sampling", self.dynamic_sampling_data)
@@ -1975,7 +1975,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         self,
     ):
         """
-        Test for case when a user is an old plan but tries to update dynamic sampling biases that is a feature of new
+        Test for case when a user is an old plan but tries to update dynamic sampling rules that is a feature of new
         plans
         """
         with Feature(
@@ -2091,7 +2091,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
 
             assert self.project.get_option("sentry:dynamic_sampling_biases") == new_biases
 
-            # Test Get response after dynamic sampling biases are updated
+            # Test Get response after dynamic sampling rules are updated
             get_response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
@@ -2099,7 +2099,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
 
     def test_put_attempt_new_dynamic_sampling_without_biases_with_correct_flags(self):
         """
-        Test when user is on a new plan and is trying to update dynamic sampling features of a new plan with no biases
+        Test when user is on a new plan and is trying to update dynamic sampling features of a new plan with no rules
         """
         new_biases = []
         with Feature(
@@ -2119,7 +2119,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
 
             assert self.project.get_option("sentry:dynamic_sampling_biases") == DEFAULT_BIASES
 
-            # Test Get response after dynamic sampling biases are updated
+            # Test Get response after dynamic sampling rules are updated
             get_response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )

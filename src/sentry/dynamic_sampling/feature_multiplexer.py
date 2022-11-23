@@ -45,7 +45,7 @@ class DynamicSamplingFeatureMultiplexer:
         return (
             self.allow_dynamic_sampling
             and self.current_dynamic_sampling
-            and options.get("dynamic-sampling:enabled-biases")
+            and options.get("dynamic-sampling:enabled-rules")
         )
 
     @staticmethod

@@ -11,7 +11,7 @@ class Bias(TypedDict):
     active: bool
 
 
-# These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
+# These represent the rules that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
