@@ -19,7 +19,8 @@ class DebugPerformanceIssueEmailView(View):
         org = project.organization
         project.update_option("sentry:performance_issue_creation_rate", 1.0)
         perf_event = make_performance_event(project)
-        perf_event.group.id = 1  # hard code to 1 for acceptance tests. comment this line out for debug view. yeah, it's stupid.
+        if request.GET.get("is_test", False):
+            perf_event.group.id = 1
         perf_group = perf_event.group
 
         rule = Rule(id=1, label="Example performance rule")
