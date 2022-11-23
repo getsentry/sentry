@@ -118,7 +118,7 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.native.processing import should_process_with_symbolicator
+    from sentry.lang.native.processing import get_symbolication_function
     from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
@@ -146,20 +146,33 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    if should_process_with_symbolicator(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+    symbolication_function = get_symbolication_function(data)
+    if symbolication_function:
+        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
-        is_low_priority = should_demote_symbolication(project_id)
-        submit_symbolicate(
-            is_low_priority=is_low_priority,
-            from_reprocessing=from_reprocessing,
-            cache_key=cache_key,
-            event_id=event_id,
-            start_time=start_time,
-            data=original_data,
-            has_attachments=has_attachments,
-        )
-        return
+        if not killswitch_matches_context(
+            "store.load-shed-symbolicate-event-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "platform": data.get("platform") or "null",
+                "symbolication_function": symbolication_function_name,
+            },
+        ):
+            reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+
+            is_low_priority = should_demote_symbolication(project_id)
+            submit_symbolicate(
+                is_low_priority=is_low_priority,
+                from_reprocessing=from_reprocessing,
+                cache_key=cache_key,
+                event_id=event_id,
+                start_time=start_time,
+                data=original_data,
+                has_attachments=has_attachments,
+            )
+            return
+        # else: go directly to process, do not go through the symbolicate queue, do not collect 200
 
     if should_process(data):
         submit_process(
