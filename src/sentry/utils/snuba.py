@@ -154,6 +154,7 @@ OPERATOR_TO_FUNCTION = {
     ">=": "greaterOrEquals",
     "<=": "lessOrEquals",
     "IS NULL": "isNull",
+    "hasAny": "hasAny",
 }
 FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
@@ -375,7 +376,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = {"group_id", "project_id", "start", "end"}
+    no_conversion = {"group_id", "group_ids", "project_id", "start", "end"}
 
     if name in no_conversion:
         return name

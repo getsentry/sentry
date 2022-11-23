@@ -199,6 +199,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         organization_id: int,
         project_ids: Sequence[int],
         environments: Optional[Sequence[str]],
+        group_ids: Optional[Sequence[int]],
+        filters: Mapping[str, Sequence[int]],
         search_filters: Sequence[SearchFilter],
         sort_field: str,
         start: datetime,
@@ -244,6 +246,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             SearchQueryPartial,
             functools.partial(
                 query_partial,
+                filter_keys=filters,
                 selected_columns=selected_columns,
                 groupby=["group_id"],
                 having=having,
@@ -257,6 +260,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             organization_id,
             project_ids,
             environments,
+            group_ids,
+            filters,
             conditions,
         )
 
@@ -314,7 +319,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 limit=limit,
                 offset=offset,
                 referrer=referrer,
-                filter_keys=filters,
                 totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
                 turbo=get_sample,  # Turn off FINAL when in sampling mode
                 sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
@@ -329,6 +333,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 organization_id,
                 project_ids,
                 environments,
+                group_ids,
+                filters,
                 snuba_search_filters,
                 sort_field,
                 start,
