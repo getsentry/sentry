@@ -2,6 +2,8 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
@@ -81,6 +83,24 @@ export function useProfileEvents<F extends string>({
     refetchOnWindowFocus: false,
     retry: false,
   });
+}
+
+export function formatError(error: any): string | null {
+  if (!defined(error)) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  return t('An unknown error occurred.');
 }
 
 export function formatSort<F extends string>(
