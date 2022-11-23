@@ -6,6 +6,7 @@ import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
+import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -79,10 +80,16 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     };
   }, [params.eventId, params.projectId, api, organization]);
 
+  const transactionEvent = useSentryEvent(
+    params.orgId,
+    params.projectId,
+    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
+  );
+
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
       <ProfileHeader
-        profiles={profileGroupState.type === 'resolved' ? profileGroupState.data : null}
+        transaction={transactionEvent.type === 'resolved' ? transactionEvent.data : null}
       />
       {props.children}
     </ProfileGroupContext.Provider>
