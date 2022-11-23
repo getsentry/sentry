@@ -32,14 +32,7 @@ function AlertBuilderProjectProvider(props: Props) {
   const projectId = params.projectId || props.location.query.project;
   const useFirstProject = projectId === undefined;
 
-  // calling useProjects() without args fetches all projects
-  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
-    useFirstProject
-      ? undefined
-      : {
-          slugs: [projectId],
-        }
-  );
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects();
   const project = useFirstProject
     ? projects.find(p => p.isMember) ?? (projects.length && projects[0])
     : projects.find(({slug}) => slug === projectId);
