@@ -1,7 +1,7 @@
 import {customerDomain, usingCustomerDomain} from 'sentry/constants';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-export function useParams() {
+export function useParams<P = Record<string, string>>(): P {
   const {params} = useRouteContext();
 
   if (usingCustomerDomain && customerDomain) {
