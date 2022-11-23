@@ -78,7 +78,7 @@ function GroupReplays({group}: Props) {
     });
   }, [location.query.sort, group.project.id, response.replayIds]);
 
-  useCleanQueryParamsOnRouteLeave({fields: ['cursor']});
+  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {
     fetchReplayIds();
   }, [fetchReplayIds]);
