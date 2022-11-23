@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -25,6 +26,18 @@ function Contexts({event, group}: Props) {
   if (otherContexts.otel) {
     otherContexts.otel.type = 'otel';
   }
+
+  const usingOtel = useCallback(
+    () => otherContexts.otel !== undefined,
+    [otherContexts.otel]
+  );
+
+  useEffect(() => {
+    const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    if (transaction && usingOtel()) {
+      transaction.tags.otel_event = true;
+    }
+  }, [usingOtel]);
 
   return (
     <Fragment>
