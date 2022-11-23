@@ -363,7 +363,9 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Release/i)).toBeInTheDocument();
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
-      expect(screen.getByTestId('version-hover-header-copy-icon')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
     });
 
     it('Renders Release details for release', async () => {
@@ -585,6 +587,24 @@ describe('Quick Context', function () {
       ).toBeInTheDocument();
     });
 
+    it('Renders event id header', async () => {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
+      expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
+    });
+
     it('Renders stack trace as context', async () => {
       const frame: Frame = {
         colNo: 0,
@@ -638,16 +658,39 @@ describe('Quick Context', function () {
         ],
       } as EventError;
 
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: ['issue', 'transaction.duration'],
+          },
+        })
+      );
+
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
         body: makeEvent(errorEvent),
       });
 
+      delete defaultRow.title;
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId('quick-context-title-add-button');
+      expect(addAsColumnButton).toBeInTheDocument();
+      expect(screen.getByText(/Title/i)).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['issue', 'transaction.duration', 'title'],
+          }),
+        })
+      );
     });
   });
 });
