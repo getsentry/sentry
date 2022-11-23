@@ -76,7 +76,7 @@ class OrganizationIndexEndpoint(Endpoint):
             # This is used when closing an account
             queryset = queryset.filter(
                 member_set__role=roles.get_top_dog().id,
-                member_set__user=request.user,
+                member_set__user_id=request.user.id,
                 status=OrganizationStatus.VISIBLE,
             )
             org_results = []

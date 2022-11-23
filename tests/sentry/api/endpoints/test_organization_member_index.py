@@ -16,7 +16,7 @@ from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}

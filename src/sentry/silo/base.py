@@ -53,11 +53,12 @@ class SiloMode(Enum):
             assert (
                 _single_process_silo_mode_state.mode is None
             ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
+        old = _single_process_silo_mode_state.mode
         _single_process_silo_mode_state.mode = mode
         try:
             yield
         finally:
-            _single_process_silo_mode_state.mode = None
+            _single_process_silo_mode_state.mode = old
 
     @classmethod
     @contextlib.contextmanager
@@ -68,10 +69,6 @@ class SiloMode(Enum):
         process boundaries in play.  Call this inside of any RPC interaction to ensure that such acceptance tests
         can 'swap' the silo context on the fly.
         """
-        if not cls.single_process_silo_mode():
-            yield
-            return
-
         old = _single_process_silo_mode_state.mode
         _single_process_silo_mode_state.mode = None
         try:
@@ -82,9 +79,7 @@ class SiloMode(Enum):
     @classmethod
     def get_current_mode(cls) -> SiloMode:
         process_level_silo_mode = cls.resolve(settings.SILO_MODE)
-        if cls.single_process_silo_mode():
-            return cls.resolve(_single_process_silo_mode_state.mode, process_level_silo_mode)
-        return process_level_silo_mode
+        return cls.resolve(_single_process_silo_mode_state.mode, process_level_silo_mode)
 
 
 class SingleProcessSiloModeState(threading.local):

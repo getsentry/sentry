@@ -523,11 +523,14 @@ class EndpointSiloLimit(SiloLimit):
         limiting_override = super().create_override(original_method, extra_modes)
 
         def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
-            entering_mode: SiloMode = SiloMode.MONOLITH
-            for mode in self.modes:
-                # Select a mode, if available, from the target modes.
-                entering_mode = mode
-            with SiloMode.enter_single_process_silo_context(entering_mode):
+            if SiloMode.single_process_silo_mode():
+                entering_mode: SiloMode = SiloMode.MONOLITH
+                for mode in self.modes:
+                    # Select a mode, if available, from the target modes.
+                    entering_mode = mode
+                with SiloMode.enter_single_process_silo_context(entering_mode):
+                    return limiting_override(*args, **kwargs)
+            else:
                 return limiting_override(*args, **kwargs)
 
         functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
