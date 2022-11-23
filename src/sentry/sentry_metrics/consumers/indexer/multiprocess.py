@@ -220,5 +220,8 @@ def get_streaming_metrics_consumer(
         KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
         Topic(indexer_profile.input_topic),
         processing_factory,
-        CommitPolicy(commit_max_batch_time, commit_max_batch_size),
+        CommitPolicy(
+            min_commit_frequency_sec=commit_max_batch_time / 1000,
+            min_commit_messages=commit_max_batch_size,
+        ),
     )
