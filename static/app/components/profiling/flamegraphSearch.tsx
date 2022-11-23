@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
 
-import SearchBar from 'sentry/components/searchBar';
+import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -321,12 +322,44 @@ function FlamegraphSearch({
     <StyledSearchBar
       size="xs"
       placeholder={t('Find Frames')}
-      query={search.query}
+      defaultQuery={search.query}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
+      trailing={
+        search.query && (
+          <Fragment>
+            <StyledTrailingText>
+              {`${
+                search.index !== null && search.results.size > 0 ? search.index + 1 : '-'
+              }/${search.results.size}`}
+            </StyledTrailingText>
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" />}
+              aria-label={t('Next')}
+              onClick={onPreviousSearchClick}
+            />
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" direction="down" />}
+              aria-label={t('Previous')}
+              onClick={onNextSearchClick}
+            />
+          </Fragment>
+        )
+      }
     />
   );
 }
+
+const StyledTrailingText = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;

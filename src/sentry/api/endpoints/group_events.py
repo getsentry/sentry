@@ -1,23 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from functools import partial
-from typing import TYPE_CHECKING, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, cast
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.events import get_direct_hit_response, get_filter_for_group
+from sentry.api.helpers.events import (
+    get_direct_hit_response,
+    get_filter_for_group,
+    get_query_builder_for_group,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
@@ -86,9 +90,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
             "end": end if end else default_end,
         }
         referrer = f"api.group-events.{group.issue_category.name.lower()}"
+        use_builder = features.has(
+            "organizations:events-use-querybuilder", group.project.organization, actor=request.user
+        )
 
         direct_hit_resp = get_direct_hit_response(
-            request, query, params, f"{referrer}.direct-hit", group
+            request, query, params, f"{referrer}.direct-hit", group, use_builder
         )
         if direct_hit_resp:
             return direct_hit_resp
@@ -97,19 +104,43 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
             params["environment"] = [env.name for env in environments]
 
         try:
-            snuba_filter, dataset = get_filter_for_group(
-                request.GET.get("query", None), params, group
-            )
+            if use_builder:
+                snuba_query = get_query_builder_for_group(
+                    request.GET.get("query", ""), params, group
+                )
+            else:
+                snuba_filter, dataset = get_filter_for_group(
+                    request.GET.get("query", None), params, group
+                )
         except InvalidSearchQuery as e:
             raise ParseError(detail=str(e))
 
         full = request.GET.get("full", False)
-        data_fn = partial(
-            eventstore.get_events if full else eventstore.get_unfetched_events,
-            referrer=referrer,
-            filter=snuba_filter,
-            dataset=dataset,
-        )
+
+        def data_fn(offset: int, limit: int) -> Any:
+            if use_builder:
+                results = snuba_query.run_query(referrer=referrer)
+                results = [
+                    Event(
+                        event_id=evt["id"],
+                        project_id=evt["project.id"],
+                    )
+                    for evt in results["data"]
+                ]
+                if full:
+                    eventstore.bind_nodes(results)
+
+                return results
+            else:
+                if full:
+                    return eventstore.get_events(
+                        referrer=referrer, filter=snuba_filter, dataset=dataset
+                    )
+                else:
+                    return eventstore.get_unfetched_events(
+                        referrer=referrer, filter=snuba_filter, dataset=dataset
+                    )
+
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,

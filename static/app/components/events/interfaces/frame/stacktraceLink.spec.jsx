@@ -22,11 +22,11 @@ describe('StacktraceLink', function () {
     });
   });
 
-  it('renders setup CTA with integration but no configs', async function () {
+  it('renders ask to setup integration', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
-      body: {config: null, sourceUrl: null, integrations: [integration]},
+      body: {config: null, sourceUrl: null, integrations: []},
     });
     render(
       <StacktraceLink
@@ -39,7 +39,31 @@ describe('StacktraceLink', function () {
       {context: TestStubs.routerContext()}
     );
     expect(
-      await screen.findByText('Fix code mapping to see suspect commits and more')
+      await screen.findByText(
+        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders setup CTA with integration but no configs', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {config: null, sourceUrl: null, integrations: [integration]},
+    });
+    render(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={org}
+        line="foo()"
+        lineNo={frame.lineNo}
+      />,
+      {context: TestStubs.routerContext()}
+    );
+    expect(
+      await screen.findByText('Tell us where your source code is')
     ).toBeInTheDocument();
   });
 
@@ -55,6 +79,7 @@ describe('StacktraceLink', function () {
         event={event}
         projects={[project]}
         organization={org}
+        line="foo()"
         lineNo={frame.lineNo}
       />,
       {context: TestStubs.routerContext()}
@@ -79,14 +104,39 @@ describe('StacktraceLink', function () {
         event={event}
         projects={[project]}
         organization={org}
+        line="foo()"
         lineNo={frame.lineNo}
       />,
       {context: TestStubs.routerContext()}
     );
     expect(
       screen.getByRole('button', {
-        name: 'Fix code mapping to see suspect commits and more',
+        name: 'Tell us where your source code is',
       })
     ).toBeInTheDocument();
+  });
+
+  it('should hide stacktrace link error state on minified javascript frames', function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink
+        frame={frame}
+        event={{...event, platform: 'javascript'}}
+        projects={[project]}
+        organization={org}
+        line="{snip} somethingInsane=e.IsNotFound {snip}"
+        lineNo={frame.lineNo}
+      />,
+      {context: TestStubs.routerContext()}
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });
