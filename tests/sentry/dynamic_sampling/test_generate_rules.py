@@ -125,7 +125,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)
@@ -179,7 +179,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     team_a = Factories.create_team(organization=default_project.organization, name="Team A")
@@ -242,7 +242,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransaction", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)

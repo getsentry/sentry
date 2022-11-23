@@ -1926,7 +1926,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                     "active": True,
                 },
                 {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransaction", "active": True},
+                {"id": "boostKeyTransactions", "active": True},
             ]
 
     def test_get_dynamic_sampling_old_before_migration_to_new_plan(self):
@@ -1970,7 +1970,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                     "active": True,
                 },
                 {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransaction", "active": True},
+                {"id": "boostKeyTransactions", "active": True},
             ]
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
@@ -2075,7 +2075,7 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                 "active": False,
             },
             {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostKeyTransaction", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
         ]
         with Feature(
             {
