@@ -142,7 +142,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["/foo"],
                     }
@@ -205,7 +205,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["/foo"],
                     }
@@ -262,7 +262,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
                 "inner": [
                     {
                         "name": "event.transaction",
-                        "op": "glob",
+                        "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": [f"/foo_{i:02d}" for i in range(BOOSTED_KEY_TRANSACTION_LIMIT)],
                     }
