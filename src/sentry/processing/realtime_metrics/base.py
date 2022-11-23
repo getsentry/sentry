@@ -24,21 +24,22 @@ class RealtimeMetricsStore(Service):
         should be recorded at regular intervals *as the event is being processed*.
 
         The duration is used to track the used "symbolication time budget" of a project.
-        Each project is allocated a certain budget within a sliding time window.
+        Each project is allocated a certain per-second budget.
         If that budget is exceeded, the project will be demoted to the low priority queue.
 
         This can happen when a project either submits *a lot* of fast events,
         or a few *very slow* events.
 
         As the running duration is recorded at regular intervals,
-        it naturally forms a parabolic function:
+        it naturally forms a quadratic function:
 
         Assuming we record at 1-second intervals and the request took 5 seconds
         in total, the used budget is:
 
         1 + 2 + 3 + 4 + 5 = 15
 
-        See <https://en.wikipedia.org/wiki/1_%2B_2_%2B_3_%2B_4_%2B_%E2%8B%AF>.
+        In general, a request that takes n seconds to symbolicate will cost
+        1 + 2 + … + n = n * (n+1) / 2 = O(n²) time units.
 
         This method will "punish" slow events in particular, as our main goal is
         to maintain throughput with limited concurrency.
@@ -53,8 +54,7 @@ class RealtimeMetricsStore(Service):
 
     def get_used_budget_for_project(self, project_id: int) -> float:
         """
-        Returns the total used budget during the configured sliding time window for some given project,
-        averaged over the configured time window.
+        Returns the average used per-second budget for a given project during the configured sliding time window.
         """
         raise NotImplementedError
 
