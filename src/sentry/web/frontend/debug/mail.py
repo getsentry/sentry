@@ -346,6 +346,11 @@ def alert(request):
 
     rule = Rule(id=1, label="An example rule")
     interface_list = get_interface_list(event)
+    notification_reason = (
+        random.randint(0, 1) > 0
+        and f"We notified all members in the {project.get_full_name()} project of this issue"
+        or None
+    )
 
     return MailPreview(
         html_template="sentry/emails/error.html",
@@ -357,7 +362,7 @@ def alert(request):
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
             "environment": random.randint(0, 1) > 0 and "prod" or None,
-            "issue_owners_reason": random.randint(0, 1) > 0 and "all members" or None,
+            "notification_reason": notification_reason,
             # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
             #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
