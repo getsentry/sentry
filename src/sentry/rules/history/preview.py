@@ -236,7 +236,7 @@ def get_top_groups(
         query_params.append(SnubaQueryParams(**kwargs))
 
     groups = []
-    for result in bulk_raw_query(query_params, use_cache=True):
+    for result in bulk_raw_query(query_params):
         groups.extend(result.get("data", []))
 
     sorted_groups = sorted(groups, key=lambda x: int(x["groupCount"]), reverse=True)
