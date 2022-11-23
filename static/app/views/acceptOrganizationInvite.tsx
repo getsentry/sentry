@@ -101,7 +101,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
         {!inviteDetails.requireSso && (
           <p data-test-id="action-info-general">
             {t(
-              `To continue, you must either create a new account, or login to an
+              `To continue, you must either create a new account, or log in to an
               existing Sentry account.`
             )}
           </p>
@@ -158,7 +158,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
               openInNewTab={false}
               data-test-id="link-with-existing"
             >
-              {t('Login using an existing account')}
+              {t('Log in using an existing account')}
             </ExternalLink>
           )}
         </Actions>
