@@ -534,6 +534,7 @@ class ReleaseSerializer(Serializer):
             "currentProjectMeta": expose_current_project_meta(
                 kwargs.get("current_project_meta", {})
             ),
+            "userAgent": obj.user_agent,
         }
         if self.with_adoption_stages:
             d.update(
