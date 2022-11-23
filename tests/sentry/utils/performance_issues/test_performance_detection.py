@@ -997,7 +997,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_transaction", "c119e45a9d724b1891df4651ebf9e6db"),
                 call(
                     "_pi_file_io_main_thread_fp",
-                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-2fdacf08551ceadba1cb7cf4eace5e288be4f9cf",
+                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
                 ),
                 call("_pi_file_io_main_thread", "054ba3a374d543eb"),
             ]

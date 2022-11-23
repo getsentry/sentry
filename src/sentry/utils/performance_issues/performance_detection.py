@@ -80,7 +80,9 @@ class PerformanceProblem:
     desc: str
     type: GroupType
     parent_span_ids: Optional[Sequence[str]]
+    # For related spans that caused the bad spans
     cause_span_ids: Optional[Sequence[str]]
+    # The actual bad spans
     offender_span_ids: Sequence[str]
 
     def to_dict(
@@ -1238,7 +1240,10 @@ class FileIOMainThreadDetector(PerformanceDetector):
             op, span_id, op_prefix, span_duration, settings = settings_for_span
             if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
                 call_stack = ".".join(
-                    [item["function"] for item in span.get("data", {}).get("call_stack", [])]
+                    [
+                        f"{item.get('module', '')}.{item.get('function', '')}"
+                        for item in span.get("data", {}).get("call_stack", [])
+                    ]
                 ).encode("utf8")
                 hashed_stack = hashlib.sha1(call_stack).hexdigest()
                 fingerprint = f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
@@ -1248,16 +1253,17 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     desc=span.get("description", ""),
                     parent_span_ids=[],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-                    cause_span_ids=[span.get("span_id", None)],
+                    cause_span_ids=[],
                     offender_span_ids=[span.get("span_id", None)],
                 )
 
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
+        op = span.get("op", "")
         if data is None:
             return False
         # doing is True since the value can be any type
-        return data.get("blocked_ui_thread", False) is True
+        return op.startswith("file") and data.get("blocked_ui_thread", False) is True
 
 
 # Reports metrics and creates spans for detection
