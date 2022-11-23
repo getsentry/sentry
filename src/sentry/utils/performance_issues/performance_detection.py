@@ -880,7 +880,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     The detector first looks for X number of consecutive db query spans,
     Once these set of spans are found, the detector will compare each db span in the consecutive list
     to determine if they are dependant on one another.
-    If the sum of the durations of the independant spans exceeds Y, then a performance issue is found.
+    If the sum of the durations of the independent spans exceeds Y, then a performance issue is found.
 
     This detector assuming spans are ordered chronologically
     """
@@ -892,7 +892,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_db_spans: list[Span] = []
-        self.independant_db_spans: list[Span] = []
+        self.independent_db_spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -911,18 +911,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
-        independant_db_spans = self._find_independant_spans(self.consecutive_db_spans)
+        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
         exceeds_duration_threshold = self._sum_span_duration(
-            independant_db_spans
+            independent_db_spans
         ) > self.settings.get("duration_threshold")
         if exceeds_count_threshold and exceeds_duration_threshold:
             self._store_performance_problem()
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = list(
-            map(lambda span: span.get("span_id", None), self.consecutive_db_spans)
-        )
+        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
@@ -940,19 +938,19 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
 
-    def _find_independant_spans(self, spans: list[Span]) -> list[Span]:
+    def _find_independent_spans(self, spans: list[Span]) -> list[Span]:
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
         """
-        independant_spans = []
+        independent_spans = []
         for span in spans[1:]:
             query: str = span.get("description", None)
             if (
                 query and contains_complete_query(span) and "WHERE" not in query.upper()
             ):  # TODO - use better regex
-                independant_spans.append(span)
-        return independant_spans
+                independent_spans.append(span)
+        return independent_spans
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
