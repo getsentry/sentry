@@ -262,10 +262,6 @@ def get_detection_settings(project_id: Optional[str] = None):
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
             },
-            {
-                "duration_threshold": 2000.0,  # ms
-                "allowed_span_ops": ["http"],
-            },
         ],
         DetectorType.LONG_TASK_SPANS: [
             {
