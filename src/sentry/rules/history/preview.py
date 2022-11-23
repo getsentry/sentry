@@ -227,7 +227,7 @@ def get_top_groups(
             "aggregations": [("count", "group_id", "groupCount")],
             "groupby": ["group_id"],
             "order_by": "-groupCount",
-            "seleted_columns": ["group_id"],
+            "selected_columns": ["group_id", "groupCount"],
             "limit": FREQUENCY_CONDITION_GROUP_LIMIT,
         }
         if dataset == Dataset.Transactions:
