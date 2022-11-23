@@ -103,22 +103,16 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
         if environments:
             params["environment"] = [env.name for env in environments]
 
-        try:
-            if use_builder:
-                snuba_query = get_query_builder_for_group(
-                    request.GET.get("query", ""), params, group
-                )
-            else:
-                snuba_filter, dataset = get_filter_for_group(
-                    request.GET.get("query", None), params, group
-                )
-        except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
-
         full = request.GET.get("full", False)
 
         def data_fn(offset: int, limit: int) -> Any:
             if use_builder:
+                try:
+                    snuba_query = get_query_builder_for_group(
+                        request.GET.get("query", ""), params, group, limit=limit, offset=offset
+                    )
+                except InvalidSearchQuery as e:
+                    raise ParseError(detail=str(e))
                 results = snuba_query.run_query(referrer=referrer)
                 results = [
                     Event(
@@ -132,13 +126,27 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
 
                 return results
             else:
+                try:
+                    snuba_filter, dataset = get_filter_for_group(
+                        request.GET.get("query", None), params, group
+                    )
+                except InvalidSearchQuery as e:
+                    raise ParseError(detail=str(e))
                 if full:
                     return eventstore.get_events(
-                        referrer=referrer, filter=snuba_filter, dataset=dataset
+                        referrer=referrer,
+                        filter=snuba_filter,
+                        dataset=dataset,
+                        offset=offset,
+                        limit=limit,
                     )
                 else:
                     return eventstore.get_unfetched_events(
-                        referrer=referrer, filter=snuba_filter, dataset=dataset
+                        referrer=referrer,
+                        filter=snuba_filter,
+                        dataset=dataset,
+                        offset=offset,
+                        limit=limit,
                     )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
