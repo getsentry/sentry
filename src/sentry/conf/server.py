@@ -2720,7 +2720,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # Number of seconds of the sliding symbolicate_event budgeting window.
+    # Length of the sliding symbolicate_event budgeting window, in seconds.
     #
     # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
     # defined below.
@@ -2728,7 +2728,6 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # The bucket size of the project budget metric.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    #
     "budget_bucket_size": 10,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
@@ -2740,7 +2739,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 
 # Tunable knobs for automatic LPQ eligibility.
 #
-# LPQ eligibility is based on the spent budget in a sliding time window
+# LPQ eligibility is based on the average spent budget in a sliding time window
 # defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
 #
 # The `project_budget` option is defined as the average per-second
@@ -2760,8 +2759,7 @@ SENTRY_LPQ_OPTIONS = {
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
-    # As we consider the "symbolication time used" for this metric.
-    # Very slow events have a parabolicly increasing cost.
+    # Cost increases quadratically with symbolication time.
     "project_budget": 5.0
 }
 
