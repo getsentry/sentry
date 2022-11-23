@@ -175,7 +175,7 @@ function BaseButton({
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
-  const useButtonTracking = HookStore.get('analytics:track-button-clicks')[0];
+  const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
   const buttonTracking = useButtonTracking?.({
     analyticsEventName,
     analyticsEventKey,
