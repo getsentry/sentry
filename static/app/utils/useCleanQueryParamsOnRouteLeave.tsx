@@ -1,6 +1,6 @@
 import {useCallback, useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -25,7 +25,7 @@ export function handleRouteLeave<Q extends object>({
     newLocation.pathname === oldPathname ||
     (newLocation.pathname !== oldPathname && !hasSomeValues)
   ) {
-    return true;
+    return;
   }
 
   // Removes fields from the URL on route leave so that the parameters will
@@ -42,8 +42,6 @@ export function handleRouteLeave<Q extends object>({
     pathname: newLocation.pathname,
     query,
   });
-
-  return false;
 }
 
 function useCleanQueryParamsOnRouteLeave({fieldsToClean}: Opts) {
@@ -51,7 +49,7 @@ function useCleanQueryParamsOnRouteLeave({fieldsToClean}: Opts) {
 
   const onRouteLeave = useCallback(
     newLocation => {
-      return handleRouteLeave({
+      handleRouteLeave({
         fieldsToClean,
         newLocation,
         oldPathname: location.pathname,
