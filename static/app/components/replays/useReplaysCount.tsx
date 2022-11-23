@@ -28,13 +28,10 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
   const zeroCounts = useMemo(() => {
     const ids = toArray(groupIds || []);
     const names = toArray(transactionNames || []);
-    return ([] as string[])
-      .concat(ids)
-      .concat(names)
-      .reduce((record, key) => {
-        record[key] = 0;
-        return record;
-      }, {} as CountState);
+    return [...ids, ...names].reduce<CountState>((record, key) => {
+      record[key] = 0;
+      return record;
+    }, {});
   }, [groupIds, transactionNames]);
 
   const [condition, fieldName] = useMemo(() => {
