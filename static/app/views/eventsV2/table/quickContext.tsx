@@ -101,11 +101,13 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
       );
     case ContextType.EVENT:
       return (
-        <HoverHeader
-          title={t('Event ID')}
-          copyLabel={getShortEventId(dataRow.id)}
-          copyContent={dataRow.id}
-        />
+        dataRow.id && (
+          <HoverHeader
+            title={t('Event ID')}
+            copyLabel={getShortEventId(dataRow.id)}
+            copyContent={dataRow.id}
+          />
+        )
       );
     default:
       return null;
