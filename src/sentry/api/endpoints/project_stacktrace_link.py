@@ -67,15 +67,26 @@ def generate_mobile_frame(parameters: Dict[str, Optional[str]]) -> Dict[str, str
     return frame
 
 
-def set_top_tags(scope: Scope, project: Project) -> None:
-    scope.set_tag("project.slug", project.slug)
-    scope.set_tag("organization.slug", project.organization.slug)
+def set_top_tags(
+    scope: Scope,
+    project: Project,
+    ctx: Mapping[str, Optional[str]],
+    has_code_mappings: bool,
+) -> None:
     try:
-        ea_org: bool = project.organization.flags.early_adopter.is_set
-        scope.set_tag("organization.early_adopter", ea_org)
+        scope.set_tag("project.slug", project.slug)
+        scope.set_tag("organization.slug", project.organization.slug)
+        scope.set_tag(
+            "organization.early_adopter", bool(project.organization.flags.early_adopter.is_set)
+        )
+        scope.set_tag("stacktrace_link.platform", ctx["platform"])
+        scope.set_tag("stacktrace_link.has_code_mappings", has_code_mappings)
+        if ctx["platform"] == "python":
+            # This allows detecting a file that belongs to Python's 3rd party modules
+            scope.set_tag("stacktrace_link.in_app", "site-packages" in str(ctx["file"]))
     except Exception:
-        # If errors arise we can then follow up with a fix
-        logger.exception("We failed to set the early adopter flag")
+        # If errors arises we can still proceed
+        logger.exception("We failed to set a tag.")
 
 
 def try_path_munging(
@@ -127,6 +138,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             return Response({"detail": "Filepath is required"}, status=400)
 
         ctx = {
+            "file": request.GET.get("file"),
             "commit_id": request.GET.get("commitId"),
             "platform": request.GET.get("platform"),
             "sdk_name": request.GET.get("sdkName"),
@@ -152,11 +164,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         )
         matched_code_mappings = []
         with configure_scope() as scope:
-            set_top_tags(scope, project)
+            set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
                 if not filepath.startswith(config.stack_root) and not mobile_frame:
                     result["error"] = "stack_root_mismatch"
                     continue
+                # XXX: The logic above allows all code mappings to be processed
+                if (
+                    filepath.startswith(config.stack_root)
+                    and config.automatically_generated is True
+                ):
+                    scope.set_tag("stacktrace_link.automatically_generated", True)
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
                 # For mobile we try a second time by munging the file path
@@ -182,7 +200,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             # Post-processing before exiting scope context
             found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.platform", ctx["platform"])
+
             if matched_code_mappings:
                 # Any code mapping that matches and its results will be returned
                 result["matched_code_mappings"] = matched_code_mappings
