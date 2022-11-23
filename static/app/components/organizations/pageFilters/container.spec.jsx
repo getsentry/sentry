@@ -28,7 +28,7 @@ jest.mock('sentry/utils/localStorage', () => ({
   setItem: jest.fn(),
 }));
 
-function renderComponnent(component, routerContext, organization) {
+function renderComponent(component, routerContext, organization) {
   return render(component, {context: routerContext, organization});
 }
 
@@ -77,7 +77,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not update router if there is custom routing', function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer hasCustomRouting />,
       routerContext,
       organization
@@ -86,7 +86,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer hasCustomRouting />,
       {
         ...routerContext,
@@ -101,13 +101,13 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    renderComponnent(<PageFiltersContainer />, routerContext, organization);
+    renderComponent(<PageFiltersContainer />, routerContext, organization);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer params={{orgId: organization.slug}} />,
       changeQuery(routerContext, {statsPeriod: '7d'}),
       organization
@@ -130,7 +130,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('updates GlobalSelection store with default period', async function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         environment: 'prod',
@@ -161,7 +161,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         statsPeriod: null,
@@ -189,7 +189,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('resets start&end if showAbsolute prop is false', async function () {
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
@@ -221,7 +221,7 @@ describe('PageFiltersContainer', function () {
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async function () {
-    const {rerender} = renderComponnent(
+    const {rerender} = renderComponent(
       <PageFiltersContainer />,
       changeQuery(routerContext, {statsPeriod: '7d'}),
       organization
@@ -279,7 +279,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -316,7 +316,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -342,7 +342,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -368,7 +368,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -402,7 +402,7 @@ describe('PageFiltersContainer', function () {
 
     OrganizationStore.onUpdate(initializationObj.organization);
 
-    renderComponnent(
+    renderComponent(
       <PageFiltersContainer hideGlobalHeader />,
       initializationObj.routerContext,
       initializationObj.organization
@@ -469,7 +469,7 @@ describe('PageFiltersContainer', function () {
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
-      const {rerender} = renderComponnent(
+      const {rerender} = renderComponent(
         <PageFiltersContainer />,
         initialData.routerContext,
         initialData.organization
@@ -515,7 +515,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      renderComponnent(
+      renderComponent(
         <PageFiltersContainer />,
         initializationObj.routerContext,
         initializationObj.organization
@@ -542,7 +542,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      renderComponnent(
+      renderComponent(
         <PageFiltersContainer />,
         initializationObj.routerContext,
         initializationObj.organization
@@ -578,7 +578,7 @@ describe('PageFiltersContainer', function () {
     });
 
     it('replaces URL with project', function () {
-      renderComponnent(
+      renderComponent(
         <PageFiltersContainer
           shouldForceProject
           forceProject={initialData.projects[0]}
@@ -614,7 +614,7 @@ describe('PageFiltersContainer', function () {
     });
 
     it('does not add forced project to URL', async function () {
-      renderComponnent(
+      renderComponent(
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
@@ -656,7 +656,7 @@ describe('PageFiltersContainer', function () {
       }
 
       function renderForNonGlobalView(props) {
-        const result = renderComponnent(
+        const result = renderComponent(
           getComponentForNonGlobalView(props),
           initialData.routerContext,
           initialData.organization
@@ -751,7 +751,7 @@ describe('PageFiltersContainer', function () {
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
-        renderComponnent(
+        renderComponent(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             shouldForceProject
@@ -794,7 +794,7 @@ describe('PageFiltersContainer', function () {
       }
 
       function renderForGlobalView(props, ctx) {
-        const result = renderComponnent(
+        const result = renderComponent(
           getComponentForGlobalView(props),
           {
             ...initialData.routerContext,
