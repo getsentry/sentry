@@ -241,7 +241,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 scope_identifier=user.id,
             ),
             type=type.value,
-            target=user.actor,
+            target_id=user.actor_id,
         )
 
     def get_for_recipient_by_parent(

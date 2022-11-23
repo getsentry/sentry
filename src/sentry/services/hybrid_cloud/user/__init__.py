@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
@@ -26,6 +27,8 @@ class APIUser:
     is_authenticated: bool = False
     is_anonymous: bool = False
     is_active: bool = False
+    is_staff: bool = False
+    last_active: datetime.datetime | None = None
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name

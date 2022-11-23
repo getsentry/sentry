@@ -46,13 +46,15 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         prev = self._singleton
         self.close()
 
-        if service:
-            self._singleton[silo_mode] = service
-            yield
-        else:
-            yield
-        self.close()
-        self._singleton = prev
+        try:
+            if service:
+                self._singleton[silo_mode] = service
+                yield
+            else:
+                yield
+        finally:
+            self.close()
+            self._singleton = prev
 
     def __getattr__(self, item: str) -> Any:
         cur_mode = SiloMode.get_current_mode()
@@ -95,11 +97,9 @@ def CreateStubFromBase(
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
-            from django.test import override_settings
-
             from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
-            with override_settings(SILO_MODE=target_mode):
+            with SiloMode.exit_single_process_silo_context():
                 if cb := getattr(hc_test_stub, "cb", None):
                     cb(self.backing_service, method_name, *args, **kwds)
                 method = getattr(self.backing_service, method_name)
@@ -108,7 +108,9 @@ def CreateStubFromBase(
                 auth_context: AuthenticationContext = AuthenticationContext()
                 if "auth_context" in call_args:
                     auth_context = call_args["auth_context"] or auth_context
-                with auth_context.applied_to_request():
+                with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+                    target_mode
+                ):
                     return method(*args, **kwds)
 
         return method

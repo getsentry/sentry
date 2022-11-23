@@ -90,7 +90,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             queryset = queryset.filter(
-                id__in=OrganizationMember.objects.filter(user=request.user).values("organization")
+                id__in=OrganizationMember.objects.filter(user_id=request.user.id).values(
+                    "organization"
+                )
             )
 
         query = request.GET.get("query")

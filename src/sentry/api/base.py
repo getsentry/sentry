@@ -515,6 +515,24 @@ class EndpointSiloLimit(SiloLimit):
         new_class.__module__ = decorated_class.__module__
         return new_class
 
+    def create_override(
+        self,
+        original_method: Callable[..., Any],
+        extra_modes: Iterable[SiloMode] = (),
+    ) -> Callable[..., Any]:
+        limiting_override = super().create_override(original_method, extra_modes)
+
+        def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
+            entering_mode: SiloMode = SiloMode.MONOLITH
+            for mode in self.modes:
+                # Select a mode, if available, from the target modes.
+                entering_mode = mode
+            with SiloMode.enter_single_process_silo_context(entering_mode):
+                return limiting_override(*args, **kwargs)
+
+        functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
+        return single_process_silo_mode_wrapper
+
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
 

@@ -4,6 +4,7 @@ from sentry.models import Organization
 from sentry.models.options.user_option import UserOption
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import ApiUserOption, UserOptionService
+from sentry.silo import SiloMode
 
 
 class DatabaseBackedUserOptionService(UserOptionService):
@@ -28,6 +29,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         project: Optional[Project] = None,
         organization: Optional[Organization] = None,
     ) -> List[ApiUserOption]:
+        SiloMode.get_current_mode()
         queryset = UserOption.objects.filter(user_id__in=user_ids, key__in=keys)  # type: ignore
         if project is not None:
             queryset = queryset.filter(project=project)

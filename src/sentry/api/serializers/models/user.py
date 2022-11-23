@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import warnings
 from collections import defaultdict
@@ -16,6 +18,7 @@ from typing import (
 )
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 from typing_extensions import TypedDict
 
@@ -37,6 +40,7 @@ from sentry.models import (
     UserRoleUser,
 )
 from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -115,6 +119,13 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 @register(User)
 class UserSerializer(Serializer):  # type: ignore
+    def _user_is_requester(self, obj: User, requester: User | AnonymousUser | APIUser) -> bool:
+        if isinstance(requester, User):
+            return requester == obj
+        if isinstance(requester, APIUser):
+            return requester.id == obj.id
+        return False
+
     def _get_identities(
         self, item_list: Sequence[User], user: User
     ) -> Dict[int, List[AuthIdentity]]:
@@ -148,7 +159,7 @@ class UserSerializer(Serializer):  # type: ignore
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
+        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | APIUser
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -174,10 +185,11 @@ class UserSerializer(Serializer):  # type: ignore
             ],
         }
 
-        if obj == user:
+        if self._user_is_requester(obj, user):
             d = cast(UserSerializerResponseSelf, d)
             options = {
-                o.key: o.value for o in UserOption.objects.filter(user=user, project__isnull=True)
+                o.key: o.value
+                for o in UserOption.objects.filter(user_id=user.id, project__isnull=True)
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 

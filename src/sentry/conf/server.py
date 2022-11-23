@@ -2950,3 +2950,7 @@ SHOW_SESSION_REPLAY_BANNER = False
 #   },
 # }
 SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+
+# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
+# decorator.
+SINGLE_SERVER_SILO_MODE = False

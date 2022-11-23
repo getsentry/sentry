@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import functools
 import itertools
+import sys
+import threading
 from enum import Enum
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Generator, Iterable
 
 from django.conf import settings
 
@@ -21,9 +24,11 @@ class SiloMode(Enum):
     REGION = "REGION"
 
     @classmethod
-    def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
+    def resolve(cls, mode: str | SiloMode | None, default: SiloMode | None = None) -> SiloMode:
         if not mode:
-            return cls.MONOLITH
+            if not default:
+                return SiloMode.MONOLITH
+            return default
         if isinstance(mode, SiloMode):
             return mode
         return cls[mode]
@@ -32,8 +37,61 @@ class SiloMode(Enum):
         return self.value
 
     @classmethod
+    def single_process_silo_mode(cls) -> bool:
+        return bool(settings.SINGLE_SERVER_SILO_MODE)
+
+    @classmethod
+    @contextlib.contextmanager
+    def enter_single_process_silo_context(cls, mode: SiloMode) -> Generator[None, None, None]:
+        """
+        Used by silo endpoint decorators and other contexts that help 'suggest' to acceptance testing and local
+        single process silo testing which 'silo context' the process should be running in.  Prevents re-entrant
+        cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
+        silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
+        """
+        if "pytest" in sys.modules:
+            assert (
+                _single_process_silo_mode_state.mode is None
+            ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
+        _single_process_silo_mode_state.mode = mode
+        try:
+            yield
+        finally:
+            _single_process_silo_mode_state.mode = None
+
+    @classmethod
+    @contextlib.contextmanager
+    def exit_single_process_silo_context(cls) -> Generator[None, None, None]:
+        """
+        Used by silo endpoint decorators and other contexts to signal that a potential inter process interaction
+        is being simulated locally for acceptance tests that validate the behavior of multiple endpoints with
+        process boundaries in play.  Call this inside of any RPC interaction to ensure that such acceptance tests
+        can 'swap' the silo context on the fly.
+        """
+        if not cls.single_process_silo_mode():
+            yield
+            return
+
+        old = _single_process_silo_mode_state.mode
+        _single_process_silo_mode_state.mode = None
+        try:
+            yield
+        finally:
+            _single_process_silo_mode_state.mode = old
+
+    @classmethod
     def get_current_mode(cls) -> SiloMode:
-        return cls.resolve(settings.SILO_MODE)
+        process_level_silo_mode = cls.resolve(settings.SILO_MODE)
+        if cls.single_process_silo_mode():
+            return cls.resolve(_single_process_silo_mode_state.mode, process_level_silo_mode)
+        return process_level_silo_mode
+
+
+class SingleProcessSiloModeState(threading.local):
+    mode: SiloMode | None = None
+
+
+_single_process_silo_mode_state = SingleProcessSiloModeState()
 
 
 class SiloLimit(abc.ABC):
