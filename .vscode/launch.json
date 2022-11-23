@@ -28,6 +28,15 @@
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver", "--debug-server", "--no-pretty"],
       "cwd": "${workspaceRoot}"
+    },
+    {
+      "name": "jest",
+      "type": "node",
+      "request": "launch",
+      "protocol": "inspector",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "internalConsoleOptions": "openOnSessionStart",
+      "args": ["--runInBand"]
     }
   ]
 }
