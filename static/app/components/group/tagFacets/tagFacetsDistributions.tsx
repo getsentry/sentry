@@ -19,6 +19,8 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
+const LIMIT = 4;
+
 export default function TagFacetsDistributions({
   tagKeys,
   environments,
@@ -41,6 +43,7 @@ export default function TagFacetsDistributions({
           key: tagKeys,
           environment: environments.map(env => env.name),
           readable: true,
+          limit: LIMIT,
         },
       });
       const tagsData = keyBy(data, 'key');
