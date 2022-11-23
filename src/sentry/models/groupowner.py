@@ -80,7 +80,7 @@ class GroupOwner(Model):
 
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))
-        assert len(keys) != 2, "Must have team or user or neither, not both"
+        assert len(keys) == 1, "Must have team or user, not both"
         super().save(*args, **kwargs)
 
     def owner_id(self):
