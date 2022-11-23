@@ -7,10 +7,10 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
-import useButtonHook from 'sentry/components/useButtonHook';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
+import useButtonClickHandler from 'sentry/utils/useButtonClickHandler';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -174,17 +174,14 @@ function BaseButton({
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
-  // Intercept onClick and propagate
-  const handleClick = useButtonHook({
-    disabled,
+  const handleClick = useButtonClickHandler({
     busy,
+    disabled,
     onClick,
+    'aria-label': screenReaderLabel || '',
     analyticsEventName,
     analyticsEventKey,
-    'aria-label': screenReaderLabel,
-    priority,
-    href,
-    analyticsParams,
+    analyticsParams: {priority, href, ...analyticsParams},
   });
 
   function getUrl<T extends Url>(prop: T): T | undefined {

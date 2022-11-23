@@ -128,6 +128,7 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
+  'analytics:track-button-clicks': (props: ButtonProps) => void;
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
@@ -227,7 +228,6 @@ export type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
-  'react-hook:track-buttons': (props: ButtonProps) => (e: React.MouseEvent) => void;
 };
 
 /**
