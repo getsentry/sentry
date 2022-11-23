@@ -153,11 +153,17 @@ function DomMutations({replay}: Props) {
                 height={height}
                 overscanRowCount={5}
                 rowCount={items.length}
-                noRowsRenderer={() => (
-                  <EmptyStateWarning withIcon={false} small>
-                    {t('No related DOM Events recorded')}
-                  </EmptyStateWarning>
-                )}
+                noRowsRenderer={() =>
+                  actions.length === 0 ? (
+                    <EmptyStateWarning withIcon={false} small>
+                      {t('No related DOM events recorded')}
+                    </EmptyStateWarning>
+                  ) : (
+                    <EmptyStateWarning withIcon small>
+                      {t('No results found')}
+                    </EmptyStateWarning>
+                  )
+                }
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
