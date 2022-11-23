@@ -32,7 +32,7 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router} = initializeOrg({
+  const {organization, router, routerContext} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
@@ -166,7 +166,6 @@ describe('EventOrGroupHeader', function () {
     it('hides level tag', function () {
       const {container} = render(
         <EventOrGroupHeader
-          projectId="projectId"
           hideLevel
           organization={organization}
           data={{
@@ -177,7 +176,6 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-          {...router}
         />
       );
       expect(container).toSnapshot();
@@ -191,15 +189,20 @@ describe('EventOrGroupHeader', function () {
             ...event,
             type: EventOrGroupType.DEFAULT,
           }}
-          {...router}
-          location={{
-            ...router.location,
-            query: {
-              ...router.location.query,
-              sort: 'freq',
+        />,
+        {
+          context: routerContext,
+          router: {
+            ...router,
+            location: {
+              ...router.location,
+              query: {
+                ...router.location.query,
+                sort: 'freq',
+              },
             },
-          }}
-        />
+          },
+        }
       );
 
       expect(screen.getByRole('link')).toHaveAttribute(
@@ -208,7 +211,7 @@ describe('EventOrGroupHeader', function () {
       );
     });
 
-    it('lack of project adds allp parameter', function () {
+    it('lack of project adds all parameter', function () {
       render(
         <EventOrGroupHeader
           organization={organization}
@@ -216,12 +219,17 @@ describe('EventOrGroupHeader', function () {
             ...event,
             type: EventOrGroupType.DEFAULT,
           }}
-          {...router}
-          location={{
-            ...router.location,
-            query: {},
-          }}
-        />
+        />,
+        {
+          context: routerContext,
+          router: {
+            ...router,
+            location: {
+              ...router.location,
+              query: {},
+            },
+          },
+        }
       );
 
       expect(screen.getByRole('link')).toHaveAttribute(

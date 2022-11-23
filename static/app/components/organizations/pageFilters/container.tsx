@@ -1,6 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
@@ -16,6 +14,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {PageContent} from 'sentry/styles/organization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
@@ -26,22 +25,21 @@ type InitializeUrlStateProps = Omit<
   'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
-type Props = WithRouterProps &
-  InitializeUrlStateProps & {
-    children?: React.ReactNode;
-    /**
-     * Custom alert message for the desynced filter state.
-     */
-    desyncedAlertMessage?: string;
-    /**
-     * Whether to hide the revert button in the desynced filter alert.
-     */
-    hideDesyncRevertButton?: boolean;
-    /**
-     * Slugs of projects to display in project selector
-     */
-    specificProjectSlugs?: string[];
-  };
+type Props = InitializeUrlStateProps & {
+  children?: React.ReactNode;
+  /**
+   * Custom alert message for the desynced filter state.
+   */
+  desyncedAlertMessage?: string;
+  /**
+   * Whether to hide the revert button in the desynced filter alert.
+   */
+  hideDesyncRevertButton?: boolean;
+  /**
+   * Slugs of projects to display in project selector
+   */
+  specificProjectSlugs?: string[];
+};
 
 /**
  * The page filters container handles initialization of page filters for the
@@ -49,8 +47,6 @@ type Props = WithRouterProps &
  */
 function Container({skipLoadLastUsed, children, ...props}: Props) {
   const {
-    location,
-    router,
     forceProject,
     organization,
     defaultSelection,
@@ -61,6 +57,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     desyncedAlertMessage,
     hideDesyncRevertButton,
   } = props;
+  const {location, router} = useRouteContext();
 
   const {isReady} = usePageFilters();
 
@@ -183,6 +180,6 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   );
 }
 
-const PageFiltersContainer = withOrganization(withRouter(Container));
+const PageFiltersContainer = withOrganization(Container);
 
 export default PageFiltersContainer;

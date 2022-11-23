@@ -1,6 +1,4 @@
 import {Fragment, isValidElement} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,6 +11,7 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {SidebarOrientation} from './types';
 
@@ -21,7 +20,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * Icon to display
    */
@@ -84,7 +83,6 @@ type Props = WithRouterProps & {
 };
 
 const SidebarItem = ({
-  router,
   id,
   href,
   to,
@@ -104,6 +102,7 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
+  const {router} = useRouteContext();
   // label might be wrapped in a guideAnchor
   let labelString = label;
   if (isValidElement(label)) {
@@ -194,7 +193,7 @@ const SidebarItem = ({
   );
 };
 
-export default withRouter(SidebarItem);
+export default SidebarItem;
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {

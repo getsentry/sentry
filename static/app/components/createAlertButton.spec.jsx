@@ -92,7 +92,11 @@ describe('CreateAlertFromViewButton', () => {
     userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/wizard/?`,
-      undefined
+      expect.objectContaining({
+        params: {
+          orgId: 'org-slug',
+        },
+      })
     );
   });
 

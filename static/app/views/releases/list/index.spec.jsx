@@ -14,7 +14,6 @@ import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('ReleasesList', () => {
   const {organization, routerContext, router} = initializeOrg();
@@ -122,13 +121,11 @@ describe('ReleasesList', () => {
     // does not have releases set up and no releases
     location = {query: {}};
     const {rerender} = render(
-      <RouteContext.Provider value={routerContext}>
-        <ReleasesList
-          location={location}
-          {...props}
-          selection={{...props.selection, projects: [4]}}
-        />
-      </RouteContext.Provider>,
+      <ReleasesList
+        location={location}
+        {...props}
+        selection={{...props.selection, projects: [4]}}
+      />,
       {
         context: routerContext,
         organization,

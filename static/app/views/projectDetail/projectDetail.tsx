@@ -240,6 +240,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     size="sm"
                     organization={organization}
                     projectSlug={params.projectId}
+                    aria-label={t('Create Alert')}
                   />
                   <Button
                     size="sm"

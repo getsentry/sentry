@@ -1,6 +1,4 @@
 import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -49,6 +47,8 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
@@ -95,7 +95,7 @@ export interface WidgetViewerModalOptions {
   totalIssuesCount?: string;
 }
 
-interface Props extends ModalRenderProps, WithRouterProps, WidgetViewerModalOptions {
+interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;
   selection: PageFilters;
 }
@@ -157,21 +157,19 @@ function WidgetViewerModal(props: Props) {
     organization,
     widget,
     selection,
-    location,
     Footer,
     Body,
     Header,
     closeModal,
     onEdit,
-    router,
-    routes,
-    params,
     seriesData,
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
     seriesResultsType,
   } = props;
+  const {location, router, routes} = useRouteContext();
+  const params = useParams();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
@@ -467,6 +465,7 @@ function WidgetViewerModal(props: Props) {
           grid={{
             renderHeadCell: renderDiscoverGridHeaderCell({
               ...props,
+              location,
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -481,6 +480,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
+              location,
               tableData: tableResults?.[0],
               isFirstPage,
             }),
@@ -608,6 +608,7 @@ function WidgetViewerModal(props: Props) {
           grid={{
             renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
+              location,
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -621,6 +622,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
+              location,
               tableData: tableResults?.[0],
               isFirstPage,
             }),
@@ -1145,4 +1147,4 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-export default withRouter(withPageFilters(WidgetViewerModal));
+export default withPageFilters(WidgetViewerModal);

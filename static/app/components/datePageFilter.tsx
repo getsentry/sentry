@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
@@ -19,19 +17,20 @@ import {
 } from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> &
-  WithRouterProps & {
-    /**
-     * Reset these URL params when we fire actions (custom routing only)
-     */
-    resetParamsOnChange?: string[];
-  };
+> & {
+  /**
+   * Reset these URL params when we fire actions (custom routing only)
+   */
+  resetParamsOnChange?: string[];
+};
 
-function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props) {
+function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+  const {router} = useRouteContext();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -119,4 +118,4 @@ const DropdownTitle = styled('div')`
   min-width: 0;
 `;
 
-export default withRouter(DatePageFilter);
+export default DatePageFilter;
