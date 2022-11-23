@@ -214,6 +214,7 @@ yarn.lock           @getsentry/owners-js-deps
 
 ### Ecosystem ###
 /src/sentry/api/endpoints/integrations/                                 @getsentry/ecosystem
+/src/sentry/api/endpoints/project_stacktrace_link.py                    @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_integration_repos.py             @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_app/                                   @getsentry/ecosystem
