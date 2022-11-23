@@ -1,10 +1,12 @@
 import heapq
+import logging
 from datetime import timedelta
 from functools import partial, reduce
 
 import sentry_sdk
 from django.db.models import Count
 from django.utils import dateformat, timezone
+from sentry_sdk import set_tag
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -41,6 +43,8 @@ from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 date_format = partial(dateformat.format, format_string="F jS, Y")
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationReportContext:
@@ -92,6 +96,28 @@ class ProjectContext:
         return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
 
 
+def check_if_project_is_empty(project_ctx):
+    """
+    Check if this project has any content we could show in an email.
+    """
+    return (
+        not project_ctx.key_errors
+        and not project_ctx.key_transactions
+        and not project_ctx.key_performance_issues
+        and not project_ctx.accepted_error_count
+        and not project_ctx.dropped_error_count
+        and not project_ctx.accepted_transaction_count
+        and not project_ctx.dropped_transaction_count
+    )
+
+
+def check_if_ctx_is_empty(ctx):
+    """
+    Check if the context is empty. If it is, we don't want to send an email.
+    """
+    return all(check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects.values())
+
+
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.weekly_reports.schedule_organizations",
@@ -99,7 +125,7 @@ class ProjectContext:
     max_retries=5,
     acks_late=True,
 )
-def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_flag_check=False):
+def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
@@ -109,12 +135,11 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None, skip_fl
         duration = ONE_DAY * 7
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    for i, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
+    for organization in RangeQuerySetWrapper(
+        organizations, step=10000, result_value_getter=lambda item: item.id
     ):
-        if skip_flag_check or features.has("organizations:weekly-email-refresh", organization):
-            # Create a celery task per organization
-            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        # Create a celery task per organization
+        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 # This task is launched per-organization.
@@ -128,6 +153,8 @@ def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     organization = Organization.objects.get(id=organization_id)
+    set_tag("org.slug", organization.slug)
+    set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes
@@ -149,6 +176,15 @@ def prepare_organization_report(
         fetch_key_error_groups(ctx)
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
+
+    report_is_available = not check_if_ctx_is_empty(ctx)
+    set_tag("report.available", report_is_available)
+
+    if not report_is_available:
+        logger.info(
+            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+        )
+        return
 
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
@@ -339,10 +375,19 @@ def fetch_key_error_groups(ctx):
     group_id_to_group_history = {g.group_id: g for g in group_history}
 
     for project_ctx in ctx.projects.values():
-        project_ctx.key_errors = [
-            (group_id_to_group[group_id], group_id_to_group_history.get(group_id, None), count)
-            for group_id, count in project_ctx.key_errors
-        ]
+        # note Snuba might have groups that have since been deleted
+        # we should just ignore those
+        project_ctx.key_errors = filter(
+            lambda x: x[0] is not None,
+            [
+                (
+                    group_id_to_group.get(group_id),
+                    group_id_to_group_history.get(group_id, None),
+                    count,
+                )
+                for group_id, count in project_ctx.key_errors
+            ],
+        )
 
 
 def project_key_transactions(ctx, project):
@@ -611,7 +656,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count * item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
         )
         # Calculate total
         (
@@ -801,6 +846,9 @@ def render_template_context(ctx, user):
 def send_email(ctx, user, dry_run=False, email_override=None):
     template_ctx = render_template_context(ctx, user)
     if not template_ctx:
+        logger.debug(
+            f"Skipping report for {ctx.organization.id} to {user}, no qualifying reports to deliver."
+        )
         return
 
     message = MessageBuilder(

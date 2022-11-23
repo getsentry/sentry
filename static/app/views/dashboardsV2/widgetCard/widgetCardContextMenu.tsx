@@ -44,7 +44,6 @@ type Props = {
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
-  showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
@@ -59,7 +58,6 @@ function WidgetCardContextMenu({
   onEdit,
   showContextMenu,
   isPreview,
-  showWidgetViewerButton,
   router,
   location,
   index,
@@ -95,8 +93,9 @@ function WidgetCardContextMenu({
           <MEPConsumer>
             {metricSettingContext => (
               <ContextWrapper>
-                {(organization.features.includes('dashboards-mep') ||
-                  organization.features.includes('mep-rollout-flag')) &&
+                {!organization.features.includes('performance-mep-bannerless-ui') &&
+                  (organization.features.includes('dashboards-mep') ||
+                    organization.features.includes('mep-rollout-flag')) &&
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
@@ -126,25 +125,23 @@ function WidgetCardContextMenu({
                   position="bottom-end"
                   disabledKeys={[...disabledKeys, 'preview']}
                 />
-                {showWidgetViewerButton && (
-                  <OpenWidgetViewerButton
-                    aria-label={t('Open Widget Viewer')}
-                    priority="link"
-                    size="zero"
-                    icon={<IconExpand size="xs" />}
-                    onClick={() => {
-                      (seriesData || tableData) &&
-                        setData({
-                          seriesData,
-                          tableData,
-                          pageLinks,
-                          totalIssuesCount,
-                          seriesResultsType,
-                        });
-                      openWidgetViewerPath(index);
-                    }}
-                  />
-                )}
+                <OpenWidgetViewerButton
+                  aria-label={t('Open Widget Viewer')}
+                  priority="link"
+                  size="zero"
+                  icon={<IconExpand size="xs" />}
+                  onClick={() => {
+                    (seriesData || tableData) &&
+                      setData({
+                        seriesData,
+                        tableData,
+                        pageLinks,
+                        totalIssuesCount,
+                        seriesResultsType,
+                      });
+                    openWidgetViewerPath(index);
+                  }}
+                />
               </ContextWrapper>
             )}
           </MEPConsumer>
@@ -237,8 +234,9 @@ function WidgetCardContextMenu({
         <MEPConsumer>
           {metricSettingContext => (
             <ContextWrapper>
-              {(organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) &&
+              {!organization.features.includes('performance-mep-bannerless-ui') &&
+                (organization.features.includes('dashboards-mep') ||
+                  organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
@@ -260,24 +258,22 @@ function WidgetCardContextMenu({
                 position="bottom-end"
                 disabledKeys={[...disabledKeys]}
               />
-              {showWidgetViewerButton && (
-                <OpenWidgetViewerButton
-                  aria-label={t('Open Widget Viewer')}
-                  priority="link"
-                  size="zero"
-                  icon={<IconExpand size="xs" />}
-                  onClick={() => {
-                    setData({
-                      seriesData,
-                      tableData,
-                      pageLinks,
-                      totalIssuesCount,
-                      seriesResultsType,
-                    });
-                    openWidgetViewerPath(widget.id ?? index);
-                  }}
-                />
-              )}
+              <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
+                onClick={() => {
+                  setData({
+                    seriesData,
+                    tableData,
+                    pageLinks,
+                    totalIssuesCount,
+                    seriesResultsType,
+                  });
+                  openWidgetViewerPath(widget.id ?? index);
+                }}
+              />
             </ContextWrapper>
           )}
         </MEPConsumer>

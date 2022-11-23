@@ -16,7 +16,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, IssueCategory, Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
@@ -39,7 +39,7 @@ type State = {
   renderNewAllEventsTab: boolean;
 };
 
-const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
@@ -142,11 +142,9 @@ class GroupEvents extends Component<Props, State> {
     return (
       <AllEventsTable
         issueId={this.props.group.id}
-        isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
-        projectId={this.props.group.project.slug}
-        totalEventCount={this.props.group.count}
+        group={this.props.group}
         excludedTags={excludedTags}
       />
     );
@@ -224,14 +222,21 @@ class GroupEvents extends Component<Props, State> {
   }
 
   render() {
+    // New issue actions moves the environment picker to the header
+    const hasIssueActionsV2 =
+      this.props.organization.features.includes('issue-actions-v2');
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
           <Wrapper>
-            <FilterSection>
-              <EnvironmentPageFilter />
-              {this.renderSearchBar()}
-            </FilterSection>
+            {hasIssueActionsV2 ? (
+              this.renderSearchBar()
+            ) : (
+              <FilterSection>
+                <EnvironmentPageFilter />
+                {this.renderSearchBar()}
+              </FilterSection>
+            )}
             {this.renderBody()}
           </Wrapper>
         </Layout.Main>

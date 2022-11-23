@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -147,29 +146,24 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <GuideAnchor
-                  disabled={!organization.features.includes('dashboards-releases')}
-                  target="releases_widget"
+                <Button
+                  data-test-id="add-widget-library"
+                  priority="primary"
+                  size="sm"
+                  disabled={widgetLimitReached}
+                  icon={<IconAdd isCircled />}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'dashboards_views.widget_library.opened',
+                      {
+                        organization,
+                      }
+                    );
+                    onAddWidget();
+                  }}
                 >
-                  <Button
-                    data-test-id="add-widget-library"
-                    priority="primary"
-                    size="sm"
-                    disabled={widgetLimitReached}
-                    icon={<IconAdd isCircled />}
-                    onClick={() => {
-                      trackAdvancedAnalyticsEvent(
-                        'dashboards_views.widget_library.opened',
-                        {
-                          organization,
-                        }
-                      );
-                      onAddWidget();
-                    }}
-                  >
-                    {t('Add Widget')}
-                  </Button>
-                </GuideAnchor>
+                  {t('Add Widget')}
+                </Button>
               </Tooltip>
             ) : null}
           </Fragment>

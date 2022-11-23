@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -6,6 +6,7 @@ import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -44,6 +45,13 @@ const PreviewTable = ({
         </EmptyStateWarning>
       );
     }
+    if (issueCount === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t("We couldn't find any issues that would've triggered your rule")}</p>
+        </EmptyStateWarning>
+      );
+    }
     const memberList = indexMembersByProject(members);
     return previewGroups?.map((id, index) => {
       const group = GroupStore.get(id) as Group | undefined;
@@ -58,6 +66,7 @@ const PreviewTable = ({
           displayReprocessingLayout={false}
           useFilteredStats
           withChart={false}
+          canSelect={false}
         />
       );
     });
@@ -71,20 +80,33 @@ const PreviewTable = ({
     return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
   };
 
-  return (
-    <Fragment>
-      <Panel>
-        <GroupListHeader withChart={false} />
-        <PanelBody>{renderBody()}</PanelBody>
-      </Panel>
-      <Pagination
+  const renderPagination = () => {
+    if (error) {
+      return null;
+    }
+    return (
+      <StyledPagination
         pageLinks={pageLinks}
         onCursor={onCursor}
         caption={renderCaption()}
         disabled={loading}
       />
-    </Fragment>
+    );
+  };
+
+  return (
+    <IssuesReplayCountProvider groupIds={previewGroups || []}>
+      <Panel>
+        <GroupListHeader withChart={false} />
+        <PanelBody>{renderBody()}</PanelBody>
+      </Panel>
+      {renderPagination()}
+    </IssuesReplayCountProvider>
   );
 };
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+`;
 
 export default PreviewTable;

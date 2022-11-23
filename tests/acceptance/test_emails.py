@@ -19,11 +19,10 @@ EMAILS = (
     ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
-    # ("/debug/mail/performance-alert/", "performance"), #TODO(ceo) this is flaky
+    ("/debug/mail/performance-alert/", "performance"),
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
-    ("/debug/mail/report/", "report"),
     ("/debug/mail/mfa-added/", "mfa added"),
     ("/debug/mail/mfa-removed/", "mfa removed"),
     ("/debug/mail/recovery-codes-regenerated/", "recovery codes regenerated"),

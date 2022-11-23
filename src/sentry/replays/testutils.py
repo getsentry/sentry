@@ -110,6 +110,7 @@ def mock_expected_response(
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
         "tags": kwargs.pop("tags", {}),
+        "activity": kwargs.pop("activity", 0),
     }
 
 

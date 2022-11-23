@@ -41,16 +41,18 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Add missing tags to the response
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
-    ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
-    ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
     ...(apiResponse.browser?.version
       ? {'browser.version': [apiResponse.browser.version]}
       : {}),
-    ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
-    ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
     ...(apiResponse.device?.brand ? {'device.brand': [apiResponse.device.brand]} : {}),
+    ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
     ...(apiResponse.device?.model ? {'device.model': [apiResponse.device.model]} : {}),
+    ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
+    ...(apiResponse.releases ? {releases: [apiResponse.releases]} : {}),
+    ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
+    ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
     ...(apiResponse.user?.ip_address

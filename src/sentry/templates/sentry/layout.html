@@ -30,7 +30,6 @@
 
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
 
-  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
@@ -71,6 +70,8 @@
   {% endblock %}
 </head>
 
+
+
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
@@ -81,6 +82,8 @@
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
+
+
 
     <div class="container">
       <div class="content">

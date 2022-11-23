@@ -1,6 +1,4 @@
 import {Fragment, isValidElement} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,6 +11,7 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {SidebarOrientation} from './types';
 
@@ -21,7 +20,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * Icon to display
    */
@@ -84,7 +83,6 @@ type Props = WithRouterProps & {
 };
 
 const SidebarItem = ({
-  router,
   id,
   href,
   to,
@@ -104,14 +102,20 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
+  const {router} = useRouteContext();
   // label might be wrapped in a guideAnchor
   let labelString = label;
   if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
+  // take off the query params for matching
+  const toPathWithoutReferrer = to?.split('?')[0];
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
-    (!hasPanel && router && to && location.pathname.startsWith(to)) ||
+    (!hasPanel &&
+      router &&
+      toPathWithoutReferrer &&
+      location.pathname.startsWith(toPathWithoutReferrer)) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||
@@ -189,7 +193,7 @@ const SidebarItem = ({
   );
 };
 
-export default withRouter(SidebarItem);
+export default SidebarItem;
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {

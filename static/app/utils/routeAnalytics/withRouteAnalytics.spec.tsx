@@ -24,6 +24,8 @@ describe('withRouteAnalytics', function () {
           setRouteAnalyticsParams,
           setDisableRouteAnalytics: jest.fn(),
           setOrganization: jest.fn(),
+          setEventNames: jest.fn(),
+          previousUrl: '',
         }}
       >
         <WrappedComponent />

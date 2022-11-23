@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import GroupEventAttachments from './groupEventAttachments';
+import GroupEventAttachments, {MAX_SCREENSHOTS_PER_PAGE} from './groupEventAttachments';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -21,7 +21,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = TestStubs.Project({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
@@ -34,7 +34,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   afterEach(() => {});
 
   function renderGroupEventAttachments() {
-    return render(<GroupEventAttachments projectSlug={project.slug} />, {
+    return render(<GroupEventAttachments project={project} />, {
       context: routerContext,
       organization,
     });
@@ -47,9 +47,15 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {per_page: 6, screenshot: 1, types: undefined},
+        query: {per_page: MAX_SCREENSHOTS_PER_PAGE, screenshot: 1, types: undefined},
       })
     );
+  });
+
+  it('does not render screenshots tab if not mobile platform', function () {
+    project.platform = 'javascript';
+    renderGroupEventAttachments();
+    expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
   });
 
   it('calls opens modal when clicking on panel body', function () {

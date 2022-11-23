@@ -150,7 +150,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args), sort_keys=True))
+            seen_marker = hash(json.dumps((link_type, args)))
             if seen_marker in links_seen:
                 continue
 

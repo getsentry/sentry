@@ -250,32 +250,34 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
-        <Feature
-          organization={organization}
-          features={['issue-details-tag-improvements']}
-        >
-          {isMobilePlatform(project.platform) && (
-            <TagFacets
-              environments={environments}
-              groupId={group.id}
-              tagKeys={MOBILE_TAGS}
-              event={event}
-              title={
-                <Fragment>
-                  {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
-                </Fragment>
-              }
-              tagFormatter={MOBILE_TAGS_FORMATTER}
-            />
-          )}
-        </Feature>
-
         <Feature organization={organization} features={['issue-details-owners']}>
           <OwnedBy group={group} project={project} organization={organization} />
           <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
         </Feature>
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
+
+        <Feature
+          organization={organization}
+          features={['issue-details-tag-improvements']}
+        >
+          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
+            <TagFacets
+              environments={environments}
+              groupId={group.id}
+              tagKeys={MOBILE_TAGS}
+              event={event}
+              title={
+                <div>
+                  {t('Tag Summary')} <FeatureBadge type="beta" />
+                </div>
+              }
+              tagFormatter={MOBILE_TAGS_FORMATTER}
+              style="bars"
+              project={project}
+            />
+          )}
+        </Feature>
 
         <GroupReleaseStats
           organization={organization}
@@ -298,47 +300,64 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection.Wrap>
-          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-          <SidebarSection.Content>
-            {!tagsWithTopValues ? (
-              <TagPlaceholders>
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-              </TagPlaceholders>
-            ) : (
-              group.tags.map(tag => {
-                const tagWithTopValues = tagsWithTopValues[tag.key];
-                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                const topValuesTotal = tagWithTopValues
-                  ? tagWithTopValues.totalValues
-                  : 0;
+        {(!organization.features.includes('issue-details-tag-improvements') ||
+          !(
+            isMobilePlatform(project.platform) && project.platform === 'react-native'
+          )) && (
+          <SidebarSection.Wrap>
+            <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+            <SidebarSection.Content>
+              {!tagsWithTopValues ? (
+                <TagPlaceholders>
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                </TagPlaceholders>
+              ) : (
+                group.tags.map(tag => {
+                  const tagWithTopValues = tagsWithTopValues[tag.key];
+                  const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                  const topValuesTotal = tagWithTopValues
+                    ? tagWithTopValues.totalValues
+                    : 0;
 
-                return (
-                  <GroupTagDistributionMeter
-                    key={tag.key}
-                    tag={tag.key}
-                    totalValues={topValuesTotal}
-                    topValues={topValues}
-                    name={tag.name}
-                    organization={organization}
-                    projectId={projectId}
-                    group={group}
-                  />
-                );
-              })
-            )}
-            {group.tags.length === 0 && (
-              <p data-test-id="no-tags">
-                {environments.length
-                  ? t('No tags found in the selected environments')
-                  : t('No tags found')}
-              </p>
-            )}
-          </SidebarSection.Content>
-        </SidebarSection.Wrap>
+                  return (
+                    <GroupTagDistributionMeter
+                      key={tag.key}
+                      tag={tag.key}
+                      totalValues={topValuesTotal}
+                      topValues={topValues}
+                      name={tag.name}
+                      organization={organization}
+                      projectId={projectId}
+                      group={group}
+                      onTagClick={(title, value) => {
+                        trackAdvancedAnalyticsEvent(
+                          'issue_group_details.tags_distribution.bar.clicked',
+                          {
+                            tag: title,
+                            value: value.name,
+                            platform: project.platform,
+                            is_mobile: isMobilePlatform(project?.platform),
+                            organization,
+                          }
+                        );
+                      }}
+                    />
+                  );
+                })
+              )}
+              {group.tags.length === 0 && (
+                <p data-test-id="no-tags">
+                  {environments.length
+                    ? t('No tags found in the selected environments')
+                    : t('No tags found')}
+                </p>
+              )}
+            </SidebarSection.Content>
+          </SidebarSection.Wrap>
+        )}
 
         {this.renderParticipantData()}
         {hasIssueActionsV2 && this.renderSeenByList()}

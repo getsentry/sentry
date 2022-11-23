@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
+import * as Layout from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
@@ -40,16 +41,18 @@ export default class EditMonitor extends AsyncView<Props, State> {
     }
 
     return (
-      <Fragment>
-        <h1>Edit Monitor</h1>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <h1>{t('Edit Monitor')}</h1>
 
-        <MonitorForm
-          monitor={monitor}
-          apiMethod="PUT"
-          apiEndpoint={`/monitors/${monitor.id}/`}
-          onSubmitSuccess={this.onSubmitSuccess}
-        />
-      </Fragment>
+          <MonitorForm
+            monitor={monitor}
+            apiMethod="PUT"
+            apiEndpoint={`/monitors/${monitor.id}/`}
+            onSubmitSuccess={this.onSubmitSuccess}
+          />
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

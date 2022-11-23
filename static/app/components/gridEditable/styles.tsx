@@ -68,20 +68,26 @@ export const Body = styled(({children, ...props}) => (
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
  */
-export const Grid = styled('table')`
+export const Grid = styled('table')<{height?: string | number; scrollable?: boolean}>`
   position: inherit;
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
   grid-template-columns: repeat(auto-fill, minmax(50px, auto));
-
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
 
   z-index: ${Z_INDEX_GRID};
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: ${p => (p.scrollable ? 'scroll' : 'hidden')};
+  ${p =>
+    p.height
+      ? `
+      height: 100%;
+      max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height}
+      `
+      : ''}
 `;
 
 export const GridRow = styled('tr')`
@@ -104,7 +110,7 @@ export const GridHead = styled('thead')`
   display: contents;
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean}>`
+export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -123,6 +129,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   font-weight: 600;
   text-transform: uppercase;
   user-select: none;
+
+  ${p => (p.sticky ? `position: sticky; top: 0;` : '')}
 
   a,
   div,

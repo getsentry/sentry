@@ -15,6 +15,7 @@ const ORG_FEATURES = [
 const dynamicSamplingBiases = [
   {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
   {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+  {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
   {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
 ];
 
@@ -52,7 +53,7 @@ describe('Dynamic Sampling', function () {
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
 
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
 
     expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
 
@@ -70,6 +71,13 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeDevEnvironments).toBeEnabled();
     expect(prioritizeDevEnvironments).toBeChecked();
 
+    const prioritizeKeyTransactions = screen.getByRole('checkbox', {
+      name: 'Prioritize key transactions',
+    });
+
+    expect(prioritizeKeyTransactions).toBeEnabled();
+    expect(prioritizeKeyTransactions).toBeChecked();
+
     const ignoreHealthChecks = screen.getByRole('checkbox', {
       name: 'Ignore health checks',
     });
@@ -78,7 +86,7 @@ describe('Dynamic Sampling', function () {
     expect(ignoreHealthChecks).toBeChecked();
   });
 
-  it('renders disabled default UI, when user has not permission to edit', function () {
+  it('renders disabled default UI, when user has not permission to edit', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -103,14 +111,16 @@ describe('Dynamic Sampling', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
-
     const prioritizenewReleases = screen.getByRole('checkbox', {
       name: 'Prioritize new releases',
     });
 
     expect(prioritizenewReleases).toBeDisabled();
     expect(prioritizenewReleases).toBeChecked();
+    userEvent.hover(prioritizenewReleases);
+    expect(
+      await screen.findByText('You do not have permission to edit this setting')
+    ).toBeInTheDocument();
 
     const prioritizeDevEnvironments = screen.getByRole('checkbox', {
       name: 'Prioritize dev environments',
@@ -118,6 +128,13 @@ describe('Dynamic Sampling', function () {
 
     expect(prioritizeDevEnvironments).toBeDisabled();
     expect(prioritizeDevEnvironments).toBeChecked();
+
+    const prioritizeKeyTransactions = screen.getByRole('checkbox', {
+      name: 'Prioritize key transactions',
+    });
+
+    expect(prioritizeKeyTransactions).toBeDisabled();
+    expect(prioritizeKeyTransactions).toBeChecked();
 
     const ignoreHealthChecks = screen.getByRole('checkbox', {
       name: 'Ignore health checks',
@@ -154,6 +171,7 @@ describe('Dynamic Sampling', function () {
           dynamicSamplingBiases: [
             {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
           ],
         },

@@ -1,34 +1,24 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const fs = require('fs').promises;
+const fs = require('fs');
+const path = require('path');
 
-class TestBalancer {
-  constructor(globalConfig, options) {
-    this._globalConfig = globalConfig;
-    this._options = options;
-
-    this.results = new Map();
+module.exports = results => {
+  if (!results.success) {
+    throw new Error('Balance reporter requires all tests to succeed.');
   }
 
-  onTestFileResult(test) {
-    const path = test.path.replace(this._globalConfig.rootDir, '');
-    this.results.set(path, test.duration);
+  const cwd = process.cwd();
+  const testValues = {};
+
+  for (const test of results.testResults) {
+    testValues[test.testFilePath.replace(cwd, '')] = test.perfStats.runtime;
   }
 
-  onRunComplete(_contexts, results) {
-    // results.success always returns false for me?
-    if (
-      results.numTotalTests === 0 ||
-      results.numFailedTests > 0 ||
-      !this._options.enabled ||
-      !this._options.resultsPath
-    ) {
-      return;
-    }
+  fs.writeFileSync(
+    path.resolve(__dirname, 'jest-balance.json'),
+    JSON.stringify(testValues)
+  );
 
-    const data = JSON.stringify(Object.fromEntries(this.results), null, 2);
-    fs.writeFile(this._options.resultsPath, data);
-  }
-}
-
-module.exports = TestBalancer;
+  return results;
+};

@@ -511,6 +511,7 @@ class SearchVisitor(NodeVisitor):
             or is_measurement(key)
             or is_span_op_breakdown(key)
             or self.builder.get_field_type(key) == "number"
+            or self.is_duration_key(key)
         )
 
     def is_duration_key(self, key):
@@ -705,7 +706,9 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
+            return self._handle_numeric_filter(
+                search_key, "!=" if negated else "=", [search_value.text, ""]
+            )
 
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):

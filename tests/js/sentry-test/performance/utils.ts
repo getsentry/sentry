@@ -11,7 +11,6 @@ export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 type AddSpanOpts = {
   endTimestamp: number;
   startTimestamp: number;
-  childOpts?: AddSpanOpts[];
   description?: string;
   op?: string;
   problemSpan?: ProblemSpan;
@@ -86,32 +85,40 @@ export class TransactionEventBuilder {
     };
   }
 
-  addSpan(mSpan: MockSpan, parentSpanId?: string) {
+  generateSpanId() {
     // Convert the num of spans to a hex string to get its ID
-    const spanId = (this.#spans.length + 1).toString(16).padStart(16, '0');
-    const {span} = mSpan;
-    span.span_id = spanId;
-    span.trace_id = this.TRACE_ID;
-    span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
+    return (this.#spans.length + 1).toString(16).padStart(16, '0');
+  }
 
-    this.#event.entries[0].data.push(span);
+  addSpan(mockSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
+    for (let i = 0; i < numSpans; i++) {
+      const spanId = this.generateSpanId();
+      const {span} = mockSpan;
+      const clonedSpan = {...span};
 
-    switch (mSpan.problemSpan) {
-      case ProblemSpan.PARENT:
-        this.#event.perfProblem?.parentSpanIds.push(spanId);
-        break;
-      case ProblemSpan.OFFENDER:
-        this.#event.perfProblem?.offenderSpanIds.push(spanId);
-        break;
-      default:
-        break;
+      clonedSpan.span_id = spanId;
+      clonedSpan.trace_id = this.TRACE_ID;
+      clonedSpan.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
+
+      this.#spans.push(clonedSpan);
+
+      switch (mockSpan.problemSpan) {
+        case ProblemSpan.PARENT:
+          this.#event.perfProblem?.parentSpanIds.push(spanId);
+          break;
+        case ProblemSpan.OFFENDER:
+          this.#event.perfProblem?.offenderSpanIds.push(spanId);
+          break;
+        default:
+          break;
+      }
+
+      if (clonedSpan.timestamp > this.#event.endTimestamp) {
+        this.#event.endTimestamp = clonedSpan.timestamp;
+      }
+
+      mockSpan.children.forEach(child => this.addSpan(child, 1, spanId));
     }
-
-    if (span.timestamp > this.#event.endTimestamp) {
-      this.#event.endTimestamp = span.timestamp;
-    }
-
-    mSpan.children.forEach(child => this.addSpan(child, spanId));
 
     return this;
   }
@@ -137,9 +144,8 @@ export class MockSpan {
    * @param opts.description The description of the span
    * @param opts.status Optional span specific status, defaults to 'ok'
    * @param opts.problemSpan If this span should be part of a performance problem, indicates the type of problem span (i.e ProblemSpan.OFFENDER, ProblemSpan.PARENT)
-   * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `childOpts`, this will be handled automatically and you do not need to provide an ID.
-   * Defaults to the root span's ID.
-   * @param opts.childOpts An array containing options for direct children of the current span. Will create direct child spans for each set of options provided
+   * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `addChild` on the `MockSpan` object,
+   * this will be handled automatically and you do not need to provide an ID. Defaults to the root span's ID.
    */
   constructor(opts: AddSpanOpts) {
     const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
@@ -180,5 +186,32 @@ export class MockSpan {
     }
 
     return this;
+  }
+
+  /**
+   * Allows you to create a nested group of duplicate mock spans by duplicating the current span. This is useful for simulating the nested 'autogrouped' condition on the span tree.
+   * Will create `depth` spans, each span being a child of the previous.
+   * @param depth
+   */
+  addDuplicateNestedChildren(depth = 1) {
+    let currentSpan: MockSpan = this;
+
+    for (let i = 0; i < depth; i++) {
+      currentSpan.addChild(currentSpan.getOpts());
+      currentSpan = currentSpan.children[0];
+    }
+
+    return this;
+  }
+
+  getOpts() {
+    return {
+      startTimestamp: this.span.start_timestamp,
+      endTimestamp: this.span.timestamp,
+      op: this.span.op,
+      description: this.span.description,
+      status: this.span.status,
+      problemSpan: this.problemSpan,
+    };
   }
 }

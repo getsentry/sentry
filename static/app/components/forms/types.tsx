@@ -89,11 +89,6 @@ type BaseField = {
 
   showHelpInTooltip?: boolean;
 
-  /**
-   * Should show a "return key" icon in input?
-   */
-  showReturnButton?: boolean;
-
   stacked?: boolean;
 
   transformInput?: (value: FieldValue) => FieldValue;

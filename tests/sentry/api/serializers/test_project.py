@@ -328,6 +328,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasProfiles"] is True
 
+    def test_has_replays_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasReplays"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasReplays"] is True
+
     def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()
@@ -494,7 +504,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] == 75.63453
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_not_called()
+        assert check_has_health_data.call_count == 0
 
     @mock.patch("sentry.api.serializers.models.project.release_health.check_has_health_data")
     @mock.patch(
@@ -523,7 +533,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] is None
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_called()
+        assert check_has_health_data.call_count == 1
 
 
 @region_silo_test

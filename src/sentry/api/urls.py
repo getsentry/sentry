@@ -4,11 +4,11 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
-    OrganizationProfilingProfilesEndpoint,
-    OrganizationProfilingStatsEndpoint,
-    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.organization_sentry_function_details import (
@@ -419,13 +419,12 @@ from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -940,6 +939,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
                     OrganizationCodeMappingsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mappings",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/derive-code-mappings/$",
+                    OrganizationDeriveCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-derive-code-mappings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
@@ -1641,24 +1645,9 @@ urlpatterns = [
                     include(
                         [
                             url(
-                                r"^profiles/$",
-                                OrganizationProfilingProfilesEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-profiles",
-                            ),
-                            url(
                                 r"^filters/$",
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
-                            ),
-                            url(
-                                r"^transactions/$",
-                                OrganizationProfilingTransactionsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-transactions",
-                            ),
-                            url(
-                                r"^stats/$",
-                                OrganizationProfilingStatsEndpoint.as_view(),
-                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),
@@ -2085,6 +2074,11 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-preview",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-actions/$",
+                    ProjectRuleActionsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-actions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
                     ProjectRuleGroupHistoryIndexEndpoint.as_view(),
                     name="sentry-api-0-project-rule-group-history-index",
@@ -2098,16 +2092,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
                     ProjectRuleTaskDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-task-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",
-                    ProjectSearchesEndpoint.as_view(),
-                    name="sentry-api-0-project-searches",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
-                    ProjectSearchDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-search-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",

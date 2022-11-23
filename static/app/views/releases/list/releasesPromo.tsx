@@ -287,7 +287,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
                       >
                         <MenuItemFooterWrapper>
                           <IconContainer>
-                            <IconAdd color="purple300" isCircled size="14px" />
+                            <IconAdd color="activeText" isCircled size="14px" />
                           </IconContainer>
                           <Label>{t('Create New Integration')}</Label>
                         </MenuItemFooterWrapper>

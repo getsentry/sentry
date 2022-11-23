@@ -9,7 +9,9 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,6 +20,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
@@ -62,13 +65,12 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasSuspectSpansView = organization.features?.includes(
-    'performance-suspect-spans-view'
-  );
   const hasAnomalyDetection = organization.features?.includes(
     'performance-anomaly-detection-ui'
   );
-  const hasSessionReplay = organization.features?.includes('session-replay-ui');
+
+  const hasSessionReplay =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -98,6 +100,12 @@ function TransactionHeader({
     },
     [hasWebVitals, location, projects, eventView]
   );
+
+  const replaysCount = useReplaysCount({
+    transactionNames: transactionName,
+    organization,
+    project,
+  })[transactionName];
 
   return (
     <Layout.Header>
@@ -172,13 +180,16 @@ function TransactionHeader({
           const renderWebVitals = getWebVitals(!!hasMeasurements);
 
           return (
-            <TabList hideBorder>
+            <TabList
+              hideBorder
+              outerWrapStyles={{
+                gridColumn: '1 / -1',
+              }}
+            >
               <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
               <Item key={Tab.Events}>{t('All Events')}</Item>
               <Item key={Tab.Tags}>{t('Tags')}</Item>
-              <Item key={Tab.Spans} hidden={!hasSuspectSpansView}>
-                {t('Spans')}
-              </Item>
+              <Item key={Tab.Spans}>{t('Spans')}</Item>
               <Item
                 key={Tab.Anomalies}
                 textValue={t('Anomalies')}
@@ -196,6 +207,7 @@ function TransactionHeader({
               </Item>
               <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
                 {t('Replays')}
+                <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
               </Item>
             </TabList>

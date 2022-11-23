@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import logging
 import random
+import time
+from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Generator, Mapping, Optional, Sequence
+from threading import Lock
+from typing import Any, Generator, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -54,12 +59,34 @@ def _get_task_kwargs(message: Message) -> Optional[Mapping[str, Any]]:
             return get_task_kwargs_for_message(message.value())
 
 
+__metrics: MutableMapping[Tuple[int, str], int] = defaultdict(int)
+__metric_record_freq_sec = 1.0
+__last_flush = time.time()
+__lock = Lock()
+
+
 def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
+    """
+    Records the number of messages processed per partition. Metric is flushed every second.
+    """
+    global __metrics
+    global __last_flush
     event_type = "transactions" if task_kwargs["group_id"] is None else "errors"
-    metrics.incr(
-        _MESSAGES_METRIC,
-        tags={"partition": partition, "type": event_type},
-    )
+    __metrics[(partition, event_type)] += 1
+
+    current_time = time.time()
+    if current_time - __last_flush > __metric_record_freq_sec:
+        with __lock:
+            metrics_to_send = __metrics
+            __metrics = defaultdict(int)
+            __last_flush = current_time
+        for ((partition, event_type), count) in metrics_to_send.items():
+            metrics.incr(
+                _MESSAGES_METRIC,
+                amount=count,
+                tags={"partition": partition, "type": event_type},
+                sample_rate=1,
+            )
 
 
 def dispatch_post_process_group_task(
@@ -102,7 +129,7 @@ def _get_task_kwargs_and_dispatch(message: Message) -> None:
     dispatch_post_process_group_task(**task_kwargs)
 
 
-class PostProcessForwarderWorker(AbstractBatchWorker):
+class PostProcessForwarderWorker(AbstractBatchWorker):  # type: ignore
     """
     Implementation of the AbstractBatchWorker which would be used for post process forwarder.
     The current implementation creates a thread pool worker based on the concurrency parameter
@@ -115,7 +142,7 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
         logger.info(f"Starting post process forwarder with {concurrency} threads")
         self.__executor = ThreadPoolExecutor(max_workers=concurrency)
 
-    def process_message(self, message: Message) -> Optional[Future]:
+    def process_message(self, message: Message) -> Optional[Future[None]]:
         """
         Process the message received by the consumer and return the Future associated with the message. The future
         is stored in the batch of batching_kafka_consumer and provided as an argument to flush_batch. If None is
@@ -123,7 +150,7 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
         """
         return self.__executor.submit(_get_task_kwargs_and_dispatch, message)
 
-    def flush_batch(self, batch: Optional[Sequence[Future]]) -> None:
+    def flush_batch(self, batch: Optional[Sequence[Future[None]]]) -> None:
         """
         For all work which was submitted to the thread pool executor, we need to ensure that if an exception was
         raised, then we raise it in the main thread. This is needed so that processing can be stopped in such

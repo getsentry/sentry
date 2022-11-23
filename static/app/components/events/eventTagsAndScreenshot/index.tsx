@@ -1,18 +1,33 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
+import Link from 'sentry/components/links/link';
+import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
+import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
 import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
+
+const SCREENSHOT_NAMES = [
+  'screenshot.jpg',
+  'screenshot.png',
+  'screenshot-1.jpg',
+  'screenshot-1.png',
+  'screenshot-2.jpg',
+  'screenshot-2.png',
+];
 
 type Props = Omit<
   React.ComponentProps<typeof Tags>,
@@ -37,15 +52,16 @@ function EventTagsAndScreenshots({
 }: Props) {
   const {tags = []} = event;
 
-  const screenshot = attachments.find(
-    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
-  );
+  const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
 
-  if (!tags.length && !hasContext && (isShare || !screenshot)) {
+  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+
+  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
   }
 
-  const showScreenshot = !isShare && !!screenshot;
+  const showScreenshot = !isShare && !!screenshots.length;
+  const screenshot = screenshots[screenshotInFocus];
   // Check for context bailout condition. No context is rendered if only user is provided
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
@@ -82,27 +98,27 @@ function EventTagsAndScreenshots({
               }
             )
           }
+          attachments={screenshots}
+          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}
     );
   }
 
+  const screenshotLink = (
+    <Link
+      to={{
+        pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: {...location.query, types: SCREENSHOT_TYPE},
+      }}
+    >
+      {tn('Screenshot', 'Screenshots', screenshots.length)}
+    </Link>
+  );
+
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      {showScreenshot && (
-        <ScreenshotWrapper>
-          <Screenshot
-            organization={organization}
-            eventId={event.id}
-            projectSlug={projectSlug}
-            screenshot={screenshot}
-            onDelete={onDeleteScreenshot}
-            openVisualizationModal={handleOpenVisualizationModal}
-          />
-        </ScreenshotWrapper>
-      )}
-      {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
         {hasEventContext && (
           <TagsHighlightWrapper>
@@ -118,6 +134,34 @@ function EventTagsAndScreenshots({
           />
         )}
       </TagWrapper>
+      {showScreenshot && (
+        <div>
+          <ScreenshotWrapper>
+            <StyledScreenshotDataSection
+              data-test-id="screenshot-data-section"
+              title={tct('[link]', {
+                link: screenshotLink,
+              })}
+              description={t(
+                'This image was captured around the time that the event occurred.'
+              )}
+            >
+              <Screenshot
+                organization={organization}
+                eventId={event.id}
+                projectSlug={projectSlug}
+                screenshot={screenshot}
+                onDelete={onDeleteScreenshot}
+                onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
+                onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
+                screenshotInFocus={screenshotInFocus}
+                totalScreenshots={screenshots.length}
+                openVisualizationModal={handleOpenVisualizationModal}
+              />
+            </StyledScreenshotDataSection>
+          </ScreenshotWrapper>
+        </div>
+      )}
     </Wrapper>
   );
 }
@@ -140,18 +184,13 @@ const Wrapper = styled(DataSection)<{
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>
-      p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
+      p.showScreenshot && p.showTags ? 'auto max-content' : '1fr'};
   }
 `;
 
-const VerticalDivider = styled('div')`
-  background: ${p => p.theme.innerBorder};
-  height: 1px;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    height: 100%;
-    width: 1px;
+const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
+  h3 a {
+    color: ${p => p.theme.linkColor};
   }
 `;
 

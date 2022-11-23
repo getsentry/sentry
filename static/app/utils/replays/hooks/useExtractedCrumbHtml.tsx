@@ -149,7 +149,9 @@ class BreadcrumbReferencesPlugin {
   }
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    if (event.type === EventType.IncrementalSnapshot) {
+    if (event.type === EventType.FullSnapshot) {
+      this.extractNextCrumb({replayer});
+    } else if (event.type === EventType.IncrementalSnapshot) {
       this.extractCurrentCrumb(event, {replayer});
       this.extractNextCrumb({replayer});
     }

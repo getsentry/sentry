@@ -16,11 +16,11 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):  # type: ignore
 
     log_path: str | None = None
 
-    datadog_prefix: str | None = None
+    metrics_prefix: str | None = None
 
     def request(self, *args: Any, **kwargs: Any) -> Response:
         metrics.incr(
-            f"{self.datadog_prefix}.http_request",
+            f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
             tags={str(self.integration_type): self.name},
         )

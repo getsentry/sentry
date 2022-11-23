@@ -48,7 +48,12 @@ import {
   PROJECT_PERFORMANCE_TYPE,
 } from 'sentry/views/performance/utils';
 
-import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
+import {
+  getReleaseParams,
+  isReleaseArchived,
+  ReleaseBounds,
+  searchReleaseVersion,
+} from '../../utils';
 import {ReleaseContext} from '..';
 
 import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
@@ -127,7 +132,7 @@ class ReleaseOverview extends AsyncView<Props> {
       id: undefined,
       version: 2,
       name: `Release ${formatVersion(version)}`,
-      query: `event.type:transaction release:${version}`,
+      query: `event.type:transaction ${searchReleaseVersion(version)}`,
       fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
       orderby: '-failure_count',
       range: statsPeriod || undefined,
@@ -438,7 +443,10 @@ class ReleaseOverview extends AsyncView<Props> {
                 errored: allReleasesErrored,
                 response: allReleases,
               }) => (
-                <SessionsRequest {...sessionsRequestProps} query={`release:"${version}"`}>
+                <SessionsRequest
+                  {...sessionsRequestProps}
+                  query={searchReleaseVersion(version)}
+                >
                   {({
                     loading: thisReleaseLoading,
                     reloading: thisReleaseReloading,

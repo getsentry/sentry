@@ -11,7 +11,7 @@ import {SpanSortOthers} from 'sentry/views/performance/transactionSummary/transa
 
 const initializeData = () => {
   const data = _initializeData({
-    features: ['performance-view', 'performance-suspect-spans-view'],
+    features: ['performance-view'],
   });
 
   act(() => ProjectsStore.loadInitialData(data.organization.projects));

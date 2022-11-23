@@ -249,6 +249,7 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
   rowHeight: number;
   scrollContainer: HTMLElement | null;
   tree: T[];
+  expanded?: boolean;
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
@@ -292,7 +293,11 @@ export function useVirtualizedTree<T extends TreeLike>(
   const latestStateRef = useRef<typeof state>(state);
   latestStateRef.current = state;
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(props.tree, props.skipFunction);
+    const initialTree = VirtualizedTree.fromRoots(
+      props.tree,
+      props.expanded,
+      props.skipFunction
+    );
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -315,6 +320,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   useEffectAfterFirstRender(() => {
     const newTree = VirtualizedTree.fromRoots(
       props.tree,
+      props.expanded,
       props.skipFunction,
       expandedHistory.current
     );
@@ -353,6 +359,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     flattenedHistory.current = newTree.flattened;
   }, [
     props.tree,
+    props.expanded,
     props.skipFunction,
     props.sortFunction,
     props.rowHeight,

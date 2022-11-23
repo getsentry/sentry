@@ -89,8 +89,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -122,8 +120,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />,
@@ -153,8 +149,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -179,8 +173,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached
       />
@@ -213,8 +205,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />

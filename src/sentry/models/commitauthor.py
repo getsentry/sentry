@@ -1,7 +1,10 @@
+from typing import List
+
 from django.db import models
 
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 
 class CommitAuthorManager(BaseManager):
@@ -32,12 +35,13 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    def find_users(self):
-        from sentry.models import User
+    def find_users(self) -> List["APIUser"]:
+        from sentry.models import OrganizationMember
 
-        return User.objects.filter(
-            emails__email__iexact=self.email,
-            emails__is_verified=True,
-            sentry_orgmember_set__organization=self.organization_id,
-            is_active=True,
+        users = user_service.get_many_by_email(self.email)
+        org_member_user_ids = set(
+            OrganizationMember.objects.filter(
+                organization_id=self.organization_id, user_id__in={u.id for u in users}
+            ).values_list("user_id", flat=True)
         )
+        return [u for u in users if u.id in org_member_user_ids]

@@ -4,7 +4,6 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import BitField
-from sentry import options
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -13,6 +12,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -99,9 +99,8 @@ class AuthProvider(Model):
 
     def get_scim_url(self):
         if self.flags.scim_enabled:
-            url_prefix = options.get("system.url-prefix")
             # the SCIM protocol doesn't use trailing slashes in URLs
-            return f"{url_prefix}/api/0/organizations/{self.organization.slug}/scim/v2"
+            return absolute_uri(f"api/0/organizations/{self.organization.slug}/scim/v2")
 
         else:
             return None

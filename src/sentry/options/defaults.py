@@ -342,6 +342,10 @@ register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORI
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
+# Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
+# Set this value of the fraction of projects that you want to use it for.
+register("processing.sourcemapcache-processor", default=0.0)  # unused
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -406,9 +410,7 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[])
 
-# Sample rate for opting in orgs into transaction metrics extraction.
-# NOTE: If this value is > 0.0, the extraction feature will be enabled for the
-#       given fraction of orgs even if the corresponding feature flag is disabled.
+# [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Sample rate for opting in orgs into the new transaction name handling.
@@ -431,11 +433,6 @@ register("subscriptions-query.sample-rate", default=0.01)
 # This is to allow gradual rollout of metrics collection for symbolication requests and can be
 # removed once it is fully rolled out.
 register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
-
-# This is to enable the ingestion of suspect spans by project ids.
-register("performance.suspect-spans-ingestion-projects", default={})
-# This is to enable the ingestion of suspect spans by project groups.
-register("performance.suspect-spans-ingestion.rollout-rate", default=0)
 
 # Sampling rate for controlled rollout of a change where ignest-consumer spawns
 # special save_event task for transactions avoiding the preprocess.
@@ -464,9 +461,6 @@ register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unus
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
-
-# switch all metrics usage over to using strings for tag values
-register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
@@ -540,3 +534,9 @@ register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
+
+# Controls whether we should attempt to derive code mappings for projects during post processing.
+register("post_process.derive-code-mappings", default=True)
+# Allows adjusting the percentage of orgs we test under the dry run mode
+register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
+register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)

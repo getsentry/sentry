@@ -13,7 +13,8 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Team
+    from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
 
@@ -159,7 +160,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[
         Tuple[
             "Rule",
-            Sequence[Union["Team", "User"]],
+            Sequence[Union["Team", "APIUser"]],
             Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
         ]
     ]:
@@ -304,7 +305,8 @@ def process_resource_change(instance, change, **kwargs):
         READ_CACHE_DURATION,
     )
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
-    GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+    if len(autoassignment_types) > 0:
+        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
 
 
 # Signals update the cached reads used in post_processing

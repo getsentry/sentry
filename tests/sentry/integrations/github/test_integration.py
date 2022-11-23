@@ -1,4 +1,4 @@
-import os
+import logging
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
@@ -9,13 +9,13 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
+from sentry.integrations.utils.repo import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
-from sentry.utils import json
+from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
     "foo": {
@@ -23,7 +23,23 @@ TREE_RESPONSES = {
         "body": {
             # The latest sha for a specific branch
             "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
-            "tree": [],
+            "tree": [
+                {
+                    "path": ".artifacts",
+                    "mode": "040000",
+                    "type": "tree",  # A directory
+                    "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
+                },
+                {
+                    "path": "src/sentry/api/endpoints/auth_login.py",
+                    "mode": "100644",
+                    "type": "blob",  # A file
+                    "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
+                    "size": 2711,
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
+                },
+            ],
             "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
             "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
         },
@@ -37,15 +53,6 @@ TREE_RESPONSES = {
         "body": {"message": "Not Found"},
     },
 }
-
-with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_tree.json")
-) as fd:
-    sentry_tree = json.load(fd)
-
-# The tree responses have a lot more fields but this is the minimum required
-for path in sentry_tree:
-    TREE_RESPONSES["foo"]["body"]["tree"].append({"type": "blob", "path": path})
 
 
 class GitHubPlugin(IssueTrackingPlugin2):
@@ -109,6 +116,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "name": "baz",
                 "full_name": "Test-Organization/baz",
                 "default_branch": "master",
+            },
+            "archived": {
+                "archived": True,
             },
         }
         api_url = f"{self.base_url}/installation/repositories"
@@ -379,7 +389,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
@@ -394,7 +404,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
@@ -411,7 +421,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
@@ -440,7 +450,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
@@ -467,7 +477,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -498,7 +508,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
@@ -507,7 +517,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_message_from_error(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
         base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
@@ -569,64 +579,51 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_derive_code_mappings(self):
+    def test_get_trees_for_org(self):
         """Fetch the tree representation of a repo"""
+        expected_trees = {
+            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
+            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
+            "Test-Organization/foo": RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
+            ),
+        }
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization)
+        installation = integration.get_installation(self.organization.id)
+
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            trees = installation.get_client().get_trees_for_org(self.organization.slug)
-            # This check is useful since it will be available in the GCP logs
-            assert (
-                self._caplog.records[0].message
-                == "The Github App does not have access to Test-Organization/baz."
+            assert not cache.get("githubtrees:repositories:Test-Organization")
+            # This allows checking for caching related output
+            self._caplog.set_level(logging.INFO, logger="sentry")
+            trees = installation.get_trees_for_org()
+
+            # These checks are useful since they will be available in the GCP logs
+            expected_msg = "The Github App does not have access to Test-Organization/baz."
+            assert self._caplog.records[8].message == expected_msg
+            assert self._caplog.records[8].levelname == "WARNING"
+            # XXX: We would need to patch timezone to make sure the time is always the same
+            assert self._caplog.records[9].message.startswith("Caching trees for Test-Organization")
+            assert self._caplog.records[9].levelname == "INFO"
+
+            assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
+                {"full_name": "Test-Organization/foo", "default_branch": "master"},
+                {"full_name": "Test-Organization/bar", "default_branch": "main"},
+                {"full_name": "Test-Organization/baz", "default_branch": "master"},
+            ]
+            assert cache.get("githubtrees:repo:Test-Organization/foo") == RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
             )
-            assert self._caplog.records[0].levelname == "ERROR"
 
-        expected_code_mappings = [
-            CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
-            CodeMapping("Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"),
-        ]
+            assert trees == expected_trees
 
-        # Case 1 - No matches
-        stacktraces = [
-            "getsentry/billing/tax/manager.py",
-            "requests/models.py",
-            "urllib3/connectionpool.py",
-            "ssl.py",
-        ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
-        assert code_mappings == []
+            # Calling a second time should produce the same results
+            trees = installation.get_trees_for_org()
+            assert self._caplog.records[10].message == "Using cached trees for Test-Organization."
+            assert self._caplog.records[10].levelname == "INFO"
 
-        # Case 2 - Failing to derive sentry_plugins since we match more than one file
-        stacktraces = [
-            # More than one file matches for this, thus, no stack traces will be produced
-            # - "src/sentry_plugins/slack/client.py",
-            # - "src/sentry/integrations/slack/client.py",
-            "sentry_plugins/slack/client.py",
-        ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
-        assert code_mappings == []
-
-        # Case 3 - We derive sentry_plugins because we derive sentry first
-        stacktraces = [
-            "sentry/identity/oauth2.py",
-            # This file matches two files in the repo, however, because we first
-            # derive the sentry code mapping we can exclude one of the files
-            "sentry_plugins/slack/client.py",
-        ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
-        assert code_mappings == expected_code_mappings
-
-        # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
-        stacktraces = [
-            # This file matches two files in the repo and because we process it
-            # before we derive
-            "sentry_plugins/slack/client.py",
-            "sentry/identity/oauth2.py",
-        ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
-        # The reprocess feature allows determinging the sentry_plugins code mappings
-        assert code_mappings == expected_code_mappings
+            assert trees == expected_trees

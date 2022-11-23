@@ -28,7 +28,7 @@ module.exports = {
 
     await Promise.all(
       DISPATCHES.map(({workflow, pathFilterName}) => {
-        return github.actions.createWorkflowDispatch({
+        return github.rest.actions.createWorkflowDispatch({
           owner: 'getsentry',
           repo: 'getsentry',
           workflow_id: workflow,

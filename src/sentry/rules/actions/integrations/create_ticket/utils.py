@@ -89,7 +89,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
 
         installation = integration.get_installation(organization.id)
-        data["title"] = event.title
+        data["title"] = installation.get_group_title(event.group, event)
         data["description"] = build_description(event, rule_id, installation, generate_footer)
 
         if data.get("dynamic_form_fields"):

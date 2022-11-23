@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-const inlineStyle = p =>
+import {FieldGroupProps} from './types';
+
+type FieldDescriptionProps = Pick<FieldGroupProps, 'inline'>;
+
+const inlineStyle = (p: FieldDescriptionProps) =>
   p.inline
     ? css`
         width: 50%;
@@ -14,7 +18,7 @@ const inlineStyle = p =>
         margin-bottom: ${space(1)};
       `;
 
-const FieldDescription = styled('label')<{inline?: boolean}>`
+const FieldDescription = styled('label')<FieldDescriptionProps>`
   font-weight: normal;
   margin-bottom: 0;
 

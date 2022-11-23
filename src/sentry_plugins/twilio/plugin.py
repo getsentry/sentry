@@ -95,8 +95,6 @@ class TwilioConfigurationForm(forms.Form):
 
 
 class TwilioPlugin(CorePluginMixin, NotificationPlugin):
-    author = "Matt Robenolt"
-    author_url = "https://github.com/mattrobenolt"
     version = sentry.VERSION
     description = DESCRIPTION
     resource_links = (

@@ -153,12 +153,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:
-        if not (
-            features.has("organizations:metrics", organization, actor=request.user)
-            or features.has("organizations:dashboards-releases", organization, actor=request.user)
-        ):
-            return Response(status=404)
-
         projects = self.get_projects(request, organization)
 
         def data_fn(offset: int, limit: int):

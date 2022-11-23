@@ -3,10 +3,15 @@ import time
 
 import responses
 
+from sentry.event_manager import EventManager
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
+from sentry.types.issues import GroupType
 from sentry.utils import json
+from sentry.utils.samples import load_data
 
 
 class MsTeamsNotifyActionTest(RuleTestCase):
@@ -63,6 +68,62 @@ class MsTeamsNotifyActionTest(RuleTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
+
+    @responses.activate
+    def test_applies_correctly_performance_issue(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        rule = self.get_rule(
+            data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
+        )
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/nb/activities",
+            status=200,
+            json={},
+        )
+
+        with self.feature("organizations:performance-issues"):
+            results[0].callback(event, futures=[])
+
+        data = json.loads(responses.calls[0].request.body)
+        assert "attachments" in data
+        attachments = data["attachments"]
+        assert len(attachments) == 1
+
+        title_card = attachments[0]["content"]["body"][0]
+        description = attachments[0]["content"]["body"][1]
+        assert (
+            title_card["text"]
+            == f"[N+1 Query](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+        )
+        assert (
+            description["text"]
+            == "db - SELECT `books\\_author`.`id`, `books\\_author`.`name` FROM `books\\_author` WHERE `books\\_author`.`id` = %s LIMIT 21"
+        )
 
     def test_render_label(self):
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})

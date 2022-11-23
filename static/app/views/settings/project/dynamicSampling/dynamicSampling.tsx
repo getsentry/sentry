@@ -42,6 +42,10 @@ const knowBiases = {
     label: t('Prioritize dev environments'),
     help: t('Captures more traces from environments that contain “dev” and “test”'),
   },
+  [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
+    label: t('Prioritize key transactions'),
+    help: t('Captures your most important transactions'),
+  },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
     label: t('Ignore health checks'),
     help: t('Discards your health checks transactions'),
@@ -116,7 +120,7 @@ export function DynamicSampling({project}: Props) {
         <SettingsPageHeader
           title={
             <Fragment>
-              {t('Dynamic Sampling')} <FeatureBadge type="beta" />
+              {t('Dynamic Sampling')} <FeatureBadge type="new" />
             </Fragment>
           }
           action={<SamplingFeedback />}

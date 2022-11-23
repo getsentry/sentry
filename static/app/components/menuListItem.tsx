@@ -2,9 +2,9 @@ import {forwardRef as reactForwardRef, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import {FormSize, Theme} from 'sentry/utils/theme';
 
@@ -44,10 +44,6 @@ export type MenuListItemProps = {
    */
   priority?: Priority;
   /**
-   * Whether to show a line divider below this item
-   */
-  showDivider?: boolean;
-  /**
    * Determines the item's font sizes and internal paddings.
    */
   size?: FormSize;
@@ -79,6 +75,7 @@ interface OtherProps {
   innerWrapProps?: object;
   isFocused?: boolean;
   labelProps?: object;
+  showDivider?: boolean;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
@@ -127,6 +124,10 @@ function BaseMenuListItem({
           size={size}
           {...innerWrapProps}
         >
+          <StyledInteractionStateLayer
+            isHovered={isFocused}
+            higherOpacity={priority !== 'default'}
+          />
           {leadingItems && (
             <LeadingItems
               disabled={disabled}
@@ -136,13 +137,14 @@ function BaseMenuListItem({
               {leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap
-            isFocused={isFocused}
-            showDivider={defined(details) || showDivider}
-            size={size}
-          >
+          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
             <LabelWrap>
-              <Label id={labelId} aria-hidden="true" {...labelProps}>
+              <Label
+                id={labelId}
+                data-test-id="menu-list-item-label"
+                aria-hidden="true"
+                {...labelProps}
+              >
                 {label}
               </Label>
               {details && (
@@ -215,18 +217,6 @@ function getTextColor({
   }
 }
 
-function getFocusBackground({theme, priority}: {priority: Priority; theme: Theme}) {
-  switch (priority) {
-    case 'primary':
-      return theme.purple100;
-    case 'danger':
-      return theme.red100;
-    case 'default':
-    default:
-      return theme.hover;
-  }
-}
-
 export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
@@ -252,33 +242,29 @@ export const InnerWrap = styled('div', {
   }
   ${p => p.disabled && `cursor: default;`}
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
   ${p =>
     p.isFocused &&
     `
       z-index: 1;
-
-      ::before, ::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-
       /* Background to hide the previous item's divider */
       ::before {
-        background: ${p.theme.background};
-        z-index: -1;
-      }
-
-      /* Hover/focus background */
-      ::after {
-        background: ${getFocusBackground(p)};
-        border-radius: inherit;
-        z-index: -1;
+        background: ${p.theme.backgroundElevated};
       }
     `}
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  z-index: -1;
 `;
 
 /**
@@ -361,7 +347,6 @@ const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;

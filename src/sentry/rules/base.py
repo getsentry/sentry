@@ -3,12 +3,14 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, MutableMapping, Sequence, Type
+from typing import Any, Callable, Dict, MutableMapping, Sequence, Type
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models import Project, Rule
+from sentry.snuba.dataset import Dataset
+from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
 
 """
@@ -102,6 +104,14 @@ class RuleBase(abc.ABC):
         **kwargs: Any,
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
+
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+        return {}
+
+    def passes_activity(
+        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+    ) -> bool:
+        raise NotImplementedError
 
 
 class EventState:

@@ -1,27 +1,24 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
-logger = logging.getLogger("sentry.integrations.utils.code_mapping")
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.repository import Repository
+
+from .repo import Repo, RepoTree
+
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 NO_TOP_DIR = "NO_TOP_DIR"
 
 
-# XXX: Deal with the branch later
 class CodeMapping(NamedTuple):
-    repo: str
+    repo: Repo
     stacktrace_root: str
     source_path: str
-
-
-def derive_code_mappings(stacktraces: List[str], trees: Dict[str, List[str]]) -> List[CodeMapping]:
-    """Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
-
-    WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
-    """
-    trees_helper = CodeMappingTreesHelper(trees)
-    return trees_helper.generate_code_mappings(stacktraces)
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -31,24 +28,30 @@ class FrameFilename:
         if stacktrace_frame_file_path.find("/") > -1:
             # XXX: This code assumes that all stack trace frames are part of a module
             self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
-            # Does it have more than one level?
+
+            # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
                 self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
             else:
-                # A package name + a file (e.g. requests/models.py)
+                # A package name, a file but no dir (e.g. requests/models.py)
                 self.dir_path = ""
                 self.file_name = self.file_and_dir_path
         else:
             self.root = ""
+            self.dir_path = ""
             self.file_and_dir_path = self.full_path
             self.file_name = self.full_path
 
     def __repr__(self) -> str:
-        return self.full_path
+        return f"FrameFilename: {self.full_path}"
+
+    def __eq__(self, other) -> bool:  # type: ignore
+        return self.full_path == other.full_path  # type: ignore
 
 
+# call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
-    def __init__(self, trees: Dict[str, List[str]]):
+    def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
 
@@ -64,10 +67,8 @@ class CodeMappingTreesHelper:
                     buckets[bucket_key] = []
                 buckets[bucket_key].append(frame_filename)
 
-            except ValueError:
-                logger.exception(
-                    f"Unable to split stacktrace path into buckets: {stacktrace_frame_file_path}"
-                )
+            except Exception:
+                logger.exception("Unable to split stacktrace path into buckets")
                 continue
         return buckets
 
@@ -75,6 +76,12 @@ class CodeMappingTreesHelper:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
+            if stackframe_root == NO_TOP_DIR:
+                logger.info(
+                    "We do not support top level files.",
+                    extra={"stackframes": stackframes},
+                )
+                continue
             if not self.code_mappings.get(stackframe_root):
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
@@ -107,41 +114,86 @@ class CodeMappingTreesHelper:
         """Look for the file path through all the trees and generate code mappings for it"""
         _code_mappings: List[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
-        for repo_full_name, tree in self.trees.items():
-            _code_mappings.extend(
-                self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
-            )
+        for repo_full_name in self.trees.keys():
+            try:
+                _code_mappings.extend(
+                    self._generate_code_mapping_from_tree(
+                        self.trees[repo_full_name], frame_filename
+                    )
+                )
+            except NotImplementedError:
+                logger.exception(
+                    "Code mapping failed for module with no package name. Processing continues."
+                )
+            except Exception:
+                logger.exception("Unexpected error. Processing continues.")
 
         if len(_code_mappings) == 0:
             logger.warning(f"No files matched for {frame_filename.full_path}")
             return None
         # This means that the file has been found in more than one repo
         elif len(_code_mappings) > 1:
-            logger.warning(f"More than one file matched for {frame_filename.full_path}")
+            logger.warning(f"More than one repo matched {frame_filename.full_path}")
             return None
 
         return _code_mappings[0]
 
+    def list_file_matches(self, frame_filename: FrameFilename) -> List[Dict[str, str]]:
+        file_matches = []
+        for repo_full_name in self.trees.keys():
+            repo_tree = self.trees[repo_full_name]
+            matches = [
+                src_path
+                for src_path in repo_tree.files
+                if self._potential_match(src_path, frame_filename)
+            ]
+
+            for file in matches:
+                file_matches.append(
+                    {
+                        "filename": file,
+                        "repo_name": repo_tree.repo.name,
+                        "repo_branch": repo_tree.repo.branch,
+                        "stacktrace_root": f"{frame_filename.root}/",
+                        "source_path": self._get_code_mapping_source_path(file, frame_filename),
+                    }
+                )
+        return file_matches
+
+    def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
+        """Generate the source path of a code mapping
+        e.g. src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry
+        e.g. src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry
+        e.g. ssl.py -> raise NotImplementedError
+        """
+        if frame_filename.dir_path != "":
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            return f"{source_path}/"
+        elif frame_filename.root != "":
+            return src_file.rsplit(frame_filename.file_name)[0]
+        else:
+            raise NotImplementedError("We do not support top level files.")
+
     def _generate_code_mapping_from_tree(
         self,
-        repo_full_name: str,
+        repo_tree: RepoTree,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
-        matched_files = list(
-            filter(
-                lambda src_path: self._potential_match(src_path, frame_filename),
-                self.trees[repo_full_name],
-            )
-        )
+        matched_files = [
+            src_path
+            for src_path in repo_tree.files
+            if self._potential_match(src_path, frame_filename)
+        ]
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
             [
                 CodeMapping(
-                    repo=repo_full_name,
-                    stacktrace_root=frame_filename.root,  # sentry
-                    # e.g. src/sentry/identity/oauth2.py -> src/sentry
-                    source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),
+                    repo=repo_tree.repo,
+                    stacktrace_root=f"{frame_filename.root}/",  # sentry
+                    source_path=self._get_code_mapping_source_path(
+                        matched_files[0], frame_filename
+                    ),
                 )
             ]
             if len(matched_files) == 1
@@ -169,4 +221,55 @@ class CodeMappingTreesHelper:
         if self._matches_current_code_mappings(src_file, frame_filename):
             return False
 
-        return src_file.rfind(frame_filename.file_and_dir_path) > -1
+        match = False
+        # For instance:
+        #  src_file: "src/sentry/integrations/slack/client.py"
+        #  frame_filename.full_path: "sentry/integrations/slack/client.py"
+        # This should not match:
+        #  src_file: "src/sentry/utils/uwsgi.py"
+        #  frame_filename: "sentry/wsgi.py"
+        split = src_file.split(f"/{frame_filename.file_and_dir_path}")
+        if any(split) and len(split) > 1:
+            # This is important because we only want stack frames to match when they
+            # include the exact package name
+            # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
+            match = (
+                split[0].rfind(f"/{frame_filename.root}") > -1 or split[0] == frame_filename.root
+            )
+
+        return match
+
+
+def create_code_mapping(
+    organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
+) -> RepositoryProjectPathConfig:
+    repository, _ = Repository.objects.get_or_create(
+        name=code_mapping.repo.name,
+        organization_id=organization_integration.organization_id,
+        defaults={
+            "integration_id": organization_integration.integration_id,
+        },
+    )
+
+    new_code_mapping, created = RepositoryProjectPathConfig.objects.update_or_create(
+        project=project,
+        stack_root=code_mapping.stacktrace_root,
+        defaults={
+            "repository": repository,
+            "organization_integration": organization_integration,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            "automatically_generated": True,
+        },
+    )
+
+    if created:
+        logger.info(
+            f"Created a code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+        )
+    else:
+        logger.info(
+            f"Updated existing code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+        )
+
+    return new_code_mapping

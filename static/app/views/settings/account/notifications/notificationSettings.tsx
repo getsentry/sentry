@@ -14,6 +14,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
+  NOTIFICATION_FEATURE_MAP,
+  NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
@@ -94,22 +96,14 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   };
 
   get notificationSettingsType() {
-    // filter out quotas if the feature flag isn't set
-    const hasSlackOverage = this.props.organizations.some(org =>
-      org.features?.includes('slack-overage-notifications')
-    );
-    const hasActiveRelease = this.props.organizations.some(org =>
-      org.features?.includes('active-release-monitor-alpha')
-    );
-
+    // filter out notification settings if the feature flag isn't set
     return NOTIFICATION_SETTINGS_TYPES.filter(type => {
-      if (type === 'quota' && !hasSlackOverage) {
-        return false;
+      const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+      if (notificationFlag) {
+        return this.props.organizations.some(org =>
+          org.features?.includes(notificationFlag)
+        );
       }
-      if (type === 'activeRelease' && !hasActiveRelease) {
-        return false;
-      }
-
       return true;
     });
   }
@@ -147,7 +141,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
               &nbsp;
               <Link
                 data-test-id="fine-tuning"
-                to={`/settings/account/notifications/${notificationType}`}
+                to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[notificationType]}`}
               >
                 Fine tune
               </Link>

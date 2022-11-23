@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
+import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   IconChevron,
   IconDashboard,
@@ -16,26 +17,30 @@ import {
   IconLightning,
   IconList,
   IconPlay,
+  IconProfiling,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
-  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
+
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -128,12 +133,20 @@ function Sidebar({location, organization}: Props) {
     organization,
   };
 
+  const sidebarAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
+      {t('Projects')}
+    </GuideAnchor>
+  ) : (
+    <GuideAnchor target="projects">{t('Projects')}</GuideAnchor>
+  );
+
   const projects = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
       index
       icon={<IconProject size="md" />}
-      label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
+      label={sidebarAnchor}
       to={`/organizations/${organization.slug}/projects/`}
       id="projects"
     />
@@ -224,6 +237,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Monitors')}
         to={`/organizations/${organization.slug}/monitors/`}
         id="monitors"
+        isBeta
       />
     </Feature>
   );
@@ -236,7 +250,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isAlpha
+        isBeta
       />
     </Feature>
   );
@@ -269,7 +283,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconSpan size="md" />}
+        icon={<IconProfiling size="md" />}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
@@ -309,7 +323,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   return (
-    <SidebarWrapper collapsed={collapsed}>
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
         <SidebarSection>
           <SidebarDropdown
@@ -330,15 +344,12 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {profiling}
                 {releases}
+                {replays}
+                {monitors}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-              </SidebarSection>
-
-              <SidebarSection>
-                {replays}
-                {monitors}
               </SidebarSection>
 
               <SidebarSection>
@@ -357,6 +368,18 @@ function Sidebar({location, organization}: Props) {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <ReplaysOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <ProfilingOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

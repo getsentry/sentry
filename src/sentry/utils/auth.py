@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Container, Optional
+from typing import Any, Collection, Container, Dict, Mapping, Sequence, cast
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -13,17 +13,15 @@ from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
-from rest_framework.request import Request
 
 from sentry.models import Authenticator, Organization, User
-from sentry.services.hybrid_cloud import ApiOrganization
+from sentry.services.hybrid_cloud.organization import ApiOrganization
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
-_LOGIN_URL = None
-from typing import Any, Dict, Mapping
+_LOGIN_URL: str | None = None
 
 MFA_SESSION_KEY = "mfa"
 
@@ -78,11 +76,11 @@ class SsoSession:
 
 
 class AuthUserPasswordExpired(Exception):
-    def __init__(self, user):
+    def __init__(self, user: User) -> None:
         self.user = user
 
 
-def get_auth_providers():
+def get_auth_providers() -> Collection[str]:
     return [
         key
         for key, cfg_names in settings.AUTH_PROVIDERS.items()
@@ -90,10 +88,10 @@ def get_auth_providers():
     ]
 
 
-def get_pending_2fa_user(request):
+def get_pending_2fa_user(request: HttpRequest) -> User | None:
     rv = request.session.get("_pending_2fa")
     if rv is None:
-        return
+        return None
 
     user_id, created_at = rv[:2]
     if created_at < time() - 60 * 5:
@@ -102,14 +100,14 @@ def get_pending_2fa_user(request):
     try:
         return User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        pass
+        return None
 
 
-def has_pending_2fa(request):
+def has_pending_2fa(request: HttpRequest) -> bool:
     return request.session.get("_pending_2fa") is not None
 
 
-def get_login_url(reset=False):
+def get_login_url(reset: bool = False) -> str:
     global _LOGIN_URL
 
     if _LOGIN_URL is None or reset:
@@ -129,7 +127,7 @@ def get_login_url(reset=False):
     return _LOGIN_URL
 
 
-def initiate_login(request, next_url=None):
+def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
     for key in ("_next", "_after_2fa", "_pending_2fa"):
         try:
             del request.session[key]
@@ -140,31 +138,31 @@ def initiate_login(request, next_url=None):
         request.session["_next"] = next_url
 
 
-def get_org_redirect_url(request, active_organization: Optional[ApiOrganization]):
+def get_org_redirect_url(request: HttpRequest, active_organization: ApiOrganization | None) -> str:
     from sentry import features
 
     # TODO(dcramer): deal with case when the user cannot create orgs
     if active_organization:
-        return Organization.get_url(active_organization.slug)
+        return cast(str, Organization.get_url(active_organization.slug))
     if not features.has("organizations:create"):
         return "/auth/login/"
     return "/organizations/new/"
 
 
-def _get_login_redirect(request, default=None):
+def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     if default is None:
         default = get_login_url()
 
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        return reverse("sentry-2fa-dialog")
+        return cast(str, reverse("sentry-2fa-dialog"))
 
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.
     after_2fa = request.session.pop("_after_2fa", None)
     if after_2fa is not None:
-        return after_2fa
+        return cast(str, after_2fa)
 
     login_url = request.session.pop("_next", None)
     if not login_url:
@@ -173,10 +171,10 @@ def _get_login_redirect(request, default=None):
     if not is_valid_redirect(login_url, allowed_hosts=(request.get_host(),)):
         login_url = default
 
-    return login_url
+    return cast(str, login_url)
 
 
-def get_login_redirect(request, default=None):
+def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     from sentry.api.utils import generate_organization_url
 
     login_redirect = _get_login_redirect(request, default)
@@ -187,15 +185,15 @@ def get_login_redirect(request, default=None):
     return login_redirect
 
 
-def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bool:
+def is_valid_redirect(url: str, allowed_hosts: Container[str] | None = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
-    return is_safe_url(url, allowed_hosts=allowed_hosts)
+    return cast(bool, is_safe_url(url, allowed_hosts=allowed_hosts))
 
 
-def mark_sso_complete(request, organization_id):
+def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
     """
     Store sso session status in the django session per org, with the value being the timestamp of when they logged in,
     for usage when expiring sso sessions.
@@ -210,7 +208,7 @@ def mark_sso_complete(request, organization_id):
     request.session.modified = True
 
 
-def has_completed_sso(request, organization_id) -> bool:
+def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
     """
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
@@ -235,7 +233,9 @@ def has_completed_sso(request, organization_id) -> bool:
     return True
 
 
-def find_users(username, with_valid_password=True, is_active=None):
+def find_users(
+    username: str, with_valid_password: bool = True, is_active: bool | None = None
+) -> Sequence[User]:
     """
     Return a list of users that match a username
     and falling back to email
@@ -261,8 +261,13 @@ def find_users(username, with_valid_password=True, is_active=None):
 
 
 def login(
-    request: HttpRequest, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None
-):
+    request: HttpRequest,
+    user: User,
+    passed_2fa: bool | None = None,
+    after_2fa: str | None = None,
+    organization_id: int | None = None,
+    source: Any = None,
+) -> bool:
     """
     This logs a user in for the session and current request.
 
@@ -326,7 +331,12 @@ def login(
     return True
 
 
-def log_auth_success(request, username, organization_id=None, source=None):
+def log_auth_success(
+    request: HttpRequest,
+    username: str,
+    organization_id: int | None = None,
+    source: Any = None,
+) -> None:
     logger.info(
         "user.auth.success",
         extra={
@@ -338,43 +348,45 @@ def log_auth_success(request, username, organization_id=None, source=None):
     )
 
 
-def log_auth_failure(request, username=None):
+def log_auth_failure(request: HttpRequest, username: str | None = None) -> None:
     logger.info(
         "user.auth.fail", extra={"ip_address": request.META["REMOTE_ADDR"], "username": username}
     )
 
 
-def has_user_registration():
+def has_user_registration() -> bool:
     from sentry import features, options
 
     return features.has("auth:register") and options.get("auth.allow-registration")
 
 
-def is_user_signed_request(request):
+def is_user_signed_request(request: HttpRequest) -> bool:
     """
     This function returns True if the request is a signed valid link
     """
     try:
-        return request.user_from_signed_request
+        return bool(request.user_from_signed_request)
     except AttributeError:
         return False
 
 
-def set_active_org(request: Request, org_slug: str) -> None:
+def set_active_org(request: HttpRequest, org_slug: str) -> None:
     # even if the value being set is the same this will trigger a session
     # modification and reset the users expiry, so check if they are different first.
     if hasattr(request, "session") and request.session.get("activeorg") != org_slug:
         request.session["activeorg"] = org_slug
 
 
-class EmailAuthBackend(ModelBackend):
+class EmailAuthBackend(ModelBackend):  # type: ignore
     """
     Authenticate against django.contrib.auth.models.User.
 
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, request: Request, username=None, password=None):
+    def authenticate(
+        self, request: HttpRequest, username: str, password: str | None = None
+    ) -> User | None:
         users = find_users(username)
         if users:
             for user in users:
@@ -391,11 +403,11 @@ class EmailAuthBackend(ModelBackend):
                     continue
         return None
 
-    def user_can_authenticate(self, user):
+    def user_can_authenticate(self, user: User) -> bool:
         return True
 
 
-def make_login_link_with_redirect(path, redirect):
+def make_login_link_with_redirect(path: str, redirect: str) -> str:
     """
     append an after login redirect to a path.
     note: this function assumes that the redirect has been validated

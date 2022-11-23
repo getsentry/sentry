@@ -171,9 +171,10 @@ export function createSearchGroups(
   type: ItemType,
   maxSearchItems?: number,
   queryCharsLeft?: number,
-  isDefaultState?: boolean
+  isDefaultState?: boolean,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ) {
-  const fieldDefinition = getFieldDefinition(tagName);
+  const fieldDefinition = fieldDefinitionGetter(tagName);
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
@@ -386,15 +387,19 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
  * The parent will become interactive if there exists a key "device".
  */
-export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
+export const getTagItemsFromKeys = (
+  tagKeys: string[],
+  supportedTags: TagCollection,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
+) => {
   return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
     const definition =
       supportedTags[key]?.kind === FieldKind.FUNCTION
-        ? getFieldDefinition(key.split('(')[0])
-        : getFieldDefinition(key);
+        ? fieldDefinitionGetter(key.split('(')[0])
+        : fieldDefinitionGetter(key);
     const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
     const item: SearchItem = {
@@ -491,11 +496,15 @@ export const getSearchGroupWithItemMarkedActive = (
 /**
  * Filter tag keys based on the query and the key, description, and associated keywords of each tag.
  */
-export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): string[] =>
+export const filterKeysFromQuery = (
+  tagKeys: string[],
+  searchTerm: string,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
+): string[] =>
   tagKeys
     .flatMap(key => {
       const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
-      const definition = getFieldDefinition(keyWithoutFunctionPart);
+      const definition = fieldDefinitionGetter(keyWithoutFunctionPart);
       const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
 
       const combinedKeywords = [

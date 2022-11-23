@@ -202,6 +202,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=self.group.id,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -209,6 +210,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=self.group.id,
         )
 
     @responses.activate
@@ -257,6 +259,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=None,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -264,6 +267,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=None,
         )
 
     @responses.activate
@@ -311,6 +315,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=group.id,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -318,6 +323,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=group.id,
         )
 
     @responses.activate
@@ -361,6 +367,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=self.group.id,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -368,6 +375,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=self.group.id,
         )
 
     @responses.activate
@@ -436,6 +444,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=event.group_id,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -443,4 +452,5 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             actor_id=self.user.actor_id,
             organization_id=self.organization.id,
+            group_id=event.group_id,
         )

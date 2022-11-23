@@ -4,7 +4,7 @@ from sentry_plugins.client import ApiClient
 class WebhookApiClient(ApiClient):
     plugin_name = "webhook"
     allow_redirects = False
-    datadog_prefix = "integrations.webhook"
+    metrics_prefix = "integrations.webhook"
 
     def __init__(self, data):
         self.data = data

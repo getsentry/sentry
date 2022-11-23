@@ -20,7 +20,8 @@ const MIN_VIDEO_WIDTH = {px: 325};
 const MIN_CONTENT_WIDTH = {px: 325};
 const MIN_SIDEBAR_WIDTH = {px: 325};
 const MIN_VIDEO_HEIGHT = {px: 200};
-const MIN_CONTENT_HEIGHT = {px: 200};
+const MIN_CONTENT_HEIGHT = {px: 180};
+const MIN_SIDEBAR_HEIGHT = {px: 120};
 
 type Props = {
   layout?: LayoutKey;
@@ -68,7 +69,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           key={layout}
           left={{
             content: focusArea,
-            default: '75%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
@@ -86,7 +87,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
         key={layout + '_main'}
         top={{
           content: video,
-          default: '50%',
+          default: '65%',
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
@@ -103,7 +104,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           key={layout}
           left={{
             content: mainSplit,
-            default: '75%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
@@ -120,12 +121,12 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
       key={layout}
       top={{
         content: video,
-        default: '50%',
+        default: '65%',
         min: MIN_CONTENT_WIDTH,
       }}
       bottom={{
         content: <SideCrumbsTags />,
-        min: MIN_SIDEBAR_WIDTH,
+        min: MIN_SIDEBAR_HEIGHT,
       }}
     />
   );
@@ -138,7 +139,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           key={layout}
           left={{
             content: focusArea,
-            default: '60%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
@@ -162,7 +163,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           }}
           right={{
             content: focusArea,
-            default: '60%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
         />
@@ -187,7 +188,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
             <SplitPanel
               left={{
                 content: video,
-                default: '70%',
+                default: '1fr',
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
@@ -195,12 +196,11 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
               }}
             />
           ),
-
+          default: '65%',
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content: focusArea,
-          default: '60%',
           min: MIN_CONTENT_HEIGHT,
         }}
       />

@@ -26,6 +26,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -241,6 +242,18 @@ class DashboardDetail extends Component<Props, State> {
       `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
+
+    if (usingCustomerDomain) {
+      // TODO: replace with url generation later on.
+      widgetBuilderRoutes.push(
+        ...[
+          `/dashboards/new/widget/new/`,
+          `/dashboard/${dashboardId}/widget/new/`,
+          `/dashboards/new/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+        ]
+      );
+    }
 
     return widgetBuilderRoutes.includes(location.pathname);
   }

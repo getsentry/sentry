@@ -3,7 +3,12 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getTourTask, isDemoWalkthrough} from 'sentry/utils/demoMode';
+
+import {demoEndModal} from './modal';
+import {updateOnboardingTask} from './onboardingTasks';
 
 const api = new Client();
 
@@ -47,7 +52,12 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
   closeGuide(true);
 }
 
-export function recordFinish(guide: string, orgId: string | null) {
+export function recordFinish(
+  guide: string,
+  orgId: string | null,
+  orgSlug: string | null,
+  org: Organization | null
+) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -55,6 +65,14 @@ export function recordFinish(guide: string, orgId: string | null) {
       status: 'viewed',
     },
   });
+
+  const tourTask = getTourTask(guide);
+
+  if (isDemoWalkthrough() && tourTask && org) {
+    const {tour, task} = tourTask;
+    updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
+    demoEndModal({tour, orgSlug});
+  }
 
   const user = ConfigStore.get('user');
   if (!user) {

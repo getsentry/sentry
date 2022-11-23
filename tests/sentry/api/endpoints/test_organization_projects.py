@@ -200,7 +200,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def test_expand_context_options(self):
         self.project1 = self.create_project(slug="project-1", name="project 1", teams=[self.team])
         self.project2 = self.create_project(slug="project-2", name="project 2", teams=[self.team])
-        self.project1.update_option("sentry:spike_projection_config", True)
+        self.project1.update_option("quotas:spike-protection-disabled", True)
         self.project1.update_option("sentry:token", 1)
         self.project1.update_option("sentry:random", "hi")
 
@@ -211,12 +211,12 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
-                "options": ["sentry:spike_projection_config", "sentry:token", "sentry:random"]
+                "options": ["quotas:spike-protection-disabled", "sentry:token", "sentry:random"]
             },
         )
 
         assert response.data[0]["options"] == {
-            "sentry:spike_projection_config": True,
+            "quotas:spike-protection-disabled": True,
             "sentry:token": 1,
         }
         assert not response.data[1].get("options")

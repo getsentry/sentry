@@ -29,7 +29,7 @@ import space from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -236,18 +236,18 @@ function NativeFrame({
                   aria-label={t('Go to images loaded')}
                   icon={
                     status === 'error' ? (
-                      <IconQuestion size="sm" color="red300" />
+                      <IconQuestion size="sm" color="errorText" />
                     ) : (
-                      <IconWarning size="sm" color="red300" />
+                      <IconWarning size="sm" color="errorText" />
                     )
                   }
                   size="zero"
                   borderless
                 />
               ) : status === 'error' ? (
-                <IconQuestion size="sm" color="red300" />
+                <IconQuestion size="sm" color="errorText" />
               ) : (
-                <IconWarning size="sm" color="red300" />
+                <IconWarning size="sm" color="errorText" />
               ))}
           </StatusCell>
           <PackageCell>
@@ -267,9 +267,9 @@ function NativeFrame({
                 <Package
                   color={
                     status === undefined || status === 'error'
-                      ? 'red300'
+                      ? 'errorText'
                       : packageClickable
-                      ? 'blue300'
+                      ? 'linkColor'
                       : undefined
                   }
                   onClick={packageClickable ? handleGoToImagesLoaded : undefined}
@@ -294,7 +294,7 @@ function NativeFrame({
                 title={t('This frame appears in all other events related to this issue')}
                 containerDisplayMode="inline-flex"
               >
-                <IconInfo size="sm" color="gray300" />
+                <IconInfo size="sm" color="subText" />
               </Tooltip>
             )}
           </GroupingCell>
@@ -430,7 +430,7 @@ const ToggleButton = styled(Button)`
   height: 16px;
 `;
 
-const Package = styled('span')<{color?: Color}>`
+const Package = styled('span')<{color?: ColorOrAlias}>`
   border-bottom: 1px dashed ${p => p.theme.border};
   ${p => p.color && `color: ${p.theme[p.color]}`};
   ${p => p.onClick && `cursor: pointer;`}

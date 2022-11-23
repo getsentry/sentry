@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Optional
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -114,7 +115,7 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value, allow_none=False):
+def convert_crashreport_count(value, allow_none=False) -> Optional[int]:
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.

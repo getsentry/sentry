@@ -23,6 +23,7 @@ class Role(abc.ABC):
     name: str
     desc: str
     scopes: FrozenSet[str]
+    is_retired: bool = False
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
@@ -56,7 +57,6 @@ class Role(abc.ABC):
 @dataclass(frozen=True, eq=True)
 class OrganizationRole(Role):
     is_global: bool = False
-    is_retired: bool = False
 
     def get_minimum_team_role(self) -> TeamRole:
         """Return the minimum team role for this organization role.

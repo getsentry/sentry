@@ -3,13 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getButtonStyles} from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
+import Field from 'sentry/components/forms/field';
+import {FieldGroupProps} from 'sentry/components/forms/field/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Option = {label: string; description?: string};
 
-export type RadioGroupRatingProps = Omit<FieldProps, 'children'> & {
+export type RadioGroupRatingProps = Omit<FieldGroupProps, 'children'> & {
   /**
    * Field name, used in all radio group elements
    */

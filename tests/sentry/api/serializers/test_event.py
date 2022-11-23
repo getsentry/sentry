@@ -388,7 +388,6 @@ class DetailedEventSerializerTest(TestCase):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):
@@ -402,7 +401,7 @@ class DetailedEventSerializerTest(TestCase):
             "causeSpanIds": ["9179e43ae844b174"],
             "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
             "`books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            "fingerprint": "19e15e0444e0bc1d5159fb07cd4bd2eb",
+            "fingerprint": "e714d718cb4e7d3ce1ad800f7f33d223",
             "offenderSpanIds": [
                 "b8be6138369491dd",
                 "b2d4826e7b618f1b",
@@ -429,7 +428,6 @@ class DetailedEventSerializerTest(TestCase):
             "sentry.event_manager.EventPerformanceProblem"
         ), self.feature(
             {
-                "projects:performance-suspect-spans-ingestion": True,
                 "organizations:performance-issues-ingest": True,
             }
         ):

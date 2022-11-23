@@ -5,15 +5,15 @@ import space from 'sentry/styles/space';
 
 interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
-  image: React.ReactNode;
+  image?: React.ReactNode;
 }
 
 function OnboardingPanel({image, children, ...props}: Props) {
   return (
     <Panel {...props}>
       <Container>
-        <IlloBox>{image}</IlloBox>
-        <StyledBox>{children}</StyledBox>
+        {image ? <IlloBox>{image}</IlloBox> : null}
+        <StyledBox centered={!image}>{children}</StyledBox>
       </Container>
     </Panel>
   );
@@ -39,8 +39,11 @@ const Container = styled('div')`
   }
 `;
 
-const StyledBox = styled('div')`
+const StyledBox = styled('div')<{centered?: boolean}>`
   z-index: 1;
+
+  ${p => (p.centered ? 'text-align: center;' : '')}
+  ${p => (p.centered ? 'max-width: 600px;' : '')}
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 2;

@@ -4,7 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Project, User
+from sentry.models import Group, GroupAssignee, Project
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
@@ -73,7 +74,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.deassign(group)
         return affected_groups
 
-    users = User.objects.get_for_email(email, case_sensitive=False)
+    users = user_service.get_many_by_email(email)
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 

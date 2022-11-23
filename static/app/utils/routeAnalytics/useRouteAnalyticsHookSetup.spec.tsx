@@ -22,6 +22,8 @@ describe('useRouteAnalyticsHookSetup', function () {
           setOrganization,
           setDisableRouteAnalytics: jest.fn(),
           setRouteAnalyticsParams: jest.fn(),
+          setEventNames: jest.fn(),
+          previousUrl: '',
         }}
       >
         <OrganizationContext.Provider value={organization}>

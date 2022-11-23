@@ -1,11 +1,20 @@
 ---
-created: '2022-09-20T14:56:11.090449Z'
+created: '2022-11-02T22:46:13.339101Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
   allowedDomains:
   - '*'
+  breakdownsV2:
+    span_ops:
+      matches:
+      - http
+      - db
+      - browser
+      - resource
+      - ui
+      type: spanOperations
   datascrubbingSettings:
     excludeFields: []
     scrubData: true
@@ -146,6 +155,8 @@ config:
         - '@mac'
         type: multiple
   quotas: []
+  spanAttributes:
+  - exclusive-time
   trustedRelays: []
 disabled: false
 slug: bar

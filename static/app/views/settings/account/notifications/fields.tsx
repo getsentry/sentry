@@ -97,6 +97,19 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     // No choices here because it's going to have dynamic content
     // Component will create choices,
   },
+  spikeProtection: {
+    title: t('Spike Protection Notifications'),
+    description: t(
+      'Notifications about spikes on projects that you have enabled spike protection for.'
+    ),
+    type: 'select',
+    defaultValue: '1',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+    defaultFieldName: 'spikeProtection',
+  },
   email: {
     title: t('Email Routing'),
     description: t(

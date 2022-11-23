@@ -15,7 +15,7 @@ function initializeData(opts?: InitialOpts) {
   const project = TestStubs.Project({platform});
   const organization = TestStubs.Organization({
     projects: [project],
-    features,
+    features: features ?? [],
   });
 
   const initialData = initializeOrg({
@@ -176,9 +176,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render spans tab with feature', function () {
-    const {project, organization, router, eventView} = initializeData({
-      features: ['performance-suspect-spans-view'],
-    });
+    const {project, organization, router, eventView} = initializeData({});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',

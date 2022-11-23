@@ -1125,13 +1125,17 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
         response = self.client.post(
-            url, data={"version": "1.2.1", "projects": [project.slug, project2.slug]}
+            url,
+            data={"version": "1.2.1", "projects": [project.slug, project2.slug]},
+            HTTP_USER_AGENT="sentry-cli/2.77.4",
         )
 
         assert response.status_code == 201, response.content
         assert response.data["version"]
 
-        release = Release.objects.get(version=response.data["version"])
+        release = Release.objects.get(
+            version=response.data["version"], user_agent="sentry-cli/2.77.4"
+        )
         assert not release.owner
         assert release.organization == org
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
