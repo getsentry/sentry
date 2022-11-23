@@ -30,13 +30,12 @@
       "cwd": "${workspaceRoot}"
     },
     {
-      "name": "jest",
-      "type": "node",
+      "name": "Python: Debug test file",
+      "type": "python",
       "request": "launch",
-      "protocol": "inspector",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "internalConsoleOptions": "openOnSessionStart",
-      "args": ["--runInBand"]
+      "module": "pytest",
+      "args": ["${file}"],
+      "django": true
     }
   ]
 }
