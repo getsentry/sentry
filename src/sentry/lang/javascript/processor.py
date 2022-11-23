@@ -1061,8 +1061,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # The tokens are 1-indexed.
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
-                new_frame["function"] = get_function_for_token(
-                    new_frame, token, processable_frame.previous_frame
+                new_frame["function"] = fold_function_name(
+                    get_function_for_token(new_frame, token, processable_frame.previous_frame)
                 )
 
                 filename = token.src
