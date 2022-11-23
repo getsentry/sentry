@@ -6,6 +6,7 @@ const ORG_SLUG_REGEX = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9-]*$');
 
 function isValidOrgSlug(orgSlug: string): boolean {
   return (
+    orgSlug.length > 0 &&
     !orgSlug.startsWith('-') &&
     !orgSlug.endsWith('-') &&
     !orgSlug.includes('_') &&

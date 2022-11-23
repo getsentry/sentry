@@ -13,5 +13,6 @@ describe('isValidOrgSlug', function () {
     expect(isValidOrgSlug('-sentry')).toBe(false);
     expect(isValidOrgSlug('-')).toBe(false);
     expect(isValidOrgSlug('_')).toBe(false);
+    expect(isValidOrgSlug('')).toBe(false);
   });
 });
