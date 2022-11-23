@@ -28,14 +28,6 @@
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver", "--debug-server", "--no-pretty"],
       "cwd": "${workspaceRoot}"
-    },
-    {
-      "name": "Python: Debug test file",
-      "type": "python",
-      "request": "launch",
-      "module": "pytest",
-      "args": ["${file}"],
-      "django": true
     }
   ]
 }
