@@ -262,10 +262,6 @@ def get_detection_settings(project_id: Optional[str] = None):
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
             },
-            {
-                "duration_threshold": 2000.0,  # ms
-                "allowed_span_ops": ["http"],
-            },
         ],
         DetectorType.LONG_TASK_SPANS: [
             {
@@ -966,8 +962,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans = []
 
     def _is_db_query(self, span: Span) -> bool:
-        op: str = span.get("op", "")
-        description: str = span.get("description", "")
+        op: str = span.get("op", "") or ""
+        description: str = span.get("description", "") or ""
         is_db_op = op == "db" or op.startswith("db.sql")
         is_query = "SELECT" in description.upper()  # TODO - make this more elegant
         return is_db_op and is_query

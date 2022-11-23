@@ -326,7 +326,9 @@ class PerformanceDetectionTest(unittest.TestCase):
         )
 
     def test_calls_partial_span_op_allowed(self):
-        span_event = create_event([create_span("http.client", 2001.0, "http://example.com")] * 1)
+        span_event = create_event(
+            [create_span("db.query", 2001.0, "SELECT something FROM something_else")] * 1
+        )
 
         sdk_span_mock = Mock()
 

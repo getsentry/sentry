@@ -9,6 +9,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 
+const originalLocation = window.location;
+
 // /settings/:orgId/:projectId/(searches/:searchId/)alerts/
 const projectRoutes = [
   {path: '/', childRoutes: []},
@@ -55,6 +57,7 @@ describe('withDomainRedirect', function () {
 
   afterEach(function () {
     jest.resetAllMocks();
+    window.location = originalLocation;
   });
 
   it('renders MyComponent in non-customer domain world', function () {

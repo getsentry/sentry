@@ -13,6 +13,11 @@ export const ROOT_ELEMENT = 'blk_router';
 export const usingCustomerDomain =
   typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
 
+export const customerDomain =
+  typeof window !== 'undefined'
+    ? window?.__initialData?.customerDomain?.subdomain
+    : undefined;
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
@@ -275,3 +280,5 @@ export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),
 };
+
+export const ORG_SLUG_REGEX = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$');

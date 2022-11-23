@@ -214,6 +214,7 @@ yarn.lock           @getsentry/owners-js-deps
 
 ### Ecosystem ###
 /src/sentry/api/endpoints/integrations/                                 @getsentry/ecosystem
+/src/sentry/api/endpoints/project_stacktrace_link.py                    @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_integration_repos.py             @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_app/                                   @getsentry/ecosystem
@@ -381,5 +382,11 @@ yarn.lock           @getsentry/owners-js-deps
 
 /src/sentry/api/endpoints/client_state.py                           @getsentry/growth
 /src/sentry/api/endpoints/organization_web_vitals_overview.py       @getsentry/growth
+/src/sentry/api/endpoints/organization_onboarding*                  @getsentry/growth
+/src/sentry/web/frontend/auth_login.py                              @getsentry/growth
+/static/app/utils/analytics.tsx                                     @getsentry/growth
+/static/app/utils/routeAnalytics*                                   @getsentry/growth
+/static/app/views/onboarding*                                       @getsentry/growth
+
 
 ### End of Growth ###
