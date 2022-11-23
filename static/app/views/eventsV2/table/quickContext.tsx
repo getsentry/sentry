@@ -1,14 +1,14 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
+import Clipboard from 'sentry/components/clipboard';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import {
   getStacktrace,
@@ -20,14 +20,15 @@ import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {VersionHoverHeader} from 'sentry/components/versionHoverCard';
-import {IconAdd, IconCheckmark, IconMute, IconNot} from 'sentry/icons';
+import Version from 'sentry/components/version';
+import {IconAdd, IconCheckmark, IconCopy, IconMute, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {Event, Group, Organization, Project, ReleaseWithHealth, User} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
@@ -47,10 +48,6 @@ export enum ContextType {
 }
 
 const HOVER_DELAY: number = 400;
-
-function isReleaseContext(contextType: ContextType): boolean {
-  return contextType === ContextType.RELEASE;
-}
 
 function getHoverBody(
   api: Client,
@@ -93,9 +90,28 @@ function getHoverBody(
 
 // NOTE: Will be adding switch cases as more contexts require headers.
 function getHoverHeader(dataRow: EventData, contextType: ContextType) {
-  return isReleaseContext(contextType) ? (
-    <VersionHoverHeader releaseVersion={dataRow.release} />
-  ) : null;
+  switch (contextType) {
+    case ContextType.RELEASE:
+      return (
+        <HoverHeader
+          title={t('Release')}
+          copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
+          copyContent={dataRow.release}
+        />
+      );
+    case ContextType.EVENT:
+      return (
+        dataRow.id && (
+          <HoverHeader
+            title={t('Event ID')}
+            copyLabel={getShortEventId(dataRow.id)}
+            copyContent={dataRow.id}
+          />
+        )
+      );
+    default:
+      return null;
+  }
 }
 
 const addFieldAsColumn = (
@@ -116,6 +132,39 @@ const addFieldAsColumn = (
 
 const fiveMinutesInMs = 5 * 60 * 1000;
 
+type HoverHeaderProps = {
+  title: string;
+  copyContent?: string;
+  copyLabel?: React.ReactNode;
+  hideCopy?: boolean;
+};
+
+function HoverHeader({
+  title,
+  hideCopy = false,
+  copyLabel,
+  copyContent,
+}: HoverHeaderProps) {
+  return (
+    <HoverHeaderWrapper>
+      {title}
+      <HoverHeaderContent>
+        {copyLabel}
+
+        {!hideCopy && copyContent && (
+          <Clipboard value={copyContent}>
+            <IconCopy
+              cursor="pointer"
+              data-test-id="quick-context-hover-header-copy-icon"
+              size="xs"
+            />
+          </Clipboard>
+        )}
+      </HoverHeaderContent>
+    </HoverHeaderWrapper>
+  );
+}
+
 type IssueContextProps = {
   api: Client;
   dataRow: EventData;
@@ -125,7 +174,11 @@ type IssueContextProps = {
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
 
-  const {isLoading, isError, data} = useQuery<Group>(
+  const {
+    isLoading: issueLoading,
+    isError: issueError,
+    data: issue,
+  } = useQuery<Group>(
     [
       `/issues/${props.dataRow['issue.id']}/`,
       {
@@ -144,21 +197,28 @@ function IssueContext(props: IssueContextProps) {
     }
   );
 
+  // NOTE: Suspect commits are generated from the first event of an issue.
+  // Therefore, all events for an issue have the same suspect commits.
+  const {
+    isLoading: eventLoading,
+    isError: eventError,
+    data: event,
+  } = useQuery<Event>([`/issues/${props.dataRow['issue.id']}/events/oldest/`], {
+    staleTime: fiveMinutesInMs,
+  });
+
   const renderStatus = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextHeader>
-          {statusTitle}
-          <FeatureBadge type="alpha" />
-        </ContextHeader>
+        <ContextHeader>{statusTitle}</ContextHeader>
         <ContextBody>
-          {data.status === 'ignored' ? (
+          {issue.status === 'ignored' ? (
             <IconMute
               data-test-id="quick-context-ignored-icon"
               color="gray500"
               size="sm"
             />
-          ) : data.status === 'resolved' ? (
+          ) : issue.status === 'resolved' ? (
             <IconCheckmark color="gray500" size="sm" />
           ) : (
             <IconNot
@@ -167,30 +227,33 @@ function IssueContext(props: IssueContextProps) {
               size="sm"
             />
           )}
-          <StatusText>{data.status}</StatusText>
+          <StatusText>{issue.status}</StatusText>
         </ContextBody>
       </IssueContextContainer>
     );
 
   const renderAssigneeSelector = () =>
-    data && (
+    issue && (
       <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo group={data} projectId={data.project.id} />
+        <AssignedTo group={issue} projectId={issue.project.id} />
       </IssueContextContainer>
     );
 
   const renderSuspectCommits = () =>
-    props.eventID &&
-    data && (
+    event &&
+    event.eventID &&
+    issue && (
       <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
-          project={data.project}
-          eventId={props.eventID}
+          project={issue.project}
+          eventId={event.eventID}
           commitRow={QuickContextCommitRow}
         />
       </IssueContextContainer>
     );
 
+  const isLoading = issueLoading || eventLoading;
+  const isError = issueError || eventError;
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -404,7 +467,6 @@ function EventContext(props: EventContextProps) {
                 </Tooltip>
               )}
             </Title>
-            <FeatureBadge type="alpha" />
           </ContextHeader>
           <EventContextBody>
             {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
@@ -464,9 +526,35 @@ function EventContext(props: EventContextProps) {
   const stackTrace = getStacktrace(data);
 
   return stackTrace ? (
-    <StackTraceWrapper>
-      <StackTracePreviewContent event={data} stacktrace={stackTrace} />
-    </StackTraceWrapper>
+    <Fragment>
+      {!props.dataRow.title && (
+        <ErrorTitleContainer>
+          <ContextHeader>
+            <Title>
+              {t('Title')}
+              {!('title' in props.dataRow) && (
+                <Tooltip skipWrapper title={t('Add title as a column')} position="right">
+                  <IconAdd
+                    data-test-id="quick-context-title-add-button"
+                    cursor="pointer"
+                    onClick={() =>
+                      addFieldAsColumn('title', props.location, props.eventView)
+                    }
+                    color="gray300"
+                    size="xs"
+                    isCircled
+                  />
+                </Tooltip>
+              )}
+            </Title>
+          </ContextHeader>
+          <ErrorTitleBody>{data.title}</ErrorTitleBody>
+        </ErrorTitleContainer>
+      )}
+      <StackTraceWrapper>
+        <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+      </StackTraceWrapper>
+    </Fragment>
   ) : (
     <NoContextWrapper>
       {t('There is no stack trace available for this event.')}
@@ -580,6 +668,16 @@ const ContextBody = styled('div')`
   align-items: center;
 `;
 
+const ErrorTitleContainer = styled(ContextContainer)`
+  padding: ${space(1.5)};
+`;
+
+const ErrorTitleBody = styled(ContextBody)`
+  margin: 0;
+  max-width: 450px;
+  ${p => p.theme.overflowEllipsis}
+`;
+
 const ReleaseBody = styled(ContextBody)<{}>`
   font-size: 13px;
   color: ${p => p.theme.subText};
@@ -608,12 +706,13 @@ const NoContextWrapper = styled('div')`
   color: ${p => p.theme.subText};
   height: 50px;
   padding: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  min-width: 320px;
 `;
 
 const ReleaseContextContainer = styled(ContextContainer)`
@@ -676,4 +775,22 @@ const Title = styled('div')`
 
 const HttpStatusWrapper = styled('span')`
   margin-left: ${space(0.5)};
+`;
+
+const HoverHeaderWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HoverHeaderContent = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: ${space(0.5)};
+`;
+
+const StyledVersion = styled(Version)`
+  max-width: 190px;
 `;
