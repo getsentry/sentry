@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef} from 'react';
+import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,10 +7,11 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+// import useButtonClickHandler from 'sentry/utils/useButtonClickHandler';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
-import useButtonClickHandler from 'sentry/utils/useButtonClickHandler';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -174,15 +175,37 @@ function BaseButton({
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
-  const handleClick = useButtonClickHandler({
-    busy,
-    disabled,
-    onClick,
-    'aria-label': screenReaderLabel || '',
+  const useButtonTracking = HookStore.get('analytics:track-button-clicks')[0];
+  const buttonTracking = useButtonTracking?.({
     analyticsEventName,
     analyticsEventKey,
-    analyticsParams: {priority, href, ...analyticsParams},
+    analyticsParams: {
+      priority,
+      href,
+      ...analyticsParams,
+    },
+    'aria-label': screenReaderLabel || '',
   });
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't allow clicks when disabled or busy
+      if (disabled || busy) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      buttonTracking?.();
+
+      if (typeof onClick !== 'function') {
+        return;
+      }
+
+      onClick(e);
+    },
+    [disabled, busy, onClick, buttonTracking]
+  );
 
   function getUrl<T extends Url>(prop: T): T | undefined {
     return disabled ? undefined : prop;
