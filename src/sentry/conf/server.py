@@ -2927,8 +2927,8 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Show session replay banner on login page
-SHOW_SESSION_REPLAY_BANNER = False
+# Show banners on the login page that are defined in layout.html
+SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
