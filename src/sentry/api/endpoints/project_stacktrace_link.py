@@ -169,6 +169,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 if not filepath.startswith(config.stack_root) and not mobile_frame:
                     result["error"] = "stack_root_mismatch"
                     continue
+                # XXX: The logic above allows all code mappings to be processed
+                if (
+                    filepath.startswith(config.stack_root)
+                    and config.automatically_generated is True
+                ):
+                    scope.set_tag("stacktrace_link.automatically_generated", True)
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
                 # For mobile we try a second time by munging the file path
@@ -180,13 +186,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         outcome = munging_outcome
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
-                # XXX: The logic above allows all code mappings to be processed
-                if (
-                    filepath.startswith(config.stack_root)
-                    and config.automatically_generated is True
-                ):
-                    scope.set_tag("stacktrace_link.automatically_generated", True)
-                    matched_code_mappings.append(current_config)
+                matched_code_mappings.append(current_config)
 
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
