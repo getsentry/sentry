@@ -488,7 +488,7 @@ export class UsageChart extends Component<Props, State> {
     const {footer} = this.props;
 
     return (
-      <Panel id="usage-chart">
+      <Panel id="usage-chart" data-test-id="usage-chart">
         <ChartContainer>{this.renderChart()}</ChartContainer>
         {footer}
       </Panel>
