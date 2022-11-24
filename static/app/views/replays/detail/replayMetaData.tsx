@@ -77,7 +77,7 @@ function ReplayMetaData({replayRecord}: Props) {
             <ErrorTag
               to={errorsTabHref}
               icon={null}
-              type={replayRecord.countErrors ? 'error' : 'white'}
+              type={replayRecord.countErrors ? 'error' : 'black'}
               level={replayRecord.countErrors ? 'fatal' : 'default'}
             >
               {replayRecord.countErrors}
@@ -126,10 +126,6 @@ const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
     background: ${p => p.theme.level[p.level]};
     border-color: ${p => p.theme.level[p.level]};
     padding: 0 ${space(0.75)};
-
-    span {
-      color: white !important;
-    }
   }
 `;
 
