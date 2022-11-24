@@ -104,6 +104,10 @@ const KeyMetrics = styled('div')`
   align-items: center;
   justify-content: end;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    justify-content: start;
+  }
 `;
 
 const KeyMetricData = styled('div')`
