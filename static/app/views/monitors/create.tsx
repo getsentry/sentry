@@ -1,8 +1,11 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as PropTypes from 'prop-types';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
@@ -11,12 +14,22 @@ import {Monitor} from './types';
 type Props = AsyncView['props'] & RouteComponentProps<{orgId: string}, {}>;
 
 export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
+  static contextTypes = {
+    router: PropTypes.object,
+    organization: SentryTypes.Organization,
+  };
+
   getTitle() {
-    return `Monitors - ${this.props.params.orgId}`;
+    return `Monitors - ${this.orgSlug}`;
+  }
+
+  get orgSlug() {
+    return this.context.organization.slug;
   }
 
   onSubmitSuccess = (data: Monitor) => {
-    browserHistory.push(`/organizations/${this.props.params.orgId}/monitors/${data.id}/`);
+    const url = normalizeUrl(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
+    browserHistory.push(url);
   };
 
   renderBody() {
@@ -34,7 +47,7 @@ export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> 
           </HelpText>
           <MonitorForm
             apiMethod="POST"
-            apiEndpoint={`/organizations/${this.props.params.orgId}/monitors/`}
+            apiEndpoint={`/organizations/${this.orgSlug}/monitors/`}
             onSubmitSuccess={this.onSubmitSuccess}
             submitLabel={t('Next Steps')}
           />

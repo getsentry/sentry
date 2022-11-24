@@ -1,12 +1,14 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as PropTypes from 'prop-types';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -25,6 +27,15 @@ type State = AsyncView['state'] & {
 };
 
 class MonitorDetails extends AsyncView<Props, State> {
+  static contextTypes = {
+    router: PropTypes.object,
+    organization: SentryTypes.Organization,
+  };
+
+  get orgSlug() {
+    return this.context.organization.slug;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
@@ -32,9 +43,9 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getTitle() {
     if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.props.params.orgId}`;
+      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
     }
-    return `Monitors - ${this.props.params.orgId}`;
+    return `Monitors - ${this.orgSlug}`;
   }
 
   onUpdate = (data: Monitor) =>
@@ -49,11 +60,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        <MonitorHeader
-          monitor={monitor}
-          orgId={this.props.params.orgId}
-          onUpdate={this.onUpdate}
-        />
+        <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
         <Layout.Body>
           <Layout.Main fullWidth>
             {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
@@ -64,7 +71,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
             <MonitorStats monitor={monitor} />
 
-            <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
+            <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
             <Panel>
               <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
