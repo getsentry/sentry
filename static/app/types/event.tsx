@@ -479,11 +479,25 @@ type OSContext = {
   version: string;
 };
 
+export enum OtelContextKey {
+  ATTRIBUTES = 'attributes',
+  RESOURCE = 'resource',
+}
+
+// OpenTelemetry Context
+// https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
+interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
+  type: 'otel';
+  [OtelContextKey.ATTRIBUTES]?: Record<string, unknown>;
+  [OtelContextKey.RESOURCE]?: Record<string, unknown>;
+}
+
 type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   os?: OSContext;
+  otel?: OtelContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
