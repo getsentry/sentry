@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
@@ -244,7 +245,9 @@ class BaseGroupSidebar extends Component<Props, State> {
 
     // Evenly split style between distributions and bars for AB testing
     const tagFacetsStyle =
-      parseInt(organization.id, 10) % 2 === 1 ? 'distributions' : 'bars';
+      parseInt(MD5(organization.slug).toString().substring(0, 6), 36) % 2 === 1
+        ? 'distributions'
+        : 'bars';
 
     return (
       <Container>
