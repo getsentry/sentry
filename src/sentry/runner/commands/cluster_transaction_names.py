@@ -1,13 +1,24 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import List, Literal, Mapping, Tuple, TypedDict
 
 import click
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
+from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.runner.decorators import configuration
 
 logger = logging.getLogger(__name__)
+
+
+RULE_RETENTION = timedelta(days=90)
+OPTION_NAME = "sentry:transaction_name_normalize_rules"
+
+
+class RuleSpec(TypedDict):
+    type: Literal["glob"]
+    value: ReplacementRule
+    expires: int  # unix timestamp
 
 
 @click.command()
@@ -28,18 +39,18 @@ def cluster_transaction_names(merge_threshold: int, time_range_seconds: int, deb
 
     for project in RangeQuerySetWrapper(Project.objects.all()):
         if features.has("projects:transaction-name-cluster", project):
-            _cluster_project(project.id, merge_threshold, (then, now))
+            _cluster_project(project, merge_threshold, (then, now))
         else:
-            logger.debug("Skipping project %s, feature disabled", project.id)
+            logger.debug("Skipping project %s, feature disabled", project)
 
 
-def _cluster_project(project_id: int, merge_threshold: int, time_range: Tuple[datetime, datetime]):
+def _cluster_project(project, merge_threshold: int, time_range: Tuple[datetime, datetime]):
     from sentry.ingest.transaction_clusterer.tree import TreeClusterer
     from sentry.utils.snuba import raw_snql_query
 
     clusterer = TreeClusterer(merge_threshold=merge_threshold)
 
-    dt_min, dt_max = time_range
+    then, now = time_range
     snuba_request = Request(
         "transactions",
         app_id="transactions",
@@ -47,9 +58,9 @@ def _cluster_project(project_id: int, merge_threshold: int, time_range: Tuple[da
             match=Entity("transactions"),
             select=[Column("transaction")],
             where=[
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("finish_ts"), Op.GTE, dt_min),
-                Condition(Column("finish_ts"), Op.LT, dt_max),
+                Condition(Column("project_id"), Op.EQ, project.id),
+                Condition(Column("finish_ts"), Op.GTE, then),
+                Condition(Column("finish_ts"), Op.LT, now),
             ],
             groupby=[Column("transaction")],
         ),
@@ -62,4 +73,34 @@ def _cluster_project(project_id: int, merge_threshold: int, time_range: Tuple[da
 
     # TODO: span for clustering
     rules = clusterer.get_rules()
-    logger.debug("Generated %s rules for project %s", len(rules), project_id)
+
+    _export_rules(project, rules, now)
+    logger.debug("Generated %s new rules for project %s", len(rules), project.id)
+
+
+def _export_rules(project, new_rules: List[ReplacementRule], now: datetime):
+    # Load existing rules and remove expired ones:
+    now_timestamp = int(now.timestamp())
+    new_expiry = int((now + RULE_RETENTION).timestamp())
+    existing_rules: List[RuleSpec] = [
+        rule
+        for rule in project.get_option(OPTION_NAME).get("rules", [])
+        if rule["type"] == "glob" and now_timestamp < rule["expires"]
+    ]
+
+    rules_by_glob: Mapping[str, RuleSpec] = {rule["value"]: rule for rule in existing_rules}
+
+    # Update existing rules with new rules, bumping expiry dates by
+    # overwriting existing entries:
+    rules_by_glob.update(
+        **{rule: {"type": "glob", "value": rule, "expires": new_expiry} for rule in new_rules}
+    )
+
+    rules: List[RuleSpec] = list(rules_by_glob.values())
+
+    # We're mixing old and new rules, so sort again
+    rules.sort(key=lambda rule: rule["value"].count("/"), reverse=True)
+
+    # TODO: Integration test
+    if rules:
+        project.update_option(OPTION_NAME, {"rules": rules})
