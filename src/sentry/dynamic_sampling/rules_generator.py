@@ -6,6 +6,7 @@ from pytz import UTC
 
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_boosted_releases,
@@ -13,9 +14,12 @@ from sentry.dynamic_sampling.latest_release_booster import (
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
+    KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
+    Condition,
+    Inner,
     ReleaseRule,
     RuleType,
 )
@@ -32,6 +36,23 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthz",
 ]
+
+ALL_ENVIRONMENTS = "*"
+
+
+def _generate_environment_condition(environment: Optional[str]) -> Union[Condition, Inner]:
+    environment_condition = {
+        "op": "glob",
+        "name": "trace.environment",
+        "value": [environment if environment is not None else ALL_ENVIRONMENTS],
+    }
+
+    # In case we want to generate a rule for a trace without an environment we can use negations to express it as
+    # a trace that has an environment that doesn't match any environment.
+    if environment is None:
+        environment_condition = {"op": "not", "inner": environment_condition}  # type: ignore
+
+    return environment_condition  # type: ignore
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -99,10 +120,10 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
     boosted_releases_dict = {release.id: release.version for release in boosted_releases_objs}
 
     boosted_release_versions = []
-    for (release_id, timestamp) in boosted_release_in_cache:
+    for (release_id, environment, timestamp) in boosted_release_in_cache:
         if release_id not in boosted_releases_dict:
             continue
-        boosted_release_versions.append((boosted_releases_dict[release_id], timestamp))
+        boosted_release_versions.append((boosted_releases_dict[release_id], environment, timestamp))
 
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
     return cast(
@@ -119,7 +140,8 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             "op": "glob",
                             "name": "trace.release",
                             "value": [release_version],
-                        }
+                        },
+                        _generate_environment_condition(environment),
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
@@ -132,9 +154,33 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     ),
                 },
             }
-            for idx, (release_version, timestamp) in enumerate(boosted_release_versions)
+            for idx, (release_version, environment, timestamp) in enumerate(
+                boosted_release_versions
+            )
         ],
     )
+
+
+def generate_boost_key_transaction_rule(
+    sample_rate: float, key_transactions: List[str]
+) -> BaseRule:
+    return {
+        "sampleRate": min(1.0, sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
+        "type": "transaction",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.transaction",
+                    "value": key_transactions,
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
+    }
 
 
 def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
@@ -156,6 +202,11 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
+            # Key Transaction boost
+            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+                key_transactions = get_key_transactions(project)
+                if key_transactions:
+                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:

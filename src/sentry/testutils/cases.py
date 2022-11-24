@@ -84,6 +84,7 @@ from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
+from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
     Commit,
@@ -139,8 +140,8 @@ from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
+    MetricOrderByField,
     MetricsQuery,
-    OrderBy,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -1410,9 +1411,10 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
+        project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
-        orderby: Optional[Sequence[OrderBy]] = None,
+        orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
         offset: Optional[Offset] = None,
         include_totals: bool = True,
@@ -1426,7 +1428,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
         return MetricsQuery(
             org_id=self.organization.id,
-            project_ids=[self.project.id],
+            project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
             start=start,
             end=end,
@@ -1952,7 +1954,8 @@ class SCIMTestCase(APITestCase):
         self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
-        self.login_as(user=self.user)
+        self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
+        self.login_as(user=self.scim_user)
 
 
 class SCIMAzureTestCase(SCIMTestCase):

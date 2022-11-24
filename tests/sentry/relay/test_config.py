@@ -469,7 +469,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     for release, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            release,
+            f"ds::r:{release}:e:prod",
             timestamp,
         )
     with Feature(
@@ -528,7 +528,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["3.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1500,
                 "timeRange": {
@@ -542,7 +549,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["4.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1501,
                 "timeRange": {
@@ -556,7 +570,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["5.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1502,
                 "timeRange": {
@@ -570,7 +591,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["6.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1503,
                 "timeRange": {
@@ -584,7 +612,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["prod"],
+                        },
+                    ],
                 },
                 "id": 1504,
                 "timeRange": {
@@ -688,17 +723,15 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
-def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
+def test_has_metric_extraction(default_project, feature_flag, killswitch):
     options = override_options(
         {
             "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
             if killswitch
-            else [],
-            "relay.transaction-metrics-org-sample-rate": org_sample,
+            else []
         }
     )
     feature = Feature(
@@ -708,7 +741,7 @@ def test_has_metric_extraction(default_project, feature_flag, org_sample, killsw
     )
     with feature, options:
         config = get_project_config(default_project)
-        if killswitch or (org_sample == 0.0 and not feature_flag):
+        if killswitch or not feature_flag:
             assert "transactionMetrics" not in config.to_dict()["config"]
         else:
             config = config.to_dict()["config"]["transactionMetrics"]
