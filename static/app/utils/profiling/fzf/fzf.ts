@@ -47,7 +47,11 @@ function getCharClass(c: number): CharTypes {
   return CharTypes.charNonWord;
 }
 
-export function fzf(text: string, pattern: string): Result {
+// Algo functions make two assumptions
+// 1. "pattern" is given in lowercase if "caseSensitive" is false
+// 2. "pattern" is already normalized if "normalize" is true
+// https://github.com/junegunn/fzf/blob/f81feb1e69e5cb75797d50817752ddfe4933cd68/src/algo/algo.go#L244
+export function fzf(text: string, pattern: string, caseSensitive: boolean): Result {
   if (pattern.length === 0) {
     return {end: 0, score: 0, start: 0, matches: []};
   }
@@ -60,7 +64,14 @@ export function fzf(text: string, pattern: string): Result {
   const patternLength = pattern.length;
 
   for (let index = 0; index < textLength; index++) {
-    const char = text[index];
+    let char = text[index];
+    // This is considerably faster than blindly applying strings.ToLower to the whole string
+    if (!caseSensitive) {
+      const cc = char.charCodeAt(0);
+      if (cc >= 65 && cc <= 90) {
+        char = String.fromCharCode(cc + 32);
+      }
+    }
     const patternchar = pattern[pidx];
 
     if (char === patternchar) {
@@ -82,7 +93,14 @@ export function fzf(text: string, pattern: string): Result {
   pidx--;
 
   for (let index = eidx - 1; index >= sidx; index--) {
-    const char = text[index];
+    let char = text[index];
+    // This is considerably faster than blindly applying strings.ToLower to the whole string
+    if (!caseSensitive) {
+      const cc = char.charCodeAt(0);
+      if (cc >= 65 && cc <= 90) {
+        char = String.fromCharCode(cc + 32);
+      }
+    }
     const patternchar = pattern[pidx];
 
     if (char === patternchar) {
@@ -94,7 +112,7 @@ export function fzf(text: string, pattern: string): Result {
     }
   }
 
-  const [score, matches] = calculateScore(text, pattern, sidx, eidx);
+  const [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
   return {
     start: sidx,
     end: eidx,
@@ -126,7 +144,8 @@ function calculateScore(
   text: string,
   pattern: string,
   sidx: number,
-  eidx: number
+  eidx: number,
+  caseSensitive: boolean
 ): [number, ReadonlyArray<[number, number]>] {
   let pidx = 0;
   let score = 0;
@@ -142,7 +161,13 @@ function calculateScore(
   }
 
   for (let idx = sidx; idx < eidx; idx++) {
-    const char = text[idx];
+    let char = text[idx];
+    if (!caseSensitive) {
+      const cc = char.charCodeAt(0);
+      if (cc >= 65 && cc <= 90) {
+        char = String.fromCharCode(cc + 32);
+      }
+    }
     const patternchar = pattern[pidx];
     const currentCharClass = getCharClass(char.charCodeAt(0));
 
@@ -158,7 +183,7 @@ function calculateScore(
         if (bonus === bonusBoundary) {
           firstBonus = bonus;
         }
-        bonus = Math.max(Math.max(bonus, firstBonus), bonusConsecutive);
+        bonus = Math.max(bonus, firstBonus, bonusConsecutive);
       }
 
       if (pidx === 0) {
@@ -181,5 +206,28 @@ function calculateScore(
     }
     prevCharClass = currentCharClass;
   }
-  return [score, pos.map(p => [p, p + 1])];
+
+  if (!pos.length) {
+    throw new Error('Calculate score should not be called for a result with no matches');
+  }
+  // pos is where the text char matched a pattern char. If we have consecutive matches,
+  // we want to update/extend our current range, otherwise we want to add a new range.
+
+  // Init range to first match, at this point we should have at least 1
+  const matches = [[pos[0], pos[0] + 1]] as [number, number][];
+
+  // iterate over all positions and check for overlaps from current and end of last
+  // range. Positions are already sorted by match index, we can just check the last range.
+  for (let i = 1; i < pos.length; i++) {
+    const lastrange = matches[matches.length - 1];
+    // if last range ends where new range stars, we can extend it
+    if (lastrange[1] === pos[i]) {
+      lastrange[1] = pos[i] + 1;
+    } else {
+      // otherwise we add a new range
+      matches.push([pos[i], pos[i] + 1]);
+    }
+  }
+
+  return [score, matches];
 }
