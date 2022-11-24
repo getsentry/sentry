@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,13 +13,14 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
 
 def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
-) -> Any:
+) -> Dict[str, str]:
     result = {}
     oi = config.organization_integration
     integration = oi.integration
@@ -50,51 +51,59 @@ def get_link(
     return result
 
 
-# This is to support mobile languages with non-fully-qualified file pathing.
-# We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
-def generate_mobile_frame(parameters: Any) -> Any:
-    abs_path = parameters.get("absPath")
-    module = parameters.get("module")
-    package = parameters.get("package")
-    frame = {}
-    if abs_path:
-        frame["abs_path"] = abs_path
-    if module:
-        frame["module"] = module
-    if package:
-        frame["package"] = package
-    return frame
+def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+    return {
+        "file": parameters.get("file"),
+        # XXX: Temp change to support try_path_munging until refactored
+        "filename": parameters.get("file"),
+        "commit_id": parameters.get("commitId"),
+        "platform": parameters.get("platform"),
+        "sdk_name": parameters.get("sdkName"),
+        "abs_path": parameters.get("absPath"),
+        "module": parameters.get("module"),
+        "package": parameters.get("package"),
+    }
 
 
-def set_top_tags(scope: Scope, project: Project) -> None:
-    scope.set_tag("project.slug", project.slug)
-    scope.set_tag("organization.slug", project.organization.slug)
+def set_top_tags(
+    scope: Scope,
+    project: Project,
+    ctx: Mapping[str, Optional[str]],
+    has_code_mappings: bool,
+) -> None:
     try:
-        scope.set_tag("organization.early_adopter", project.organization.flags.early_adopter)
+        scope.set_tag("project.slug", project.slug)
+        scope.set_tag("organization.slug", project.organization.slug)
+        scope.set_tag(
+            "organization.early_adopter", bool(project.organization.flags.early_adopter.is_set)
+        )
+        scope.set_tag("stacktrace_link.platform", ctx["platform"])
+        scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
+        if ctx["platform"] == "python":
+            # This allows detecting a file that belongs to Python's 3rd party modules
+            scope.set_tag("stacktrace_link.in_app", "site-packages" not in str(ctx["file"]))
     except Exception:
-        # If errors arise we can then follow up with a fix
-        logger.exception("We failed to set the early adopter flag")
+        # If errors arises we can still proceed
+        logger.exception("We failed to set a tag.")
 
 
 def try_path_munging(
     config: RepositoryProjectPathConfig,
     filepath: str,
-    mobile_frame: Any,
-    ctx: Any,
-) -> Any:
-    result = {}
-    mobile_frame["filename"] = filepath
+    ctx: Mapping[str, Optional[str]],
+) -> Dict[str, str]:
+    result: Dict[str, str] = {}
     munged_frames = munged_filename_and_frames(
-        ctx["platform"], [mobile_frame], "munged_filename", sdk_name=ctx["sdk_name"]
+        str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
     )
     if munged_frames:
-        munged_frame: Mapping[str, Any] = munged_frames[1][0]
+        munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
         munged_filename = str(munged_frame.get("munged_filename"))
         if munged_filename:
             if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
                 config.stack_root
             ):
-                result["error"] = "stack_root_mismatch"
+                result = {"error": "stack_root_mismatch"}
             else:
                 result = get_link(config, munged_filename, ctx["commit_id"])
 
@@ -102,7 +111,7 @@ def try_path_munging(
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the
@@ -118,19 +127,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request: Request, project) -> Response:
-        # should probably feature gate
-        filepath = request.GET.get("file")
+    def get(self, request: Request, project: Project) -> Response:
+        ctx = generate_context(request.GET)
+        filepath = ctx.get("file")
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        ctx = {
-            "commit_id": request.GET.get("commitId"),
-            "platform": request.GET.get("platform"),
-            "sdk_name": request.GET.get("sdkName"),
-        }
-        mobile_frame = generate_mobile_frame(request.GET)
-        result = {"config": None, "sourceUrl": None}
+        result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
@@ -148,19 +151,28 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
+        derived = False
         matched_code_mappings = []
         with configure_scope() as scope:
-            set_top_tags(scope, project)
+            set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
-                if not filepath.startswith(config.stack_root) and not mobile_frame:
+                # If all code mappings fail to match a stack_root it means that there's no working code mapping
+                if not filepath.startswith(config.stack_root):
+                    # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
+                # XXX: The logic above allows all code mappings to be processed
+                if (
+                    filepath.startswith(config.stack_root)
+                    and config.automatically_generated is True
+                ):
+                    derived = True
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
-                # For mobile we try a second time by munging the file path
-                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
-                if not outcome.get("sourceUrl") and mobile_frame:
-                    munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
+                # In some cases the stack root matches and it can either be that we have
+                # an invalid code mapping or that munging is expect it to work
+                if not outcome.get("sourceUrl"):
+                    munging_outcome = try_path_munging(config, filepath, ctx)
                     # If we failed to munge we should keep the original outcome
                     if munging_outcome:
                         outcome = munging_outcome
@@ -180,7 +192,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             # Post-processing before exiting scope context
             found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.platform", ctx["platform"])
+            scope.set_tag("stacktrace_link.auto_derived", derived)
             if matched_code_mappings:
                 # Any code mapping that matches and its results will be returned
                 result["matched_code_mappings"] = matched_code_mappings

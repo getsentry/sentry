@@ -6,13 +6,12 @@ from pytz import UTC
 
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    get_boosted_releases,
-)
+from sentry.dynamic_sampling.key_transactions import get_key_transactions
+from sentry.dynamic_sampling.latest_release_booster import get_augmented_boosted_releases
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
+    KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -21,7 +20,7 @@ from sentry.dynamic_sampling.utils import (
     ReleaseRule,
     RuleType,
 )
-from sentry.models import Project, Release
+from sentry.models import Project
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz
@@ -107,23 +106,9 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
 
 
 def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[ReleaseRule]:
-    boosted_release_in_cache = get_boosted_releases(project_id)
-    if not boosted_release_in_cache:
-        return []
-
-    # Capped to latest 5 releases
-    boosted_releases_objs = Release.objects.filter(
-        id__in=[r[0] for r in boosted_release_in_cache[-BOOSTED_RELEASES_LIMIT:]]
-    )
-    boosted_releases_dict = {release.id: release.version for release in boosted_releases_objs}
-
-    boosted_release_versions = []
-    for (release_id, environment, timestamp) in boosted_release_in_cache:
-        if release_id not in boosted_releases_dict:
-            continue
-        boosted_release_versions.append((boosted_releases_dict[release_id], environment, timestamp))
-
+    boosted_releases = get_augmented_boosted_releases(project_id, BOOSTED_RELEASES_LIMIT)
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
+
     return cast(
         List[ReleaseRule],
         [
@@ -137,26 +122,48 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                         {
                             "op": "glob",
                             "name": "trace.release",
-                            "value": [release_version],
+                            "value": [boosted_release.version],
                         },
-                        _generate_environment_condition(environment),
+                        _generate_environment_condition(boosted_release.environment),
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
                 "timeRange": {
-                    "start": str(datetime.utcfromtimestamp(timestamp).replace(tzinfo=UTC)),
+                    "start": str(
+                        datetime.utcfromtimestamp(boosted_release.timestamp).replace(tzinfo=UTC)
+                    ),
                     "end": str(
-                        datetime.utcfromtimestamp(timestamp + BOOSTED_RELEASE_TIMEOUT).replace(
-                            tzinfo=UTC
-                        )
+                        datetime.utcfromtimestamp(
+                            boosted_release.timestamp + boosted_release.platform.time_to_adoption
+                        ).replace(tzinfo=UTC)
                     ),
                 },
             }
-            for idx, (release_version, environment, timestamp) in enumerate(
-                boosted_release_versions
-            )
+            for idx, boosted_release in enumerate(boosted_releases)
         ],
     )
+
+
+def generate_boost_key_transaction_rule(
+    sample_rate: float, key_transactions: List[str]
+) -> BaseRule:
+    return {
+        "sampleRate": min(1.0, sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
+        "type": "transaction",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.transaction",
+                    "value": key_transactions,
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
+    }
 
 
 def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
@@ -178,6 +185,11 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
+            # Key Transaction boost
+            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+                key_transactions = get_key_transactions(project)
+                if key_transactions:
+                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
