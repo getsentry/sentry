@@ -34,6 +34,8 @@ function GroupReplays({group}: Props) {
     replayIds: undefined | string[];
   }>({pageLinks: null, replayIds: undefined});
 
+  const [fetchError, setFetchError] = useState();
+
   const {cursor} = location.query;
   const fetchReplayIds = useCallback(async () => {
     const eventView = EventView.fromSavedQuery({
@@ -60,6 +62,7 @@ function GroupReplays({group}: Props) {
       });
     } catch (err) {
       Sentry.captureException(err);
+      setFetchError(err);
     }
   }, [api, cursor, organization.slug, group.id]);
 
@@ -84,7 +87,18 @@ function GroupReplays({group}: Props) {
   }, [fetchReplayIds]);
 
   if (!eventView) {
-    return null;
+    return (
+      <StyledPageContent>
+        <ReplayTable
+          isFetching
+          replays={[]}
+          showProjectColumn={false}
+          sort={undefined}
+          fetchError={fetchError}
+        />
+        <Pagination pageLinks={null} />
+      </StyledPageContent>
+    );
   }
   return (
     <GroupReplaysTable
