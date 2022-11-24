@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,6 +22,7 @@ import {
 } from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -49,7 +48,7 @@ type Props = {
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-} & WithRouterProps;
+};
 
 function ReleaseAdoption({
   release,
@@ -60,9 +59,9 @@ function ReleaseAdoption({
   loading,
   reloading,
   errored,
-  router,
-  location,
 }: Props) {
+  const {location, router} = useRouteContext();
+
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
@@ -357,4 +356,4 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-export default withRouter(ReleaseAdoption);
+export default ReleaseAdoption;
