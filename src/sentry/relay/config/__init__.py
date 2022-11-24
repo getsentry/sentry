@@ -44,7 +44,11 @@ from sentry.utils.options import sample_modulo
 from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
-EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
+EXPOSABLE_FEATURES = [
+    "organizations:transaction-name-normalize",
+    "organizations:profiling",
+    "organizations:session-replay",
+]
 
 logger = logging.getLogger(__name__)
 

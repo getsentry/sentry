@@ -5,6 +5,8 @@ import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
 
 type Props = WithRouterProps &
@@ -39,8 +41,8 @@ function ListLink({
   ...props
 }: Props) {
   const queryData = query ? qs.parse(query) : undefined;
-  const target: LocationDescriptor =
-    typeof to === 'string' ? {pathname: to, query: queryData} : to;
+  const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
+  const target = normalizeUrl(targetLocation);
 
   const active = isActive?.(target, index) ?? router.isActive(target, index);
 

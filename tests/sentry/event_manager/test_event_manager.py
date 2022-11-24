@@ -25,6 +25,8 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
+    BoostedRelease,
+    BoostedReleases,
     get_boosted_releases,
     get_redis_client_for_ds,
 )
@@ -3026,7 +3028,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
 
             assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
-            assert get_boosted_releases(self.project.id) == []
+            assert get_boosted_releases(self.project.id) == BoostedReleases([])
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
@@ -3062,12 +3064,14 @@ class DSLatestReleaseBoostTest(TestCase):
                 ts,
             )
 
-            assert get_boosted_releases(self.project.id) == [
-                (self.release.id, None, ts),
-                (release_2.id, None, ts),
-                (release_2.id, self.environment1.name, ts),
-                (release_2.id, self.environment2.name, ts),
-            ]
+            assert get_boosted_releases(self.project.id) == BoostedReleases(
+                [
+                    BoostedRelease(self.release.id, ts, None),
+                    BoostedRelease(release_2.id, ts, None),
+                    BoostedRelease(release_2.id, ts, self.environment1.name),
+                    BoostedRelease(release_2.id, ts, self.environment2.name),
+                ]
+            )
 
     @freeze_time("2022-11-03 10:00:00")
     def test_evict_expired_boosted_releases(self):
@@ -3106,9 +3110,9 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
                 == "1"
             )
-            assert get_boosted_releases(self.project.id) == [
-                (release_3.id, self.environment1.name, time())
-            ]
+            assert get_boosted_releases(self.project.id) == BoostedReleases(
+                [BoostedRelease(release_3.id, time(), self.environment1.name)]
+            )
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
