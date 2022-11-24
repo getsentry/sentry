@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {ToolboxComponentOption} from 'echarts';
 
@@ -21,6 +19,7 @@ import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
@@ -30,7 +29,7 @@ import {
   releaseMarkLinesLabels,
 } from '../../utils';
 
-type Props = WithRouterProps & {
+type Props = {
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
   organization: Organization;
@@ -50,13 +49,13 @@ function ReleaseEventsChart({
   value,
   diff,
   organization,
-  router,
   period,
   start,
   end,
   utc,
-  location,
 }: Props) {
+  const {location, router} = useRouteContext();
+
   const api = useApi();
   const theme = useTheme();
 
@@ -234,4 +233,4 @@ function ReleaseEventsChart({
   );
 }
 
-export default withOrganization(withRouter(ReleaseEventsChart));
+export default withOrganization(ReleaseEventsChart);
