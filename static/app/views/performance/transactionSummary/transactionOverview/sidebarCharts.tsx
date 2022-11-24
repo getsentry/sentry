@@ -1,9 +1,7 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, InjectedRouter, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkPoint from 'sentry/components/charts/components/markPoint';
@@ -34,6 +32,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import {
@@ -42,11 +41,10 @@ import {
   anomalyToColor,
 } from '../transactionAnomalies/utils';
 
-type ContainerProps = WithRouterProps & {
+type ContainerProps = {
   error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
-  location: Location;
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
@@ -61,8 +59,6 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
     series: LineChartProps['series'];
   };
   eventView: EventView;
-  location: Location;
-  router: InjectedRouter;
   transactionName: string;
   utc: boolean;
   end?: Date;
@@ -78,13 +74,12 @@ function SidebarCharts({
   start,
   end,
   utc,
-  router,
   statsPeriod,
   chartData,
   eventView,
-  location,
   transactionName,
 }: Props) {
+  const {location, router} = useRouteContext();
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -238,15 +233,15 @@ function SidebarCharts({
 }
 
 function SidebarChartsContainer({
-  location,
   eventView,
   organization,
-  router,
   isLoading,
   error,
   totals,
   transactionName,
 }: ContainerProps) {
+  const {location, router} = useRouteContext();
+
   const api = useApi();
   const theme = useTheme();
 
@@ -403,7 +398,6 @@ function SidebarChartsContainer({
           <SidebarCharts
             {...contentCommonProps}
             transactionName={transactionName}
-            location={location}
             eventView={eventView}
             chartData={{series, errored, loading, reloading, chartOptions}}
           />
@@ -450,4 +444,4 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-export default withRouter(SidebarChartsContainer);
+export default SidebarChartsContainer;
