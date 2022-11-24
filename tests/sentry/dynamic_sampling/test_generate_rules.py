@@ -442,7 +442,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 "op": "and",
                 "inner": [
                     {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "eq", "name": "trace.environment", "value": [None]},
+                    {"op": "eq", "name": "trace.environment", "value": None},
                 ],
             },
             "id": 1502,
@@ -533,7 +533,7 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
                     "op": "and",
                     "inner": [
                         {"op": "eq", "name": "trace.release", "value": [release.version]},
-                        {"op": "eq", "name": "trace.environment", "value": [None]},
+                        {"op": "eq", "name": "trace.environment", "value": None},
                     ],
                 },
                 "id": 1500 + index,
