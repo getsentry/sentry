@@ -113,7 +113,7 @@ def observe_release(project_id: int, release_id: int, environment: Optional[str]
     return release_observed == "1"  # type: ignore
 
 
-def get_and_expire_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
+def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -152,7 +152,7 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
     Function that adds a release to the list of active boosted releases for a given project.
     """
     # Called here for expired releases cleanup
-    get_and_expire_boosted_releases(project_id)
+    get_boosted_releases(project_id)
 
     cache_key = generate_cache_key_for_boosted_releases_hash(project_id)
     redis_client = get_redis_client_for_ds()
@@ -175,15 +175,18 @@ class BoostedRelease:
 
 
 def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[Project]:
-    release_projects = release.projects.filter(id__in=[project_id])
-    return release_projects[0] if len(release_projects) > 0 else None
+    try:
+        return release.projects.get(id=project_id)
+    except Project.DoesNotExist:
+        # If we don't find the project of this release we just default to having no platform name in the BoostedRelease.
+        pass
 
 
 def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedRelease]:
     """
     Returns a list of boosted releases augmented with additional information such as release version and platform.
     """
-    cached_boosted_releases = get_and_expire_boosted_releases(project_id)
+    cached_boosted_releases = get_boosted_releases(project_id)
     if not cached_boosted_releases:
         return []
 
