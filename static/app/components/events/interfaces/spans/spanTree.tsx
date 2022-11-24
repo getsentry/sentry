@@ -55,16 +55,16 @@ type PropType = ScrollbarManagerChildrenProps & {
   focusedSpanIds?: Set<string>;
 };
 
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-
-  defaultHeight: ROW_HEIGHT,
-  minHeight: ROW_HEIGHT,
-});
-
 const listRef = React.createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
+  cache = new CellMeasurerCache({
+    fixedWidth: true,
+
+    defaultHeight: ROW_HEIGHT,
+    minHeight: ROW_HEIGHT,
+  });
+
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
 
@@ -172,7 +172,7 @@ class SpanTree extends Component<PropType> {
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
       !isEqual(prevProps.dragProps, this.props.dragProps)
     ) {
-      cache.clearAll();
+      this.cache.clearAll();
       listRef.current?.recomputeRowHeights();
       return;
     }
@@ -213,7 +213,7 @@ class SpanTree extends Component<PropType> {
         prevProps.spans.forEach((span, index) => {
           // We only want to clear the cache for spans that are expanded.
           if (this.props.spanContextProps.isSpanExpanded(span.span)) {
-            cache.clear(index, 0);
+            this.cache.clear(index, 0);
           }
         });
 
@@ -222,7 +222,7 @@ class SpanTree extends Component<PropType> {
         this.props.spans.forEach(({span}, index) => {
           if (this.props.spanContextProps.isSpanExpanded(span)) {
             // Since spans were removed, the index in the new state is offset by the num of spans removed
-            cache.clear(index + diffLeft.size, 0);
+            this.cache.clear(index + diffLeft.size, 0);
           }
         });
       }
@@ -236,13 +236,13 @@ class SpanTree extends Component<PropType> {
         prevProps.spans.forEach(({span}, index) => {
           // We only want to clear the cache for spans that are added.
           if (this.props.spanContextProps.isSpanExpanded(span)) {
-            cache.clear(index, 0);
+            this.cache.clear(index, 0);
           }
         });
 
         this.props.spans.forEach(({span}, index) => {
           if (this.props.spanContextProps.isSpanExpanded(span)) {
-            cache.clear(index, 0);
+            this.cache.clear(index, 0);
           }
         });
 
@@ -254,13 +254,19 @@ class SpanTree extends Component<PropType> {
             this.props.spanContextProps.isSpanExpanded(span.span)
           ) {
             // Since spans were removed, the index in the new state is offset by the num of spans removed
-            cache.clear(index + diffRight.size, 0);
+            this.cache.clear(index + diffRight.size, 0);
           }
         });
       }
 
       listRef.current?.forceUpdateGrid();
     }
+  }
+
+  componentWillUnmount() {
+    this.props.spans.forEach(({span}) =>
+      this.props.spanContextProps.removeExpandedSpan(span)
+    );
   }
 
   generateInfoMessage(input: {
@@ -340,7 +346,7 @@ class SpanTree extends Component<PropType> {
                 this.props.updateScrollState();
                 // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
                 // determine the specific cache slots to clear when hidden spans are expanded
-                cache.clearAll();
+                this.cache.clearAll();
               }
             : undefined
         }
@@ -665,7 +671,7 @@ class SpanTree extends Component<PropType> {
     return (
       <CellMeasurer
         key={key}
-        cache={cache}
+        cache={this.cache}
         parent={parent}
         columnIndex={columnIndex}
         rowIndex={index}
@@ -676,7 +682,7 @@ class SpanTree extends Component<PropType> {
               {this.renderSpanNode(spanTree[index], {
                 measure,
                 listRef,
-                cellMeasurerCache: cache,
+                cellMeasurerCache: this.cache,
                 ...this.props.spanContextProps,
               })}
             </div>
@@ -719,10 +725,10 @@ class SpanTree extends Component<PropType> {
                   isScrolling={isScrolling}
                   onScroll={onChildScroll}
                   scrollTop={scrollTop}
-                  deferredMeasurementCache={cache}
+                  deferredMeasurementCache={this.cache}
                   height={height}
                   width={width}
-                  rowHeight={cache.rowHeight}
+                  rowHeight={this.cache.rowHeight}
                   rowCount={spanTree.length}
                   rowRenderer={props => this.renderRow(props, spanTree)}
                   overscanRowCount={10}
