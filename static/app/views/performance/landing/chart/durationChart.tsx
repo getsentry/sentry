@@ -40,7 +40,7 @@ function DurationChart({
   backupField,
   usingBackupAxis,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const {location} = useRouteContext();
 
   const api = useApi();
 
@@ -131,7 +131,6 @@ function DurationChart({
                         height={250}
                         data={series}
                         loading={loading || reloading}
-                        router={router}
                         statsPeriod={globalSelection.datetime.period}
                         start={start}
                         end={end}
