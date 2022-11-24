@@ -19,7 +19,7 @@ class IssueEvidence:
 
     def to_dict(
         self,
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, str | bool]:
         return {
             "name": self.name,
             "value": self.value,
