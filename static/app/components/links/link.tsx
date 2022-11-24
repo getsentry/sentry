@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
 import {linkStyles} from './styles';
 
 export interface LinkProps
@@ -55,6 +57,8 @@ function BaseLink({
       );
     }
   }, [location]);
+
+  to = normalizeUrl(to, location);
 
   if (!disabled && location) {
     return <RouterLink to={to} ref={forwardedRef as any} {...props} />;

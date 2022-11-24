@@ -50,9 +50,23 @@ describe('Docs Search Modal', function () {
   });
 
   it('can open help search modal', async function () {
-    const {routerContext} = initializeOrg();
+    const {routerContext, router, route} = initializeOrg();
 
-    render(<App>{<div>placeholder content</div>}</App>, {context: routerContext});
+    render(
+      <App
+        location={router.location}
+        routes={router.routes}
+        route={route}
+        router={router}
+        params={{}}
+        routeParams={router.params}
+      >
+        {<div>placeholder content</div>}
+      </App>,
+      {
+        context: routerContext,
+      }
+    );
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

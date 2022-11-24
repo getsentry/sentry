@@ -20,7 +20,6 @@ type Props = {
   openMembership: boolean;
   organization: Organization;
   team: Team;
-  urlPrefix: string;
 };
 
 type State = {
@@ -179,7 +178,8 @@ class AllTeamsRow extends Component<Props, State> {
   };
 
   render() {
-    const {team, urlPrefix, openMembership} = this.props;
+    const {team, openMembership, organization} = this.props;
+    const urlPrefix = `/settings/${organization.slug}/teams/`;
 
     const display = (
       <IdBadge
@@ -197,7 +197,7 @@ class AllTeamsRow extends Component<Props, State> {
       <TeamPanelItem>
         <div>
           {canViewTeam ? (
-            <TeamLink data-test-id="team-link" to={`${urlPrefix}teams/${team.slug}/`}>
+            <TeamLink data-test-id="team-link" to={`${urlPrefix}${team.slug}/`}>
               {display}
             </TeamLink>
           ) : (
