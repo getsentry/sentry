@@ -263,12 +263,6 @@ class SpanTree extends Component<PropType> {
     }
   }
 
-  componentWillUnmount() {
-    this.props.spans.forEach(({span}) =>
-      this.props.spanContextProps.removeExpandedSpan(span)
-    );
-  }
-
   generateInfoMessage(input: {
     filteredSpansAbove: EnhancedProcessedSpanType[];
     isCurrentSpanFilteredOut: boolean;
