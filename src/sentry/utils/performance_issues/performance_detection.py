@@ -47,6 +47,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
 
 
@@ -61,6 +62,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
 }
 
@@ -294,6 +296,11 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": 100,  # ms
             "consecutive_count_threshold": 2,
         },
+        DetectorType.N_PLUS_ONE_API_CALLS: {
+            "duration_threshold": 5,  # ms
+            "count_threshold": 10,
+            "allowed_span_ops": ["http"],
+        },
     }
 
 
@@ -317,6 +324,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
         ),
+        DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
     }
 
     for _, detector in detectors.items():
@@ -866,6 +874,10 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 self.stored_problems[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, self.spans_involved[fingerprint]
                 )
+
+
+class NPlusOneAPICallsDetector(PerformanceDetector):
+    pass
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
