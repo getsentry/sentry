@@ -18,7 +18,6 @@ ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
 class IntermediateSearchQueryPartial(Protocol):
     def __call__(
         self,
-        # selected_columns: Sequence[str],
         groupby: Sequence[str],
         having: Sequence[Any],
         orderby: Sequence[str],
