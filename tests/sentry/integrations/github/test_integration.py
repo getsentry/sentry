@@ -608,9 +608,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self._caplog.set_level(logging.INFO, logger="sentry")
             # Check that the cache is clear
             assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
-            assert cache.get("githubtrees:repo:Test-Organization/foo") is None
+            assert cache.get("github:repo:Test-Organization/foo:source-code") is None
             trees = installation.get_trees_for_org()
-
             # These checks are useful since they will be available in the GCP logs
             for msg in [
                 "The Github App does not have access to Test-Organization/baz.",
@@ -623,11 +622,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
                 {"full_name": "Test-Organization/baz", "default_branch": "master"},
             ]
-            assert cache.get("githubtrees:repo:Test-Organization/foo") == RepoTree(
-                Repo("Test-Organization/foo", "master"),
-                ["src/sentry/api/endpoints/auth_login.py"],
-            )
-
+            assert cache.get("github:repo:Test-Organization/foo:source-code") == [
+                "src/sentry/api/endpoints/auth_login.py"
+            ]
             assert trees == expected_trees
 
             # Calling a second time should produce the same results
