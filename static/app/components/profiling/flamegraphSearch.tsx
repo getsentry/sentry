@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import Fuse from 'fuse.js';
 
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons';
@@ -33,46 +32,10 @@ function sortFrameResults(
     );
 }
 
-function findBestMatchFromFuseMatches(
-  matches: ReadonlyArray<Fuse.FuseResultMatch>
-): Fuse.RangeTuple | null {
-  let bestMatch: Fuse.RangeTuple | null = null;
-  let bestMatchLength = 0;
-  let bestMatchStart = -1;
-
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i]!; // iterating over a non empty array
-
-    for (let j = 0; j < match.indices.length; j++) {
-      const index = match.indices[j]!; // iterating over a non empty array
-      const matchLength = index[1] - index[0];
-
-      if (matchLength < 0) {
-        // Fuse sometimes returns negative indices - we will just skip them for now.
-        continue;
-      }
-
-      // We only override the match if the match is longer than the current best match
-      // or if the matches are the same length, but the start is earlier in the string
-      if (
-        matchLength > bestMatchLength ||
-        (matchLength === bestMatchLength && index[0] > bestMatchStart)
-      ) {
-        // Offset end by 1 else we are always trailing by 1 character.
-        bestMatch = [index[0], index[1] + 1];
-        bestMatchLength = matchLength;
-        bestMatchStart = index[0];
-      }
-    }
-  }
-
-  return bestMatch;
-}
-
 function findBestMatchFromRegexpMatchArray(
   matches: RegExpMatchArray[]
-): Fuse.RangeTuple | null {
-  let bestMatch: Fuse.RangeTuple | null = null;
+): [number, number] | null {
+  let bestMatch: [number, number] | null = null;
   let bestMatchLength = 0;
   let bestMatchStart = -1;
 
@@ -106,9 +69,7 @@ const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 
 function frameSearch(
   query: string,
-  frames: ReadonlyArray<FlamegraphFrame>,
-  index: Fuse<FlamegraphFrame>,
-  useFzf: boolean
+  frames: ReadonlyArray<FlamegraphFrame>
 ): FlamegraphSearchResults['results'] {
   const results: FlamegraphSearchResults['results'] = new Map();
 
@@ -149,45 +110,21 @@ function frameSearch(
     return results;
   }
 
-  if (useFzf) {
-    // we lowercase the query to make the search case insensitive (assumption of fzf)
-    // when caseSensitive = false
-    const lowercaseQuery = query.toLowerCase();
+  // we lowercase the query to make the search case insensitive (assumption of fzf)
+  // when caseSensitive = false
+  const lowercaseQuery = query.toLowerCase();
 
-    for (let i = 0; i < frames.length; i++) {
-      const frame = frames[i]!;
-      const match = fzf(frame.frame.name, lowercaseQuery, false);
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i]!;
+    const match = fzf(frame.frame.name, lowercaseQuery, false);
 
-      if (match.score > 0) {
-        results.set(getFlamegraphFrameSearchId(frame), {
-          frame,
-          match: match.matches[0],
-        });
-      }
-    }
-    return results;
-  }
-
-  const fuseResults = index.search(query);
-
-  if (fuseResults.length <= 0) {
-    return results;
-  }
-
-  for (let i = 0; i < fuseResults.length; i++) {
-    const fuseFrameResult = fuseResults[i]!; // iterating over a non empty array
-    const frame = fuseFrameResult.item;
-    const frameId = getFlamegraphFrameSearchId(frame);
-    const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
-
-    if (match) {
-      results.set(frameId, {
+    if (match.score > 0) {
+      results.set(getFlamegraphFrameSearchId(frame), {
         frame,
-        match,
+        match: match.matches[0],
       });
     }
   }
-
   return results;
 }
 
@@ -233,16 +170,6 @@ function FlamegraphSearch({
     return flamegraphs.frames;
   }, [flamegraphs]);
 
-  const searchIndex = useMemo(() => {
-    return new Fuse(allFrames, {
-      keys: ['frame.name'],
-      threshold: 0.3,
-      includeMatches: true,
-      findAllMatches: true,
-      ignoreLocation: true,
-    });
-  }, [allFrames]);
-
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoom at frame', [frame, 'min']);
@@ -273,12 +200,12 @@ function FlamegraphSearch({
       dispatch({
         type: 'set results',
         payload: {
-          results: frameSearch(value, allFrames, searchIndex, true),
+          results: frameSearch(value, allFrames),
           query: value,
         },
       });
     },
-    [dispatch, allFrames, searchIndex]
+    [dispatch, allFrames]
   );
 
   useEffect(() => {
