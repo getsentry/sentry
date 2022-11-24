@@ -16,16 +16,6 @@ function Contexts({event, group}: Props) {
 
   const {feedback, ...otherContexts} = contexts;
 
-  // Temporarily define OpenTelemetry context as a special case
-  // since we want to this to apply to events that were ingested with old Relays that did not
-  // define the OpenTelemetry context in the schema.
-  //
-  // TODO(abhi): Revert this after 90 days when Relay has been deployed
-  // to all customers.
-  if (otherContexts.otel) {
-    otherContexts.otel.type = 'otel';
-  }
-
   return (
     <Fragment>
       {!objectIsEmpty(feedback) && (
