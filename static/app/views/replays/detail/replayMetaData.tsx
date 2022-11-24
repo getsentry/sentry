@@ -74,8 +74,13 @@ function ReplayMetaData({replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord ? (
           <Fragment>
-            <ErrorTag to={errorsTabHref} icon={null} type="error">
-              {replayRecord?.countErrors}
+            <ErrorTag
+              to={errorsTabHref}
+              icon={null}
+              type={replayRecord.countErrors ? 'error' : 'white'}
+              level={replayRecord.countErrors ? 'fatal' : 'default'}
+            >
+              {replayRecord.countErrors}
             </ErrorTag>
             <Link to={errorsTabHref}>{t('Errors')}</Link>
           </Fragment>
@@ -114,9 +119,10 @@ const KeyMetricData = styled('div')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
-const ErrorTag = styled(Tag)`
+const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
   ${Background} {
-    background: ${p => p.theme.tag.error.iconColor};
+    background: ${p => p.theme.level[p.level]};
+    border-color: ${p => p.theme.level[p.level]};
     padding: 0 ${space(0.75)};
 
     span {
