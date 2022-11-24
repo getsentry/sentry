@@ -133,7 +133,7 @@ class ProjectTeams extends AsyncView<Props, State> {
           position="top"
         >
           <StyledCreateTeamLink
-            to=""
+            to="#create-team"
             disabled={!canCreateTeam}
             onClick={this.handleCreateTeam}
           >
