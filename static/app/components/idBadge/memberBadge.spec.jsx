@@ -4,12 +4,13 @@ import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
   let member;
+  const routerContext = TestStubs.routerContext();
   beforeEach(() => {
     member = TestStubs.Member();
   });
 
   it('renders with link when member and orgId are supplied', function () {
-    render(<MemberBadge member={member} orgId="orgId" />);
+    render(<MemberBadge member={member} orgId="orgId" />, {context: routerContext});
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Foo Bar'})).toBeInTheDocument();

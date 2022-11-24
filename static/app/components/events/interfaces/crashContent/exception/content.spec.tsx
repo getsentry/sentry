@@ -14,7 +14,7 @@ describe('Exception Content', function () {
       relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
     });
 
-    const {organization, router} = initializeOrg({
+    const {organization, router, routerContext} = initializeOrg({
       ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
@@ -115,7 +115,7 @@ describe('Exception Content', function () {
         values={event.entries[0].data.values}
         meta={event._meta.entries[0].data.values}
       />,
-      {organization, router}
+      {organization, router, context: routerContext}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);

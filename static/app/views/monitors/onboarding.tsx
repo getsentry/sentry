@@ -54,16 +54,16 @@ const MonitorOnboarding = ({monitor}: Props) => {
             </OnboardingText>
             <OnboardingText>
               {t('For reflecting successful execution with optional duration in ms')}
-              <CodeSnippet language="json" hideActionBar>
-                {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "ok", "duration": 3000}'`}
-              </CodeSnippet>
             </OnboardingText>
+            <CodeSnippet language="json" hideActionBar>
+              {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "ok", "duration": 3000}'`}
+            </CodeSnippet>
             <OnboardingText>
               {t('For reflecting failed execution with optional duration in ms')}
-              <CodeSnippet language="json" hideActionBar>
-                {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "error", "duration": 3000}'`}
-              </CodeSnippet>
             </OnboardingText>
+            <CodeSnippet language="json" hideActionBar>
+              {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "error", "duration": 3000}'`}
+            </CodeSnippet>
           </StyledListItem>
         </List>
       </PanelBody>
