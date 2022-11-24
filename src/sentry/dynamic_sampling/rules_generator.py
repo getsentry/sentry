@@ -6,10 +6,12 @@ from pytz import UTC
 
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.latest_release_booster import get_boosted_releases_augmented
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
+    KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -142,6 +144,28 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
     )
 
 
+def generate_boost_key_transaction_rule(
+    sample_rate: float, key_transactions: List[str]
+) -> BaseRule:
+    return {
+        "sampleRate": min(1.0, sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
+        "type": "transaction",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.transaction",
+                    "value": key_transactions,
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
+    }
+
+
 def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
     """
     This function handles generate rules logic or fallback empty list of rules
@@ -161,6 +185,11 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
+            # Key Transaction boost
+            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+                key_transactions = get_key_transactions(project)
+                if key_transactions:
+                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
