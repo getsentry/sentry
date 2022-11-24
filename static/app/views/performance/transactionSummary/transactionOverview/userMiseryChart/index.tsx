@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -14,18 +12,17 @@ import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DurationChart} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 import {ViewProps} from 'sentry/views/performance/types';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    withoutZerofill: boolean;
-  };
+type Props = ViewProps & {
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  withoutZerofill: boolean;
+};
 
 /**
  * Fetch and render an area chart that shows user misery over a period
@@ -33,7 +30,6 @@ type Props = WithRouterProps &
 function UserMiseryChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
@@ -41,6 +37,7 @@ function UserMiseryChart({
   start: propsStart,
   end: propsEnd,
 }: Props) {
+  const location = useLocation();
   const api = useApi();
   const mepContext = useMEPSettingContext();
 
@@ -112,4 +109,4 @@ function UserMiseryChart({
   );
 }
 
-export default withRouter(UserMiseryChart);
+export default UserMiseryChart;
