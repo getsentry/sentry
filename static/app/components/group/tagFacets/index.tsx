@@ -3,6 +3,7 @@ import {formatVersion} from 'sentry/utils/formatters';
 
 import TagFacetsBars from './tagFacetsBars';
 import TagFacetsBreakdowns from './tagFacetsBreakdowns';
+import TagFacetsDistributions from './tagFacetsDistributions';
 import {TagFacetsProps} from './tagFacetsTypes';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
@@ -38,11 +39,13 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
   return transformedTagsData;
 }
 
-type TagFacetsStyles = 'bars' | 'breakdowns';
+type TagFacetsStyles = 'bars' | 'breakdowns' | 'distributions';
 
 export function TagFacets(props: TagFacetsProps & {style: TagFacetsStyles}) {
   return props.style === 'breakdowns' ? (
     <TagFacetsBreakdowns {...props} />
+  ) : props.style === 'distributions' ? (
+    <TagFacetsDistributions {...props} />
   ) : (
     <TagFacetsBars {...props} />
   );
