@@ -344,7 +344,7 @@ register("processing.can-use-scrubbers", default=True)
 
 # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
 # Set this value of the fraction of projects that you want to use it for.
-register("processing.sourcemapcache-processor", default=0.0)
+register("processing.sourcemapcache-processor", default=0.0)  # unused
 
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
