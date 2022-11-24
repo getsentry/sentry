@@ -1239,14 +1239,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
             op, span_id, op_prefix, span_duration, settings = settings_for_span
             if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
-                call_stack = ".".join(
-                    [
-                        f"{item.get('module', '')}.{item.get('function', '')}"
-                        for item in span.get("data", {}).get("call_stack", [])
-                    ]
-                ).encode("utf8")
-                hashed_stack = hashlib.sha1(call_stack).hexdigest()
-                fingerprint = f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+                fingerprint = self._fingerprint(span)
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=span.get("op"),
@@ -1256,6 +1249,16 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     cause_span_ids=[],
                     offender_span_ids=[span.get("span_id", None)],
                 )
+
+    def _fingerprint(self, span) -> str:
+        call_stack = ".".join(
+            [
+                f"{item.get('module', '')}.{item.get('function', '')}"
+                for item in span.get("data", {}).get("call_stack", [])
+            ]
+        ).encode("utf8")
+        hashed_stack = hashlib.sha1(call_stack).hexdigest()
+        return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
