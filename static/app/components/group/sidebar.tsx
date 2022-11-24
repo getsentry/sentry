@@ -245,7 +245,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
     // Evenly split style between distributions and bars for AB testing
     const tagFacetsStyle =
-      parseInt(MD5(organization.slug).toString().substring(0, 6), 36) % 2 === 1
+      parseInt(MD5(organization.id).toString().substring(0, 6), 36) % 2 === 0
         ? 'distributions'
         : 'bars';
 
