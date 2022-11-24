@@ -98,7 +98,7 @@ function createIncidentSeries(
           : ''
       }`,
       `</div></div>`,
-      `<div class="tooltip-date">${time}</div>`,
+      `<div class="tooltip-footer">${time}</div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');
   };

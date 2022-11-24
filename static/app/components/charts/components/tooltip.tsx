@@ -178,7 +178,7 @@ function getFormatter({
           ${truncatedName}: ${formattedValue}
         </div>`,
         '</div>',
-        `<div class="tooltip-date">${label}</div>`,
+        `<div class="tooltip-footer">${label}</div>`,
         '</div>',
       ].join('');
     }
@@ -204,45 +204,63 @@ function getFormatter({
         seriesParamsOrParam
       );
 
-    return [
-      '<div class="tooltip-series">',
-      seriesParams
-        .filter(getFilter)
-        .map(s => {
-          const formattedLabel = nameFormatter(
-            truncationFormatter(s.seriesName ?? '', truncate)
-          );
-          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
+    const {series, totalTransactionVolume} = seriesParams.filter(getFilter).reduce(
+      (acc, serie) => {
+        const formattedLabel = nameFormatter(
+          truncationFormatter(serie.seriesName ?? '', truncate)
+        );
 
-          const marker = markerFormatter(s.marker ?? '', s.seriesName);
+        const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
 
-          const filteredSubLabels = subLabels.filter(
-            subLabel => subLabel.parentLabel === s.seriesName
-          );
+        const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
 
-          if (filteredSubLabels.length) {
-            const labelWithSubLabels = [
-              `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`,
-            ];
+        const filteredSubLabels = subLabels.filter(
+          subLabel => subLabel.parentLabel === serie.seriesName
+        );
 
-            for (const subLabel of filteredSubLabels) {
-              labelWithSubLabels.push(
-                `<div><span class="tooltip-label tooltip-label-indent"><strong>${
-                  subLabel.label
-                }</strong></span> ${valueFormatter(
-                  subLabel.data[s.dataIndex].value
-                )}</div>`
-              );
-            }
+        if (filteredSubLabels.length) {
+          const labelWithSubLabels = [
+            `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> <strong>${value}</strong></div>`,
+          ];
 
-            return labelWithSubLabels.join('');
+          for (const subLabel of filteredSubLabels) {
+            const serieValue = subLabel.data[serie.dataIndex].value;
+
+            labelWithSubLabels.push(
+              `<div><span class="tooltip-label tooltip-label-indent"><strong>${
+                subLabel.label
+              }</strong></span> ${valueFormatter(serieValue)}</div>`
+            );
+
+            acc.totalTransactionVolume =
+              acc.totalTransactionVolume + subLabel.data[serie.dataIndex].value;
           }
 
-          return `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
-        })
-        .join(''),
+          acc.series.push(labelWithSubLabels.join(''));
+          return acc;
+        }
+
+        acc.totalTransactionVolume =
+          acc.totalTransactionVolume + getSeriesValue(serie, 1);
+
+        acc.series.push(
+          `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> <strong>${value}</strong></div>`
+        );
+        return acc;
+      },
+      {
+        series: [],
+        totalTransactionVolume: 0,
+      }
+    );
+
+    return [
+      '<div class="tooltip-series">',
+      series.join(''),
       '</div>',
-      `<div class="tooltip-date">${date}</div>`,
+      `<div class="tooltip-footer"><div><strong>Date:</strong> ${date}</div><div><strong>Total Transaction Volume:</strong> ${valueFormatter(
+        totalTransactionVolume
+      )}</div></div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');
   };

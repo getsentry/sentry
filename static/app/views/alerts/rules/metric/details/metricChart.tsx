@@ -423,7 +423,7 @@ class MetricChart extends PureComponent<Props, State> {
                           comparisonSeries &&
                             `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
                           `</div>`,
-                          `<div class="tooltip-date">`,
+                          `<div class="tooltip-footer">`,
                           `<span>${startTime} &mdash; ${endTime}</span>`,
                           comparisonPointY !== undefined &&
                             Math.abs(changePercentage) !== Infinity &&
