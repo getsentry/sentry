@@ -1,5 +1,5 @@
-import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {useCallback, useEffect, useState} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
@@ -15,6 +15,8 @@ import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
 
@@ -28,92 +30,37 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-type State = {
-  error: boolean;
-  filteredSimilarItems: SimilarItem[];
-  loading: boolean;
-  similarItems: SimilarItem[];
-  similarLinks: string | null;
-  v2: boolean;
+type ItemState = {
+  filtered: SimilarItem[];
+  pageLinks: string | null;
+  similar: SimilarItem[];
 };
 
-class SimilarStackTrace extends Component<Props, State> {
-  state: State = {
-    similarItems: [],
-    filteredSimilarItems: [],
-    similarLinks: null,
-    loading: true,
-    error: false,
-    v2: false,
-  };
+function SimilarStackTrace({params, location, project}: Props) {
+  const {orgId, groupId} = params;
 
-  componentDidMount() {
-    this.fetchData();
-  }
+  const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
+  const [items, setItems] = useState<ItemState>({
+    similar: [],
+    filtered: [],
+    pageLinks: null,
+  });
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
 
-  componentWillReceiveProps(nextProps: Props) {
-    if (
-      nextProps.params.groupId !== this.props.params.groupId ||
-      nextProps.location.search !== this.props.location.search
-    ) {
-      this.fetchData();
-    }
-  }
+  const navigate = useNavigate();
+  const prevLocationSearch = usePrevious(location.search);
+  const hasSimilarityFeature = project.features.includes('similarity-view');
 
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
-  onGroupingChange = ({
-    mergedParent,
-    similarItems,
-    similarLinks,
-    filteredSimilarItems,
-    loading,
-    error,
-  }) => {
-    if (similarItems) {
-      this.setState({
-        similarItems,
-        similarLinks,
-        filteredSimilarItems,
-        loading: loading ?? false,
-        error: error ?? false,
-      });
-      return;
-    }
-
-    if (!mergedParent) {
-      return;
-    }
-
-    if (mergedParent !== this.props.params.groupId) {
-      const {params} = this.props;
-      // Merge success, since we can't specify target, we need to redirect to new parent
-      browserHistory.push(
-        `/organizations/${params.orgId}/issues/${mergedParent}/similar/`
-      );
-
-      return;
-    }
-
-    return;
-  };
-
-  listener = GroupingStore.listen(this.onGroupingChange, undefined);
-
-  fetchData() {
-    const {params, location} = this.props;
-
-    this.setState({loading: true, error: false});
+  const fetchData = useCallback(() => {
+    setStatus('loading');
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
-    if (this.hasSimilarityFeature()) {
-      const version = this.state.v2 ? '2' : '1';
+    if (hasSimilarityFeature) {
+      const version = isUsingSimilarityViewV2 ? '2' : '1';
 
       reqs.push({
-        endpoint: `/issues/${params.groupId}/similar/?${qs.stringify({
+        endpoint: `/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
           version,
@@ -123,12 +70,57 @@ class SimilarStackTrace extends Component<Props, State> {
     }
 
     GroupingStore.onFetch(reqs);
-  }
+  }, [location.query, groupId, isUsingSimilarityViewV2, hasSimilarityFeature]);
 
-  handleMerge = () => {
-    const {params, location} = this.props;
-    const query = location.query;
+  const onGroupingChange = useCallback(
+    ({
+      mergedParent,
+      similarItems: updatedSimilarItems,
+      filteredSimilarItems: updatedFilteredSimilarItems,
+      similarLinks: updatedSimilarLinks,
+      loading,
+      error,
+    }) => {
+      if (updatedSimilarItems) {
+        setItems({
+          similar: updatedSimilarItems,
+          filtered: updatedFilteredSimilarItems,
+          pageLinks: updatedSimilarLinks,
+        });
+        setStatus(error ? 'error' : loading ? 'loading' : 'ready');
+        return;
+      }
 
+      if (mergedParent && mergedParent !== groupId) {
+        // Merge success, since we can't specify target, we need to redirect to new parent
+        navigate(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
+      }
+    },
+    [navigate, groupId, orgId]
+  );
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (prevLocationSearch !== location.search) {
+      fetchData();
+    }
+  }, [fetchData, prevLocationSearch, location.search]);
+
+  useEffect(() => {
+    const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
+    return () => {
+      unsubscribe();
+    };
+  }, [onGroupingChange]);
+
+  const toggleSimilarityVersion = useCallback(() => {
+    setIsUsingSimilarityViewV2(prev => !prev);
+  }, []);
+
+  const handleMerge = useCallback(() => {
     if (!params) {
       return;
     }
@@ -139,94 +131,68 @@ class SimilarStackTrace extends Component<Props, State> {
     // Similar issues API currently does not return issues across projects,
     // so we can assume that the first issues project slug is the project in
     // scope
-    const [firstIssue] = this.state.similarItems.length
-      ? this.state.similarItems
-      : this.state.filteredSimilarItems;
+    const [firstIssue] = items.similar.length ? items.similar : items.filtered;
 
     GroupingStore.onMerge({
       params,
-      query,
+      query: location.query,
       projectId: firstIssue.issue.project.slug,
     });
-  };
+  }, [params, location.query, items]);
 
-  hasSimilarityV2Feature() {
-    return this.props.project.features.includes('similarity-view-v2');
-  }
+  const hasSimilarityViewV2 = project.features.includes('similarity-view-v2');
+  const hasSimilarItems =
+    hasSimilarityFeature &&
+    (items.similar.length > 0 || items.filtered.length > 0) &&
+    status === 'ready';
 
-  hasSimilarityFeature() {
-    return this.props.project.features.includes('similarity-view');
-  }
+  const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
-  toggleSimilarityVersion = () => {
-    this.setState(prevState => ({v2: !prevState.v2}), this.fetchData);
-  };
-
-  render() {
-    const {params, project} = this.props;
-    const {orgId, groupId} = params;
-    const {similarItems, filteredSimilarItems, loading, error, v2, similarLinks} =
-      this.state;
-
-    const hasV2 = this.hasSimilarityV2Feature();
-    const isLoading = loading;
-    const isError = error && !isLoading;
-    const isLoadedSuccessfully = !isError && !isLoading;
-    const hasSimilarItems =
-      this.hasSimilarityFeature() &&
-      (similarItems.length > 0 || filteredSimilarItems.length > 0) &&
-      isLoadedSuccessfully;
-
-    const groupsIds = similarItems
-      .concat(filteredSimilarItems)
-      .map(({issue}) => issue.id);
-
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Alert type="warning">
-            {t(
-              'This is an experimental feature. Data may not be immediately available while we process merges.'
-            )}
-          </Alert>
-          <HeaderWrapper>
-            <Title>{t('Issues with a similar stack trace')}</Title>
-            {hasV2 && (
-              <ButtonBar merged active={v2 ? 'new' : 'old'}>
-                <Button barId="old" size="sm" onClick={this.toggleSimilarityVersion}>
-                  {t('Old Algorithm')}
-                </Button>
-                <Button barId="new" size="sm" onClick={this.toggleSimilarityVersion}>
-                  {t('New Algorithm')}
-                </Button>
-              </ButtonBar>
-            )}
-          </HeaderWrapper>
-          {isLoading && <LoadingIndicator />}
-          {isError && (
-            <LoadingError
-              message={t('Unable to load similar issues, please try again later')}
-              onRetry={this.fetchData}
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Alert type="warning">
+          {t(
+            'This is an experimental feature. Data may not be immediately available while we process merges.'
+          )}
+        </Alert>
+        <HeaderWrapper>
+          <Title>{t('Issues with a similar stack trace')}</Title>
+          {hasSimilarityViewV2 && (
+            <ButtonBar merged active={isUsingSimilarityViewV2 ? 'new' : 'old'}>
+              <Button barId="old" size="sm" onClick={toggleSimilarityVersion}>
+                {t('Old Algorithm')}
+              </Button>
+              <Button barId="new" size="sm" onClick={toggleSimilarityVersion}>
+                {t('New Algorithm')}
+              </Button>
+            </ButtonBar>
+          )}
+        </HeaderWrapper>
+        {status === 'loading' && <LoadingIndicator />}
+        {status === 'error' && (
+          <LoadingError
+            message={t('Unable to load similar issues, please try again later')}
+            onRetry={fetchData}
+          />
+        )}
+        {hasSimilarItems && (
+          <IssuesReplayCountProvider groupIds={groupsIds}>
+            <List
+              items={items.similar}
+              filteredItems={items.filtered}
+              onMerge={handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={items.pageLinks}
+              v2={isUsingSimilarityViewV2}
             />
-          )}
-          {hasSimilarItems && (
-            <IssuesReplayCountProvider groupIds={groupsIds}>
-              <List
-                items={similarItems}
-                filteredItems={filteredSimilarItems}
-                onMerge={this.handleMerge}
-                orgId={orgId}
-                project={project}
-                groupId={groupId}
-                pageLinks={similarLinks}
-                v2={v2}
-              />
-            </IssuesReplayCountProvider>
-          )}
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+          </IssuesReplayCountProvider>
+        )}
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
 export default SimilarStackTrace;

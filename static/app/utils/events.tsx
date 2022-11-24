@@ -279,5 +279,6 @@ export function getAnalyicsDataForEvent(event?: Event) {
     event_errors: event ? getEventErrorString(event) : '',
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
+    release_user_agent: event?.release?.userAgent,
   };
 }

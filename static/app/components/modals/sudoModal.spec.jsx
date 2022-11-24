@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -42,9 +43,21 @@ describe('Sudo Modal', function () {
   });
 
   it('can delete an org with sudo flow', async function () {
+    const {router, route} = initializeOrg();
     setHasPasswordAuth(true);
 
-    render(<App>{<div>placeholder content</div>}</App>);
+    render(
+      <App
+        location={router.location}
+        routes={router.routes}
+        route={route}
+        router={router}
+        params={{}}
+        routeParams={router.params}
+      >
+        {<div>placeholder content</div>}
+      </App>
+    );
 
     const api = new Client();
     const successCb = jest.fn();
@@ -108,9 +121,21 @@ describe('Sudo Modal', function () {
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
+    const {router, route} = initializeOrg();
     setHasPasswordAuth(false);
 
-    render(<App>{<div>placeholder content</div>}</App>);
+    render(
+      <App
+        location={router.location}
+        routes={router.routes}
+        route={route}
+        router={router}
+        params={{}}
+        routeParams={router.params}
+      >
+        {<div>placeholder content</div>}
+      </App>
+    );
 
     const api = new Client();
     const successCb = jest.fn();
