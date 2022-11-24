@@ -171,7 +171,6 @@ class CompactIssue extends Component<Props, State> {
         <CompactIssueHeader
           data={issue}
           organization={organization}
-          projectId={issue.project.slug}
           eventId={this.props.eventId}
         />
         {this.props.children}
