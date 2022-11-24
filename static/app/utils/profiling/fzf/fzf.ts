@@ -94,11 +94,12 @@ export function fzf(text: string, pattern: string): Result {
     }
   }
 
+  const [score, matches] = calculateScore(text, pattern, sidx, eidx);
   return {
     start: sidx,
     end: eidx,
-    score: calculateScore(text, pattern, sidx, eidx),
-    matches: [],
+    score,
+    matches,
   };
 }
 
@@ -126,7 +127,7 @@ function calculateScore(
   pattern: string,
   sidx: number,
   eidx: number
-): number {
+): [number, ReadonlyArray<[number, number]>] {
   let pidx = 0;
   let score = 0;
   let inGap: boolean = false;
@@ -180,5 +181,5 @@ function calculateScore(
     }
     prevCharClass = currentCharClass;
   }
-  return score;
+  return [score, pos.map(p => [p, p + 1])];
 }
