@@ -58,13 +58,11 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 }
 
 const Header = styled(Layout.Header)`
-  gap: 0 ${space(3)};
+  gap: ${space(1)};
+  padding-bottom: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    gap: 0 ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
-  }
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${space(1)};
-    padding-bottom: ${space(1.5)};
   }
 `;
 
