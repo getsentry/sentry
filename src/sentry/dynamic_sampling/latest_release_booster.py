@@ -74,13 +74,13 @@ class BoostedReleases:
             if boosted_release.id in models
         ]
 
-    def _get_last_release_ids(self, last: int) -> List[int]:
-        return [boosted_release.id for boosted_release in self.boosted_releases[-last:]]
+    def _get_last_release_ids(self, limit: int) -> List[int]:
+        return [boosted_release.id for boosted_release in self.boosted_releases[-limit:]]
 
     def _get_releases_models(self, limit: int) -> Dict[int, Release]:
         return {
             release.id: release
-            for release in Release.objects.filter(id__in=self._get_last_release_ids(last=limit))
+            for release in Release.objects.filter(id__in=self._get_last_release_ids(limit=limit))
         }
 
 
