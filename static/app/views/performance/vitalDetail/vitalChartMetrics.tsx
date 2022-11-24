@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
@@ -18,23 +17,23 @@ import {DateString, MetricsApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import {ViewProps} from '../types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
 
-type Props = WithRouterProps &
-  Omit<ViewProps, 'query' | 'start' | 'end'> & {
-    end: DateString | null;
-    errored: boolean;
-    field: string;
-    loading: boolean;
-    reloading: boolean;
-    response: MetricsApiResponse | null;
-    start: DateString | null;
-    vital: WebVital;
-  };
+type Props = Omit<ViewProps, 'query' | 'start' | 'end'> & {
+  end: DateString | null;
+  errored: boolean;
+  field: string;
+  loading: boolean;
+  reloading: boolean;
+  response: MetricsApiResponse | null;
+  start: DateString | null;
+  vital: WebVital;
+};
 
 function VitalChartMetrics({
   reloading,
@@ -48,9 +47,8 @@ function VitalChartMetrics({
   environment,
   field,
   vital,
-  router,
-  location,
 }: Props) {
+  const {location, router} = useRouteContext();
   const theme = useTheme();
 
   const {utc, legend, vitalPoor, markLines, chartOptions} = getVitalChartDefinitions({
@@ -163,4 +161,4 @@ function VitalChartMetrics({
   );
 }
 
-export default withRouter(VitalChartMetrics);
+export default VitalChartMetrics;
