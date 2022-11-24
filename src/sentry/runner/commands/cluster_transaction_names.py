@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Tuple
 
@@ -6,21 +7,30 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry.runner.decorators import configuration
 
+logger = logging.getLogger(__name__)
+
 
 @click.command()
 @click.option("--merge-threshold", type=int, default=100)
 @click.option("--time-range-seconds", type=int, default=3600)
+@click.option("--debug", is_flag=True)
 @configuration
-def cluster_transaction_names(merge_threshold: int, time_range_seconds: int):
+def cluster_transaction_names(merge_threshold: int, time_range_seconds: int, debug: bool):
+    from sentry import features
     from sentry.models import Project
     from sentry.utils.query import RangeQuerySetWrapper
+
+    if debug:
+        logger.setLevel(logging.DEBUG)
 
     now = datetime.now()
     then = now - timedelta(seconds=time_range_seconds)
 
     for project in RangeQuerySetWrapper(Project.objects.all()):
-        # FIXME: Check feature flag before proceeding
-        _cluster_project(project.id, merge_threshold, (then, now))
+        if features.has("projects:transaction-name-cluster", project):
+            _cluster_project(project.id, merge_threshold, (then, now))
+        else:
+            logger.debug("Skipping project %s, feature disabled", project.id)
 
 
 def _cluster_project(project_id: int, merge_threshold: int, time_range: Tuple[datetime, datetime]):
@@ -51,4 +61,5 @@ def _cluster_project(project_id: int, merge_threshold: int, time_range: Tuple[da
     clusterer.add_input(row["transaction"] for row in snuba_response["data"])
 
     # TODO: span for clustering
-    clusterer.get_rules()
+    rules = clusterer.get_rules()
+    logger.debug("Generated %s rules for project %s", len(rules), project_id)
