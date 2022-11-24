@@ -71,22 +71,21 @@ function ReplayMetaData({replayRecord}: Props) {
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
-      <KeyMetricData>
-        {replayRecord ? (
-          <StyledLink to={errorsTabHref}>
-            <ErrorTag
-              icon={null}
-              type={replayRecord.countErrors ? 'error' : 'black'}
-              level={replayRecord.countErrors ? 'fatal' : 'default'}
-            >
-              {replayRecord.countErrors}
-            </ErrorTag>
-            {tn('Error', 'Errors', replayRecord.countErrors)}
-          </StyledLink>
-        ) : (
-          <HeaderPlaceholder />
-        )}
-      </KeyMetricData>
+
+      {replayRecord ? (
+        <StyledLink to={errorsTabHref}>
+          <ErrorTag
+            icon={null}
+            type={replayRecord.countErrors ? 'error' : 'black'}
+            level={replayRecord.countErrors ? 'fatal' : 'default'}
+          >
+            {replayRecord.countErrors}
+          </ErrorTag>
+          {tn('Error', 'Errors', replayRecord.countErrors)}
+        </StyledLink>
+      ) : (
+        <HeaderPlaceholder />
+      )}
     </KeyMetrics>
   );
 }

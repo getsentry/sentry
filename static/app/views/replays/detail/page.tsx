@@ -61,6 +61,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 }
 
 const Header = styled(Layout.Header)`
+  gap: 0 ${space(3)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
@@ -72,14 +73,12 @@ const HeaderContent = styled(Layout.HeaderContent)`
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
+  flex-direction: row;
   justify-content: flex-end;
   gap: ${space(1)};
 `;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`
-  padding-left: ${space(3)};
   align-self: end;
 `;
 
