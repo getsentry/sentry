@@ -204,7 +204,7 @@ function getFormatter({
         seriesParamsOrParam
       );
 
-    const {series, totalTransactionVolume} = seriesParams.filter(getFilter).reduce(
+    const {series, total} = seriesParams.filter(getFilter).reduce(
       (acc, serie) => {
         const formattedLabel = nameFormatter(
           truncationFormatter(serie.seriesName ?? '', truncate)
@@ -232,16 +232,14 @@ function getFormatter({
               }</strong></span> ${valueFormatter(serieValue)}</div>`
             );
 
-            acc.totalTransactionVolume =
-              acc.totalTransactionVolume + subLabel.data[serie.dataIndex].value;
+            acc.total = acc.total + subLabel.data[serie.dataIndex].value;
           }
 
           acc.series.push(labelWithSubLabels.join(''));
           return acc;
         }
 
-        acc.totalTransactionVolume =
-          acc.totalTransactionVolume + getSeriesValue(serie, 1);
+        acc.total = acc.total + getSeriesValue(serie, 1);
 
         acc.series.push(
           `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> <strong>${value}</strong></div>`
@@ -250,7 +248,7 @@ function getFormatter({
       },
       {
         series: [],
-        totalTransactionVolume: 0,
+        total: 0,
       }
     );
 
@@ -258,8 +256,8 @@ function getFormatter({
       '<div class="tooltip-series">',
       series.join(''),
       '</div>',
-      `<div class="tooltip-footer"><div><strong>Date:</strong> ${date}</div><div><strong>Total Transaction Volume:</strong> ${valueFormatter(
-        totalTransactionVolume
+      `<div class="tooltip-footer"><div><strong>Date:</strong> ${date}</div><div><strong>Total:</strong> ${valueFormatter(
+        total
       )}</div></div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');
