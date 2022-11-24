@@ -25,6 +25,7 @@ for (dirpath, dirnames, filenames) in os.walk(_fixture_path):
 
         with open(filepath) as f:
             event = json.load(f)
+            event["project"] = PROJECT_ID
 
         EVENTS[full_event_name] = event
 
