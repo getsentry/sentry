@@ -11,18 +11,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
-const COLORS = [
-  '#3A3387',
-  '#5F40A3',
-  '#8C4FBD',
-  '#B961D3',
-  '#DE76E4',
-  '#EF91E8',
-  '#F7B2EC',
-  '#FCD8F4',
-  '#FEEBF9',
-  '#FFF7FD',
-];
+const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 
 type Props = {
   segments: TagSegment[];
