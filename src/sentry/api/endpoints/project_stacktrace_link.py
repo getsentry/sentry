@@ -51,7 +51,7 @@ def get_link(
     return result
 
 
-def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
+def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
     return {
         "file": parameters.get("file"),
         # XXX: Temp change to support try_path_munging until refactored
