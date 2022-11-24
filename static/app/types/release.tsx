@@ -93,6 +93,7 @@ interface ReleaseData {
   lastCommit?: Commit;
   lastDeploy?: Deploy;
   owner?: any;
+  userAgent?: string;
 }
 
 export type CurrentRelease = {
