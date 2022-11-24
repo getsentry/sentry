@@ -41,11 +41,11 @@ class CachedBoostedRelease:
     @staticmethod
     def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
         try:
-            return release.projects.get(id=project_id).platform
+            return release.projects.get(id=project_id).platform  # type:ignore
         except Project.DoesNotExist:
             # If we don't find the project of this release we just default to having no platform name in the
             # BoostedRelease.
-            pass
+            return None
 
 
 @dataclass(frozen=True)
@@ -58,10 +58,10 @@ class AugmentedBoostedRelease(CachedBoostedRelease):
 class CachedBoostedReleases:
     boosted_releases: Dict[int, CachedBoostedRelease]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.boosted_releases = dict()
 
-    def add_release(self, id: int, timestamp: float, environment: Optional[str]):
+    def add_release(self, id: int, timestamp: float, environment: Optional[str]) -> None:
         self.boosted_releases[id] = CachedBoostedRelease(
             id=id, timestamp=timestamp, environment=environment
         )
@@ -222,15 +222,7 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
     redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
 
 
-def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[Project]:
-    try:
-        return release.projects.get(id=project_id)
-    except Project.DoesNotExist:
-        # If we don't find the project of this release we just default to having no platform name in the BoostedRelease.
-        pass
-
-
-def get_boosted_releases_augmented(project_id: int, limit: int) -> List[AugmentedBoostedRelease]:
+def get_augmented_boosted_releases(project_id: int, limit: int) -> List[AugmentedBoostedRelease]:
     """
     Returns a list of boosted releases augmented with additional information such as release version and platform.
     """
