@@ -1,6 +1,4 @@
 import {Fragment, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -16,6 +14,7 @@ import {
 } from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -31,6 +30,7 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const {ContainerActions} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
@@ -94,7 +94,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 {...provided}
                 queryBatching={queryBatching}
                 eventView={eventView}
-                location={props.location}
+                location={location}
                 queryExtras={getMEPQueryParams(mepSetting)}
                 useEvents
               />
@@ -166,7 +166,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-export const DurationChart = withRouter(_DurationChart);
+export const DurationChart = _DurationChart;
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
