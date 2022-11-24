@@ -1,3 +1,48 @@
+""" Build a directory tree from URL patterns and merge nodes with many siblings.
+
+For example, a blog project might contain transaction names along the lines of:
+
+/users/my-user-name/posts/2022-01-01-that-one-time-i-did-something
+
+We build a tree that looks like this:
+
+/users
+  /my-user-name
+    /posts
+      /2022-01-01-that-one-time-i-did-something
+  /my-user-name2
+    /posts
+      /2022-12-31-i-did-something-too
+  /my-user-name3
+    /posts
+      /2022-07-15-but-what-about-me
+    /settings
+
+As soon as the node /users has more than X children, we merge them:
+
+/users
+  /*
+    /posts
+      /2022-01-01-that-one-time-i-did-something
+      /2022-12-31-i-did-something-too
+      /2022-07-15-but-what-about-me
+    /settings
+
+If /posts now also has more than X children, those are merged as well:
+
+/users
+  /*
+    /posts
+      *
+    /settings
+
+Resulting in the following replacement rules:
+
+/users/*/posts/*  # To replace both identifiers
+/users/*          # For URLs with only one identifier, e.g. /users/*/settings
+
+"""
+
 from collections import UserDict, defaultdict
 from typing import Iterable, List, Optional, Union
 
@@ -15,6 +60,9 @@ class Merged:
 #: Symbol representing a merged node
 MERGED = Merged()
 
+#: Separator by which we build the tree
+SEP = "/"
+
 
 # TODO: Metrics for tree size, spans for merge, etc.
 
@@ -26,7 +74,7 @@ class TreeClusterer(Clusterer):
 
     def add_input(self, transaction_names: Iterable[str]) -> None:
         for tx_name in transaction_names:
-            parts = tx_name.strip("/").split("/")
+            parts = tx_name.split(SEP)
             node = self._graph
             for part in parts:
                 node = node.setdefault(part, Node())
@@ -44,9 +92,7 @@ class TreeClusterer(Clusterer):
 
     @staticmethod
     def _build_rule(path: List["Edge"]) -> ReplacementRule:
-        return ReplacementRule(
-            "/" + "/".join(["*" if isinstance(key, Merged) else key for key in path])
-        )
+        return ReplacementRule(SEP.join(["*" if isinstance(key, Merged) else key for key in path]))
 
 
 #: Represents the edges between graph nodes. These edges serve as keys in the
@@ -54,7 +100,7 @@ class TreeClusterer(Clusterer):
 Edge: TypeAlias = Union[str, Merged]
 
 
-class Node(UserDict[Edge, "Node"]):
+class Node(UserDict):  # type: ignore
     """Keys in this dict are names of the children"""
 
     def paths(self, ancestors: Optional[List[Edge]] = None) -> Iterable[List[Edge]]:
