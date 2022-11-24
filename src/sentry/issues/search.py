@@ -171,6 +171,9 @@ def _query_params_for_perf(
                 ],
                 *selected_columns,
             ]
+        else:
+            aggregations = list(aggregations).copy() if aggregations else []
+            aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
         params = query_partial(
             dataset=snuba.Dataset.Discover,
