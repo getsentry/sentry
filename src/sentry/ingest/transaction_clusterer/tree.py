@@ -1,13 +1,19 @@
 from collections import UserDict, defaultdict
 from typing import Iterable, List, Optional, Union
 
+from typing_extensions import TypeAlias
+
 from .base import Clusterer, ReplacementRule
 
 __all__ = ["TreeClusterer"]
 
 
+class Merged:
+    pass
+
+
 #: Symbol representing a merged node
-MERGED = None
+MERGED = Merged()
 
 
 # TODO: Metrics for tree size, spans for merge, etc.
@@ -29,7 +35,7 @@ class TreeClusterer(Clusterer):
         """Merge high-cardinality nodes in the graph and extract rules"""
         self._graph.merge(self._merge_threshold)
         # Generate exactly 1 rule for every merge
-        rule_paths = [path for path in self._graph.paths() if path[-1] == MERGED]
+        rule_paths = [path for path in self._graph.paths() if path[-1] is MERGED]
 
         # Sort by path length, descending (most specific rule first)
         rule_paths.sort(key=len, reverse=True)
@@ -37,16 +43,21 @@ class TreeClusterer(Clusterer):
         return [self._build_rule(path) for path in rule_paths]
 
     @staticmethod
-    def _build_rule(path: List["Node.Key"]) -> ReplacementRule:
-        return ReplacementRule("/" + "/".join(["*" if key == MERGED else key for key in path]))
+    def _build_rule(path: List["Edge"]) -> ReplacementRule:
+        return ReplacementRule(
+            "/" + "/".join(["*" if isinstance(key, Merged) else key for key in path])
+        )
 
 
-class Node(UserDict):
+#: Represents the edges between graph nodes. These edges serve as keys in the
+#: node dictionary.
+Edge: TypeAlias = Union[str, Merged]
+
+
+class Node(UserDict[Edge, "Node"]):
     """Keys in this dict are names of the children"""
 
-    Key = Union[str, type(MERGED)]
-
-    def paths(self, ancestors: Optional[List[Key]] = None) -> Iterable[List[Key]]:
+    def paths(self, ancestors: Optional[List[Edge]] = None) -> Iterable[List[Edge]]:
         """Collect all paths and subpaths through the graph"""
         if ancestors is None:
             ancestors = []
