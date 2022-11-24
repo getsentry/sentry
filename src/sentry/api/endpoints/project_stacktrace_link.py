@@ -166,7 +166,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
-                if not filepath.startswith(config.stack_root) and not mobile_frame:
+                # If all code mappings fail to match a stack_root it means that there's no working code mapping
+                if not filepath.startswith(config.stack_root):
+                    # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
                 # XXX: The logic above allows all code mappings to be processed
@@ -177,9 +179,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     scope.set_tag("stacktrace_link.automatically_generated", True)
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
-                # For mobile we try a second time by munging the file path
-                # XXX: mobile_frame is an incorrect logic to distinguish mobile languages
-                if not outcome.get("sourceUrl") and mobile_frame:
+                # In some cases the stack root matches and it can either be that we have
+                # an invalid code mapping or that munging is expect it to work
+                if not outcome.get("sourceUrl"):
                     munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
                     # If we failed to munge we should keep the original outcome
                     if munging_outcome:
