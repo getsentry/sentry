@@ -1,6 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
@@ -192,4 +190,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const TrendsChart = withRouter(withProjects(Chart));
+const TrendsChart = withProjects(Chart);
