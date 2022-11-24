@@ -1,15 +1,15 @@
 import signal
-from typing import Callable, Generic, Mapping, Sequence, TypeVar
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.batching import AbstractBatchWorker, BatchProcessingStrategy
-from arroyo.types import Message, Position
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.types import Commit, Message
 from django.conf import settings
 from django.db import IntegrityError
 
@@ -21,12 +21,12 @@ from .messages import AuditLogEvent, RegionToControlMessage, UserIpEvent
 
 
 def get_region_to_control_consumer(
-    group_id: str = None,
-    auto_offset_reset="earliest",
-    max_batch_size=100,
-    max_batch_time=1000,
-    **opts,
+    group_id: str,
+    auto_offset_reset: str = "earliest",
+    **opts: Any,
 ) -> StreamProcessor[KafkaPayload]:
+    assert group_id is not None
+
     cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_REGION_TO_CONTROL]["cluster"]
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
@@ -41,18 +41,11 @@ def get_region_to_control_consumer(
     processor = StreamProcessor(
         consumer=consumer,
         topic=Topic(settings.KAFKA_REGION_TO_CONTROL),
-        processor_factory=ProcessorFactory(
-            lambda commit: BatchProcessingStrategy(
-                commit,
-                worker=RegionToControlConsumerWorker(),
-                max_batch_size=max_batch_size,
-                max_batch_time=max_batch_time,
-            )
-        ),
-        commit_policy=IMMEDIATE,
+        processor_factory=RegionToControlStrategyFactory(),
+        commit_policy=ONCE_PER_SECOND,
     )
 
-    def handler(*args) -> None:
+    def handler(*args: Any) -> None:
         processor.signal_shutdown()
 
     signal.signal(signal.SIGINT, handler)
@@ -61,23 +54,27 @@ def get_region_to_control_consumer(
     return processor
 
 
-class RegionToControlConsumerWorker(AbstractBatchWorker[KafkaPayload, RegionToControlMessage]):
-    def process_message(self, message: Message[KafkaPayload]) -> RegionToControlMessage:
+class ProcessRegionToControlMessage(ProcessingStrategy[KafkaPayload]):
+    def __init__(self, next_step: ProcessingStrategy[KafkaPayload]) -> None:
+        self.__next_step = next_step
+
+    def poll(self) -> None:
+        self.__next_step.poll()
+
+    def submit(self, message: Message[KafkaPayload]) -> None:
         raw = json.loads(message.payload.value.decode("utf8"))
-        return RegionToControlMessage.from_payload(raw)
+        region_to_control_message = RegionToControlMessage.from_payload(raw)
 
-    def flush_batch(self, batch: Sequence[RegionToControlMessage]):
-        with metrics.timer("region_to_control.consumer.flush_batch"):
-            return self._flush_batch(batch)
+        if region_to_control_message.user_ip_event:
+            self._handle_user_ip_event(region_to_control_message.user_ip_event)
+        if region_to_control_message.audit_log_event:
+            self._handle_audit_log_event(region_to_control_message.audit_log_event)
 
-    def _flush_batch(self, batch: Sequence[RegionToControlMessage]):
-        for row in batch:
-            if row.user_ip_event:
-                self._handle_user_ip_event(row.user_ip_event)
-            if row.audit_log_event:
-                self._handle_audit_log_event(row.audit_log_event)
+        self.__next_step.submit(message)
 
-    def _handle_audit_log_event(self, audit_log_entry: AuditLogEvent, reentry=False):
+    def _handle_audit_log_event(
+        self, audit_log_entry: AuditLogEvent, reentry: bool = False
+    ) -> None:
         entry = AuditLogEntry.from_event(audit_log_entry)
         try:
             entry.save()
@@ -104,7 +101,7 @@ class RegionToControlConsumerWorker(AbstractBatchWorker[KafkaPayload, RegionToCo
             else:
                 raise
 
-    def _handle_user_ip_event(self, user_ip_event: UserIpEvent):
+    def _handle_user_ip_event(self, user_ip_event: UserIpEvent) -> None:
         updated, created = UserIP.objects.create_or_update(
             values=dict(
                 user_id=user_ip_event.user_id,
@@ -124,24 +121,20 @@ class RegionToControlConsumerWorker(AbstractBatchWorker[KafkaPayload, RegionToCo
             # in low quantities.
             metrics.incr("region_to_control.consumer.user_ip_event.stale_event")
 
+    def close(self) -> None:
+        self.__next_step.close()
 
-ProcessorT = TypeVar("ProcessorT", bound=ProcessingStrategy[KafkaPayload])
-Commit = Callable[[Mapping[Partition, Position]], None]
+    def terminate(self) -> None:
+        self.__next_step.terminate()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.__next_step.join(timeout)
 
 
-class ProcessorFactory(ProcessingStrategyFactory[KafkaPayload], Generic[ProcessorT]):
-    """
-    Generic processor factory that defers to a callable.
-    """
-
-    constructor: Callable[[Commit], ProcessorT]
-
-    def __init__(self, constructor: Callable[[Commit], ProcessorT]):
-        self.constructor = constructor
-
+class RegionToControlStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return self.constructor(commit)
+        return ProcessRegionToControlMessage(CommitOffsets(commit))

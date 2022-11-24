@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
 
@@ -9,6 +8,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {useLocation} from 'sentry/utils/useLocation';
 
 /**
  * @param cursor The string cursor value
@@ -24,7 +24,7 @@ export type CursorHandler = (
   delta: number
 ) => void;
 
-type Props = WithRouterProps & {
+type Props = {
   caption?: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -43,7 +43,6 @@ const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
 
 const Pagination = ({
   to,
-  location,
   className,
   onCursor = defaultOnCursor,
   paginationAnalyticsEvent,
@@ -52,6 +51,7 @@ const Pagination = ({
   caption,
   disabled = false,
 }: Props) => {
+  const location = useLocation();
   if (!pageLinks) {
     return null;
   }
@@ -106,4 +106,4 @@ const PaginationCaption = styled('span')`
   margin-right: ${space(2)};
 `;
 
-export default withRouter(Pagination);
+export default Pagination;

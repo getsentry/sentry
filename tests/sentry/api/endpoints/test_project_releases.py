@@ -52,6 +52,7 @@ class ProjectReleaseListTest(APITestCase):
             version="3",
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            user_agent="my_agent",
         )
         release3.add_project(project1)
 
@@ -67,6 +68,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
         assert response.data[0]["version"] == release3.version
+        assert response.data[0]["userAgent"] == "my_agent"
         assert response.data[1]["version"] == release2.version
         assert response.data[2]["version"] == release1.version
         assert response.data[2]["newGroups"] == 5
