@@ -9,31 +9,47 @@ from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.latest_release_ttas import LATEST_RELEASE_TTAS, get_tta_for_platform
+from sentry.dynamic_sampling.latest_release_ttas import LATEST_RELEASE_TTAS, Platform
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
 from sentry.models import Project
 from sentry.testutils.factories import Factories
 from sentry.utils import json
 
 
-def _get_bias_end_time_from_start_time(start_time: str, platform: Optional[str]) -> str:
-    """
-    Utils function that returns the end time considering the start time and the platform.
+@pytest.fixture
+def get_bias_end_time_from_start_time():
+    def inner(start_time: str, platform: Optional[str]) -> str:
+        """
+        Utils function that returns the end time considering the start time and the platform.
 
-    E.g.: if a platform has the tta of 3600 seconds = 1 hour, we will just sum 1 hour to the start time.
-    """
-    parsed_start_time = datetime.fromisoformat(start_time)
-    return str(parsed_start_time + timedelta(seconds=get_tta_for_platform(platform)))
+        E.g.: if a platform has the tta of 3600 seconds = 1 hour, we will just sum 1 hour to the start time.
+        """
+        parsed_start_time = datetime.fromisoformat(start_time)
+        return str(parsed_start_time + timedelta(seconds=Platform(platform).time_to_adoption))
+
+    return inner
 
 
-def _enable_only_latest_release_bias(project: Project):
-    project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-        ],
-    )
+@pytest.fixture
+def project_with_latest_release_bias():
+    def inner(platform: Optional[str] = None) -> Project:
+        """
+        Utils function that creates a project with a specific platform that only has latest release boosting active.
+        """
+        project = Factories.create_project(
+            organization=Factories.create_organization(), platform=platform
+        )
+        project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": False},
+                {"id": "ignoreHealthChecks", "active": False},
+            ],
+        )
+
+        return project
+
+    return inner
 
 
 @patch("sentry.dynamic_sampling.rules_generator.sentry_sdk")
@@ -160,16 +176,17 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     ],
 )
 def test_generate_rules_with_different_project_platforms(
-    get_blended_sample_rate, version, platform
+    get_blended_sample_rate,
+    version,
+    platform,
+    project_with_latest_release_bias,
+    get_bias_end_time_from_start_time,
 ):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    project = Factories.create_project(
-        organization=Factories.create_organization(), platform=platform
-    )
-    _enable_only_latest_release_bias(project)
+    project = project_with_latest_release_bias(platform=platform)
     release = Factories.create_release(project=project, version=version)
     environment = "prod"
 
@@ -198,7 +215,7 @@ def test_generate_rules_with_different_project_platforms(
             "id": 1500,
             "timeRange": {
                 "start": "2022-10-21 18:50:25+00:00",
-                "end": _get_bias_end_time_from_start_time(
+                "end": get_bias_end_time_from_start_time(
                     "2022-10-21 18:50:25+00:00", project.platform
                 ),
             },
@@ -217,15 +234,14 @@ def test_generate_rules_with_different_project_platforms(
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_latest_release_rule(get_blended_sample_rate):
+def test_generate_rules_return_uniform_rules_and_latest_release_rule(
+    get_blended_sample_rate, project_with_latest_release_bias, get_bias_end_time_from_start_time
+):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    python_project = Factories.create_project(
-        organization=Factories.create_organization(), platform="python"
-    )
-    _enable_only_latest_release_bias(python_project)
+    python_project = project_with_latest_release_bias(platform="python")
     first_release = Factories.create_release(project=python_project, version="1.0")
     for release, environment in (
         (first_release, "prod"),
@@ -254,7 +270,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(get_blended
             "id": 1500,
             "timeRange": {
                 "start": "2022-10-21 18:50:25+00:00",
-                "end": _get_bias_end_time_from_start_time(
+                "end": get_bias_end_time_from_start_time(
                     "2022-10-21 18:50:25+00:00", python_project.platform
                 ),
             },
@@ -273,7 +289,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(get_blended
             "id": 1501,
             "timeRange": {
                 "start": "2022-10-21 18:50:25+00:00",
-                "end": _get_bias_end_time_from_start_time(
+                "end": get_bias_end_time_from_start_time(
                     "2022-10-21 18:50:25+00:00", python_project.platform
                 ),
             },
@@ -299,7 +315,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(get_blended
             "id": 1502,
             "timeRange": {
                 "start": "2022-10-21 18:50:25+00:00",
-                "end": _get_bias_end_time_from_start_time(
+                "end": get_bias_end_time_from_start_time(
                     "2022-10-21 18:50:25+00:00", python_project.platform
                 ),
             },
@@ -321,14 +337,11 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(get_blended
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
-    get_blended_sample_rate,
+    get_blended_sample_rate, project_with_latest_release_bias
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    project = Factories.create_project(
-        organization=Factories.create_organization(), platform="python"
-    )
-    _enable_only_latest_release_bias(project)
+    project = project_with_latest_release_bias(platform="python")
 
     assert generate_rules(project) == [
         {
@@ -343,13 +356,14 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rule_with_non_existent_releases(get_blended_sample_rate):
+def test_generate_rules_return_uniform_rule_with_non_existent_releases(
+    get_blended_sample_rate, project_with_latest_release_bias
+):
     get_blended_sample_rate.return_value = 1.0
 
     redis_client = get_redis_client_for_ds()
 
-    project = Factories.create_project(organization=Factories.create_organization())
-    _enable_only_latest_release_bias(project)
+    project = project_with_latest_release_bias()
 
     redis_client.hset(f"ds::p:{project.id}:boosted_releases", f"ds::r:{1234}", time.time())
     assert generate_rules(project) == [
@@ -368,14 +382,13 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(get_blend
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 @mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 2)
 def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
-    get_blended_sample_rate,
+    get_blended_sample_rate, project_with_latest_release_bias, get_bias_end_time_from_start_time
 ):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    project = Factories.create_project(organization=Factories.create_organization())
-    _enable_only_latest_release_bias(project)
+    project = project_with_latest_release_bias()
 
     releases = [Factories.create_release(project=project, version=f"{x}.0") for x in range(1, 4)]
 
@@ -407,7 +420,7 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
                 "id": 1500 + index,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
-                    "end": _get_bias_end_time_from_start_time(
+                    "end": get_bias_end_time_from_start_time(
                         "2022-10-21 18:50:25+00:00", project.platform
                     ),
                 },

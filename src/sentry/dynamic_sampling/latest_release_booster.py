@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple
 from django.conf import settings
 from pytz import UTC
 
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
 from sentry.models import Project, Release
 from sentry.utils import redis
@@ -169,7 +170,7 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
 class BoostedRelease:
     version: str
     environment: Optional[str]
-    platform: Optional[str]
+    platform: Platform
     timestamp: float
 
 
@@ -201,7 +202,7 @@ def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedR
                 BoostedRelease(
                     version=release_version,
                     environment=environment,
-                    platform=release_project.platform,  # type:ignore
+                    platform=Platform(release_project.platform),  # type:ignore
                     timestamp=timestamp,
                 )
             )

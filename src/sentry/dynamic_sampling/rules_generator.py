@@ -7,7 +7,6 @@ from pytz import UTC
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.latest_release_booster import get_boosted_releases_augmented
-from sentry.dynamic_sampling.latest_release_ttas import get_tta_for_platform
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
@@ -133,8 +132,7 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     ),
                     "end": str(
                         datetime.utcfromtimestamp(
-                            boosted_release.timestamp
-                            + get_tta_for_platform(boosted_release.platform)
+                            boosted_release.timestamp + boosted_release.platform.time_to_adoption
                         ).replace(tzinfo=UTC)
                     ),
                 },

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 # This static list is the first step towards a smarter implementation of the latest release boosting. The idea behind
@@ -128,5 +129,10 @@ LATEST_RELEASE_TTAS = {
 DEFAULT_TTA = 3600
 
 
-def get_tta_for_platform(platform: Optional[str]) -> int:
-    return LATEST_RELEASE_TTAS.get(platform, DEFAULT_TTA) if platform else DEFAULT_TTA
+@dataclass(frozen=True)
+class Platform:
+    name: Optional[str]
+
+    @property
+    def time_to_adoption(self) -> int:
+        return LATEST_RELEASE_TTAS.get(self.name, DEFAULT_TTA) if self.name else DEFAULT_TTA
