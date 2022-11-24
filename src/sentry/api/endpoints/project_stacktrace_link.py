@@ -51,20 +51,18 @@ def get_link(
     return result
 
 
-# This is to support mobile languages with non-fully-qualified file pathing.
-# We attempt to 'munge' the proper source-relative filepath based on the stackframe data.
-def generate_mobile_frame(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
-    abs_path = parameters.get("absPath")
-    module = parameters.get("module")
-    package = parameters.get("package")
-    frame = {}
-    if abs_path:
-        frame["abs_path"] = abs_path
-    if module:
-        frame["module"] = module
-    if package:
-        frame["package"] = package
-    return frame
+def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, str]:
+    return {
+        "file": parameters.get("file"),
+        # XXX: Temp change to support try_path_munging until refactored
+        "filename": parameters.get("file"),
+        "commit_id": parameters.get("commitId"),
+        "platform": parameters.get("platform"),
+        "sdk_name": parameters.get("sdkName"),
+        "abs_path": parameters.get("absPath"),
+        "module": parameters.get("module"),
+        "package": parameters.get("package"),
+    }
 
 
 def set_top_tags(
@@ -83,7 +81,7 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.has_code_mappings", has_code_mappings)
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
-            scope.set_tag("stacktrace_link.in_app", "site-packages" in str(ctx["file"]))
+            scope.set_tag("stacktrace_link.in_app", "site-packages" not in str(ctx["file"]))
     except Exception:
         # If errors arises we can still proceed
         logger.exception("We failed to set a tag.")
@@ -92,13 +90,11 @@ def set_top_tags(
 def try_path_munging(
     config: RepositoryProjectPathConfig,
     filepath: str,
-    mobile_frame: Mapping[str, Optional[str]],
     ctx: Mapping[str, Optional[str]],
 ) -> Dict[str, str]:
     result: Dict[str, str] = {}
-    mobile_frame["filename"] = filepath  # type: ignore
     munged_frames = munged_filename_and_frames(
-        str(ctx["platform"]), [mobile_frame], "munged_filename", sdk_name=str(ctx["sdk_name"])
+        str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
     )
     if munged_frames:
         munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
@@ -132,18 +128,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
 
     def get(self, request: Request, project: Project) -> Response:
-        # should probably feature gate
-        filepath = request.GET.get("file")
+        ctx = generate_context(request.GET)
+        filepath = ctx.get("file")
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        ctx = {
-            "file": request.GET.get("file"),
-            "commit_id": request.GET.get("commitId"),
-            "platform": request.GET.get("platform"),
-            "sdk_name": request.GET.get("sdkName"),
-        }
-        mobile_frame = generate_mobile_frame(request.GET)
         result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
@@ -182,7 +171,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 # In some cases the stack root matches and it can either be that we have
                 # an invalid code mapping or that munging is expect it to work
                 if not outcome.get("sourceUrl"):
-                    munging_outcome = try_path_munging(config, filepath, mobile_frame, ctx)
+                    munging_outcome = try_path_munging(config, filepath, ctx)
                     # If we failed to munge we should keep the original outcome
                     if munging_outcome:
                         outcome = munging_outcome
