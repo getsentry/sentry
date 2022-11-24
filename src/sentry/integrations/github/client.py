@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.repo import Repo, RepoTree, trim_tree
+from sentry.integrations.utils.repo_tree import Repo, RepoTree, partitioned_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -70,10 +70,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
 
-    # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> List[str]:
-        tree = []
+    def get_repo_files(self, repo_full_name: str, tree_sha: str) -> List[str]:
+        """It fetches the complete tree for a repo and return the list of files."""
+        files = []
         try:
+            # https://docs.github.com/en/rest/git/trees#get-a-tree
             contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
@@ -88,7 +89,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            tree = trim_tree(contents["tree"], ["python"])
+            files = [x["path"] for x in contents["tree"] if x["type"] == "blob"]
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -101,13 +102,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             else:
                 logger.exception("An unknown error has ocurred.")
 
-        return tree
+        return files
 
     def get_trees_for_org(
         self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
     ) -> Dict[str, RepoTree]:
         """
-        This fetches tree representations of all repos for an org.
+        This fetches tree representations of all repos for an org and saves its
+        contents into the cache.
         """
         trees: Dict[str, RepoTree] = {}
         cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
@@ -125,10 +127,22 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 try:
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
-                    files = self.get_tree(full_name, branch)
+                    all_files = self.get_repo_files(full_name, branch)
+                    partitioned_tree = partitioned_files(
+                        files=all_files,
+                        languages=["python", "javascript"],
+                    )
+                    files = []
                     repo = Repo(full_name, branch)
+                    # We partition the files from a repository in order to reduce
+                    # the memory footprint since memcached has a limit of 5MB
+                    # XXX: Add link to documentation about memcache
+                    for extension in partitioned_tree.keys():
+                        key = f"{repo_key}:{full_name}:{extension}"
+                        files.append(partitioned_tree[extension])
+                        cache.set(key, partitioned_tree[extension], cache_seconds)
+
                     trees[full_name] = RepoTree(repo, files)
-                    cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
                 except Exception:
                     # Catching the exception ensures that we can make progress with the rest
                     # of the repositories

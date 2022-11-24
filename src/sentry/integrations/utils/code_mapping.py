@@ -6,7 +6,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
-from .repo import Repo, RepoTree
+from .repo_tree import Repo, RepoTree
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
