@@ -356,9 +356,9 @@ def test_generate_rules_with_different_project_platforms(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": [release.version]},
+                    {"op": "eq", "name": "trace.release", "value": [release.version]},
                     {
-                        "op": "glob",
+                        "op": "eq",
                         "name": "trace.environment",
                         "value": [environment],
                     },
@@ -413,8 +413,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "glob", "name": "trace.environment", "value": ["prod"]},
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": ["prod"]},
                 ],
             },
             "id": 1500,
@@ -427,8 +427,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "glob", "name": "trace.environment", "value": ["dev"]},
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": ["dev"]},
                 ],
             },
             "id": 1501,
@@ -441,15 +441,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {
-                        "op": "not",
-                        "inner": {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*"],
-                        },
-                    },
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": [None]},
                 ],
             },
             "id": 1502,
@@ -539,15 +532,8 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": [release.version]},
-                        {
-                            "op": "not",
-                            "inner": {
-                                "op": "glob",
-                                "name": "trace.environment",
-                                "value": ["*"],
-                            },
-                        },
+                        {"op": "eq", "name": "trace.release", "value": [release.version]},
+                        {"op": "eq", "name": "trace.environment", "value": [None]},
                     ],
                 },
                 "id": 1500 + index,
