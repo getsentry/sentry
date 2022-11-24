@@ -78,7 +78,7 @@ def set_top_tags(
             "organization.early_adopter", bool(project.organization.flags.early_adopter.is_set)
         )
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
-        scope.set_tag("stacktrace_link.has_code_mappings", has_code_mappings)
+        scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
             scope.set_tag("stacktrace_link.in_app", "site-packages" not in str(ctx["file"]))
@@ -151,6 +151,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
+        derived = False
         matched_code_mappings = []
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
@@ -165,7 +166,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     filepath.startswith(config.stack_root)
                     and config.automatically_generated is True
                 ):
-                    scope.set_tag("stacktrace_link.automatically_generated", True)
+                    derived = True
 
                 outcome = get_link(config, filepath, ctx["commit_id"])
                 # In some cases the stack root matches and it can either be that we have
@@ -191,7 +192,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             # Post-processing before exiting scope context
             found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
-
+            scope.set_tag("stacktrace_link.auto_derived", derived)
             if matched_code_mappings:
                 # Any code mapping that matches and its results will be returned
                 result["matched_code_mappings"] = matched_code_mappings
