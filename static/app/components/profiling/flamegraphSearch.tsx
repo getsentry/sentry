@@ -152,7 +152,7 @@ function frameSearch(
   if (useFzf) {
     for (let i = 0; i < frames.length; i++) {
       const frame = frames[i]!;
-      const match = fzf(query, frame.frame.name);
+      const match = fzf(frame.frame.name, query);
 
       if (match.score > 0) {
         results.set(getFlamegraphFrameSearchId(frame), {
@@ -161,6 +161,7 @@ function frameSearch(
         });
       }
     }
+    return results;
   }
 
   const fuseResults = index.search(query);
