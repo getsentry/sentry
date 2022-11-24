@@ -61,6 +61,7 @@ def _cluster_project(project, merge_threshold: int, time_range: Tuple[datetime, 
                 Condition(Column("project_id"), Op.EQ, project.id),
                 Condition(Column("finish_ts"), Op.GTE, then),
                 Condition(Column("finish_ts"), Op.LT, now),
+                # FIXME: Only where transaction_info.source == URL
             ],
             groupby=[Column("transaction")],
         ),
