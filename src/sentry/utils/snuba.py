@@ -154,7 +154,6 @@ OPERATOR_TO_FUNCTION = {
     ">=": "greaterOrEquals",
     "<=": "lessOrEquals",
     "IS NULL": "isNull",
-    "hasAny": "hasAny",
 }
 FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
@@ -1065,6 +1064,15 @@ def resolve_condition(cond, column_resolver):
                                        current dataset.
     """
     index = get_function_index(cond)
+
+    def _passthrough_arg(arg):
+        if isinstance(arg, str):
+            return f"'{arg}'"
+        elif isinstance(arg, datetime):
+            return f"'{arg.isoformat()}'"
+        else:
+            return arg
+
     # IN/NOT IN conditions are detected as a function but aren't really.
     if index is not None and cond[index] not in ("IN", "NOT IN"):
         if cond[index] in FUNCTION_TO_OPERATOR:
@@ -1076,12 +1084,7 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    if isinstance(arg, str):
-                        func_args[i] = f"'{arg}'"
-                    elif isinstance(arg, datetime):
-                        func_args[i] = f"'{arg.isoformat()}'"
-                    else:
-                        func_args[i] = arg
+                    func_args[i] = _passthrough_arg(arg)
 
             cond[index + 1] = func_args
             return cond
@@ -1089,10 +1092,13 @@ def resolve_condition(cond, column_resolver):
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
             # Nested function
-            if isinstance(arg, (list, tuple)):
-                func_args[i] = resolve_condition(arg, column_resolver)
-            else:
-                func_args[i] = column_resolver(arg)
+            try:
+                if isinstance(arg, (list, tuple)):
+                    func_args[i] = resolve_condition(arg, column_resolver)
+                else:
+                    func_args[i] = column_resolver(arg)
+            except AttributeError:
+                func_args[i] = _passthrough_arg(arg)
         cond[index + 1] = func_args
         return cond
 
