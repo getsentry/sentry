@@ -153,8 +153,7 @@ function TagFacetsDistributionMeter({
   return (
     <TagSummary>
       {renderTitle()}
-      {!expanded ? renderSegments() : null}
-      {expanded ? renderLegend() : null}
+      {expanded ? renderLegend() : renderSegments()}
     </TagSummary>
   );
 }
