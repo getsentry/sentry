@@ -32,7 +32,6 @@ export type PerformanceWidgetProps = {
   chartSetting: PerformanceWidgetSetting;
   eventView: EventView;
   fields: string[];
-  location: Location;
 
   organization: Organization;
   title: string;
@@ -129,7 +128,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   eventView: EventView;
 
   fields: string[];
-  location: Location;
   organization: Organization;
 
   // Header;
