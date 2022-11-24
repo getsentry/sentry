@@ -73,19 +73,16 @@ function ReplayMetaData({replayRecord}: Props) {
       </KeyMetricData>
       <KeyMetricData>
         {replayRecord ? (
-          <Fragment>
+          <StyledLink to={errorsTabHref}>
             <ErrorTag
-              to={errorsTabHref}
               icon={null}
               type={replayRecord.countErrors ? 'error' : 'black'}
               level={replayRecord.countErrors ? 'fatal' : 'default'}
             >
               {replayRecord.countErrors}
             </ErrorTag>
-            <Link to={errorsTabHref}>
-              {tn('Error', 'Errors', replayRecord.countErrors)}
-            </Link>
-          </Fragment>
+            {tn('Error', 'Errors', replayRecord.countErrors)}
+          </StyledLink>
         ) : (
           <HeaderPlaceholder />
         )}
@@ -103,9 +100,8 @@ export const HeaderPlaceholder = styled(
 `;
 
 const KeyMetrics = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(3)};
-  grid-template-columns: repeat(4, max-content);
   align-items: center;
   justify-content: end;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -114,11 +110,15 @@ const KeyMetrics = styled('div')`
 const KeyMetricData = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: normal;
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
+  display: flex;
   align-items: center;
   gap: ${space(1)};
   line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
