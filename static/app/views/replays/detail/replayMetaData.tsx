@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -82,7 +82,9 @@ function ReplayMetaData({replayRecord}: Props) {
             >
               {replayRecord.countErrors}
             </ErrorTag>
-            <Link to={errorsTabHref}>{t('Errors')}</Link>
+            <Link to={errorsTabHref}>
+              {tn('Error', 'Errors', replayRecord.countErrors)}
+            </Link>
           </Fragment>
         ) : (
           <HeaderPlaceholder />
