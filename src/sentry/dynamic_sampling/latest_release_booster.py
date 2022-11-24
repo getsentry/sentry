@@ -1,11 +1,14 @@
 import re
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from pytz import UTC
 
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
+from sentry.models import Project, Release
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
@@ -18,6 +21,67 @@ BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
 
 class TooManyBoostedReleasesException(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class BoostedRelease:
+    id: int
+    timestamp: float
+    environment: Optional[str]
+
+    def to_augmented(self, release: Release, project_id: int) -> "ExtendedBoostedRelease":
+        return ExtendedBoostedRelease(
+            id=self.id,
+            timestamp=self.timestamp,
+            environment=self.environment,
+            version=release.version,
+            platform=Platform(self._get_project_platform_from_release(release, project_id)),
+        )
+
+    @staticmethod
+    def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
+        try:
+            return release.projects.get(id=project_id).platform  # type:ignore
+        except Project.DoesNotExist:
+            # If we don't find the project of this release we just default to having no platform name in the
+            # BoostedRelease.
+            return None
+
+
+@dataclass(frozen=True)
+class ExtendedBoostedRelease(BoostedRelease):
+    version: str
+    platform: Platform
+
+
+@dataclass
+class BoostedReleases:
+    boosted_releases: List[BoostedRelease] = field(default_factory=list)
+
+    def add_release(self, id: int, timestamp: float, environment: Optional[str]) -> None:
+        self.boosted_releases.append(
+            BoostedRelease(id=id, timestamp=timestamp, environment=environment)
+        )
+
+    def to_extended_boosted_releases(
+        self, project_id: int, limit: int
+    ) -> List[ExtendedBoostedRelease]:
+        # We get release models in order to have all the information to extend the releases we get from the cache.
+        models = self._get_releases_models(limit)
+        return [
+            boosted_release.to_augmented(release=models[boosted_release.id], project_id=project_id)
+            for boosted_release in self.boosted_releases
+            if boosted_release.id in models
+        ]
+
+    def _get_last_release_ids(self, limit: int) -> List[int]:
+        return [boosted_release.id for boosted_release in self.boosted_releases[-limit:]]
+
+    def _get_releases_models(self, limit: int) -> Dict[int, Release]:
+        return {
+            release.id: release
+            for release in Release.objects.filter(id__in=self._get_last_release_ids(limit=limit))
+        }
 
 
 def _get_environment_cache_key_suffix(environment: Optional[str]) -> str:
@@ -110,7 +174,7 @@ def observe_release(project_id: int, release_id: int, environment: Optional[str]
     return release_observed == "1"  # type: ignore
 
 
-def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
+def get_boosted_releases(project_id: int) -> BoostedReleases:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -120,7 +184,7 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
     redis_client = get_redis_client_for_ds()
     old_boosted_releases = redis_client.hgetall(cache_key)
 
-    boosted_releases = []
+    boosted_releases = BoostedReleases()
     expired_releases = []
     for boosted_release_cache_key, timestamp in old_boosted_releases.items():
         timestamp = float(timestamp)
@@ -133,7 +197,7 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
                 )
             ) is not None:
                 release_id, environment = extracted_data
-                boosted_releases.append((release_id, environment, timestamp))
+                boosted_releases.add_release(release_id, timestamp, environment)
 
         else:
             expired_releases.append(boosted_release_cache_key)
@@ -161,3 +225,10 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
         datetime.utcnow().replace(tzinfo=UTC).timestamp(),
     )
     redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
+
+
+def get_augmented_boosted_releases(project_id: int, limit: int) -> List[ExtendedBoostedRelease]:
+    """
+    Returns a list of boosted releases augmented with additional information such as release version and platform.
+    """
+    return get_boosted_releases(project_id).to_extended_boosted_releases(project_id, limit)
