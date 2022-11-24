@@ -18,7 +18,7 @@ ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
 class IntermediateSearchQueryPartial(Protocol):
     def __call__(
         self,
-        selected_columns: Sequence[str],
+        # selected_columns: Sequence[str],
         groupby: Sequence[str],
         having: Sequence[Any],
         orderby: Sequence[str],
@@ -30,6 +30,7 @@ class SearchQueryPartial(Protocol):
     def __call__(
         self,
         dataset: snuba.Dataset,
+        selected_columns: Sequence[Any],
         filter_keys: Mapping[str, Sequence[int]],
         conditions: Sequence[Any],
         aggregations: Sequence[Any],
@@ -43,6 +44,7 @@ GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], Sequence[SearchFil
 GroupSearchStrategy = Callable[
     [
         SearchQueryPartial,
+        Sequence[Any],
         Sequence[Any],
         int,
         Sequence[int],
@@ -93,6 +95,7 @@ def group_categories_from(
 
 def _query_params_for_error(
     query_partial: SearchQueryPartial,
+    selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
@@ -115,6 +118,7 @@ def _query_params_for_error(
 
     params = query_partial(
         dataset=snuba.Dataset.Discover,
+        selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
         aggregations=aggregations,
@@ -126,6 +130,7 @@ def _query_params_for_error(
 
 def _query_params_for_perf(
     query_partial: SearchQueryPartial,
+    selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
@@ -151,15 +156,29 @@ def _query_params_for_perf(
                 [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
                 *transaction_conditions,
             ]
-
-        mod_agg = list(aggregations).copy() if aggregations else []
-        mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
+            selected_columns = [
+                [
+                    "arrayJoin",
+                    [
+                        [
+                            "arrayIntersect",
+                            [
+                                ["array", group_ids],
+                                "group_ids",
+                            ],
+                        ]
+                    ],
+                    "group_id",
+                ],
+                *selected_columns,
+            ]
 
         params = query_partial(
             dataset=snuba.Dataset.Discover,
+            selected_columns=selected_columns,
             filter_keys=filters,
             conditions=transaction_conditions,
-            aggregations=mod_agg,
+            aggregations=aggregations,
             condition_resolver=functools.partial(
                 snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
             ),

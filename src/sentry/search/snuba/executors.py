@@ -246,8 +246,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             SearchQueryPartial,
             functools.partial(
                 query_partial,
-                filter_keys=filters,
-                selected_columns=selected_columns,
                 groupby=["group_id"],
                 having=having,
                 orderby=orderby,
@@ -256,6 +254,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         return SEARCH_STRATEGIES[group_category](
             pinned_query_partial,
+            selected_columns,
             aggregations,
             organization_id,
             project_ids,
@@ -296,9 +295,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     organization_id=organization_id, id__in=environment_ids
                 ).values_list("name", flat=True)
             )
-
-        if group_ids:
-            filters["group_id"] = sorted(group_ids)
 
         referrer = "search_sample" if get_sample else "search"
 
