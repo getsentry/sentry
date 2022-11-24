@@ -85,6 +85,8 @@ class TreeClusterer(Clusterer):
         # Generate exactly 1 rule for every merge
         rule_paths = [path for path in self._graph.paths() if path[-1] is MERGED]
 
+        # TODO: Warn if top level collapse
+
         # Sort by path length, descending (most specific rule first)
         rule_paths.sort(key=len, reverse=True)
 
