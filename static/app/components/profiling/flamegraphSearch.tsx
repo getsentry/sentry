@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -17,6 +17,44 @@ import {
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+
+function yieldingRafSearch(
+  query: string,
+  frames: ReadonlyArray<FlamegraphFrame>,
+  cb: (results: FlamegraphSearchResults['results']) => void
+) {
+  const raf = {id: 0};
+  const budget = 16; // ms
+  const results: FlamegraphSearchResults['results'] = new Map();
+  let processed = 0;
+
+  function work() {
+    // we lowercase the query to make the search case insensitive (assumption of fzf)
+    // when caseSensitive = false
+    const lowercaseQuery = query.toLowerCase();
+    const start = performance.now();
+    while (performance.now() - start < budget && processed < frames.length) {
+      const frame = frames[processed]!;
+      const match = fzf(frame.frame.name, lowercaseQuery, false);
+
+      if (match.score > 0) {
+        results.set(getFlamegraphFrameSearchId(frame), {
+          frame,
+          match: match.matches[0],
+        });
+      }
+      processed++;
+    }
+
+    cb(results);
+    if (processed < frames.length) {
+      raf.id = requestAnimationFrame(work);
+    }
+  }
+
+  raf.id = requestAnimationFrame(work);
+  return raf;
+}
 
 function sortFrameResults(
   frames: FlamegraphSearchResults['results']
@@ -69,9 +107,11 @@ const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 
 function frameSearch(
   query: string,
-  frames: ReadonlyArray<FlamegraphFrame>
+  frames: ReadonlyArray<FlamegraphFrame>,
+  pointer?: number
 ): FlamegraphSearchResults['results'] {
   const results: FlamegraphSearchResults['results'] = new Map();
+  const start = pointer ?? 0;
 
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
@@ -82,7 +122,7 @@ function frameSearch(
         throw new Error('Invalid RegExp');
       }
 
-      for (let i = 0; i < frames.length; i++) {
+      for (let i = start; i < frames.length; i++) {
         const frame = frames[i]!; // iterating over a non empty array
 
         const re = new RegExp(lookup, flags ?? 'g');
@@ -113,8 +153,7 @@ function frameSearch(
   // we lowercase the query to make the search case insensitive (assumption of fzf)
   // when caseSensitive = false
   const lowercaseQuery = query.toLowerCase();
-
-  for (let i = 0; i < frames.length; i++) {
+  for (let i = start; i < frames.length; i++) {
     const frame = frames[i]!;
     const match = fzf(frame.frame.name, lowercaseQuery, false);
 
@@ -190,19 +229,27 @@ function FlamegraphSearch({
     }
   }, [search.results, search.index, onZoomIntoFrame]);
 
-  const handleChange: (value: string) => void = useCallback(
-    value => {
-      if (!value) {
+  const rafHandler = useRef<ReturnType<typeof yieldingRafSearch> | null>(null);
+
+  const handleChange: (query: string) => void = useCallback(
+    query => {
+      if (rafHandler.current) {
+        window.cancelAnimationFrame(rafHandler.current.id);
+      }
+
+      if (!query) {
         dispatch({type: 'clear search'});
         return;
       }
 
-      dispatch({
-        type: 'set results',
-        payload: {
-          results: frameSearch(value, allFrames),
-          query: value,
-        },
+      rafHandler.current = yieldingRafSearch(query, allFrames, results => {
+        dispatch({
+          type: 'set results',
+          payload: {
+            results,
+            query,
+          },
+        });
       });
     },
     [dispatch, allFrames]
