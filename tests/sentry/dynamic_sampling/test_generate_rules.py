@@ -1,6 +1,4 @@
 import time
-from datetime import datetime, timedelta
-from typing import Optional
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -9,47 +7,24 @@ from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.latest_release_ttas import LATEST_RELEASE_TTAS, Platform
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
-from sentry.models import Project
 from sentry.testutils.factories import Factories
 from sentry.utils import json
 
 
 @pytest.fixture
-def get_bias_end_time_from_start_time():
-    def inner(start_time: str, platform: Optional[str]) -> str:
-        """
-        Utils function that returns the end time considering the start time and the platform.
-
-        E.g.: if a platform has the tta of 3600 seconds = 1 hour, we will just sum 1 hour to the start time.
-        """
-        parsed_start_time = datetime.fromisoformat(start_time)
-        return str(parsed_start_time + timedelta(seconds=Platform(platform).time_to_adoption))
-
-    return inner
-
-
-@pytest.fixture
-def project_with_latest_release_bias():
-    def inner(platform: Optional[str] = None) -> Project:
-        """
-        Utils function that creates a project with a specific platform that only has latest release boosting active.
-        """
-        project = Factories.create_project(
-            organization=Factories.create_organization(), platform=platform
-        )
-        project.update_option(
-            "sentry:dynamic_sampling_biases",
-            [
-                {"id": "boostEnvironments", "active": False},
-                {"id": "ignoreHealthChecks", "active": False},
-            ],
-        )
-
-        return project
-
-    return inner
+def latest_release_only(default_project):
+    """
+    This fixture is a hacky way of automatically changing the default project options to use only the latest release
+    bias.
+    """
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": False},
+        ],
+    )
 
 
 @patch("sentry.dynamic_sampling.rules_generator.sentry_sdk")
@@ -169,29 +144,28 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    ["version", "platform"],
+    ["version", "platform", "end"],
     [
-        (f"{index}.0", platform)
-        for index, platform in enumerate(list(LATEST_RELEASE_TTAS.keys()) + [None])
+        (version, platform, end)
+        for version, platform, end in [
+            ("1.0", "python", "2022-10-21 20:03:03+00:00"),
+            ("2.0", None, "2022-10-21 19:50:25+00:00"),
+        ]
     ],
 )
 def test_generate_rules_with_different_project_platforms(
-    get_blended_sample_rate,
-    version,
-    platform,
-    project_with_latest_release_bias,
-    get_bias_end_time_from_start_time,
+    get_blended_sample_rate, version, platform, end, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    project = project_with_latest_release_bias(platform=platform)
-    release = Factories.create_release(project=project, version=version)
+    default_project.update(platform=platform)
+    release = Factories.create_release(project=default_project, version=version)
     environment = "prod"
 
     redis_client.hset(
-        f"ds::p:{project.id}:boosted_releases",
+        f"ds::p:{default_project.id}:boosted_releases",
         f"ds::r:{release.id}:e:{environment}",
         time.time(),
     )
@@ -215,9 +189,7 @@ def test_generate_rules_with_different_project_platforms(
             "id": 1500,
             "timeRange": {
                 "start": "2022-10-21 18:50:25+00:00",
-                "end": get_bias_end_time_from_start_time(
-                    "2022-10-21 18:50:25+00:00", project.platform
-                ),
+                "end": end,
             },
         },
         {
@@ -228,21 +200,21 @@ def test_generate_rules_with_different_project_platforms(
             "type": "trace",
         },
     ]
-    assert generate_rules(project) == expected
+    assert generate_rules(default_project) == expected
 
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
-    get_blended_sample_rate, project_with_latest_release_bias, get_bias_end_time_from_start_time
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    python_project = project_with_latest_release_bias(platform="python")
-    first_release = Factories.create_release(project=python_project, version="1.0")
+    default_project.update(platform="python")
+    first_release = Factories.create_release(project=default_project, version="1.0")
     for release, environment in (
         (first_release, "prod"),
         (first_release, "dev"),
@@ -250,7 +222,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     ):
         env_postfix = f":e:{environment}" if environment is not None else ""
         redis_client.hset(
-            f"ds::p:{python_project.id}:boosted_releases",
+            f"ds::p:{default_project.id}:boosted_releases",
             f"ds::r:{release.id}{env_postfix}",
             time.time(),
         )
@@ -268,12 +240,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1500,
-            "timeRange": {
-                "start": "2022-10-21 18:50:25+00:00",
-                "end": get_bias_end_time_from_start_time(
-                    "2022-10-21 18:50:25+00:00", python_project.platform
-                ),
-            },
+            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
         },
         {
             "sampleRate": 0.5,
@@ -287,12 +254,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1501,
-            "timeRange": {
-                "start": "2022-10-21 18:50:25+00:00",
-                "end": get_bias_end_time_from_start_time(
-                    "2022-10-21 18:50:25+00:00", python_project.platform
-                ),
-            },
+            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
         },
         {
             "sampleRate": 0.5,
@@ -313,12 +275,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1502,
-            "timeRange": {
-                "start": "2022-10-21 18:50:25+00:00",
-                "end": get_bias_end_time_from_start_time(
-                    "2022-10-21 18:50:25+00:00", python_project.platform
-                ),
-            },
+            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
         },
         {
             "active": True,
@@ -329,7 +286,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
         },
     ]
 
-    assert generate_rules(python_project) == expected
+    assert generate_rules(default_project) == expected
     config_str = json.dumps({"rules": expected})
     validate_sampling_configuration(config_str)
 
@@ -337,13 +294,13 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
-    get_blended_sample_rate, project_with_latest_release_bias
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    project = project_with_latest_release_bias(platform="python")
+    default_project.update(platform="python")
 
-    assert generate_rules(project) == [
+    assert generate_rules(default_project) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
@@ -357,16 +314,14 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_non_existent_releases(
-    get_blended_sample_rate, project_with_latest_release_bias
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 1.0
 
     redis_client = get_redis_client_for_ds()
 
-    project = project_with_latest_release_bias()
-
-    redis_client.hset(f"ds::p:{project.id}:boosted_releases", f"ds::r:{1234}", time.time())
-    assert generate_rules(project) == [
+    redis_client.hset(f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{1234}", time.time())
+    assert generate_rules(default_project) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
@@ -382,19 +337,19 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 @mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 2)
 def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
-    get_blended_sample_rate, project_with_latest_release_bias, get_bias_end_time_from_start_time
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
 
     redis_client = get_redis_client_for_ds()
 
-    project = project_with_latest_release_bias()
-
-    releases = [Factories.create_release(project=project, version=f"{x}.0") for x in range(1, 4)]
+    releases = [
+        Factories.create_release(project=default_project, version=f"{x}.0") for x in range(1, 4)
+    ]
 
     for release in releases:
         redis_client.hset(
-            f"ds::p:{project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
+            f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
         )
 
     expected = [
@@ -420,9 +375,7 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
                 "id": 1500 + index,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
-                    "end": get_bias_end_time_from_start_time(
-                        "2022-10-21 18:50:25+00:00", project.platform
-                    ),
+                    "end": "2022-10-21 19:50:25+00:00",
                 },
             }
             for index, release in enumerate(releases[-2:])
@@ -435,6 +388,6 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
             "type": "trace",
         },
     ]
-    assert generate_rules(project) == expected
+    assert generate_rules(default_project) == expected
     config_str = json.dumps({"rules": expected})
     validate_sampling_configuration(config_str)
