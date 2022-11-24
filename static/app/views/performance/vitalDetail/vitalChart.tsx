@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -21,6 +20,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import {ViewProps} from '../types';
@@ -34,26 +34,24 @@ import {
   vitalStateColors,
 } from './utils';
 
-type Props = WithRouterProps &
-  Omit<ViewProps, 'start' | 'end'> & {
-    end: DateString | null;
-    interval: string;
-    organization: OrganizationSummary;
-    start: DateString | null;
-  };
+type Props = Omit<ViewProps, 'start' | 'end'> & {
+  end: DateString | null;
+  interval: string;
+  organization: OrganizationSummary;
+  start: DateString | null;
+};
 
 function VitalChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
-  router,
   start,
   end,
   interval,
 }: Props) {
+  const {location, router} = useRouteContext();
   const api = useApi();
   const theme = useTheme();
 
@@ -182,7 +180,7 @@ function VitalChart({
   );
 }
 
-export default withRouter(VitalChart);
+export default VitalChart;
 
 export type _VitalChartProps = {
   field: string;
