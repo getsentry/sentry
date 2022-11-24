@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,13 +24,13 @@ class TooManyBoostedReleasesException(Exception):
 
 
 @dataclass(frozen=True)
-class CachedBoostedRelease:
+class BoostedRelease:
     id: int
     timestamp: float
     environment: Optional[str]
 
-    def to_augmented(self, release: Release, project_id: int) -> "AugmentedBoostedRelease":
-        return AugmentedBoostedRelease(
+    def to_augmented(self, release: Release, project_id: int) -> "ExtendedBoostedRelease":
+        return ExtendedBoostedRelease(
             id=self.id,
             timestamp=self.timestamp,
             environment=self.environment,
@@ -49,34 +49,39 @@ class CachedBoostedRelease:
 
 
 @dataclass(frozen=True)
-class AugmentedBoostedRelease(CachedBoostedRelease):
+class ExtendedBoostedRelease(BoostedRelease):
     version: str
     platform: Platform
 
 
 @dataclass
-class CachedBoostedReleases:
-    boosted_releases: Dict[int, CachedBoostedRelease]
-
-    def __init__(self) -> None:
-        self.boosted_releases = dict()
+class BoostedReleases:
+    boosted_releases: List[BoostedRelease] = field(default_factory=list)
 
     def add_release(self, id: int, timestamp: float, environment: Optional[str]) -> None:
-        self.boosted_releases[id] = CachedBoostedRelease(
-            id=id, timestamp=timestamp, environment=environment
+        self.boosted_releases.append(
+            BoostedRelease(id=id, timestamp=timestamp, environment=environment)
         )
 
-    def to_augmented_boosted_releases(
+    def to_extended_boosted_releases(
         self, project_id: int, limit: int
-    ) -> List[AugmentedBoostedRelease]:
+    ) -> List[ExtendedBoostedRelease]:
+        # We get release models in order to have all the information to extend the releases we get from the cache.
+        models = self._get_releases_models(limit)
         return [
-            # We use a dictionary to avoid the N + 1 query while fetching release information.
-            self.boosted_releases[release.id].to_augmented(release=release, project_id=project_id)
-            for release in Release.objects.filter(id__in=self._get_last_release_ids(last=limit))
+            boosted_release.to_augmented(release=models[boosted_release.id], project_id=project_id)
+            for boosted_release in self.boosted_releases
+            if boosted_release.id in models
         ]
 
     def _get_last_release_ids(self, last: int) -> List[int]:
-        return list(self.boosted_releases.keys())[-last:]
+        return [boosted_release.id for boosted_release in self.boosted_releases[-last:]]
+
+    def _get_releases_models(self, limit: int) -> Dict[int, Release]:
+        return {
+            release.id: release
+            for release in Release.objects.filter(id__in=self._get_last_release_ids(last=limit))
+        }
 
 
 def _get_environment_cache_key_suffix(environment: Optional[str]) -> str:
@@ -169,7 +174,7 @@ def observe_release(project_id: int, release_id: int, environment: Optional[str]
     return release_observed == "1"  # type: ignore
 
 
-def get_boosted_releases(project_id: int) -> CachedBoostedReleases:
+def get_boosted_releases(project_id: int) -> BoostedReleases:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -179,7 +184,7 @@ def get_boosted_releases(project_id: int) -> CachedBoostedReleases:
     redis_client = get_redis_client_for_ds()
     old_boosted_releases = redis_client.hgetall(cache_key)
 
-    boosted_releases = CachedBoostedReleases()
+    boosted_releases = BoostedReleases()
     expired_releases = []
     for boosted_release_cache_key, timestamp in old_boosted_releases.items():
         timestamp = float(timestamp)
@@ -222,8 +227,8 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
     redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
 
 
-def get_augmented_boosted_releases(project_id: int, limit: int) -> List[AugmentedBoostedRelease]:
+def get_augmented_boosted_releases(project_id: int, limit: int) -> List[ExtendedBoostedRelease]:
     """
     Returns a list of boosted releases augmented with additional information such as release version and platform.
     """
-    return get_boosted_releases(project_id).to_augmented_boosted_releases(project_id, limit)
+    return get_boosted_releases(project_id).to_extended_boosted_releases(project_id, limit)
