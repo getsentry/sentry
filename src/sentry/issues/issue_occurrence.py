@@ -11,7 +11,7 @@ from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
 
 
-@dataclass
+@dataclass(frozen=True)
 class IssueEvidence:
     name: str
     value: str
