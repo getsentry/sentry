@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import string
 from copy import deepcopy
-from dataclasses import dataclass
 from datetime import datetime
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
@@ -18,10 +17,11 @@ from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
@@ -680,43 +680,6 @@ class Event(BaseEvent):
 
     def for_group(self, group: Group):
         return GroupEvent.from_event(self, group)
-
-
-@dataclass
-class IssueEvidence:
-    name: str
-    value: str
-    important: bool
-
-
-@dataclass
-class IssueOccurrence:
-    """
-    A class representing a specific occurrence of an issue. Separate to an `Event`. An `Event` may
-    have 0-M `IssueOccurrences` associated with it, and each `IssueOccurrence` is associated with
-    one `Event`.
-
-    Longer term, we might change this relationship so that each `IssueOccurrence` is the primary
-    piece of data that is passed around. It would have an `Event` associated with it.
-    """
-
-    id: str
-    # Event id pointing to an event in nodestore
-    event_id: str
-    fingerprint: Sequence[str]
-    issue_title: str
-    # Exact format not decided yet, but this will be a string regardless
-    subtitle: str
-    resource_id: str | None
-    # Extra context around how the problem was detected. Used to display grouping information on
-    # the issue details page, and will be available for use in UI customizations.
-    evidence_data: Mapping[str, Any]
-    # Extra context around the problem that will be displayed as a default in the UI and alerts.
-    # This should be human-readable. One of these entries should be marked as `important` for use
-    # in more space restricted integrations.
-    evidence_display: Sequence[IssueEvidence]
-    type: GroupType
-    detection_time: datetime
 
 
 class GroupEvent(BaseEvent):
