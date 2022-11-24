@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from pytz import UTC
@@ -21,6 +21,62 @@ BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
 
 class TooManyBoostedReleasesException(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class CachedBoostedRelease:
+    id: int
+    timestamp: float
+    environment: Optional[str]
+
+    def to_augmented(self, release: Release, project_id: int) -> "AugmentedBoostedRelease":
+        return AugmentedBoostedRelease(
+            id=self.id,
+            timestamp=self.timestamp,
+            environment=self.environment,
+            version=release.version,
+            platform=Platform(self._get_project_platform_from_release(release, project_id)),
+        )
+
+    @staticmethod
+    def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
+        try:
+            return release.projects.get(id=project_id).platform
+        except Project.DoesNotExist:
+            # If we don't find the project of this release we just default to having no platform name in the
+            # BoostedRelease.
+            pass
+
+
+@dataclass(frozen=True)
+class AugmentedBoostedRelease(CachedBoostedRelease):
+    version: str
+    platform: Platform
+
+
+@dataclass
+class CachedBoostedReleases:
+    boosted_releases: Dict[int, CachedBoostedRelease]
+
+    def __init__(self):
+        self.boosted_releases = dict()
+
+    def add_release(self, id: int, timestamp: float, environment: Optional[str]):
+        self.boosted_releases[id] = CachedBoostedRelease(
+            id=id, timestamp=timestamp, environment=environment
+        )
+
+    def to_augmented_boosted_releases(
+        self, project_id: int, limit: int
+    ) -> List[AugmentedBoostedRelease]:
+        return [
+            # We use a dictionary to avoid the N + 1 query while fetching release information.
+            self.boosted_releases[release.id].to_augmented(release=release, project_id=project_id)
+            for release in Release.objects.filter(id__in=self._get_last_release_ids(last=limit))
+        ]
+
+    def _get_last_release_ids(self, last: int) -> List[int]:
+        return list(self.boosted_releases.keys())[-last:]
 
 
 def _get_environment_cache_key_suffix(environment: Optional[str]) -> str:
@@ -113,7 +169,7 @@ def observe_release(project_id: int, release_id: int, environment: Optional[str]
     return release_observed == "1"  # type: ignore
 
 
-def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], float]]:
+def get_boosted_releases(project_id: int) -> CachedBoostedReleases:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -123,7 +179,7 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
     redis_client = get_redis_client_for_ds()
     old_boosted_releases = redis_client.hgetall(cache_key)
 
-    boosted_releases = []
+    boosted_releases = CachedBoostedReleases()
     expired_releases = []
     for boosted_release_cache_key, timestamp in old_boosted_releases.items():
         timestamp = float(timestamp)
@@ -136,7 +192,7 @@ def get_boosted_releases(project_id: int) -> List[Tuple[int, Optional[str], floa
                 )
             ) is not None:
                 release_id, environment = extracted_data
-                boosted_releases.append((release_id, environment, timestamp))
+                boosted_releases.add_release(release_id, timestamp, environment)
 
         else:
             expired_releases.append(boosted_release_cache_key)
@@ -166,14 +222,6 @@ def add_boosted_release(project_id: int, release_id: int, environment: Optional[
     redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
 
 
-@dataclass(frozen=True)
-class BoostedRelease:
-    version: str
-    environment: Optional[str]
-    platform: Platform
-    timestamp: float
-
-
 def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[Project]:
     try:
         return release.projects.get(id=project_id)
@@ -182,32 +230,8 @@ def _get_project_platform_from_release(release: Release, project_id: int) -> Opt
         pass
 
 
-def get_boosted_releases_augmented(project_id: int, limit: int) -> List[BoostedRelease]:
+def get_boosted_releases_augmented(project_id: int, limit: int) -> List[AugmentedBoostedRelease]:
     """
     Returns a list of boosted releases augmented with additional information such as release version and platform.
     """
-    cached_boosted_releases = get_boosted_releases(project_id)
-    if not cached_boosted_releases:
-        return []
-
-    # We get the ids of the last limit-th releases.
-    boosted_releases_ids = [release_id for (release_id, _, _) in cached_boosted_releases[-limit:]]
-    boosted_releases_metadata = {
-        release.id: (release.version, _get_project_platform_from_release(release, project_id))
-        for release in Release.objects.filter(id__in=boosted_releases_ids)
-    }
-
-    boosted_releases = []
-    for (release_id, environment, timestamp) in cached_boosted_releases:
-        if release_id in boosted_releases_metadata:
-            (release_version, release_project) = boosted_releases_metadata[release_id]
-            boosted_releases.append(
-                BoostedRelease(
-                    version=release_version,
-                    environment=environment,
-                    platform=Platform(release_project.platform),  # type:ignore
-                    timestamp=timestamp,
-                )
-            )
-
-    return boosted_releases
+    return get_boosted_releases(project_id).to_augmented_boosted_releases(project_id, limit)
