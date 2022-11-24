@@ -291,7 +291,7 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            "duration_threshold": 5,  # ms
+            "duration_threshold": 300,  # ms
             "consecutive_count_threshold": 2,
         },
     }
