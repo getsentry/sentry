@@ -9,15 +9,15 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 
 type Props = {
-  organization: Organization;
   project: Project;
   segments: TagSegment[];
   title: string;
@@ -33,9 +33,9 @@ function TagFacetsDistributionMeter({
   totalValues,
   onTagClick,
   project,
-  organization,
 }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
+  const organization = useOrganization();
 
   function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {

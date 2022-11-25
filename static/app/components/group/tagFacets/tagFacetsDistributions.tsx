@@ -105,7 +105,6 @@ export default function TagFacetsDistributions({
                     segments={segments}
                     onTagClick={() => undefined}
                     project={project}
-                    organization={organization}
                   />
                 );
               })}
