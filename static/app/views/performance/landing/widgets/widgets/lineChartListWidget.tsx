@@ -222,6 +222,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={() => <Subtitle>{t('Suggested transactions')}</Subtitle>}
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
