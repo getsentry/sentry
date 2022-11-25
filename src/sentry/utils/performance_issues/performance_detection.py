@@ -47,6 +47,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    CONSECUTIVE_DB_OP = "consecutive_db"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -60,6 +61,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -260,10 +262,6 @@ def get_detection_settings(project_id: Optional[str] = None):
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
             },
-            {
-                "duration_threshold": 2000.0,  # ms
-                "allowed_span_ops": ["http"],
-            },
         ],
         DetectorType.LONG_TASK_SPANS: [
             {
@@ -292,6 +290,10 @@ def get_detection_settings(project_id: Optional[str] = None):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.CONSECUTIVE_DB_OP: {
+            "duration_threshold": 100,  # ms
+            "consecutive_count_threshold": 2,
+        },
     }
 
 
@@ -301,6 +303,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     detection_settings = get_detection_settings(project_id)
     detectors = {
+        DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
@@ -445,10 +448,19 @@ def fingerprint_span_op(span: Span):
     return op
 
 
-def get_span_duration(span: Span):
+def get_span_duration(span: Span) -> timedelta:
     return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
         seconds=span.get("start_timestamp", 0)
     )
+
+
+def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
+    # Remove the truncation check from the n_plus_one db detector.
+    query = span.get("description", None)
+    if is_source and query:
+        return True
+    else:
+        return query and not query.endswith("...")
 
 
 class PerformanceDetector(ABC):
@@ -856,6 +868,117 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 )
 
 
+class ConsecutiveDBSpanDetector(PerformanceDetector):
+    """
+    Let X and Y be the consecutive db span count threshold and the span duration threshold respectively,
+    each defined in the threshold settings.
+
+    The detector first looks for X number of consecutive db query spans,
+    Once these set of spans are found, the detector will compare each db span in the consecutive list
+    to determine if they are dependant on one another.
+    If the sum of the durations of the independent spans exceeds Y, then a performance issue is found.
+
+    This detector assuming spans are ordered chronologically
+    """
+
+    __slots__ = "stored_problems"
+
+    settings_key = DetectorType.CONSECUTIVE_DB_OP
+
+    def init(self):
+        self.stored_problems: dict[str, PerformanceProblem] = {}
+        self.consecutive_db_spans: list[Span] = []
+        self.independent_db_spans: list[Span] = []
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+
+        if not span_id or not self._is_db_query(span) or self._overlaps_last_span(span):
+            self._validate_and_store_performance_problem()
+            self._reset_variables()
+            return
+
+        self._add_problem_span(span)
+
+    def _add_problem_span(self, span: Span) -> None:
+        self.consecutive_db_spans.append(span)
+
+    def _validate_and_store_performance_problem(self):
+        exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
+            "consecutive_count_threshold"
+        )
+        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
+        exceeds_duration_threshold = self._sum_span_duration(
+            independent_db_spans
+        ) > self.settings.get("duration_threshold")
+        if exceeds_count_threshold and exceeds_duration_threshold:
+            self._store_performance_problem()
+
+    def _store_performance_problem(self) -> None:
+        fingerprint = self._fingerprint()
+        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint,
+            "db",
+            "consecutive db",
+            GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+            cause_span_ids=None,
+            parent_span_ids=None,
+            offender_span_ids=offender_span_ids,
+        )
+
+    def _sum_span_duration(self, spans: list[Span]) -> int:
+        "Given a list of spans, find the sum of the span durations in milliseconds"
+        sum = 0
+        for span in spans:
+            sum += get_span_duration(span).total_seconds() * 1000
+        return sum
+
+    def _find_independent_spans(self, spans: list[Span]) -> list[Span]:
+        """
+        Given a list of spans, checks if there is at least a single span that is independent of the rest.
+        To start, we are just checking for a span in a list of consecutive span without a WHERE clause
+        """
+        independent_spans = []
+        for span in spans[1:]:
+            query: str = span.get("description", None)
+            if (
+                query and contains_complete_query(span) and "WHERE" not in query.upper()
+            ):  # TODO - use better regex
+                independent_spans.append(span)
+        return independent_spans
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        if len(self.consecutive_db_spans) == 0:
+            return False
+
+        last_span = self.consecutive_db_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _reset_variables(self) -> None:
+        self.consecutive_db_spans = []
+
+    def _is_db_query(self, span: Span) -> bool:
+        op: str = span.get("op", "") or ""
+        description: str = span.get("description", "") or ""
+        is_db_op = op == "db" or op.startswith("db.sql")
+        is_query = "SELECT" in description.upper()  # TODO - make this more elegant
+        return is_db_op and is_query
+
+    def _fingerprint(self) -> str:
+        """
+        TODO - improve fingerprinting
+        """
+        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
+        return f"1-{problem_class}"
+
+    def on_complete(self) -> None:
+        self._validate_and_store_performance_problem()
+
+
 class NPlusOneDBSpanDetector(PerformanceDetector):
     """
     Detector goals:
@@ -946,14 +1069,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def _is_db_op(self, op: str) -> bool:
         return op.startswith("db") and not op.startswith("db.redis")
 
-    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
-        # Remove the truncation check from the n_plus_one db detector.
-        query = span.get("description", None)
-        if is_source and query:
-            return True
-        else:
-            return query and not query.endswith("...")
-
     def _maybe_use_as_source(self, span: Span):
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
@@ -1021,9 +1136,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         # Track how many N+1-looking problems we found but dropped because we
         # couldn't be sure (maybe the truncated part of the query differs).
-        if not self._contains_complete_query(
+        if not contains_complete_query(
             self.source_span, is_source=True
-        ) or not self._contains_complete_query(self.n_spans[0]):
+        ) or not contains_complete_query(self.n_spans[0]):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 

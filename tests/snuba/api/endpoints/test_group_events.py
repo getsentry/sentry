@@ -4,6 +4,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -15,6 +16,19 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
+        self.features = {}
+
+    def do_request(self, url):
+        with self.feature(self.features):
+            return self.client.get(url, format="json")
+
+    def _parse_links(self, header):
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = {}
+        for url, attrs in parse_link_header(header).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+        return links
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -37,7 +51,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         )
 
         url = f"/api/0/issues/{event_1.group.id}/events/"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -66,47 +80,47 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         url = f"/api/0/issues/{event_1.group.id}/events/"
-        response = self.client.get(url + "?query=foo:baz", format="json")
+        response = self.do_request(url + "?query=foo:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == str(event_1.event_id)
 
-        response = self.client.get(url + "?query=!foo:baz", format="json")
+        response = self.do_request(url + "?query=!foo:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == str(event_2.event_id)
 
-        response = self.client.get(url + "?query=bar:biz", format="json")
+        response = self.do_request(url + "?query=bar:biz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == str(event_2.event_id)
 
-        response = self.client.get(url + "?query=bar:biz%20foo:baz", format="json")
+        response = self.do_request(url + "?query=bar:biz%20foo:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?query=bar:buz%20foo:baz", format="json")
+        response = self.do_request(url + "?query=bar:buz%20foo:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == str(event_1.event_id)
 
-        response = self.client.get(url + "?query=bar:baz", format="json")
+        response = self.do_request(url + "?query=bar:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?query=a:b", format="json")
+        response = self.do_request(url + "?query=a:b")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?query=bar:b", format="json")
+        response = self.do_request(url + "?query=bar:b")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?query=bar:baz", format="json")
+        response = self.do_request(url + "?query=bar:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?query=!bar:baz", format="json")
+        response = self.do_request(url + "?query=!bar:baz")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert {e["eventID"] for e in response.data} == {event_1.event_id, event_2.event_id}
@@ -130,7 +144,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         url = f"/api/0/issues/{event_1.group.id}/events/?query={event_1.event_id}"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -165,7 +179,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         # Single Word Query
         url = f"/api/0/issues/{group.id}/events/?query={query_1}"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -173,7 +187,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         # Multiple Word Query
         url = f"/api/0/issues/{group.id}/events/?query={query_2}"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -194,7 +208,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         url = f"/api/0/issues/{event_1.group.id}/events/?query=release:latest"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -218,7 +232,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         (group_id,) = {e.group.id for e in events.values()}
 
         url = f"/api/0/issues/{group_id}/events/"
-        response = self.client.get(url + "?environment=production", format="json")
+        response = self.do_request(url + "?environment=production")
 
         assert response.status_code == 200, response.content
         assert set(map(lambda x: x["eventID"], response.data)) == {
@@ -233,7 +247,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             str(event.event_id) for event in events.values()
         }
 
-        response = self.client.get(url + "?environment=invalid", format="json")
+        response = self.do_request(url + "?environment=invalid")
 
         assert response.status_code == 200, response.content
         assert response.data == []
@@ -350,10 +364,32 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         for event in (event_1, event_2):
             url = f"/api/0/issues/{event.group.id}/events/"
-            response = self.client.get(url, format="json")
+            response = self.do_request(url)
             assert response.status_code == 200, response.content
             assert len(response.data) == 1, response.data
             assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]
+
+    def test_pagination(self):
+        self.login_as(user=self.user)
+
+        for _ in range(2):
+            event = self.store_event(
+                data={
+                    "fingerprint": ["group_1"],
+                    "event_id": "a" * 32,
+                    "message": "foo",
+                    "timestamp": iso_format(self.min_ago),
+                },
+                project_id=self.project.id,
+            )
+
+        url = f"/api/0/issues/{event.group.id}/events/?per_page=1"
+        response = self.do_request(url)
+        links = self._parse_links(response["Link"])
+        assert response.status_code == 200, response.content
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+        assert len(response.data) == 1
 
     def test_perf_issue(self):
         event_data = load_data(
@@ -366,9 +402,15 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{event_1.groups[0].id}/events/"
-        response = self.client.get(url, format="json")
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+
+class GroupEventsTestWithBuilder(GroupEventsTest):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:events-use-querybuilder"] = True

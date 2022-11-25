@@ -533,7 +533,8 @@ describe('ProjectAlertsCreate', function () {
     const organization = TestStubs.Organization({
       features: ['issue-alert-incompatible-rules'],
     });
-    const errorText = 'These conditions conflict, please select different conditions.';
+    const errorText =
+      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});
@@ -567,6 +568,7 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue has happened at least {x} times (Note: this is approximate)',
@@ -575,7 +577,8 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
       userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.paste(screen.getByDisplayValue('10'), '-');
+      userEvent.clear(screen.getByDisplayValue('10'));
+      userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });

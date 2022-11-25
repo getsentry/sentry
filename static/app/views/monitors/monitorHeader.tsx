@@ -10,8 +10,17 @@ import space from 'sentry/styles/space';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
+import {Status} from './types';
 
 type Props = React.ComponentProps<typeof MonitorHeaderActions>;
+
+const statusToLabel: Record<Status, string> = {
+  ok: t('Ok'),
+  error: t('Failed'),
+  disabled: t('Disabled'),
+  active: t('Active'),
+  missed_checkin: t('Missed'),
+};
 
 const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
@@ -49,7 +58,10 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
           <MonitorStatLabel>{t('Status')}</MonitorStatLabel>
           <div>{monitor.lastCheckIn && <TimeSince date={monitor.lastCheckIn} />}</div>
           <div>{monitor.nextCheckIn && <TimeSince date={monitor.nextCheckIn} />}</div>
-          <MonitorIcon status={monitor.status} size={16} />
+          <MonitorStatus>
+            <MonitorIcon status={monitor.status} size={16} />
+            <MonitorStatusLabel>{statusToLabel[monitor.status]}</MonitorStatusLabel>
+          </MonitorStatus>
         </MonitorStats>
       </Layout.HeaderActions>
     </Layout.Header>
@@ -80,6 +92,16 @@ const MonitorStats = styled('div')`
 const MonitorStatLabel = styled(SectionHeading)`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
+  text-align: center;
+`;
+
+const MonitorStatus = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const MonitorStatusLabel = styled('div')`
+  margin-left: ${space(1)};
 `;
 
 export default MonitorHeader;

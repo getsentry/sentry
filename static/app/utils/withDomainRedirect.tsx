@@ -72,9 +72,10 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       }
 
       if (options && options.redirect) {
-        const result = options.redirect.find(needle => needle.from === fullRoute);
+        const result = options.redirect.find(needle => fullRoute.startsWith(needle.from));
         if (result) {
-          orglessSlugRoute = result.to;
+          const rest = fullRoute.slice(result.from.length);
+          orglessSlugRoute = `${result.to}${rest}`;
         }
       }
 

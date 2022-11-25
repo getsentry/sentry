@@ -177,7 +177,11 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
 
     metrics.incr(
         "features.owners.send_to",
-        tags={"organization": project.organization_id, "outcome": outcome},
+        tags={
+            "organization": project.organization_id,
+            "outcome": outcome,
+            "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
+        },
         skip_internal=True,
     )
     return recipients

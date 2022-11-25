@@ -6,7 +6,7 @@ import {IntegrationWithConfig} from 'sentry/types';
 import AddIntegration from './addIntegration';
 
 interface AddIntegrationButtonProps
-  extends Omit<ButtonPropsWithoutAriaLabel, 'children'>,
+  extends Omit<ButtonPropsWithoutAriaLabel, 'children' | 'analyticsParams'>,
     Pick<
       React.ComponentProps<typeof AddIntegration>,
       'provider' | 'organization' | 'analyticsParams' | 'modalParams'

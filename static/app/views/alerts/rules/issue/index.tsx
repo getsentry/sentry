@@ -1496,19 +1496,13 @@ export const findIncompatibleRules = (
         }
       } else if (id.endsWith('AgeComparisonFilter')) {
         if (rule.filterMatch !== 'none') {
-          if (
-            (filter.comparison_type === 'older' && filter.value >= 0) ||
-            (filter.comparison_type === 'newer' && filter.value <= 0)
-          ) {
+          if (filter.comparison_type === 'older') {
             if (rule.filterMatch === 'all') {
               return {conditionIndices: [firstSeen], filterIndices: [i]};
             }
             incompatibleFilters += 1;
           }
-        } else if (
-          (filter.comparison_type === 'older' && filter.value < 0) ||
-          (filter.comparison_type === 'newer' && filter.value > 0)
-        ) {
+        } else if (filter.comparison_type === 'newer' && filter.value > 0) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
       }
