@@ -242,9 +242,16 @@ function getFormatter({
 
         acc.total = acc.total + getSeriesValue(serie, 1);
 
-        acc.series.push(
-          `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> <strong>${value}</strong></div>`
-        );
+        if (subLabels.length > 0) {
+          acc.series.push(
+            `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> <strong>${value}</strong></div>`
+          );
+        } else {
+          acc.series.push(
+            `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`
+          );
+        }
+
         return acc;
       },
       {
