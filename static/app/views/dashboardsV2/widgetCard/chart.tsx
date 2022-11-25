@@ -398,7 +398,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         valueFormatter: (value: number, seriesName: string) => {
-          const aggregateName = seriesName.split(':').pop()?.trim();
+          const aggregateName = seriesName?.split(':').pop()?.trim();
           if (aggregateName) {
             return timeseriesResultsTypes
               ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])

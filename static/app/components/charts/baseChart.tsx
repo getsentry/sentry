@@ -628,6 +628,12 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: space-between;
     gap: ${space(3)};
   }
+
+  .tooltip-footer-centered {
+    justify-content: center;
+    gap: 0;
+  }
+
   .tooltip-arrow {
     top: 100%;
     left: 50%;
