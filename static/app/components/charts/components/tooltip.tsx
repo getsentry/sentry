@@ -5,6 +5,7 @@ import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'ec
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import {t} from 'sentry/locale';
 import {DataPoint} from 'sentry/types/echarts';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 import toArray from 'sentry/utils/toArray';
@@ -253,12 +254,11 @@ function getFormatter({
     );
 
     return [
-      '<div class="tooltip-series">',
-      series.join(''),
+      `<div class="tooltip-series">${series.join('')}</div>`,
+      '<div class="tooltip-footer">',
+      `<div><strong>${t('Date')}:</strong> ${date}</div>`,
+      `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
       '</div>',
-      `<div class="tooltip-footer"><div><strong>Date:</strong> ${date}</div><div><strong>Total:</strong> ${valueFormatter(
-        total
-      )}</div></div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');
   };
