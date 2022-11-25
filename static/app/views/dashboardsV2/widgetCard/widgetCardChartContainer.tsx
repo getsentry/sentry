@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption} from 'echarts';
 import {LegendComponentOption} from 'echarts';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -22,6 +23,7 @@ import WidgetQueries from './widgetQueries';
 
 type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
