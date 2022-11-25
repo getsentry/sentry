@@ -97,6 +97,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...rest}
+      location={location}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => {
         return (
