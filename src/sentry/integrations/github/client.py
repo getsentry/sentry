@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.repo import Repo, RepoTree, trim_tree
+from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -88,7 +88,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            tree = trim_tree(contents["tree"], ["python"])
+            repo_files = [x["path"] for x in contents["tree"] if x["type"] == "blob"]
+            tree = filter_source_code_files(files=repo_files)
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -139,9 +140,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         else:
             try:
                 for repo_info in cached_repositories:
-                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
-                    # This assertion will help clear the cache off dictionaries
-                    assert type(repo_tree) == RepoTree
+                    repo_tree = cache.get(f'{repo_key}:{repo_info["full_name"]}')
+                    if not repo_tree:
+                        repo_tree = self.get_tree(
+                            repo_info["full_name"],
+                            repo_info["default_branch"],
+                        )
                     trees[repo_info["full_name"]] = repo_tree
 
                 logger.info(f"Using cached trees for {gh_org}.")
