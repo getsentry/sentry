@@ -46,7 +46,12 @@ describe('OrganizationCreate', function () {
     expect(orgCreateMock).toHaveBeenCalledWith(
       '/organizations/',
       expect.objectContaining({
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        data: {
+          agreeTerms: true,
+          defaultTeam: true,
+          name: 'Good Burger',
+          idempotencyKey: expect.anything(),
+        },
       })
     );
   });

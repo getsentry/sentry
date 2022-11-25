@@ -72,7 +72,7 @@ describe('OrganizationGeneralSettings', function () {
       expect(mock).toHaveBeenCalledWith(
         ENDPOINT,
         expect.objectContaining({
-          data: {slug: 'new-slug'},
+          data: {slug: 'new-slug', idempotencyKey: expect.anything()},
         })
       );
       expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
