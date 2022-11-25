@@ -301,6 +301,16 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
+def normalize_count_if_condition(args: Mapping[str, str]) -> Union[float, str, int]:
+    """Ensures that the condition is compatible with the column type"""
+    column = args["column"]
+    condition = args["condition"]
+    if column in ARRAY_FIELDS and condition not in ["equals", "notEquals"]:
+        raise InvalidSearchQuery(f"{condition} is not supported by count_if for {column}")
+
+    return condition
+
+
 def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
@@ -338,8 +348,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
             normalized_value = int(code)
         except Exception:
             raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
-    # TODO: not supporting field aliases or arrays yet
-    elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
+    # TODO: not supporting field aliases
+    elif column in FIELD_ALIASES:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
     else:
         normalized_value = value

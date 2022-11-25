@@ -4957,6 +4957,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
+    def test_count_if_array_field(self):
+        data = self.load_data(platform="javascript")
+        data["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=data, project_id=self.project.id)
+        query = {
+            "field": [
+                "count_if(stack.filename, equals, raven.js)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_if(stack.filename, equals, raven.js)"] == 1
+
     def test_count_if_measurements_cls(self):
         data = self.transaction_data.copy()
         data["measurements"] = {"cls": {"value": 0.5}}

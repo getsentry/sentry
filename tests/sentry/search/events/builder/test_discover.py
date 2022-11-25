@@ -338,6 +338,56 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_count_if_array(self):
+        self.maxDiff = None
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=[
+                "count_if(error.type,equals,SIGABRT)",
+                "count_if(error.type,notEquals,SIGABRT)",
+            ],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.aggregates,
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function(
+                            "has",
+                            [
+                                Column("exception_stacks.type"),
+                                "SIGABRT",
+                            ],
+                        ),
+                    ],
+                    "count_if_error_type_equals_SIGABRT",
+                ),
+                Function(
+                    "countIf",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Function(
+                                    "has",
+                                    [
+                                        Column("exception_stacks.type"),
+                                        "SIGABRT",
+                                    ],
+                                ),
+                                0,
+                            ],
+                        ),
+                    ],
+                    "count_if_error_type_notEquals_SIGABRT",
+                ),
+            ],
+        )
+
     def test_count_if_with_tags(self):
         query = QueryBuilder(
             Dataset.Discover,
