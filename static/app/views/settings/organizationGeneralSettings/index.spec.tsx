@@ -61,7 +61,7 @@ describe('OrganizationGeneralSettings', function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
-      body: organization,
+      body: {...organization, slug: 'new-slug'},
     });
 
     userEvent.clear(screen.getByRole('textbox', {name: /slug/i}));
