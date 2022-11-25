@@ -36,7 +36,7 @@ export function useColorscheme() {
   useEffect(() => {
     const theme = configuredTheme === 'system' ? preferredTheme : configuredTheme;
 
-    setFaviconTheme(theme);
+    setFaviconTheme(preferredTheme);
     ConfigStore.set('theme', theme);
   }, [configuredTheme, preferredTheme]);
 }
