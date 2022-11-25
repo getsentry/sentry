@@ -61,6 +61,7 @@ describe('OrganizationGeneralSettings', function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
+      body: organization,
     });
 
     userEvent.clear(screen.getByRole('textbox', {name: /slug/i}));
@@ -76,6 +77,38 @@ describe('OrganizationGeneralSettings', function () {
         })
       );
       expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
+    });
+  });
+
+  it('changes org slug and redirects to new customer-domain', async function () {
+    const org = TestStubs.Organization({features: ['customer-domains']});
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
+    });
+
+    render(<OrganizationGeneralSettings {...defaultProps} organization={org} />);
+
+    const input = screen.getByRole('textbox', {name: /slug/i});
+
+    userEvent.clear(input);
+    userEvent.type(input, 'acme');
+
+    userEvent.click(screen.getByLabelText('Save'));
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({
+          data: {
+            slug: 'acme',
+          },
+        })
+      );
+      expect(window.location.replace).toHaveBeenCalledWith(
+        'https://acme.sentry.io/settings/organization/'
+      );
     });
   });
 
