@@ -116,6 +116,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={() => (
         <Subtitle>
           {globalSelection.datetime.period
