@@ -9,11 +9,16 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform} from 'sentry/utils/platform';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 
 type Props = {
+  organization: Organization;
+  project: Project;
   segments: TagSegment[];
   title: string;
   totalValues: number;
@@ -27,6 +32,8 @@ function TagFacetsDistributionMeter({
   title,
   totalValues,
   onTagClick,
+  project,
+  organization,
 }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
 
@@ -74,7 +81,17 @@ function TagFacetsDistributionMeter({
           const segmentProps: SegmentValue = {
             index,
             to: value.url,
-            onClick: () => onTagClick?.(title, value),
+            onClick: () => {
+              trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+                tag: title,
+                value: value.value,
+                platform: project.platform,
+                is_mobile: isMobilePlatform(project?.platform),
+                organization,
+                type: 'distributions',
+              });
+              return onTagClick?.(title, value);
+            },
           };
           return (
             <div key={value.value} style={{width: pct + '%'}}>

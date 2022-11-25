@@ -39,13 +39,15 @@ export type IssueEventParameters = {
   'issue_group_details.tags.bar.clicked': {
     is_mobile: boolean;
     tag: string;
+    type: string;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
-    tag: string;
+    type: string;
     platform?: string;
+    tag?: string;
   };
   'issue_group_details.tags.switcher.clicked': {
     is_mobile: boolean;
