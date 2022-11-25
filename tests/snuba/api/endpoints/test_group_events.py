@@ -408,9 +408,3 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
-
-
-class GroupEventsTestWithBuilder(GroupEventsTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:events-use-querybuilder"] = True
