@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Clipboard from 'sentry/components/clipboard';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
@@ -27,6 +26,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {Event, Group, Organization, Project, ReleaseWithHealth, User} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
@@ -34,7 +34,6 @@ import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import toArray from 'sentry/utils/toArray';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   getStatusBodyText,
@@ -50,7 +49,6 @@ export enum ContextType {
 const HOVER_DELAY: number = 400;
 
 function getHoverBody(
-  api: Client,
   dataRow: EventData,
   contextType: ContextType,
   organization?: Organization,
@@ -63,17 +61,16 @@ function getHoverBody(
   );
   switch (contextType) {
     case ContextType.ISSUE:
-      return <IssueContext api={api} dataRow={dataRow} eventID={dataRow.id} />;
+      return <IssueContext dataRow={dataRow} organization={organization} />;
     case ContextType.RELEASE:
       return organization ? (
-        <ReleaseContext api={api} dataRow={dataRow} organization={organization} />
+        <ReleaseContext dataRow={dataRow} organization={organization} />
       ) : (
         noContext
       );
     case ContextType.EVENT:
       return organization ? (
         <EventContext
-          api={api}
           dataRow={dataRow}
           organization={organization}
           location={location}
@@ -117,7 +114,8 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
 const addFieldAsColumn = (
   fieldName: string,
   location?: Location,
-  eventView?: EventView
+  eventView?: EventView,
+  organization?: Organization
 ) => {
   const oldField = location?.query.field || eventView?.fields.map(field => field.field);
   const newField = toArray(oldField).concat(fieldName);
@@ -127,6 +125,10 @@ const addFieldAsColumn = (
       ...location?.query,
       field: newField,
     },
+  });
+  trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
+    organization: organization || null,
+    column: fieldName,
   });
 };
 
@@ -166,13 +168,13 @@ function HoverHeader({
 }
 
 type IssueContextProps = {
-  api: Client;
   dataRow: EventData;
-  eventID?: string;
+  organization?: Organization;
 };
 
 function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
+  const {dataRow, organization = null} = props;
 
   const {
     isLoading: issueLoading,
@@ -180,7 +182,7 @@ function IssueContext(props: IssueContextProps) {
     data: issue,
   } = useQuery<Group>(
     [
-      `/issues/${props.dataRow['issue.id']}/`,
+      `/issues/${dataRow['issue.id']}/`,
       {
         query: {
           collapse: 'release',
@@ -203,7 +205,7 @@ function IssueContext(props: IssueContextProps) {
     isLoading: eventLoading,
     isError: eventError,
     data: event,
-  } = useQuery<Event>([`/issues/${props.dataRow['issue.id']}/events/oldest/`], {
+  } = useQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
     staleTime: fiveMinutesInMs,
   });
 
@@ -259,7 +261,15 @@ function IssueContext(props: IssueContextProps) {
   }
 
   return (
-    <Wrapper data-test-id="quick-context-hover-body">
+    <Wrapper
+      onMouseEnter={() => {
+        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+          organization,
+          contextType: ContextType.ISSUE,
+        });
+      }}
+      data-test-id="quick-context-hover-body"
+    >
       {renderStatus()}
       {renderAssigneeSelector()}
       {renderSuspectCommits()}
@@ -286,14 +296,14 @@ function NoContext({isLoading}: NoContextProps) {
 }
 
 type BaseContextProps = {
-  api: Client;
   dataRow: EventData;
   organization: Organization;
 };
 
 function ReleaseContext(props: BaseContextProps) {
+  const {dataRow, organization} = props;
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
-    [`/organizations/${props.organization.slug}/releases/${props.dataRow.release}/`],
+    [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
     {
       staleTime: fiveMinutesInMs,
       retry: false,
@@ -406,7 +416,15 @@ function ReleaseContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper data-test-id="quick-context-hover-body">
+    <Wrapper
+      onMouseEnter={() => {
+        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+          organization,
+          contextType: ContextType.RELEASE,
+        });
+      }}
+      data-test-id="quick-context-hover-body"
+    >
       {renderReleaseDetails()}
       {renderReleaseAuthors()}
       {renderLastCommit()}
@@ -421,9 +439,10 @@ interface EventContextProps extends BaseContextProps {
 }
 
 function EventContext(props: EventContextProps) {
+  const {organization, dataRow, eventView, location, projects} = props;
   const {isLoading, isError, data} = useQuery<Event>(
     [
-      `/organizations/${props.organization.slug}/events/${props.dataRow['project.name']}:${props.dataRow.id}/`,
+      `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
     {
       staleTime: fiveMinutesInMs,
@@ -437,14 +456,23 @@ function EventContext(props: EventContextProps) {
   if (data.type === 'transaction') {
     const traceId = data.contexts?.trace?.trace_id ?? '';
     const {start, end} = getTraceTimeRangeFromEvent(data);
-    const project = props.projects?.find(p => p.slug === data.projectID);
+    const project = projects?.find(p => p.slug === data.projectID);
     return (
-      <Wrapper data-test-id="quick-context-hover-body">
+      <Wrapper
+        onMouseEnter={() => {
+          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+            organization,
+            contextType: ContextType.RELEASE,
+            eventType: 'transaction',
+          });
+        }}
+        data-test-id="quick-context-hover-body"
+      >
         <EventContextContainer>
           <ContextHeader>
             <Title>
               {t('Transaction Duration')}
-              {!('transaction.duration' in props.dataRow) && (
+              {!('transaction.duration' in dataRow) && (
                 <Tooltip
                   skipWrapper
                   title={t('Add transaction duration as a column')}
@@ -456,8 +484,9 @@ function EventContext(props: EventContextProps) {
                     onClick={() =>
                       addFieldAsColumn(
                         'transaction.duration',
-                        props.location,
-                        props.eventView
+                        location,
+                        eventView,
+                        organization
                       )
                     }
                     color="gray300"
@@ -472,12 +501,12 @@ function EventContext(props: EventContextProps) {
             {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
           </EventContextBody>
         </EventContextContainer>
-        {props.location && (
+        {location && (
           <EventContextContainer>
             <ContextHeader>
               <Title>
                 {t('Status')}
-                {!('tags[http.status_code]' in props.dataRow) && (
+                {!('tags[http.status_code]' in dataRow) && (
                   <Tooltip
                     skipWrapper
                     title={t('Add HTTP status code as a column')}
@@ -489,8 +518,9 @@ function EventContext(props: EventContextProps) {
                       onClick={() =>
                         addFieldAsColumn(
                           'tags[http.status_code]',
-                          props.location,
-                          props.eventView
+                          location,
+                          eventView,
+                          organization
                         )
                       }
                       color="gray300"
@@ -504,8 +534,8 @@ function EventContext(props: EventContextProps) {
             <EventContextBody>
               <ContextRow>
                 <TraceMetaQuery
-                  location={props.location}
-                  orgSlug={props.organization.slug}
+                  location={location}
+                  orgSlug={organization.slug}
                   traceId={traceId}
                   start={start}
                   end={end}
@@ -527,18 +557,18 @@ function EventContext(props: EventContextProps) {
 
   return stackTrace ? (
     <Fragment>
-      {!props.dataRow.title && (
+      {!dataRow.title && (
         <ErrorTitleContainer>
           <ContextHeader>
             <Title>
               {t('Title')}
-              {!('title' in props.dataRow) && (
+              {!('title' in dataRow) && (
                 <Tooltip skipWrapper title={t('Add title as a column')} position="right">
                   <IconAdd
                     data-test-id="quick-context-title-add-button"
                     cursor="pointer"
                     onClick={() =>
-                      addFieldAsColumn('title', props.location, props.eventView)
+                      addFieldAsColumn('title', location, eventView, organization)
                     }
                     color="gray300"
                     size="xs"
@@ -551,7 +581,15 @@ function EventContext(props: EventContextProps) {
           <ErrorTitleBody>{data.title}</ErrorTitleBody>
         </ErrorTitleContainer>
       )}
-      <StackTraceWrapper>
+      <StackTraceWrapper
+        onMouseEnter={() => {
+          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+            organization,
+            contextType: ContextType.EVENT,
+            eventType: 'error',
+          });
+        }}
+      >
         <StackTracePreviewContent event={data} stacktrace={stackTrace} />
       </StackTraceWrapper>
     </Fragment>
@@ -572,7 +610,6 @@ type ContextProps = {
 };
 
 export function QuickContextHoverWrapper(props: ContextProps) {
-  const api = useApi();
   const location = useLocation();
   const queryClient = useQueryClient();
   const {dataRow, contextType, organization, projects, eventView} = props;
@@ -592,7 +629,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         delay={HOVER_DELAY}
         header={getHoverHeader(dataRow, contextType)}
         body={getHoverBody(
-          api,
           dataRow,
           contextType,
           organization,

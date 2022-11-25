@@ -5,6 +5,11 @@ export type DiscoverEventParameters = {
   'discover_v2.facet_map.clicked': {tag: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
+  'discover_v2.quick_context_add_column': {column: string};
+  'discover_v2.quick_context_hover_contexts': {
+    contextType: 'issue' | 'release' | 'event';
+    eventType?: 'error' | 'transaction';
+  };
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.saved_query_click': {};
   'discover_v2.set_as_default': {
@@ -41,4 +46,6 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
     'Discover2: Add to Dashboard modal opened',
   'discover_views.add_to_dashboard.confirm':
     'Discover2: Add to Dashboard modal form submitted',
+  'discover_v2.quick_context_hover_contexts': 'Discover2: Hover over Quick Contexts',
+  'discover_v2.quick_context_add_column': 'Discover2: Add column from quick context',
 };
