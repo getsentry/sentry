@@ -23,6 +23,10 @@ const formGroups: JsonFormObject[] = [
         saveMessage: t(
           'You will be redirected to the new organization slug after saving'
         ),
+        getData: (data, options) => {
+          const updated = {...data, idempotencyKey: options.form.idempotencyKey};
+          return updated;
+        },
       },
       {
         name: 'name',

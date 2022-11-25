@@ -118,6 +118,7 @@ describe('OrganizationSettingsForm', function () {
       expect.objectContaining({
         data: {
           slug: 'new-slug',
+          idempotencyKey: expect.anything(),
         },
       })
     );

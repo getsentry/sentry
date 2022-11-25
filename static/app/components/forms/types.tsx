@@ -33,6 +33,16 @@ export const FieldType = [
 
 export type FieldValue = any;
 
+type GetDataOptions = {
+  form: Record<string, any>;
+  id: string;
+  model: FormModel;
+};
+type GetDataMethod = (
+  data: Record<string, any>,
+  options: GetDataOptions
+) => Record<string, any>;
+
 // TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
@@ -54,7 +64,7 @@ type BaseField = {
    * specified as false to disable showing the changed fields in the toast.
    */
   formatMessageValue?: Function | false;
-  getData?: (data: object) => object;
+  getData?: GetDataMethod;
   getValue?: (value: FieldValue) => any;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   hideLabel?: boolean;

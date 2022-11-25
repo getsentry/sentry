@@ -26,15 +26,12 @@ type State = AsyncComponent['state'] & {
 };
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
+  private idempotencyKey: string = '';
+
   componentWillMount() {
-    const idempotencyKey = [...Array(2)]
-      .map(_ => Math.random().toString(36).substr(2, 10))
+    this.idempotencyKey = [...Array(2)]
+      .map(_ => Math.random().toString(36).substring(2, 10))
       .join('');
-    const orgSettingsFields: JsonFormObject[] = organizationSettingsFields;
-    orgSettingsFields[0].fields[0].getData = a => {
-      return {slug: a.slug, idempotencyKey};
-    };
-    this.setState({orgSettingsFields});
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -54,7 +51,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
       location: this.props.location,
       disabled: !access.has('org:write'),
     };
-
+    const initial = {...initialData, idempotencyKey: this.idempotencyKey};
     return (
       <Form
         data-test-id="organization-settings"
@@ -62,16 +59,16 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         apiEndpoint={endpoint}
         saveOnBlur
         allowUndo
-        initialData={initialData}
+        initialData={initial}
         onSubmitSuccess={(_resp, model) => {
           // Special case for slug, need to forward to new slug
           if (typeof onSave === 'function') {
-            onSave(initialData, model.initialData);
+            onSave(initial, model.initialData);
           }
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm {...jsonFormSettings} forms={this.state.orgSettingsFields} />
+        <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
         <AvatarChooser
           type="organization"
           allowGravatar={false}
