@@ -53,6 +53,10 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.latest_release_booster import (
+    LatestReleaseObserver,
+    LatestReleaseParams,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -885,8 +889,18 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     ).is_on_dynamic_sampling
                     and data.get("type") == "transaction"
                 ):
-                    _extract_latest_release_data(data)
-                    # LatestReleaseObserver().observe_release().boost_if().invalidate_project_config()
+                    # TODO: check here if the release is the latest.
+                    params = LatestReleaseParams(
+                        release_id=release.id,
+                        project_id=project_id,
+                        environment=_get_environment_from_transaction(data),
+                    )
+
+                    # TODO: add sentry monitoring.
+                    LatestReleaseObserver(
+                        params=params
+                    ).observe_release().boost_if_not_observed().schedule_invalidate_project_config()
+
                     # with sentry_sdk.start_span(
                     #     op="event_manager.dynamic_sampling_observe_latest_release"
                     # ) as span, metrics.timer(
@@ -927,7 +941,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     #         sentry_sdk.capture_exception()
 
 
-def _extract_latest_release_data(data: EventDict) -> Optional[str]:
+def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
     environment = data.get("environment", None)
     # We handle the case in which the users sets the empty string as environment, for us that
     # is equal to having no environment at all.
