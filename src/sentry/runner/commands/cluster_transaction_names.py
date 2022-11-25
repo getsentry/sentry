@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Literal, Mapping, Tuple, TypedDict
 
 import click
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.runner.decorators import configuration
@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 
 RULE_RETENTION = timedelta(days=90)
 OPTION_NAME = "sentry:transaction_name_normalize_rules"
+TRANSACTION_SOURCE = "url"
 
 
 class RuleSpec(TypedDict):
+    sources: List[str]  # only apply rule to the given transaction sources
     type: Literal["glob"]
     value: ReplacementRule
     expires: int  # unix timestamp
@@ -24,9 +26,12 @@ class RuleSpec(TypedDict):
 @click.command()
 @click.option("--merge-threshold", type=int, default=100)
 @click.option("--time-range-seconds", type=int, default=3600)
+@click.option("--snuba-limit", type=int, default=1000)
 @click.option("--debug", is_flag=True)
 @configuration
-def cluster_transaction_names(merge_threshold: int, time_range_seconds: int, debug: bool):
+def cluster_transaction_names(
+    merge_threshold: int, time_range_seconds: int, snuba_limit: int, debug: bool
+):
     from sentry import features
     from sentry.models import Project
     from sentry.utils.query import RangeQuerySetWrapper
@@ -39,12 +44,14 @@ def cluster_transaction_names(merge_threshold: int, time_range_seconds: int, deb
 
     for project in RangeQuerySetWrapper(Project.objects.all()):
         if features.has("projects:transaction-name-cluster", project):
-            _cluster_project(project, merge_threshold, (then, now))
+            _cluster_project(project, merge_threshold, (then, now), snuba_limit)
         else:
             logger.debug("Skipping project %s, feature disabled", project)
 
 
-def _cluster_project(project, merge_threshold: int, time_range: Tuple[datetime, datetime]):
+def _cluster_project(
+    project, merge_threshold: int, time_range: Tuple[datetime, datetime], limit: int
+):
     from sentry.ingest.transaction_clusterer.tree import TreeClusterer
     from sentry.utils.snuba import raw_snql_query
 
@@ -61,9 +68,10 @@ def _cluster_project(project, merge_threshold: int, time_range: Tuple[datetime, 
                 Condition(Column("project_id"), Op.EQ, project.id),
                 Condition(Column("finish_ts"), Op.GTE, then),
                 Condition(Column("finish_ts"), Op.LT, now),
-                # FIXME: Only where transaction_info.source == URL
+                Condition(Column("transaction_source"), Op.EQ, TRANSACTION_SOURCE),
             ],
             groupby=[Column("transaction")],
+            limit=Limit(limit),
         ),
     )
     snuba_response = raw_snql_query(
@@ -86,15 +94,27 @@ def _export_rules(project, new_rules: List[ReplacementRule], now: datetime):
     existing_rules: List[RuleSpec] = [
         rule
         for rule in project.get_option(OPTION_NAME).get("rules", [])
-        if rule["type"] == "glob" and now_timestamp < rule["expires"]
+        if rule["source"] == TRANSACTION_SOURCE
+        and rule["type"] == "glob"
+        and now_timestamp < rule["expires"]
     ]
+
+    # TODO: Skip projects that never had any URL transactions.
 
     rules_by_glob: Mapping[str, RuleSpec] = {rule["value"]: rule for rule in existing_rules}
 
     # Update existing rules with new rules, bumping expiry dates by
     # overwriting existing entries:
     rules_by_glob.update(
-        **{rule: {"type": "glob", "value": rule, "expires": new_expiry} for rule in new_rules}
+        **{
+            rule: {
+                "source": TRANSACTION_SOURCE,
+                "type": "glob",
+                "value": rule,
+                "expires": new_expiry,
+            }
+            for rule in new_rules
+        }
     )
 
     rules: List[RuleSpec] = list(rules_by_glob.values())
@@ -103,5 +123,4 @@ def _export_rules(project, new_rules: List[ReplacementRule], now: datetime):
     rules.sort(key=lambda rule: rule["value"].count("/"), reverse=True)
 
     # TODO: Integration test
-    if rules:
-        project.update_option(OPTION_NAME, {"rules": rules})
+    project.update_option(OPTION_NAME, {"rules": rules})
