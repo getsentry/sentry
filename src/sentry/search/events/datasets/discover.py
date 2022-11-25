@@ -1435,46 +1435,48 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _resolve_count_if(self, args: Mapping[str, str], alias: str) -> SelectType:
         condition = args["normalized_condition"]
         is_array_field = args["is_array_field"]
-        if not is_array_field:
-            return Function(
-                "countIf",
-                [
-                    Function(
-                        condition,
-                        [
-                            args["column"],
-                            args["typed_value"],
-                        ],
-                    )
-                ],
-                alias,
-            )
-        array_condition = Function(
-            "has",
-            [
-                args["column"],
-                args["typed_value"],
-            ],
-        )
 
-        if condition == "notEquals":
+        if is_array_field:
+            array_condition = Function(
+                "has",
+                [
+                    args["column"],
+                    args["typed_value"],
+                ],
+            )
+
+            if condition == "notEquals":
+                return Function(
+                    "countIf",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                array_condition,
+                                0,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+
             return Function(
                 "countIf",
-                [
-                    Function(
-                        "equals",
-                        [
-                            array_condition,
-                            0,
-                        ],
-                    ),
-                ],
+                [array_condition],
                 alias,
             )
 
         return Function(
             "countIf",
-            [array_condition],
+            [
+                Function(
+                    condition,
+                    [
+                        args["column"],
+                        args["typed_value"],
+                    ],
+                )
+            ],
             alias,
         )
 

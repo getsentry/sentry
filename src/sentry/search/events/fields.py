@@ -348,7 +348,7 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
             normalized_value = int(code)
         except Exception:
             raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
-    # TODO: not supporting field aliases or arrays yet
+    # TODO: not supporting field aliases
     elif column in FIELD_ALIASES:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
     else:
