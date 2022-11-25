@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import random
 import re
 from abc import ABC, abstractmethod
@@ -298,8 +299,9 @@ def get_detection_settings(project_id: Optional[str] = None):
         },
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "duration_threshold": 5,  # ms
-            "count_threshold": 10,
-            "allowed_span_ops": ["http"],
+            "concurrency_threshold": 5,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
         },
     }
 
@@ -877,7 +879,95 @@ class NPlusOneSpanDetector(PerformanceDetector):
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
-    pass
+    """
+    Detect parallel network calls to the same endpoint.
+
+      [-------- transaction -----------]
+         [-------- parent span -----------]
+          [n0] https://service.io/resources/?id=12443
+          [n1] https://service.io/resources/?id=13342
+          [n2] https://service.io/resources/?id=13441
+          ...
+    """
+
+    __slots__ = ["stored_problems"]
+    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+
+    def init(self):
+        # TODO: Only store the span IDs and timestamps instead of entire span objects
+        self.stored_problems: PerformanceProblemsMap = {}
+        self.spans: list[Span] = []
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+
+        if not span_id or not op:
+            return
+
+        if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+        span_duration = get_span_duration(span)
+
+        if span_duration < duration_threshold:
+            return
+
+        previous_span = self.spans[-1] if len(self.spans) > 0 else None
+
+        if previous_span is None:
+            self.spans.append(span)
+        elif self._spans_are_concurrent(previous_span, span) and self._spans_are_similar(
+            previous_span, span
+        ):
+            self.spans.append(span)
+        else:
+            self._maybe_store_problem()
+            self.spans = [span]
+
+    def on_complete(self):
+        self._maybe_store_problem()
+
+    def _maybe_store_problem(self):
+        if len(self.spans) < 1:
+            return
+
+        last_span = self.spans[-1]
+
+        if len(self.spans) < self.settings["count"]:
+            self.spans = []
+            return
+
+        fingerprint = self._fingerprint()
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint=fingerprint,
+            op=last_span["op"],
+            desc=os.path.commonprefix([span["description"] for span in self.spans]),
+            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            cause_span_ids=[],
+            parent_span_ids=last_span["parent_span_id"],
+            offender_span_ids=[span["span_id"] for span in self.spans],
+        )
+
+    def _fingerprint(self) -> str:
+        offender_hash = self.spans[-1]["hash"]
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS
+        fingerprint = hashlib.sha1(offender_hash.encode("utf8")).hexdigest()
+
+        return f"1-{problem_class}-{fingerprint}"
+
+    def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
+        span_a_start = span_a["start_timestamp"] or 0
+        span_b_start = span_b["start_timestamp"] or 0
+
+        return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
+
+    def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
+        return (
+            span_a["hash"] == span_b["hash"]
+            and span_a["parent_span_id"] == span_b["parent_span_id"]
+        )
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
