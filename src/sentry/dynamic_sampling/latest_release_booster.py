@@ -122,10 +122,10 @@ class ObservedRelease:
     environment: Optional[str]
     expiration_timestamp: int
 
-    def is_equal_to_params(self, params: LatestReleaseParams):
+    def is_equal_to_params(self, params: LatestReleaseParams) -> bool:
         return params.release_id == self.release_id and params.environment == self.environment
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         return datetime.utcnow().replace(tzinfo=UTC).timestamp() > self.expiration_timestamp
 
 
