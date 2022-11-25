@@ -1,15 +1,13 @@
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from pytz import UTC
 
 from sentry.dynamic_sampling.latest_release_ttas import Platform
-from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
 from sentry.models import Project, Release
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
@@ -41,11 +39,6 @@ def _generate_cache_key_for_boosted_releases_hash(project_id: int) -> str:
 
 def _get_environment_cache_key(environment: Optional[str]) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
-
-
-def _get_expiration_timestamp_cache_key() -> str:
-    expiration_timestamp = (datetime.utcnow().replace(tzinfo=UTC) + timedelta(days=1)).timestamp()
-    return f"{EXPIRATION_TIMESTAMP_SEPARATOR}{expiration_timestamp}"
 
 
 @dataclass(frozen=True)
@@ -116,88 +109,32 @@ class LatestReleaseParams:
     environment: Optional[str]
 
 
-@dataclass(frozen=True)
-class ObservedRelease:
-    release_id: int
-    environment: Optional[str]
-    expiration_timestamp: int
-
-    def is_equal_to_params(self, params: LatestReleaseParams) -> bool:
-        return params.release_id == self.release_id and params.environment == self.environment
-
-    def is_expired(self) -> bool:
-        return datetime.utcnow().replace(tzinfo=UTC).timestamp() > self.expiration_timestamp
-
-
 class LatestReleaseObserver:
-    def __init__(self, params: LatestReleaseParams):
+    def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
-        self.params = params
-        self.observed_releases = self._load_all_observed_releases()
+        self.latest_release_params = latest_release_params
 
     def observe_release(self) -> "LatestReleaseBooster":
         if self._is_already_observed():
-            return LatestReleaseBooster(boost_latest_release=False, params=self.params)
+            return LatestReleaseBooster(
+                boost_latest_release=False, params=self.latest_release_params
+            )
 
-        self._insert_release_in_list()
-        return LatestReleaseBooster(boost_latest_release=True, params=self.params)
-
-    def _insert_release_in_list(self):
-        list_cache_key = self._generate_cache_key_for_observed_releases()
-
-        # If we have reached the limit we want to remove from the list the left-most element. This operation is O(1).
-        if len(self.observed_releases) >= BOOSTED_RELEASES_LIMIT:
-            self.redis_client.lpop(list_cache_key)
-
-        # We insert the value at the end of the list. This operation is O(1).
-        self.redis_client.rpush(list_cache_key, self._generate_observed_release())
+        return LatestReleaseBooster(boost_latest_release=True, params=self.latest_release_params)
 
     def _is_already_observed(self) -> bool:
-        for observed_release in self.observed_releases:
-            # If the observed release is equal to the params we received, it means we have already seen it.
-            if observed_release.is_equal_to_params(self.params):
-                return True
+        cache_key = self._generate_cache_key_for_observed_release()
+        release_observed = self.redis_client.getset(name=cache_key, value=1)
+        self.redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT_MS)
 
-        return False
+        return release_observed == "1"
 
-    def _load_all_observed_releases(self) -> List[ObservedRelease]:
-        # We load in memory all the observed releases in order to more efficiently read and operate them. In addition,
-        # we do this because redis doesn't offer an "exist" operator for lists.
-        cache_key = self._generate_cache_key_for_observed_releases()
-
-        observed_releases = []
-        for observed_release in self.redis_client.lrange(cache_key, 0, -1):
-            parsed_observed_release = self._parse_observed_release(observed_release)
-            # If the release is expired we remove it otherwise we add it to the list of observed releases.
-            if parsed_observed_release.is_expired():
-                # This operation is O(N + M) but we only have 1 occurrence of the same value thus it is O(N).
-                self.redis_client.lrem(cache_key, 0, observed_release)
-            else:
-                observed_releases.append(parsed_observed_release)
-
-        return observed_releases
-
-    def _generate_cache_key_for_observed_releases(self) -> str:
-        return f"ds::p:{self.params.project_id}:observed_releases"
-
-    def _generate_observed_release(self):
+    def _generate_cache_key_for_observed_release(self) -> str:
         return (
-            f"ds::r:{self.params.release_id}{_get_expiration_timestamp_cache_key()}"
-            f"{_get_environment_cache_key(self.params.environment)}"
+            f"ds::p:{self.latest_release_params.project_id}"
+            f":r:{self.latest_release_params.release_id}"
+            f"{_get_environment_cache_key(self.latest_release_params.environment)}"
         )
-
-    @staticmethod
-    def _parse_observed_release(observed_release: str) -> Optional[ObservedRelease]:
-        if (match := OBSERVED_RELEASE_REGEX.match(observed_release)) is not None:
-            release_id = match["release_id"]
-            expiration_timestamp = match["expiration_timestamp"]
-            environment = match["environment"]
-
-            return ObservedRelease(
-                release_id=release_id,
-                expiration_timestamp=int(expiration_timestamp),
-                environment=environment,
-            )
 
 
 class LatestReleaseBooster:
@@ -206,12 +143,10 @@ class LatestReleaseBooster:
         self.boost_latest_release = boost_latest_release
         self.params = params
 
-    def boost_if_not_observed(self) -> "ProjectInvalidator":
-        if not self.boost_latest_release:
-            return ProjectInvalidator(invalidate_project_config=False, params=self.params)
-
-        self._add_boosted_release()
-        return ProjectInvalidator(invalidate_project_config=True, params=self.params)
+    def boost_if_not_observed(self, on_boosted_release_added: Callable[[], None]) -> None:
+        if self.boost_latest_release:
+            self._add_boosted_release()
+            on_boosted_release_added()
 
     def _add_boosted_release(self) -> None:
         # TODO: for now we mimic the old implementation but we would like to more explicitly only remove expired
@@ -230,18 +165,6 @@ class LatestReleaseBooster:
         return (
             f"ds::r:{self.params.release_id}{_get_environment_cache_key(self.params.environment)}"
         )
-
-
-class ProjectInvalidator:
-    def __init__(self, invalidate_project_config: bool, params: LatestReleaseParams):
-        self.invalidate_project_config = invalidate_project_config
-        self.params = params
-
-    def schedule_invalidate_project_config(self):
-        if self.invalidate_project_config:
-            schedule_invalidate_project_config(
-                project_id=self.params.project_id, trigger="dynamic_sampling:boost_release"
-            )
 
 
 class BoostedReleasesRepository:

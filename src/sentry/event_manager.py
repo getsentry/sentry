@@ -123,6 +123,7 @@ from sentry.signals import first_event_received, first_transaction_received, iss
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, redis
@@ -902,7 +903,12 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
                         LatestReleaseObserver(
                             params=params
-                        ).observe_release().boost_if_not_observed().schedule_invalidate_project_config()
+                        ).observe_release().boost_if_not_observed(
+                            lambda: schedule_invalidate_project_config(
+                                project_id=project_id,
+                                trigger="dynamic_sampling:boost_release",
+                            )
+                        )
 
 
 def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
