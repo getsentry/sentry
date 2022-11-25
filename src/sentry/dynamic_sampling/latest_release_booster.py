@@ -140,10 +140,15 @@ class LatestReleaseParams:
 
 @dataclass(frozen=True)
 class ObservedRelease:
-    redis_index: int
     release_id: int
     environment: Optional[str]
-    is_expired: bool = False
+    expiration_timestamp: int
+
+    def is_equal_to_params(self, params: LatestReleaseParams):
+        return params.release_id == self.release_id and params.environment == self.environment
+
+    def is_expired(self):
+        return datetime.utcnow().replace(tzinfo=UTC).timestamp() > self.expiration_timestamp
 
 
 class LatestReleaseObserver:
@@ -170,35 +175,49 @@ class LatestReleaseObserver:
         self.redis_client.rpush(list_cache_key, self._generate_observed_release())
 
     def _is_already_observed(self) -> bool:
-        self._generate_cache_key_for_observed_releases()
+        for observed_release in self.observed_releases:
+            # If the observed release is equal to the params we received, it means we have already seen it.
+            if observed_release.is_equal_to_params(self.params):
+                return True
+
+        return False
 
     def _load_all_observed_releases(self) -> List[ObservedRelease]:
+        # We load in memory all the observed releases in order to more efficiently read and operate them. In addition,
+        # we do this because redis doesn't offer an "exist" operator for lists.
         cache_key = self._generate_cache_key_for_observed_releases()
-        return [
-            self._parse_observed_release(index, observed_release)
-            for index, observed_release in enumerate(self.redis_client.lrange(cache_key, 0, -1))
-        ]
+
+        observed_releases = []
+        for observed_release in self.redis_client.lrange(cache_key, 0, -1):
+            parsed_observed_release = self._parse_observed_release(observed_release)
+            # If the release is expired we remove it otherwise we add it to the list of observed releases.
+            if parsed_observed_release.is_expired():
+                # This operation is O(N + M) but we only have 1 occurrence of the same value thus it is O(N).
+                self.redis_client.lrem(cache_key, 0, observed_release)
+            else:
+                observed_releases.append(parsed_observed_release)
+
+        return observed_releases
 
     def _generate_cache_key_for_observed_releases(self) -> str:
         return f"ds::p:{self.params.project_id}:observed_releases"
 
     def _generate_observed_release(self):
-        return f"ds::r:{self.params.release_id}{_get_expiration_timestamp_cache_key()}{_get_environment_cache_key(self.params.environment)}"
+        return (
+            f"ds::r:{self.params.release_id}{_get_expiration_timestamp_cache_key()}"
+            f"{_get_environment_cache_key(self.params.environment)}"
+        )
 
     @staticmethod
-    def _parse_observed_release(index, observed_release: str) -> Optional[ObservedRelease]:
+    def _parse_observed_release(observed_release: str) -> Optional[ObservedRelease]:
         if (match := OBSERVED_RELEASE_REGEX.match(observed_release)) is not None:
             release_id = match["release_id"]
             expiration_timestamp = match["expiration_timestamp"]
             environment = match["environment"]
 
-            def is_expired():
-                return datetime.utcnow().replace(tzinfo=UTC).timestamp() > int(expiration_timestamp)
-
             return ObservedRelease(
-                redis_index=index,
                 release_id=release_id,
-                is_expired=is_expired(),
+                expiration_timestamp=int(expiration_timestamp),
                 environment=environment,
             )
 
