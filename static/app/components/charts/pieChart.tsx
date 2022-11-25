@@ -151,7 +151,7 @@ class PieChart extends Component<Props> {
               '<div class="tooltip-series">',
               `<div><span class="tooltip-label">${data.marker}<strong>${data.name}</strong></span> ${data.percent}%</div>`,
               '</div>',
-              `<div class="tooltip-date">${data.value}</div>`,
+              `<div class="tooltip-footer">${data.value}</div>`,
               '</div>',
               '<div class="tooltip-arrow"></div>',
             ].join('');

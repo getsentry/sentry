@@ -66,7 +66,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
           ].join('');
         });
         const seriesLabel = seriesData[0].value[0];
-        contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
+        contents.push(`<div class="tooltip-footer">${seriesLabel}</div>`);
 
         contents.push('<div class="tooltip-arrow"></div>');
         return contents.join('');

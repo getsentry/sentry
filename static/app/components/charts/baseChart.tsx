@@ -587,7 +587,7 @@ function BaseChartUnwrapped({
 const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
-  .tooltip-date {
+  .tooltip-footer {
     color: ${p.theme.subText};
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
@@ -607,6 +607,9 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-weight: normal;
     color: ${p.theme.textColor};
   }
+  .tooltip-label-value {
+    color: ${p.theme.textColor};
+  }
   .tooltip-label-indent {
     margin-left: 18px;
   }
@@ -615,12 +618,15 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: space-between;
     align-items: baseline;
   }
-  .tooltip-date {
+  .tooltip-footer {
     border-top: solid 1px ${p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
     border-radius: ${p.theme.borderRadiusBottom};
+    display: flex;
+    justify-content: space-between;
+    gap: ${space(3)};
   }
   .tooltip-arrow {
     top: 100%;

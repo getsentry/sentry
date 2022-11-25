@@ -98,7 +98,7 @@ export function getGroupReleaseChartMarkers(
         '<div class="tooltip-series">',
         `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
         '</div>',
-        `<div class="tooltip-date">${time}</div>`,
+        `<div class="tooltip-footer">${time}</div>`,
         '</div>',
         '<div class="tooltip-arrow"></div>',
       ].join('');

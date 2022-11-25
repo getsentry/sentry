@@ -236,7 +236,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
-                  `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
+                  `<div class="tooltip-footer">${startDate} - ${endDate}</div>`,
                   '<div class="tooltip-arrow"></div>',
                 ].join('');
               },

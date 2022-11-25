@@ -79,12 +79,12 @@ function MemoryChart({
           '<div class="tooltip-series">',
           ...seriesTooltips,
           '</div>',
-          `<div class="tooltip-date" style="display: inline-block; width: max-content;">${t(
+          `<div class="tooltip-footer" style="display: inline-block; width: max-content;">${t(
             'Span Time'
           )}:
             ${formatTimestamp(values[0].axisValue)}
           </div>`,
-          `<div class="tooltip-date" style="border: none;">${'Relative Time'}:
+          `<div class="tooltip-footer" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
               moment(values[0].axisValue * 1000)
                 .toDate()

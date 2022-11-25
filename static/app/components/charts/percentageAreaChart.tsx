@@ -91,7 +91,7 @@ export default class PercentageAreaChart extends Component<Props> {
                 )
                 .join(''),
               '</div>',
-              `<div class="tooltip-date">${date}</div>`,
+              `<div class="tooltip-footer">${date}</div>`,
               '<div class="tooltip-arrow"></div>',
             ].join('');
           },

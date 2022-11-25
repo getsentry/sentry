@@ -279,7 +279,7 @@ class ReleaseSeries extends Component<Props, State> {
               'Release'
             )}</strong></span> ${version}</div>`,
             '</div>',
-            '<div class="tooltip-date">',
+            '<div class="tooltip-footer">',
             time,
             '</div>',
             '</div>',
