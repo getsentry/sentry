@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -6,7 +5,6 @@ import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -34,9 +32,7 @@ function TagFacetsDistributionMeter({
   onTagClick,
   project,
 }: Props) {
-  const [expanded, setExpanded] = useState<boolean>(false);
   const organization = useOrganization();
-
   function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -52,14 +48,6 @@ function TagFacetsDistributionMeter({
         <TitleDescription>
           <Label>{segments[0].name || t('n/a')}</Label>
         </TitleDescription>
-        <StyledChevron
-          direction={expanded ? 'up' : 'down'}
-          size="md"
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          aria-label={`expand-${title}`}
-        />
       </Title>
     );
   }
@@ -159,7 +147,7 @@ function TagFacetsDistributionMeter({
   return (
     <TagSummary>
       {renderTitle()}
-      {expanded ? renderLegend() : renderSegments()}
+      {renderSegments()}
     </TagSummary>
   );
 }
@@ -199,7 +187,6 @@ const TitleDescription = styled('div')`
 
 const Label = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  max-width: 150px;
 `;
 
 const OtherSegment = styled('span')<{color: string}>`
@@ -225,10 +212,6 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
   text-align: right;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;
-`;
-
-const StyledChevron = styled(IconChevron)`
-  margin: -${space(0.5)} 0 0 ${space(0.5)};
 `;
 
 const LegendGrid = styled('div')`
