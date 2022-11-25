@@ -58,8 +58,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: str,
         region_name: str,
     ) -> APIOrganizationMapping:
-        with transaction.atomic():
-            try:
+        try:
+            with transaction.atomic():
                 # Creating an identical mapping should succeed, even if a record already exists
                 # with this slug. We allow this IFF the idempotency key is identical
                 mapping = OrganizationMapping.objects.create(
@@ -70,8 +70,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                     region_name=region_name,
                 )
                 return self.serialize_organization_mapping(mapping)
-            except IntegrityError:
-                pass
+        except IntegrityError:
+            pass
 
         # If we got here, the slug already exists
         if idempotency_key != "":
@@ -114,8 +114,7 @@ class APIBackedOrganizationMappingService(OrganizationMappingService):
         region_name: str,
     ) -> OrganizationMapping:
         client = ControlSiloClient()
-        resp = client.request(
-            "POST",
+        resp = client.post(
             "/organization-mappings",
             data={
                 "organization_id": organization_id,

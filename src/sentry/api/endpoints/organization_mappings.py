@@ -29,7 +29,7 @@ class OrganizationMappingsEndpoint(Endpoint):
     def post(self, request: Request) -> Response:
         """
         Create a New Org Mapping for an Organization
-        ``````````````````````````````````
+        ````````````````````````````````````````````
 
         Creating an org mapping happens during the organization creation
         flow. Among other things, it reserves a globally unique slug and handles

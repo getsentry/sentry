@@ -209,7 +209,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         organization_id=org.id,
                         slug=org.slug,
                         stripe_id=org.stripe_id,
-                        idempotency_key=result.get("idempotency_key", ""),
+                        idempotency_key=result.get("idempotencyKey", ""),
                         region_name=settings.SENTRY_REGION or "us",
                     )
 
