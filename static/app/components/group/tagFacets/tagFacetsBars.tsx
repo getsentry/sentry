@@ -146,6 +146,7 @@ export default function TagFacetsBars({
                   platform: project?.platform,
                   is_mobile: isMobilePlatform(project?.platform),
                   organization,
+                  type: 'bars',
                 }
               );
             }}
@@ -214,6 +215,7 @@ function BreakdownBars({data, maxItems, project, tag}: Props) {
                     platform: project.platform,
                     is_mobile: isMobilePlatform(project?.platform),
                     organization,
+                    type: 'bars',
                   });
                 }
               }}

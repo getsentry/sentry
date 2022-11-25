@@ -8,6 +8,8 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {TagWithTopValues} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,6 +29,7 @@ export default function TagFacetsDistributions({
   groupId,
   title,
   tagFormatter,
+  project,
 }: TagFacetsProps) {
   const [state, setState] = useState<State>({
     tagsData: {},
@@ -101,11 +104,26 @@ export default function TagFacetsDistributions({
                     totalValues={topValuesTotal}
                     segments={segments}
                     onTagClick={() => undefined}
+                    project={project}
                   />
                 );
               })}
               <ShowAllButtonContainer>
-                <Button size="xs" to={getTagUrl(organization.slug, groupId)}>
+                <Button
+                  size="xs"
+                  to={getTagUrl(organization.slug, groupId)}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'issue_group_details.tags.show_all_tags.clicked',
+                      {
+                        platform: project?.platform,
+                        is_mobile: isMobilePlatform(project?.platform),
+                        organization,
+                        type: 'distributions',
+                      }
+                    );
+                  }}
+                >
                   {t('View All Tags')}
                 </Button>
               </ShowAllButtonContainer>
