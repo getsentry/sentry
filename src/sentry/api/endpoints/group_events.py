@@ -110,6 +110,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
                 Event(
                     event_id=evt["id"],
                     project_id=evt["project.id"],
+                    snuba_data={
+                        "event_id": evt["id"],
+                        "group_id": evt["issue.id"],
+                        "project_id": evt["project.id"],
+                        "timestamp": evt["timestamp"],
+                    },
                 )
                 for evt in results["data"]
             ]

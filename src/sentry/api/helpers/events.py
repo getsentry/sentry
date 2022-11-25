@@ -60,7 +60,7 @@ def get_query_builder_for_group(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
         params=snuba_params,
-        selected_columns=["id", "project.id"],
+        selected_columns=["id", "project.id", "issue.id", "timestamp"],
         limit=limit,
         offset=offset,
     )
