@@ -1141,7 +1141,7 @@ SENTRY_FEATURES = {
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
-    "organizations:organizations:new-widget-designs": False,
+    "organizations:performance-new-widget-designs": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
