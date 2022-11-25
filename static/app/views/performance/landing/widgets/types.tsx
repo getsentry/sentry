@@ -128,6 +128,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   eventView: EventView;
 
   fields: string[];
+  location: Location;
   organization: Organization;
 
   // Header;
