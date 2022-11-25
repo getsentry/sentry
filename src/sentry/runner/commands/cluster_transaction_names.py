@@ -39,6 +39,8 @@ def cluster_transaction_names(
     if debug:
         logger.setLevel(logging.DEBUG)
 
+    # TODO: Try to acquire a lock, skip if job is already running.
+
     now = datetime.now()
     then = now - timedelta(seconds=time_range_seconds)
 
@@ -105,6 +107,8 @@ def _export_rules(project, new_rules: List[ReplacementRule], now: datetime):
 
     # Update existing rules with new rules, bumping expiry dates by
     # overwriting existing entries:
+    # FIXME: This won't work, we have to bump the expiry date when we see
+    # a sanitized transaction because that means the rule is still in place.
     rules_by_glob.update(
         **{
             rule: {
