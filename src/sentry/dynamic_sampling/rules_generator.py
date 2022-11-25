@@ -7,7 +7,7 @@ from pytz import UTC
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.key_transactions import get_key_transactions
-from sentry.dynamic_sampling.latest_release_booster import get_augmented_boosted_releases
+from sentry.dynamic_sampling.latest_release_booster import BoostedReleasesRepository
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
@@ -106,7 +106,9 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
 
 
 def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[ReleaseRule]:
-    boosted_releases = get_augmented_boosted_releases(project_id, BOOSTED_RELEASES_LIMIT)
+    boosted_releases = BoostedReleasesRepository.get_augmented_boosted_releases(
+        project_id, BOOSTED_RELEASES_LIMIT
+    )
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
 
     return cast(

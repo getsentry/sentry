@@ -35,6 +35,10 @@ def get_redis_client_for_ds() -> Any:
     return redis.redis_clusters.get(cluster_key)
 
 
+def _generate_cache_key_for_boosted_releases_hash(project_id: int) -> str:
+    return f"ds::p:{project_id}:boosted_releases"
+
+
 def _get_environment_cache_key(environment: Optional[str]) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
 
@@ -210,16 +214,17 @@ class LatestReleaseBooster:
         return ProjectInvalidator(invalidate_project_config=True, params=self.params)
 
     def _add_boosted_release(self) -> None:
-        cache_key = self._generate_cache_key_for_boosted_releases_hash()
+        # TODO: for now we mimic the old implementation but we would like to more explicitly only remove expired
+        #  boosted releases here.
+        BoostedReleasesRepository().get_boosted_releases(self.params.project_id)
+
+        cache_key = _generate_cache_key_for_boosted_releases_hash(project_id=self.params.project_id)
         self.redis_client.hset(
             cache_key,
             self._generate_cache_key_for_boosted_release_with_environment(),
             datetime.utcnow().replace(tzinfo=UTC).timestamp(),
         )
         self.redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
-
-    def _generate_cache_key_for_boosted_releases_hash(self) -> str:
-        return f"ds::p:{self.params.project_id}:boosted_releases"
 
     def _generate_cache_key_for_boosted_release_with_environment(self) -> str:
         return (
@@ -244,8 +249,7 @@ class BoostedReleasesRepository:
         """
         Function that returns the releases that should be boosted for a given project, and excludes expired releases.
         """
-        # cache_key = generate_cache_key_for_boosted_releases_hash(project_id)
-        cache_key = ""
+        cache_key = _generate_cache_key_for_boosted_releases_hash(project_id=project_id)
         current_timestamp = datetime.utcnow().replace(tzinfo=UTC).timestamp()
 
         redis_client = get_redis_client_for_ds()
@@ -274,6 +278,14 @@ class BoostedReleasesRepository:
 
         return boosted_releases
 
+    def get_augmented_boosted_releases(
+        self, project_id: int, limit: int
+    ) -> List[ExtendedBoostedRelease]:
+        """
+        Returns a list of boosted releases augmented with additional information such as release version and platform.
+        """
+        return self.get_boosted_releases(project_id).to_extended_boosted_releases(project_id, limit)
+
     @staticmethod
     def _extract_release_and_environment_from_cache_key(
         cache_key: str,
@@ -287,10 +299,7 @@ class BoostedReleasesRepository:
             release_id = match["release_id"]
             environment = match["environment"]
 
-            if release_id and environment:
-                return int(release_id), environment
-            elif release_id:
-                return int(release_id), None
+            return int(release_id), environment
 
         # If the cache key doesn't match the new format, we will fallback to the old format which is just an integer.
         try:
@@ -300,11 +309,3 @@ class BoostedReleasesRepository:
             return None
         else:
             return release_id, None
-
-    def get_augmented_boosted_releases(
-        self, project_id: int, limit: int
-    ) -> List[ExtendedBoostedRelease]:
-        """
-        Returns a list of boosted releases augmented with additional information such as release version and platform.
-        """
-        return self.get_boosted_releases(project_id).to_extended_boosted_releases(project_id, limit)
