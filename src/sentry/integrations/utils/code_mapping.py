@@ -33,36 +33,43 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
-def get_extension(file_path: str):
-    extension = None
-    ext_period = file_path.find(".")
-    if ext_period >= 1:  # e.g. f.py
-        extension = file_path.rsplit(".")[-1]
-    else:
-        logger.debug("Just a file without extension.")
+def get_extension(file_path: str) -> str:
+    extension = ""
+    if file_path:
+        ext_period = file_path.find(".")
+        if ext_period >= 1:  # e.g. f.py
+            extension = file_path.rsplit(".")[-1]
+        else:
+            logger.debug("Just a file without extension.")
 
     return extension
 
 
-def partitioned_files(files: List[str]) -> Dict[str, List[str]]:
-    """This takes the tree representation of a repo and returns the file paths for the languages"""
-    new_tree = {}
-    # XXX: If we want to make the data structure smaller, we could use
-    # tree each leaf representing a file while nodes would represent a directory for the path
+def should_include(file_path: str) -> bool:
+    include = True
+    if file_path.endswith("spec.jsx") or file_path.startswith("tests/"):
+        include = False
+    return include
+
+
+def filter_source_code_files(files: List[str]) -> List[str]:
+    """
+    This takes the list of files of a repo and returns
+    the file paths for supported source code files
+    """
+    _supported_files = []
+    # XXX: If we want to make the data structure faster to traverse, we could
+    # use a tree where each leaf represents a file while non-leaves would
+    # represent a directory in the path
     for file_path in files:
         try:
             extension = get_extension(file_path)
-            if extension:
-                if extension not in EXTENSIONS:
-                    logger.debug(f"We do not support the .{extension} extension.")
-                else:
-                    if extension not in new_tree:
-                        new_tree[extension] = []
-                    new_tree[extension].append(file_path)
+            if extension in EXTENSIONS and should_include(file_path):
+                _supported_files.append(file_path)
         except Exception:
             logger.exception("We've failed to store the file path.")
 
-    return new_tree
+    return _supported_files
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that

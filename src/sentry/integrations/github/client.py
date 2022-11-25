@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.repo_tree import Repo, RepoTree, partitioned_files
+from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -70,39 +70,65 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
 
-    def get_repo_files(self, repo_full_name: str, tree_sha: str) -> List[str]:
-        """It fetches the complete tree for a repo and return the list of files."""
-        files = []
-        try:
-            # https://docs.github.com/en/rest/git/trees#get-a-tree
-            contents: Dict[str, Any] = self.get(
-                f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-                # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-                params={"recursive": 1},
-            )
-            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-            if contents.get("truncated"):
-                # e.g. getsentry/DataForThePeople
-                logger.warning(
-                    f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
+    def get_cached_repo_files(
+        self,
+        repo_full_name: str,
+        tree_sha: str,
+        only_source_code_files: bool = True,
+        cache_seconds: int = 3600 * 24,
+    ) -> List[str]:
+        """It fetches a tree structure for a repo and flattens it to just a list of files.
+        repo_full_name: e.g. getsentry/sentry
+        tree_sha: A branch or a commit sha
+        only_source_code_files: See filter_source_code_files for details
+        cache_seconds: How many seconds to cache for
+        """
+        key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
+        repo_files: List[str] = cache.get(key, [])
+        if not repo_files:
+            try:
+                # https://docs.github.com/en/rest/git/trees#get-a-tree
+                # We do not cache this call since it is a rather large object
+                contents: Dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
                 )
-            files = [x["path"] for x in contents["tree"] if x["type"] == "blob"]
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
-            # TODO: Add condition for  getsentry/DataForThePeople
-            # e.g. getsentry/nextjs-sentry-example
-            if msg == "Git Repository is empty.":
-                logger.warning(f"{repo_full_name} is empty.")
-            elif msg == "Not Found":
-                logger.warning(f"The Github App does not have access to {repo_full_name}.")
-            else:
-                logger.exception("An unknown error has ocurred.")
+                # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+                # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+                # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+                # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+                if contents.get("truncated"):
+                    # e.g. getsentry/DataForThePeople
+                    logger.warning(
+                        f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
+                    )
+                repo_files = [x["path"] for x in contents["tree"] if x["type"] == "blob"]
+                if only_source_code_files:
+                    # The caching will skip silently if greater than 5MB
+                    # The trees API does not return structures larger than 7MB
+                    # As an example, all file paths in Sentry is about 1.3MB
+                    # Larger customers may have larger repositories, however,
+                    # the cost of not having cached the files chached for those
+                    # repositories is a single GH API network request, thus,
+                    # being acceptable to sometimes not having everything cached
+                    cache.set(key, repo_files, cache_seconds)
+                else:
+                    repo_files = filter_source_code_files(files=repo_files)
+                    cache.set(key, repo_files, cache_seconds)
+            except ApiError as e:
+                json_data: JSONData = e.json
+                msg: str = json_data.get("message")
+                # TODO: Add condition for  getsentry/DataForThePeople
+                # e.g. getsentry/nextjs-sentry-example
+                if msg == "Git Repository is empty.":
+                    logger.warning(f"{repo_full_name} is empty.")
+                elif msg == "Not Found":
+                    logger.warning(f"The Github App does not have access to {repo_full_name}.")
+                else:
+                    logger.exception("An unknown error has ocurred.")
 
-        return files
+        return repo_files
 
     def get_trees_for_org(
         self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
@@ -113,56 +139,31 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         trees: Dict[str, RepoTree] = {}
         cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
-        repo_key = "githubtrees:repo"
-        cached_repositories = cache.get(cache_key, [])
-        if not cached_repositories:
+        repositories = cache.get(cache_key)
+        if not repositories:
             # Simply removing unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
-            # XXX: In order to speed up this function we will need to parallelize this
-            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            for repo_info in repositories:
-                try:
-                    full_name: str = repo_info["full_name"]
-                    branch = repo_info["default_branch"]
-                    all_files = self.get_repo_files(full_name, branch)
-                    partitioned_tree = partitioned_files(
-                        files=all_files,
-                        languages=["python", "javascript"],
-                    )
-                    files = []
-                    repo = Repo(full_name, branch)
-                    # We partition the files from a repository in order to reduce
-                    # the memory footprint since memcached has a limit of 5MB
-                    # XXX: Add link to documentation about memcache
-                    for extension in partitioned_tree.keys():
-                        key = f"{repo_key}:{full_name}:{extension}"
-                        files.append(partitioned_tree[extension])
-                        cache.set(key, partitioned_tree[extension], cache_seconds)
-
-                    trees[full_name] = RepoTree(repo, files)
-                except Exception:
-                    # Catching the exception ensures that we can make progress with the rest
-                    # of the repositories
-                    logger.exception(f"We have failed to fetch the tree for {repo_info}.")
             cache.set(cache_key, repositories, cache_seconds)
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until {next_time}.")
-        else:
-            try:
-                for repo_info in cached_repositories:
-                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
-                    # This assertion will help clear the cache off dictionaries
-                    assert type(repo_tree) == RepoTree
-                    trees[repo_info["full_name"]] = repo_tree
 
-                logger.info(f"Using cached trees for {gh_org}.")
-            except AssertionError:
-                # Reset the control cache in order to repopulate
-                cache.delete(cache_key)
-                logger.exception(f"We reset the cache for {cache_key}.")
+        # XXX: In order to speed up this function we will need to parallelize this
+        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+        for repo_info in repositories:
+            full_name = repo_info["full_name"]
+            branch = repo_info["default_branch"]
+            try:
+                trees[full_name] = RepoTree(
+                    Repo(full_name, branch),
+                    files=self.get_cached_repo_files(full_name, branch),
+                )
+            except Exception:
+                # Catching the exception ensures that we can make progress with the rest
+                # of the repositories
+                logger.exception(f"We have failed to fetch the tree for {repo_info}.")
 
         return trees
 
@@ -229,14 +230,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
 
-            resp = self.get(path, params={"per_page": self.page_size})
+            resp = self.get_cached(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < page_number_limit:
-                resp = self.get(get_next_link(resp))
+                resp = self.get_cached(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
             return output
