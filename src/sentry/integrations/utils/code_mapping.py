@@ -6,19 +6,63 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
-from .repo_tree import Repo, RepoTree
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+# Read this to learn about file extensions for different languages
+# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
+# We only care about the ones that would show up in stacktraces after symbolication
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
 NO_TOP_DIR = "NO_TOP_DIR"
+
+
+class Repo(NamedTuple):
+    name: str
+    branch: str
+
+
+class RepoTree(NamedTuple):
+    repo: Repo
+    files: List[str]
 
 
 class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
+
+
+def get_extension(file_path: str):
+    extension = None
+    ext_period = file_path.find(".")
+    if ext_period >= 1:  # e.g. f.py
+        extension = file_path.rsplit(".")[-1]
+    else:
+        logger.debug("Just a file without extension.")
+
+    return extension
+
+
+def partitioned_files(files: List[str]) -> Dict[str, List[str]]:
+    """This takes the tree representation of a repo and returns the file paths for the languages"""
+    new_tree = {}
+    # XXX: If we want to make the data structure smaller, we could use
+    # tree each leaf representing a file while nodes would represent a directory for the path
+    for file_path in files:
+        try:
+            extension = get_extension(file_path)
+            if extension:
+                if extension not in EXTENSIONS:
+                    logger.debug(f"We do not support the .{extension} extension.")
+                else:
+                    if extension not in new_tree:
+                        new_tree[extension] = []
+                    new_tree[extension].append(file_path)
+        except Exception:
+            logger.exception("We've failed to store the file path.")
+
+    return new_tree
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
