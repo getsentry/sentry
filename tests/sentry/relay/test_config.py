@@ -533,7 +533,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -554,7 +554,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -575,7 +575,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -596,7 +596,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -617,7 +617,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },

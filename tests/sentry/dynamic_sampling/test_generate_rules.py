@@ -374,7 +374,7 @@ def test_generate_rules_with_different_project_platforms(
                     {
                         "op": "eq",
                         "name": "trace.environment",
-                        "value": [environment],
+                        "value": environment,
                     },
                 ],
             },
@@ -430,7 +430,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 "op": "and",
                 "inner": [
                     {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "eq", "name": "trace.environment", "value": ["prod"]},
+                    {"op": "eq", "name": "trace.environment", "value": "prod"},
                 ],
             },
             "id": 1500,
@@ -444,7 +444,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 "op": "and",
                 "inner": [
                     {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "eq", "name": "trace.environment", "value": ["dev"]},
+                    {"op": "eq", "name": "trace.environment", "value": "dev"},
                 ],
             },
             "id": 1501,

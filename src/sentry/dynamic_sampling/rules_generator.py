@@ -113,9 +113,7 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                             # When environment is None, it will be mapped to equivalent null in json.
                             # When Relay receives a rule with "value": null it will match it against events without
                             # the environment tag set.
-                            "value": [boosted_release.environment]
-                            if boosted_release.environment
-                            else None,
+                            "value": boosted_release.environment,
                         },
                     ],
                 },
