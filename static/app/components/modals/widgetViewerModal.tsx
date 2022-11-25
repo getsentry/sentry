@@ -47,7 +47,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {useParams} from 'sentry/utils/useParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -168,8 +167,7 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
   } = props;
-  const {location, router, routes} = useRouteContext();
-  const params = useParams();
+  const {location, router} = useRouteContext();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
@@ -832,9 +830,6 @@ function WidgetViewerModal(props: Props) {
             ) : (
               <MemoizedWidgetCardChartContainer
                 location={location}
-                router={router}
-                routes={routes}
-                params={params}
                 api={api}
                 organization={organization}
                 selection={modalChartSelection.current}
