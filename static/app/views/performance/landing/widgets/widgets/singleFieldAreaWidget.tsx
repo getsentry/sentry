@@ -16,7 +16,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import _DurationChart from 'sentry/views/performance/charts/chart';
+import DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
@@ -167,7 +167,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-export const DurationChart = _DurationChart;
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
