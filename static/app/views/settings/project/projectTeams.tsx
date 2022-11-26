@@ -92,14 +92,14 @@ class ProjectTeams extends AsyncView<Props, State> {
   };
 
   handleCreateTeam = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
     const {project, organization} = this.props;
 
     if (!this.canCreateTeam()) {
       return;
     }
-
-    e.stopPropagation();
-    e.preventDefault();
 
     openCreateTeamModal({
       project,
