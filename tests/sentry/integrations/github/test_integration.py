@@ -9,7 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.code_mapping import Repo, RepoTree
+from sentry.integrations.utils.repo import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -148,13 +148,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
             json={"repositories": [repositories["baz"]]},
             headers={"link": ", ".join([gen_link(2, "prev"), first])},
-        )
-        # This is for when we're not testing the pagination logic
-        responses.add(
-            responses.GET,
-            url=self.base_url + "/installation/repositories",
-            match=[responses.matchers.query_param_matcher({"per_page": 100})],
-            json={"repositories": [repo for repo in repositories.values()]},
         )
 
         responses.add(
@@ -602,21 +595,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
 
-        with patch("sentry.integrations.utils.code_mapping.logger") as logger:
+        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             assert not cache.get("githubtrees:repositories:Test-Organization")
             # This allows checking for caching related output
             self._caplog.set_level(logging.INFO, logger="sentry")
-            # Check that the cache is clear
-            assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
-            assert cache.get("githubtrees:repo:Test-Organization/foo") is None
             trees = installation.get_trees_for_org()
 
             # These checks are useful since they will be available in the GCP logs
-            for msg in [
-                "The Github App does not have access to Test-Organization/baz.",
-                "Caching trees for Test-Organization",
-            ]:
-                assert logger.info.called_with(msg)
+            expected_msg = "The Github App does not have access to Test-Organization/baz."
+            assert self._caplog.records[8].message == expected_msg
+            assert self._caplog.records[8].levelname == "WARNING"
+            # XXX: We would need to patch timezone to make sure the time is always the same
+            assert self._caplog.records[9].message.startswith("Caching trees for Test-Organization")
+            assert self._caplog.records[9].levelname == "INFO"
 
             assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
                 {"full_name": "Test-Organization/foo", "default_branch": "master"},
@@ -632,5 +623,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
             # Calling a second time should produce the same results
             trees = installation.get_trees_for_org()
-            assert logger.info.called_with("Using cached trees for Test-Organization.")
+            assert self._caplog.records[10].message == "Using cached trees for Test-Organization."
+            assert self._caplog.records[10].levelname == "INFO"
+
             assert trees == expected_trees
