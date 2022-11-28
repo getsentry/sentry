@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, call, patch
 
+import pytest
+
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
@@ -60,6 +62,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     ]
 
 
+@pytest.mark.django_db
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -1028,6 +1031,35 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_consecutive_db", "bbbbbbbbbbbbbbbb"),
             ]
         )
+
+    def test_detects_file_io_main_thread(self):
+        file_io_event = EVENTS["file-io-on-main-thread"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(file_io_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call("_pi_all_issue_count", 1),
+                call("_pi_sdk_name", "sentry.java.android.timber"),
+                call("_pi_transaction", "c119e45a9d724b1891df4651ebf9e6db"),
+                call(
+                    "_pi_file_io_main_thread_fp",
+                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
+                ),
+                call("_pi_file_io_main_thread", "054ba3a374d543eb"),
+            ]
+        )
+
+    def test_does_not_detect_file_io_main_thread(self):
+        file_io_event = EVENTS["file-io-on-main-thread"]
+        file_io_event["spans"][0]["data"]["blocked_ui_thread"] = False
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(file_io_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
 
 class PrepareProblemForGroupingTest(unittest.TestCase):
