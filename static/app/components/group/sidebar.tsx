@@ -268,22 +268,23 @@ class BaseGroupSidebar extends Component<Props, State> {
           organization={organization}
           features={['issue-details-tag-improvements']}
         >
-          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
-            <TagFacets
-              environments={environments}
-              groupId={group.id}
-              tagKeys={MOBILE_TAGS}
-              event={event}
-              title={
-                <div>
-                  {t('Most Impacted Tags')} <FeatureBadge type="beta" />
-                </div>
-              }
-              tagFormatter={MOBILE_TAGS_FORMATTER}
-              style={tagFacetsStyle}
-              project={project}
-            />
-          )}
+          {isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1') && (
+              <TagFacets
+                environments={environments}
+                groupId={group.id}
+                tagKeys={MOBILE_TAGS}
+                event={event}
+                title={
+                  <div>
+                    {t('Most Impacted Tags')} <FeatureBadge type="beta" />
+                  </div>
+                }
+                tagFormatter={MOBILE_TAGS_FORMATTER}
+                style={tagFacetsStyle}
+                project={project}
+              />
+            )}
         </Feature>
 
         <GroupReleaseStats
@@ -309,7 +310,8 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {(!organization.features.includes('issue-details-tag-improvements') ||
           !(
-            isMobilePlatform(project.platform) && project.platform === 'react-native'
+            isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1')
           )) && (
           <SidebarSection.Wrap>
             <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>

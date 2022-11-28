@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
+from sentry.integrations.utils.repo import Repo, RepoTree, trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -71,10 +71,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
-        tree: JSONData = {}
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> List[str]:
+        tree = []
         try:
-            # We do not cache this call since it is a rather large object
             contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
@@ -89,7 +88,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            tree = contents["tree"]
+            tree = trim_tree(contents["tree"], ["python"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -103,27 +102,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.exception("An unknown error has ocurred.")
 
         return tree
-
-    def get_repo_files(
-        self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
-    ) -> List[str]:
-        """It return all files for a repo or just source code files.
-
-        repo_full_name: e.g. getsentry/sentry
-        tree_sha: A branch or a commit sha
-        only_source_code_files: Include all files or just the source code files
-        """
-        repo_files = []
-        try:
-            tree = self.get_tree(repo_full_name, tree_sha)
-            if tree is not None:
-                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
-                if only_source_code_files:
-                    repo_files = filter_source_code_files(files=repo_files)
-        except Exception:
-            logger.exception("An unknown error has ocurred.")
-
-        return repo_files
 
     def get_trees_for_org(
         self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
@@ -147,7 +125,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 try:
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
-                    files = self.get_repo_files(full_name, branch)
+                    files = self.get_tree(full_name, branch)
                     repo = Repo(full_name, branch)
                     trees[full_name] = RepoTree(repo, files)
                     cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
@@ -162,12 +140,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             try:
                 for repo_info in cached_repositories:
                     repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
-                    # We should not expect that the cache has not been cleared
-                    if not repo_tree:
-                        repo_tree = self.get_repo_files(
-                            repo_info["full_name"],
-                            repo_info["default_branch"],
-                        )
+                    # This assertion will help clear the cache off dictionaries
+                    assert type(repo_tree) == RepoTree
                     trees[repo_info["full_name"]] = repo_tree
 
                 logger.info(f"Using cached trees for {gh_org}.")
