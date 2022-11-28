@@ -13,9 +13,9 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import DurationChart from 'sentry/views/performance/charts/chart';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
-import {DurationChart} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 import {ViewProps} from 'sentry/views/performance/types';
 
 type Props = ViewProps & {
