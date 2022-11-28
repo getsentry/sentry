@@ -682,3 +682,85 @@ export function computeConfigViewWithStrategy(
 
   return frame.withHeight(view.height);
 }
+
+export class RectCursorUtil {
+  rect: Rect;
+  outerRect: Rect;
+  innerRect: Rect;
+
+  constructor(rect: Rect, borderSizeX: number = 0, borderSizeY: number = 0) {
+    this.rect = rect;
+    this.outerRect = new Rect(
+      rect.x - borderSizeX / 2,
+      rect.y - borderSizeY / 2,
+      rect.width + borderSizeX,
+      rect.height + borderSizeY
+    );
+
+    this.innerRect = new Rect(
+      rect.x + borderSizeX / 2,
+      rect.y + borderSizeY / 2,
+      rect.width - borderSizeX,
+      rect.height - borderSizeY
+    );
+  }
+
+  isOuterRectBorderHovered(cursor: vec2 | null) {
+    if (!cursor) {
+      return false;
+    }
+    return this.outerRect.contains(cursor) && !this.rect.contains(cursor);
+  }
+
+  isInsetRectBorderHovered(cursor: vec2 | null) {
+    if (!cursor) {
+      return false;
+    }
+    return this.rect.contains(cursor) && !this.innerRect.contains(cursor);
+  }
+
+  isRectBorderHovered(cursor: vec2 | null) {
+    if (!cursor) {
+      return false;
+    }
+    return this.isOuterRectBorderHovered(cursor) || this.isInsetRectBorderHovered(cursor);
+  }
+
+  isRectBodyHovered(cursor: vec2 | null) {
+    if (!cursor) {
+      return false;
+    }
+    return this.innerRect.contains(cursor);
+  }
+
+  isRectHovered(cursor: vec2 | null) {
+    if (!cursor) {
+      return false;
+    }
+    return this.isRectBorderHovered(cursor) || this.isRectBodyHovered(cursor);
+  }
+
+  getRelativeCursorPositionX(cursor: vec2 | null) {
+    if (!cursor) {
+      return null;
+    }
+
+    if (cursor[0] >= this.outerRect.width / 2 + this.outerRect.x) {
+      return 'right';
+    }
+
+    return 'left';
+  }
+
+  getRelativeCursorPositionY(cursor: vec2 | null) {
+    if (!cursor) {
+      return null;
+    }
+
+    if (cursor[1] >= this.outerRect.height / 2 + this.outerRect.y) {
+      return 'bottom';
+    }
+
+    return 'top';
+  }
+}

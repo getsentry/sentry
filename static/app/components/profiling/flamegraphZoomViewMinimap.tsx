@@ -8,7 +8,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect, RectCursorUtil} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -40,7 +40,7 @@ function FlamegraphZoomViewMinimap({
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [lastInteraction, setLastInteraction] = useState<
-    'pan' | 'click' | 'zoom' | 'scroll' | 'select' | null
+    'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null
   >(null);
 
   const dispatch = useDispatchFlamegraphState();
@@ -48,6 +48,23 @@ function FlamegraphZoomViewMinimap({
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
   const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  const miniMapConfigSpaceBorderSize = useMemo(() => {
+    if (!flamegraphMiniMapView || !flamegraphMiniMapCanvas?.physicalSpace) {
+      return 0;
+    }
+    // compute 10px in physical space to configSpace
+    return new Rect(0, 0, 10, 0).transformRect(
+      flamegraphMiniMapView.toConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
+    ).width;
+  }, [flamegraphMiniMapView, flamegraphMiniMapCanvas?.physicalSpace]);
+
+  const miniMapCursorUtil = useMemo(() => {
+    return new RectCursorUtil(
+      flamegraphMiniMapView?.configView ?? Rect.Empty(),
+      miniMapConfigSpaceBorderSize
+    );
+  }, [flamegraphMiniMapView?.configView, miniMapConfigSpaceBorderSize]);
 
   const flamegraphMiniMapRenderer = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {
@@ -226,6 +243,7 @@ function FlamegraphZoomViewMinimap({
     [flamegraphMiniMapCanvas, flamegraphMiniMapView, lastDragVector, canvasPoolManager]
   );
 
+  const prevConfigSpaceCursor = useRef(vec2.fromValues(0, 0));
   const onMinimapCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       if (!flamegraphMiniMapCanvas || !flamegraphMiniMapView) {
@@ -244,6 +262,26 @@ function FlamegraphZoomViewMinimap({
         setLastInteraction('pan');
         return;
       }
+
+      if (evt.buttons === 1 && lastInteraction === 'resize') {
+        const configView = flamegraphMiniMapView.configView;
+        const resizePosition =
+          miniMapCursorUtil.getRelativeCursorPositionX(configSpaceMouse);
+        const dragDelta = configSpaceMouse[0] - prevConfigSpaceCursor.current[0];
+        const x = resizePosition === 'left' ? configSpaceMouse[0] : configView.left;
+        const dragDirection = resizePosition === 'left' ? -1 : 1;
+
+        const rect = new Rect(
+          x,
+          configSpaceMouse[1] - flamegraphMiniMapView.configView.height / 2,
+          configView.width + dragDelta * dragDirection,
+          configView.height
+        );
+        canvasPoolManager.dispatch('set config view', [rect]);
+        prevConfigSpaceCursor.current = configSpaceMouse;
+        return;
+      }
+
       if (startDragVector) {
         const start = vec2.min(vec2.create(), startDragVector, configSpaceMouse);
         const end = vec2.max(vec2.create(), startDragVector, configSpaceMouse);
@@ -259,6 +297,7 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
+      prevConfigSpaceCursor.current = configSpaceMouse;
       setLastInteraction(null);
     },
     [
@@ -268,6 +307,8 @@ function FlamegraphZoomViewMinimap({
       lastDragVector,
       onMouseDrag,
       startDragVector,
+      lastInteraction,
+      miniMapCursorUtil,
     ]
   );
 
@@ -359,7 +400,12 @@ function FlamegraphZoomViewMinimap({
         window.devicePixelRatio
       );
 
-      if (flamegraphMiniMapView.configView.contains(configSpaceCursor)) {
+      if (miniMapCursorUtil.isRectBorderHovered(configSpaceCursor)) {
+        setLastInteraction('resize');
+        return;
+      }
+
+      if (miniMapCursorUtil.isRectBodyHovered(configSpaceCursor)) {
         setLastDragVector(physicalMousePos);
       } else {
         const startConfigSpaceCursor = flamegraphMiniMapView.getConfigSpaceCursor(
@@ -370,7 +416,13 @@ function FlamegraphZoomViewMinimap({
       }
       setLastInteraction('select');
     },
-    [configSpaceCursor, flamegraphMiniMapCanvas, flamegraphMiniMapView, canvasPoolManager]
+    [
+      configSpaceCursor,
+      flamegraphMiniMapCanvas,
+      flamegraphMiniMapView,
+      canvasPoolManager,
+      miniMapCursorUtil,
+    ]
   );
 
   const onMinimapCanvasMouseUp = useCallback(() => {
@@ -423,27 +475,6 @@ function FlamegraphZoomViewMinimap({
     };
   }, [onMinimapCanvasMouseUp]);
 
-  useEffect(() => {
-    if (!flamegraphMiniMapCanvasRef) {
-      return undefined;
-    }
-
-    const onCanvasWheel = (evt: WheelEvent) => {
-      evt.preventDefault();
-      const isZoom = evt.metaKey;
-
-      // @TODO figure out what key to use for other platforms
-      if (isZoom) {
-        onMinimapZoom(evt);
-      } else {
-        onMinimapScroll(evt);
-      }
-    };
-
-    flamegraphMiniMapCanvasRef.addEventListener('wheel', onCanvasWheel);
-    return () => flamegraphMiniMapCanvasRef?.removeEventListener('wheel', onCanvasWheel);
-  }, [flamegraphMiniMapCanvasRef, onMinimapScroll, onMinimapZoom]);
-
   return (
     <Fragment>
       <Canvas
@@ -452,8 +483,9 @@ function FlamegraphZoomViewMinimap({
         onMouseMove={onMinimapCanvasMouseMove}
         onMouseLeave={onMinimapCanvasMouseUp}
         cursor={
-          configSpaceCursor &&
-          flamegraphMiniMapView?.configView.contains(configSpaceCursor)
+          miniMapCursorUtil.isRectBorderHovered(configSpaceCursor)
+            ? 'ew-resize'
+            : miniMapCursorUtil.isRectBodyHovered(configSpaceCursor)
             ? 'grab'
             : 'col-resize'
         }
