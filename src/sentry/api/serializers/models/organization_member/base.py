@@ -34,7 +34,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             if organization_member.user_id
         }
         users_by_id: Mapping[int, Any] = {
-            u["id"]: u for u in user_service.serialize_users(user_ids=list(users_set))
+            u["id"]: u for u in user_service.serialize_users(user_ids=sorted(users_set))
         }
         external_users_map = defaultdict(list)
 
