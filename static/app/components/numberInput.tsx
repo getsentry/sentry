@@ -79,11 +79,23 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
       />
       <InputTrailingItems>
         <StepWrap size={size}>
-          <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
-            <StyledIconChevron direction="up" />
+          <StepButton
+            ref={incrementButtonRef}
+            size="zero"
+            borderless
+            inputSize={size}
+            {...incrementProps}
+          >
+            <StyledIconChevron direction="up" inputSize={size} />
           </StepButton>
-          <StepButton ref={decrementButtonRef} size="zero" borderless {...decrementProps}>
-            <StyledIconChevron direction="down" />
+          <StepButton
+            ref={decrementButtonRef}
+            size="zero"
+            borderless
+            inputSize={size}
+            {...decrementProps}
+          >
+            <StyledIconChevron direction="down" inputSize={size} />
           </StepButton>
         </StepWrap>
       </InputTrailingItems>
@@ -98,26 +110,27 @@ export default NumberInput;
 const StepWrap = styled('div')<{size?: FormSize}>`
   display: flex;
   flex-direction: column;
-  height: ${p => p.theme.form[p.size ?? 'md'].height}px;
-  width: ${space(1.5)};
   align-items: center;
+  width: ${space(1.5)};
+  height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
-const StepButton = styled(Button)`
+const StepButton = styled(Button)<{inputSize?: FormSize}>`
   display: flex;
   height: 50%;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => (p.inputSize === 'xs' ? space(0.25) : space(0.5))};
   color: ${p => p.theme.subText};
 `;
 
-const StyledIconChevron = styled(IconChevron)<{direction: 'up' | 'down'}>`
-  width: 0.6em;
-  height: 0.6em;
-
+const StyledIconChevron = styled(IconChevron)<{inputSize?: FormSize}>`
   ${p =>
-    p.direction === 'up'
+    p.inputSize === 'xs'
       ? `
-    align-self: end;
-  `
-      : `align-self: start;`}
+          width: 0.5rem;
+          height: 0.5rem;
+        `
+      : `
+          width: 0.625rem;
+          height: 0.625rem;
+        `};
 `;
