@@ -208,7 +208,7 @@ export function FrameStackTable({
   );
 
   useEffect(() => {
-    function onShowInTableView([frame]: FlamegraphFrame[]) {
+    function onShowInTableView(frame: FlamegraphFrame) {
       handleScrollTo(el => el.node === frame.node);
     }
 
