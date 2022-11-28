@@ -31,17 +31,18 @@ class TestRepoFiles(TestCase):
         with pytest.raises(ValueError):
             source_code_files.index("README.md")
 
+    def test_filter_source_code_files_not_supported(self):
+        source_code_files = filter_source_code_files([])
+        assert source_code_files == []
+        source_code_files = filter_source_code_files([".env", "README"])
+        assert source_code_files == []
+
+    def test_should_not_include(self):
         for file in [
             "static/app/views/organizationRoot.spec.jsx",
             "tests/foo.py",
         ]:
             assert should_include(file) is False
-
-    def test_filter_source_code_files_not_supported(self):
-        source_code_files = filter_source_code_files([])
-        assert sorted([key for key in source_code_files]) == []
-        source_code_files = filter_source_code_files([".env", "README"])
-        assert sorted([key for key in source_code_files]) == []
 
     def test_get_extension(self):
         assert get_extension("") == ""

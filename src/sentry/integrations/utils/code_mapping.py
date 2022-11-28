@@ -39,8 +39,6 @@ def get_extension(file_path: str) -> str:
         ext_period = file_path.find(".")
         if ext_period >= 1:  # e.g. f.py
             extension = file_path.rsplit(".")[-1]
-        else:
-            logger.debug("Just a file without extension.")
 
     return extension
 
