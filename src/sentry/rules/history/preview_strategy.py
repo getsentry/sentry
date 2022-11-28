@@ -48,7 +48,10 @@ def _transactions_kwargs(group_ids: Sequence[int]) -> Dict[str, Any]:
     return {
         "having": [("group_id", "IN", group_ids)],
         "conditions": [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]],
-        "aggregations": [("arrayJoin", ["group_ids"], "group_id")],
+        "aggregations": [
+            ("arrayJoin", ["group_ids"], "group_id"),
+            ("count", "group_id", "groupCount"),
+        ],
     }
 
 
