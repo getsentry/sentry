@@ -198,6 +198,30 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     );
   }
 
+  renderGroupStatusBanner() {
+    if (this.props.group.status === 'ignored') {
+      return (
+        <GroupStatusBannerWrapper>
+          <MutedBox statusDetails={this.props.group.statusDetails} />
+        </GroupStatusBannerWrapper>
+      );
+    }
+
+    if (this.props.group.status === 'resolved') {
+      return (
+        <GroupStatusBannerWrapper>
+          <ResolutionBox
+            statusDetails={this.props.group.statusDetails}
+            activities={this.props.group.activity}
+            projectId={this.props.project.id}
+          />
+        </GroupStatusBannerWrapper>
+      );
+    }
+
+    return null;
+  }
+
   render() {
     const {
       className,
@@ -241,6 +265,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                 {results => {
                   return (
                     <StyledLayoutMain>
+                      {this.renderGroupStatusBanner()}
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && (
                           <GroupEventToolbar
@@ -252,22 +277,10 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                             hasReplay={hasReplay}
                           />
                         )}
-                        <Wrapper>
-                          {group.status === 'ignored' && (
-                            <MutedBox statusDetails={group.statusDetails} />
-                          )}
-                          {group.status === 'resolved' && (
-                            <ResolutionBox
-                              statusDetails={group.statusDetails}
-                              activities={activities}
-                              projectId={project.id}
-                            />
-                          )}
-                          {this.renderReprocessedBox(
-                            groupReprocessingStatus,
-                            mostRecentActivity as GroupActivityReprocess
-                          )}
-                        </Wrapper>
+                        {this.renderReprocessedBox(
+                          groupReprocessingStatus,
+                          mostRecentActivity as GroupActivityReprocess
+                        )}
                         {this.renderContent(eventWithMeta)}
                       </QuickTraceContext.Provider>
                     </StyledLayoutMain>
@@ -300,8 +313,8 @@ const StyledLayoutBody = styled(Layout.Body)`
   }
 `;
 
-const Wrapper = styled('div')`
-  margin-bottom: -1px;
+const GroupStatusBannerWrapper = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
