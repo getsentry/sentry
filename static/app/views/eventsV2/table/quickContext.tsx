@@ -51,25 +51,18 @@ const HOVER_DELAY: number = 400;
 function getHoverBody(
   dataRow: EventData,
   contextType: ContextType,
-  organization?: Organization,
+  organization: Organization,
   location?: Location,
   projects?: Project[],
   eventView?: EventView
 ) {
-  const noContext = (
-    <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
-  );
   switch (contextType) {
     case ContextType.ISSUE:
       return <IssueContext dataRow={dataRow} organization={organization} />;
     case ContextType.RELEASE:
-      return organization ? (
-        <ReleaseContext dataRow={dataRow} organization={organization} />
-      ) : (
-        noContext
-      );
+      return <ReleaseContext dataRow={dataRow} organization={organization} />;
     case ContextType.EVENT:
-      return organization ? (
+      return (
         <EventContext
           dataRow={dataRow}
           organization={organization}
@@ -77,11 +70,9 @@ function getHoverBody(
           projects={projects}
           eventView={eventView}
         />
-      ) : (
-        noContext
       );
     default:
-      return noContext;
+      return <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>;
   }
 }
 
@@ -113,10 +104,15 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
 
 const addFieldAsColumn = (
   fieldName: string,
+  organization: Organization,
   location?: Location,
-  eventView?: EventView,
-  organization?: Organization
+  eventView?: EventView
 ) => {
+  trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
+    organization,
+    column: fieldName,
+  });
+
   const oldField = location?.query.field || eventView?.fields.map(field => field.field);
   const newField = toArray(oldField).concat(fieldName);
   browserHistory.push({
@@ -125,10 +121,6 @@ const addFieldAsColumn = (
       ...location?.query,
       field: newField,
     },
-  });
-  trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
-    organization: organization || null,
-    column: fieldName,
   });
 };
 
@@ -167,14 +159,9 @@ function HoverHeader({
   );
 }
 
-type IssueContextProps = {
-  dataRow: EventData;
-  organization?: Organization;
-};
-
-function IssueContext(props: IssueContextProps) {
+function IssueContext(props: BaseContextProps) {
   const statusTitle = t('Issue Status');
-  const {dataRow, organization = null} = props;
+  const {dataRow, organization} = props;
 
   const {
     isLoading: issueLoading,
@@ -484,9 +471,9 @@ function EventContext(props: EventContextProps) {
                     onClick={() =>
                       addFieldAsColumn(
                         'transaction.duration',
+                        organization,
                         location,
-                        eventView,
-                        organization
+                        eventView
                       )
                     }
                     color="gray300"
@@ -518,9 +505,9 @@ function EventContext(props: EventContextProps) {
                       onClick={() =>
                         addFieldAsColumn(
                           'tags[http.status_code]',
+                          organization,
                           location,
-                          eventView,
-                          organization
+                          eventView
                         )
                       }
                       color="gray300"
@@ -568,7 +555,7 @@ function EventContext(props: EventContextProps) {
                     data-test-id="quick-context-title-add-button"
                     cursor="pointer"
                     onClick={() =>
-                      addFieldAsColumn('title', location, eventView, organization)
+                      addFieldAsColumn('title', organization, location, eventView)
                     }
                     color="gray300"
                     size="xs"
@@ -604,8 +591,8 @@ type ContextProps = {
   children: React.ReactNode;
   contextType: ContextType;
   dataRow: EventData;
+  organization: Organization;
   eventView?: EventView;
-  organization?: Organization;
   projects?: Project[];
 };
 

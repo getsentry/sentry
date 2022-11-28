@@ -1,3 +1,5 @@
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext';
+
 export type DiscoverEventParameters = {
   'discover_v2.add_equation': {};
   'discover_v2.build_new_query': {};
@@ -7,7 +9,7 @@ export type DiscoverEventParameters = {
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
   'discover_v2.quick_context_add_column': {column: string};
   'discover_v2.quick_context_hover_contexts': {
-    contextType: 'issue' | 'release' | 'event';
+    contextType: ContextType;
     eventType?: 'error' | 'transaction';
   };
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
@@ -46,6 +48,6 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
     'Discover2: Add to Dashboard modal opened',
   'discover_views.add_to_dashboard.confirm':
     'Discover2: Add to Dashboard modal form submitted',
-  'discover_v2.quick_context_hover_contexts': 'Discover2: Hover over Quick Contexts',
+  'discover_v2.quick_context_hover_contexts': 'Discover2: Hover over Quick Context',
   'discover_v2.quick_context_add_column': 'Discover2: Add column from quick context',
 };
