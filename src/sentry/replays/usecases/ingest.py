@@ -66,6 +66,7 @@ class RecordingIngestMessage:
     payload_with_headers: bytes
 
 
+@metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
