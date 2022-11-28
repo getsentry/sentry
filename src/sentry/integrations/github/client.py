@@ -162,12 +162,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             try:
                 for repo_info in cached_repositories:
                     repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
-                    # We should not expect that the cache has not been cleared
-                    if not repo_tree:
-                        repo_tree = self.get_repo_files(
-                            repo_info["full_name"],
-                            repo_info["default_branch"],
-                        )
+                    # This assertion will help clear the cache off dictionaries
+                    assert type(repo_tree) == RepoTree
                     trees[repo_info["full_name"]] = repo_tree
 
                 logger.info(f"Using cached trees for {gh_org}.")
