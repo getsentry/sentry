@@ -6,9 +6,10 @@ from django.db.models import prefetch_related_objects
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalActor, OrganizationMember, User
+from sentry.services.hybrid_cloud.user import user_service
 
 from .response import OrganizationMemberResponse
-from .utils import get_organization_id, get_serialized_users_by_id
+from .utils import get_organization_id
 
 
 @register(OrganizationMember)
@@ -28,11 +29,13 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         # Preload to avoid fetching each user individually
         prefetch_related_objects(item_list, "user", "inviter")
         users_set = {
-            organization_member.user
+            organization_member.user_id
             for organization_member in item_list
             if organization_member.user_id
         }
-        users_by_id = get_serialized_users_by_id(users_set, user)
+        users_by_id: Mapping[int, Any] = {
+            u["id"]: u for u in user_service.serialize_users(user_ids=list(users_set))
+        }
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
