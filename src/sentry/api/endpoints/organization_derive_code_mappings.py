@@ -15,9 +15,9 @@ from sentry.integrations.utils.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
+    Repo,
     create_code_mapping,
 )
-from sentry.integrations.utils.repo import Repo
 from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.tasks.derive_code_mappings import get_installation

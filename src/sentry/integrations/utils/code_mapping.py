@@ -6,19 +6,68 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
-from .repo import Repo, RepoTree
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+# Read this to learn about file extensions for different languages
+# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
+# We only care about the ones that would show up in stacktraces after symbolication
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
 NO_TOP_DIR = "NO_TOP_DIR"
+
+
+class Repo(NamedTuple):
+    name: str
+    branch: str
+
+
+class RepoTree(NamedTuple):
+    repo: Repo
+    files: List[str]
 
 
 class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
+
+
+def get_extension(file_path: str) -> str:
+    extension = ""
+    if file_path:
+        ext_period = file_path.find(".")
+        if ext_period >= 1:  # e.g. f.py
+            extension = file_path.rsplit(".")[-1]
+
+    return extension
+
+
+def should_include(file_path: str) -> bool:
+    include = True
+    if file_path.endswith("spec.jsx") or file_path.startswith("tests/"):
+        include = False
+    return include
+
+
+def filter_source_code_files(files: List[str]) -> List[str]:
+    """
+    This takes the list of files of a repo and returns
+    the file paths for supported source code files
+    """
+    _supported_files = []
+    # XXX: If we want to make the data structure faster to traverse, we could
+    # use a tree where each leaf represents a file while non-leaves would
+    # represent a directory in the path
+    for file_path in files:
+        try:
+            extension = get_extension(file_path)
+            if extension in EXTENSIONS and should_include(file_path):
+                _supported_files.append(file_path)
+        except Exception:
+            logger.exception("We've failed to store the file path.")
+
+    return _supported_files
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
