@@ -79,23 +79,11 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
       />
       <InputTrailingItems>
         <StepWrap size={size}>
-          <StepButton
-            ref={incrementButtonRef}
-            size="zero"
-            borderless
-            inputSize={size}
-            {...incrementProps}
-          >
-            <StyledIconChevron direction="up" inputSize={size} />
+          <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
+            <StyledIconChevron direction="up" />
           </StepButton>
-          <StepButton
-            ref={decrementButtonRef}
-            size="zero"
-            borderless
-            inputSize={size}
-            {...decrementProps}
-          >
-            <StyledIconChevron direction="down" inputSize={size} />
+          <StepButton ref={decrementButtonRef} size="zero" borderless {...decrementProps}>
+            <StyledIconChevron direction="down" />
           </StepButton>
         </StepWrap>
       </InputTrailingItems>
@@ -115,22 +103,14 @@ const StepWrap = styled('div')<{size?: FormSize}>`
   height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
-const StepButton = styled(Button)<{inputSize?: FormSize}>`
+const StepButton = styled(Button)`
   display: flex;
   height: 50%;
-  padding: 0 ${p => (p.inputSize === 'xs' ? space(0.25) : space(0.5))};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.subText};
 `;
 
-const StyledIconChevron = styled(IconChevron)<{inputSize?: FormSize}>`
-  ${p =>
-    p.inputSize === 'xs'
-      ? `
-          width: 0.5rem;
-          height: 0.5rem;
-        `
-      : `
-          width: 0.625rem;
-          height: 0.625rem;
-        `};
+const StyledIconChevron = styled(IconChevron)`
+  width: 0.5rem;
+  height: 0.5rem;
 `;
