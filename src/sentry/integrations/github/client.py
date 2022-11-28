@@ -70,18 +70,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
 
-    def get_repo_files(
-        self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
-    ) -> List[str]:
-        """It return all files for a repo or just source code files.
-
-        repo_full_name: e.g. getsentry/sentry
-        tree_sha: A branch or a commit sha
-        only_source_code_files: Include all files or just the source code files
-        """
-        repo_files = []
+    # https://docs.github.com/en/rest/git/trees#get-a-tree
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
+        tree: JSONData = {}
         try:
-            # https://docs.github.com/en/rest/git/trees#get-a-tree
+            # We do not cache this call since it is a rather large object
             contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
@@ -96,9 +89,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            repo_files = [x["path"] for x in contents["tree"] if x["type"] == "blob"]
-            if only_source_code_files:
-                repo_files = filter_source_code_files(files=repo_files)
+            tree = contents["tree"]
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -110,6 +101,27 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
                 logger.exception("An unknown error has ocurred.")
+
+        return tree
+
+    def get_repo_files(
+        self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
+    ) -> List[str]:
+        """It return all files for a repo or just source code files.
+
+        repo_full_name: e.g. getsentry/sentry
+        tree_sha: A branch or a commit sha
+        only_source_code_files: Include all files or just the source code files
+        """
+        repo_files = []
+        try:
+            tree = self.get_tree(repo_full_name, tree_sha)
+            if tree is not None:
+                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
+                if only_source_code_files:
+                    repo_files = filter_source_code_files(files=repo_files)
+        except Exception:
+            logger.exception("An unknown error has ocurred.")
 
         return repo_files
 
