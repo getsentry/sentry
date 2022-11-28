@@ -1,9 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationRow from 'sentry/views/organizationIntegrations/integrationRow';
 
 describe('IntegrationRow', function () {
-  const org = TestStubs.Organization();
+  const {organization: org, routerContext} = initializeOrg();
 
   describe('SentryApp', function () {
     it('is an internal SentryApp', function () {
@@ -35,7 +36,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={0}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('ClickUp')).toBeInTheDocument();
       expect(screen.getByText('ClickUp')).toHaveAttribute(
@@ -57,7 +59,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={1}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('Bitbucket')).toBeInTheDocument();
       expect(screen.getByText('Bitbucket')).toHaveAttribute(
@@ -78,7 +81,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={3}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('Installed')).toBeInTheDocument();
       expect(screen.getByText('Bitbucket')).toHaveAttribute(
@@ -99,7 +103,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={0}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
       expect(screen.getByText('Github')).toHaveAttribute(
@@ -120,7 +125,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={1}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('Installed')).toBeInTheDocument();
       expect(screen.getByText('1 Configuration')).toBeInTheDocument();
@@ -141,7 +147,8 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={3}
           categories={[]}
-        />
+        />,
+        {context: routerContext}
       );
       expect(screen.getByText('Installed')).toBeInTheDocument();
       expect(screen.getByText('3 Configurations')).toBeInTheDocument();

@@ -30,16 +30,18 @@ class OrganizationService(InterfaceWithLifecycle):
         scope: Optional[str],
         only_visible: bool,
         organization_ids: Optional[List[int]] = None,
-    ) -> List["ApiOrganization"]:
+    ) -> List["ApiOrganizationSummary"]:
         """
         When user_id is set, returns all organizations associated with that user id given
         a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
         set of organizations matching those ids, ignore scope and user_id.
 
         When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
-        organization will be returned. NOTE: related resources, including membership, projects, and teams, will
-        ALWAYS filter by status=VISIBLE.  To pull projects or teams that are not visible, use a different service
-        endpoint.
+        organization will be returned.
+
+        Because this endpoint fetches not from region silos, but the control silo organization membership table,
+        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
+        for their full metadata is greatly discouraged for performance reasons.
         """
         pass
 
@@ -177,6 +179,10 @@ class ApiOrganizationFlags:
 
 @dataclass
 class ApiOrganizationSummary:
+    """
+    The subset of organization metadata available from the control silo specifically.
+    """
+
     slug: str = ""
     id: int = -1
     name: str = ""
