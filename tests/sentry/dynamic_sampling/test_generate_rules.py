@@ -1,5 +1,4 @@
 import time
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -508,64 +507,3 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
             "type": "trace",
         },
     ]
-
-
-@pytest.mark.django_db
-@freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-@mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 2)
-def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
-    get_blended_sample_rate, default_project, latest_release_only
-):
-    get_blended_sample_rate.return_value = 0.1
-
-    redis_client = get_redis_client_for_ds()
-
-    releases = [
-        Factories.create_release(project=default_project, version=f"{x}.0") for x in range(1, 4)
-    ]
-
-    for release in releases:
-        redis_client.hset(
-            f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
-        )
-
-    expected = [
-        *[
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": [release.version]},
-                        {
-                            "op": "not",
-                            "inner": {
-                                "op": "glob",
-                                "name": "trace.environment",
-                                "value": ["*"],
-                            },
-                        },
-                    ],
-                },
-                "id": 1500 + index,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            }
-            for index, release in enumerate(releases[-2:])
-        ],
-        {
-            "active": True,
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "sampleRate": 0.1,
-            "type": "trace",
-        },
-    ]
-    assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": expected})
-    validate_sampling_configuration(config_str)

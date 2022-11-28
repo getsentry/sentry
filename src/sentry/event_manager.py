@@ -117,7 +117,6 @@ from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
-from sentry.search.utils import get_latest_release
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.commits import fetch_commits
@@ -891,24 +890,21 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     ).is_on_dynamic_sampling
                     and data.get("type") == "transaction"
                 ):
-                    if _is_latest_release(
-                        transaction_release_version=release.version,
-                        transaction_project_id=project_id,
-                    ):
-                        params = LatestReleaseParams(
-                            release_id=release.id,
-                            project_id=project_id,
-                            environment=_get_environment_from_transaction(data),
-                        )
+                    latest_release_params = LatestReleaseParams(
+                        release=release,
+                        project_id=project_id,
+                        environment=_get_environment_from_transaction(data),
+                    )
 
-                        LatestReleaseObserver(
-                            params=params
-                        ).observe_release().boost_if_not_observed(
-                            lambda: schedule_invalidate_project_config(
-                                project_id=project_id,
-                                trigger="dynamic_sampling:boost_release",
-                            )
+                    # TODO: implement sentry monitoring.
+                    LatestReleaseObserver(
+                        latest_release_params=latest_release_params
+                    ).observe_release().boost_if_not_observed(
+                        lambda: schedule_invalidate_project_config(
+                            project_id=project_id,
+                            trigger="dynamic_sampling:boost_release",
                         )
+                    )
 
 
 def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
@@ -919,15 +915,6 @@ def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
         environment = None
 
     return environment  # type:ignore
-
-
-def _is_latest_release(transaction_release_version: str, transaction_project_id: int) -> bool:
-    latest_release = get_latest_release(projects=[transaction_project_id], environments=None)
-    if len(latest_release) == 1:
-        latest_release = latest_release[0]
-        return latest_release == transaction_release_version
-
-    return False
 
 
 @metrics.wraps("save_event.get_event_user_many")
