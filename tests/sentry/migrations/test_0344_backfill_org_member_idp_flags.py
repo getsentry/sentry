@@ -2,7 +2,7 @@ from sentry.models import OrganizationMember
 from sentry.testutils.cases import TestMigrations
 
 
-class TestBackfill(TestMigrations):
+class TestDefaultFlag(TestMigrations):
     migrate_from = "0343_drop_savedsearch_userdefault_fk_constraints_and_remove_state"
     migrate_to = "0344_add_idp_flags"
 
