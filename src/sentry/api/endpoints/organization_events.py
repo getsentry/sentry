@@ -285,9 +285,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "has_metrics": use_metrics,
                 "use_metrics_layer": use_metrics_layer,
             }
-            if not metrics_enhanced:
-                sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.query(**query_details)
             return dataset.query(**query_details)
 
         with self.handle_query_errors():
