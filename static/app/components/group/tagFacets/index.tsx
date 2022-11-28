@@ -46,7 +46,7 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
   return transformedTagsData;
 }
 
-type TagFacetsStyles = 'bars' | 'breakdowns' | 'distributions';
+export type TagFacetsStyles = 'bars' | 'breakdowns' | 'distributions';
 
 export function TagFacets(props: TagFacetsProps & {style: TagFacetsStyles}) {
   return props.style === 'breakdowns' ? (
