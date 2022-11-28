@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -43,8 +43,8 @@ import {
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import withProjects from 'sentry/utils/withProjects';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -68,7 +68,6 @@ export type TableViewProps = {
   measurementKeys: null | string[];
   onChangeShowTags: () => void;
   organization: Organization;
-  projects: Project[];
   showTags: boolean;
   tableData: TableData | null | undefined;
 
@@ -93,6 +92,7 @@ export type TableViewProps = {
  * object. The new EventView object is pushed to the location object.
  */
 function TableView(props: TableViewProps) {
+  const {projects} = useProjects();
   const routes = useRoutes();
 
   /**
@@ -119,7 +119,7 @@ function TableView(props: TableViewProps) {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] {
-    const {organization, eventView, tableData, location, isHomepage, projects} = props;
+    const {organization, eventView, tableData, location, isHomepage} = props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -274,15 +274,7 @@ function TableView(props: TableViewProps) {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const {
-      isFirstPage,
-      eventView,
-      location,
-      organization,
-      tableData,
-      isHomepage,
-      projects,
-    } = props;
+    const {isFirstPage, eventView, location, organization, tableData, isHomepage} = props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -444,7 +436,7 @@ function TableView(props: TableViewProps) {
     column: TableColumn<keyof TableDataRow>
   ) {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location, tableData, isHomepage} = props;
+      const {eventView, organization, location, tableData, isHomepage} = props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -644,4 +636,4 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-export default withProjects(TableView);
+export default TableView;
