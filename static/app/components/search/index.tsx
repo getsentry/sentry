@@ -210,8 +210,7 @@ function Search({
   );
 }
 
-const WithRouterSearch = Search;
-export {WithRouterSearch as Search, SearchProps};
+export {Search, SearchProps};
 
 const SearchWrapper = styled('div')`
   position: relative;
