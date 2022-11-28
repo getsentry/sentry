@@ -6,16 +6,18 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence
 
 from dateutil.parser import parse as parse_date
+from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.types.issues import GroupType
-from sentry.utils.dates import ensure_aware
 
 
 @dataclass(frozen=True)
 class IssueEvidence:
     name: str
     value: str
+    # Whether to prioritise displaying this evidence to users over other issue evidence. Should
+    # only be one important row per occurrence.
     important: bool
 
     def to_dict(
@@ -58,7 +60,8 @@ class IssueOccurrence:
     detection_time: datetime
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "detection_time", ensure_aware(self.detection_time))
+        if not is_aware(self.detection_time):
+            raise ValueError("detection_time must be timezone aware")
 
     def to_dict(
         self,

@@ -5,6 +5,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.dates import ensure_aware
 
 
 @region_silo_test
@@ -32,7 +33,7 @@ class IssueOccurenceTest(TestCase):  # type: ignore
             {"Test": 123},
             [IssueEvidence("hi", "bye", True), IssueEvidence("what", "where", False)],
             GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            datetime.now(),
+            ensure_aware(datetime.now()),
         )
         self.assert_occurrences_identical(
             occurrence, IssueOccurrence.from_dict(occurrence.to_dict())
@@ -49,7 +50,7 @@ class IssueOccurenceTest(TestCase):  # type: ignore
             {"Test": 123},
             [IssueEvidence("hi", "bye", True), IssueEvidence("what", "where", False)],
             GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            datetime.now(),
+            ensure_aware(datetime.now()),
         )
         occurrence.save()
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id)
