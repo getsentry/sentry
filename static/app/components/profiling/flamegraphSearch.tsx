@@ -113,7 +113,6 @@ function frameSearch(
   // we lowercase the query to make the search case insensitive (assumption of fzf)
   // when caseSensitive = false
   const lowercaseQuery = query.toLowerCase();
-
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i]!;
     const match = fzf(frame.frame.name, lowercaseQuery, false);

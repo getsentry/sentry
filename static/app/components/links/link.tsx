@@ -1,9 +1,11 @@
-import {forwardRef, useEffect} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
+import {forwardRef, useContext, useEffect} from 'react';
+import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
+
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {RouteContext} from 'sentry/views/routeContext';
 
 import {linkStyles} from './styles';
 
@@ -34,27 +36,19 @@ export interface LinkProps
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-
-interface WithRouterBaseLinkProps extends WithRouterProps, LinkProps {}
-
-function BaseLink({
-  location,
-  disabled,
-  to,
-  forwardedRef,
-  router: _router,
-  params: _params,
-  routes: _routes,
-  ...props
-}: WithRouterBaseLinkProps): React.ReactElement {
+function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
+  const route = useContext(RouteContext);
+  const location = route?.location;
   useEffect(() => {
     // check if the router is present
-    if (!location) {
+    if (!(route && location)) {
       Sentry.captureException(
         new Error('The link component was rendered without being wrapped by a <Router />')
       );
     }
-  }, [location]);
+  }, [route, location]);
+
+  to = normalizeUrl(to, location);
 
   if (!disabled && location) {
     return <RouterLink to={to} ref={forwardedRef as any} {...props} />;
@@ -64,14 +58,12 @@ function BaseLink({
 }
 
 // Re-assign to Link to make auto-importing smarter
-const Link = withRouter(
-  styled(
-    forwardRef<HTMLAnchorElement, Omit<WithRouterBaseLinkProps, 'forwardedRef'>>(
-      (props, ref) => <BaseLink forwardedRef={ref} {...props} />
-    )
-  )`
-    ${linkStyles}
-  `
-);
+const Link = styled(
+  forwardRef<HTMLAnchorElement, Omit<LinkProps, 'forwardedRef'>>((props, ref) => (
+    <BaseLink forwardedRef={ref} {...props} />
+  ))
+)`
+  ${linkStyles}
+`;
 
 export default Link;
