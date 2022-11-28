@@ -246,11 +246,13 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.test_processor.MockFilterFalse",
     )
 
+    def setUp(self):
+        self.event = self.store_event(data={}, project_id=self.project.id)
+        self.event = next(self.event.build_group_events())
+
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
-        self.event = self.store_event(data={}, project_id=self.project.id)
-
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.event.project).delete()
@@ -281,8 +283,6 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
-        self.event = self.store_event(data={}, project_id=self.project.id)
-
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterFalse"}
 
         Rule.objects.filter(project=self.event.project).delete()
@@ -307,8 +307,6 @@ class RuleProcessorTestFilters(TestCase):
 
     def test_no_filters(self):
         # setup an alert rule with 1 conditions and no filters that passes
-        self.event = self.store_event(data={}, project_id=self.project.id)
-
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
@@ -336,8 +334,6 @@ class RuleProcessorTestFilters(TestCase):
 
     def test_no_conditions(self):
         # if a rule has no conditions/triggers it should still pass
-        self.event = self.store_event(data={}, project_id=self.project.id)
-
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
@@ -366,6 +362,7 @@ class RuleProcessorTestFilters(TestCase):
         self.event = self.store_event(
             data={"release": "2021-02.newRelease"}, project_id=self.project.id
         )
+        self.event = next(self.event.build_group_events())
 
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -413,6 +410,7 @@ class RuleProcessorTestFilters(TestCase):
             },
             project_id=self.project.id,
         )
+        self.event = next(self.event.build_group_events())
 
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -452,8 +450,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
             data={"message": "Hello world"},
             project_id=self.project.id,
         )
-        # self.event.group._times_seen_pending = 0
-        # self.event.group.save()
+        self.event = next(self.event.build_group_events())
 
         self.oldRelease = Release.objects.create(
             organization_id=self.organization.id,
