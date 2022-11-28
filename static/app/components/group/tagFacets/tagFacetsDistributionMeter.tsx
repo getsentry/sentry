@@ -82,7 +82,20 @@ function TagFacetsDistributionMeter({
             },
           };
           return (
-            <div key={value.value} style={{width: pct + '%'}}>
+            <div
+              key={value.value}
+              style={{width: pct + '%'}}
+              onMouseOver={() =>
+                trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+                  tag: title,
+                  value: value.value,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'distributions',
+                })
+              }
+            >
               <Tooltip
                 title={renderLegend(true)}
                 containerDisplayMode="block"

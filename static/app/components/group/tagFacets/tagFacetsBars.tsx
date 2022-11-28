@@ -179,9 +179,9 @@ type Props = {
    * in the order they want bars displayed.
    */
   data: Point[];
+  project: Project;
+  tag: string;
   maxItems?: number;
-  project?: Project;
-  tag?: string;
 };
 
 function BreakdownBars({data, maxItems, project, tag}: Props) {
@@ -208,17 +208,25 @@ function BreakdownBars({data, maxItems, project, tag}: Props) {
               to={point.url}
               aria-label={t('Add %s to the search query', point.label)}
               onClick={() => {
-                if (tag && project) {
-                  trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
-                    tag,
-                    value: point.label,
-                    platform: project.platform,
-                    is_mobile: isMobilePlatform(project?.platform),
-                    organization,
-                    type: 'bars',
-                  });
-                }
+                trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+                  tag,
+                  value: point.label,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'bars',
+                });
               }}
+              onMouseOver={() =>
+                trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+                  tag,
+                  value: point.label,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'bars',
+                })
+              }
             >
               {bar}
             </Link>
