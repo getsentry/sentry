@@ -1,0 +1,82 @@
+import {WithRouterProps} from 'react-router';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import withSentryRouter from 'sentry/utils/withSentryRouter';
+
+const mockUsingCustomerDomain = jest.fn();
+const mockCustomerDomain = jest.fn();
+
+jest.mock('sentry/constants', () => {
+  const sentryConstant = jest.requireActual('sentry/constants');
+  return {
+    ...sentryConstant,
+
+    get usingCustomerDomain() {
+      return mockUsingCustomerDomain();
+    },
+
+    get customerDomain() {
+      return mockCustomerDomain();
+    },
+  };
+});
+
+describe('withSentryRouter', function () {
+  type Props = WithRouterProps<{orgId: string}>;
+  const MyComponent = (props: Props) => {
+    const {params} = props;
+    return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
+  };
+
+  it('injects orgId when a customer domain is being used', function () {
+    mockUsingCustomerDomain.mockReturnValue(true);
+    mockCustomerDomain.mockReturnValue('albertos-apples');
+
+    const organization = TestStubs.Organization({
+      slug: 'albertos-apples',
+      features: [],
+    });
+
+    const {routerContext} = initializeOrg({
+      ...initializeOrg(),
+      organization,
+    });
+
+    const WrappedComponent = withSentryRouter(MyComponent);
+    render(<WrappedComponent />, {
+      context: routerContext,
+    });
+
+    expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
+  });
+
+  it('does not inject orgId when a customer domain is not being used', function () {
+    mockUsingCustomerDomain.mockReturnValue(false);
+    mockCustomerDomain.mockReturnValue(undefined);
+
+    const organization = TestStubs.Organization({
+      slug: 'albertos-apples',
+      features: [],
+    });
+
+    const params = {
+      orgId: 'something-else',
+    };
+    const {routerContext} = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        params,
+      },
+    });
+
+    const WrappedComponent = withSentryRouter(MyComponent);
+    render(<WrappedComponent />, {
+      context: routerContext,
+    });
+
+    expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();
+  });
+});
