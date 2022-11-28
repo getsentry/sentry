@@ -9,7 +9,6 @@ import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
 import ReplayMetaData, {
   HeaderPlaceholder,
 } from 'sentry/views/replays/detail/replayMetaData';
@@ -34,7 +33,6 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       </HeaderContent>
       <ButtonActionsWrapper>
         <DeleteButton />
-        <ChooseLayout />
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
 
