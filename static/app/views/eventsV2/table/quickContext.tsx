@@ -224,7 +224,7 @@ function IssueContext(props: BaseContextProps) {
   const renderAssigneeSelector = () =>
     issue && (
       <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo group={issue} projectId={issue.project.id} />
+        <AssignedTo disableDropdown group={issue} projectId={issue.project.id} />
       </IssueContextContainer>
     );
 
@@ -612,7 +612,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
     <HoverWrapper>
       <StyledHovercard
         showUnderline
-        displayTimeout={400}
+        displayTimeout={600}
         delay={HOVER_DELAY}
         header={getHoverHeader(dataRow, contextType)}
         body={getHoverBody(
