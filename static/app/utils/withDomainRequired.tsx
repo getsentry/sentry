@@ -6,8 +6,10 @@ import trimStart from 'lodash/trimStart';
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/?organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
-  // /settings/slug/section but not /settings/organization
-  // and not /settings/projects which is a new URL
+  // For /settings/:orgId/ -> /settings/organization/
+  [/\/?settings\/[^\/]+\/?$/, '/settings/organization/'],
+  // Move /settings/:orgId/:section -> /settings/:section
+  // but not /settings/organization or /settings/projects which is a new URL
   [/\/?settings\/(?!projects)(?!account)[^\/]+\/(.*)/, '/settings/$1'],
   [/\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
   [/\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
@@ -46,13 +48,14 @@ export function normalizeUrl(path: LocationTarget, location?: Location): Locatio
     }
     return resolved;
   }
+
   if (!resolved.pathname) {
     return resolved;
   }
   for (const patternData of NORMALIZE_PATTERNS) {
-    resolved.pathname = resolved.pathname.replace(patternData[0], patternData[1]);
-    if (resolved !== path) {
-      return resolved;
+    const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
+    if (replacement !== resolved.pathname) {
+      return {...resolved, pathname: replacement};
     }
   }
 
