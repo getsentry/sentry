@@ -39,6 +39,9 @@ class BoundedPoolExecutorBase:
         self.executor = self.init_executor(worker_count)
         self.semaphore = BoundedSemaphore(queue_size)
 
+    def shutdown(self, *args, **kwargs) -> None:
+        return self.executor.shutdown(*args, **kwargs)
+
     def submit(self, function, *args, **kwargs):
         if self.always_eager:
             return EagerFuture(function(*args, **kwargs))

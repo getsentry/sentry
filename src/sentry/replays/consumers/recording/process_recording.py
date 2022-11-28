@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import concurrent.futures
 import logging
 import random
 import time
@@ -18,6 +17,7 @@ from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
 from sentry.replays.cache import RecordingSegmentParts
+from sentry.replays.lib.pool import BoundedThreadPoolExecutor
 from sentry.replays.usecases.ingest import (
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
@@ -54,7 +54,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     ) -> None:
         self.__closed = False
         self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
-        self.__threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
+        self.__threadpool = BoundedThreadPoolExecutor(worker_count=16, queue_size=16)
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
