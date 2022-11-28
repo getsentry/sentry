@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
@@ -18,9 +16,10 @@ import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
@@ -30,10 +29,10 @@ type Props = WithRouterProps<{orgId: string}> & {
 function EventOrGroupExtraDetails({
   data,
   showAssignee,
-  params,
   showInboxTime,
   organization,
 }: Props) {
+  const params = useParams();
   const {
     id,
     lastSeen,
@@ -169,4 +168,4 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
 `;
 
-export default withRouter(withOrganization(EventOrGroupExtraDetails));
+export default withOrganization(EventOrGroupExtraDetails);

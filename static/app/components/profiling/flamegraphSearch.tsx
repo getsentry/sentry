@@ -125,7 +125,6 @@ function findBestMatchFromRegexpMatchArray(
 }
 
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
-
 const numericSort = (
   a: null | undefined | number,
   b: null | undefined | number,

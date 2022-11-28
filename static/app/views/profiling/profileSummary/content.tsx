@@ -178,7 +178,7 @@ const DEFAULT_FIELDS: FieldType[] = [
   'id',
   'timestamp',
   'release',
-  'device.model',
+  'device.arch',
   'profile.duration',
 ];
 
