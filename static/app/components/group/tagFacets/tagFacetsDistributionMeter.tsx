@@ -1,5 +1,6 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
@@ -7,11 +8,13 @@ import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {TagFacetsStyles} from '.';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 
@@ -23,6 +26,34 @@ type Props = {
   colors?: string[];
   onTagClick?: (title: string, value: TagSegment) => void;
 };
+
+const _debounceTrackHover = debounce(
+  ({
+    tag,
+    value,
+    platform,
+    is_mobile,
+    organization,
+    type,
+  }: {
+    is_mobile: boolean;
+    organization: Organization;
+    tag: string;
+    type: TagFacetsStyles;
+    value: string;
+    platform?: string;
+  }) => {
+    trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+      tag,
+      value,
+      platform,
+      is_mobile,
+      organization,
+      type,
+    });
+  },
+  300
+);
 
 function TagFacetsDistributionMeter({
   colors = COLORS,
@@ -86,7 +117,7 @@ function TagFacetsDistributionMeter({
               key={value.value}
               style={{width: pct + '%'}}
               onMouseOver={() =>
-                trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+                _debounceTrackHover({
                   tag: title,
                   value: value.value,
                   platform: project.platform,
