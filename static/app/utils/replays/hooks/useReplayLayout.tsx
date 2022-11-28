@@ -13,19 +13,6 @@ export enum LayoutKey {
    *┌────────────────────┐
    *│ Timeline           │
    *├───────────┬────────┤
-   *│ Video     > Crumbs │
-   *│           >        │
-   *├^^^^^^^^^^^>        |
-   *│ Details   >        │
-   *│           >        │
-   *└───────────┴────────┘
-   */
-  top = 'top',
-  /**
-   * ### Top
-   *┌────────────────────┐
-   *│ Timeline           │
-   *├───────────┬────────┤
    *│ Details   > Crumbs │
    *│           >        │
    *│           >        |
@@ -73,19 +60,6 @@ export enum LayoutKey {
    * └────────┴──────────┘
    */
   sidebar_left = 'sidebar_left',
-  /**
-   * ### Sidebar Right
-   * ┌───────────────────┐
-   * │ Timeline          │
-   * ├──────────┬────────┤
-   * │ Details  > Video  │
-   * │          >        │
-   * │          >^^^^^^^^┤
-   * │          > Crumbs │
-   * │          > Tabs   │
-   * └──────────┴────────┘
-   */
-  sidebar_right = 'sidebar_right',
 }
 
 function isLayout(val: string): val is LayoutKey {

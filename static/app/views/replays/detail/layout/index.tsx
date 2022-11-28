@@ -44,7 +44,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </VideoSection>
   );
 
-  if (layout === 'video_only') {
+  if (layout === LayoutKey.video_only) {
     return (
       <BodyContent>
         {timeline}
@@ -61,7 +61,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </ErrorBoundary>
   );
 
-  if (layout === 'no_video') {
+  if (layout === LayoutKey.no_video) {
     return (
       <BodyContent>
         {timeline}
@@ -69,41 +69,6 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           key={layout}
           left={{
             content: focusArea,
-            default: '1fr',
-            min: MIN_CONTENT_WIDTH,
-          }}
-          right={{
-            content: <SideCrumbsTags />,
-            min: MIN_SIDEBAR_WIDTH,
-          }}
-        />
-      </BodyContent>
-    );
-  }
-
-  if (layout === 'top') {
-    const mainSplit = (
-      <SplitPanel
-        key={layout + '_main'}
-        top={{
-          content: video,
-          default: '65%',
-          min: MIN_VIDEO_HEIGHT,
-        }}
-        bottom={{
-          content: focusArea,
-          min: MIN_CONTENT_HEIGHT,
-        }}
-      />
-    );
-
-    return (
-      <BodyContent>
-        {timeline}
-        <SplitPanel
-          key={layout}
-          left={{
-            content: mainSplit,
             default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
@@ -131,27 +96,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     />
   );
 
-  if (layout === 'sidebar_right') {
-    return (
-      <BodyContent>
-        {timeline}
-        <SplitPanel
-          key={layout}
-          left={{
-            content: focusArea,
-            default: '1fr',
-            min: MIN_CONTENT_WIDTH,
-          }}
-          right={{
-            content: sideVideoCrumbs,
-            min: MIN_SIDEBAR_WIDTH,
-          }}
-        />
-      </BodyContent>
-    );
-  }
-
-  if (layout === 'sidebar_left') {
+  if (layout === LayoutKey.sidebar_left) {
     return (
       <BodyContent>
         {timeline}
@@ -196,11 +141,11 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
               }}
             />
           ),
-          default: '65%',
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content: focusArea,
+          default: '1fr',
           min: MIN_CONTENT_HEIGHT,
         }}
       />
