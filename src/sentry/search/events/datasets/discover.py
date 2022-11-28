@@ -134,6 +134,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
+            "http.status_code": self._resolve_http_status_code,
         }
 
     @property
@@ -1027,6 +1028,16 @@ class DiscoverDatasetConfig(DatasetConfig):
         columns = ["user.email", "user.username", "user.id", "user.ip"]
         return Function(
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
+        )
+
+    def _resolve_http_status_code(self, _: str) -> SelectType:
+        return Function(
+            "coalesce",
+            [
+                Function("nullif", [self.builder.column("http.status_code"), ""]),
+                self.builder.column("tags[http.status_code]"),
+            ],
+            "http.status_code",
         )
 
     @cached_property  # type: ignore
