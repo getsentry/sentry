@@ -1,3 +1,4 @@
+import uuid
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Mapping, Sequence
@@ -14,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
@@ -57,6 +59,7 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.issues import GroupType
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.types.rules import RuleFuture
+from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry.utils.samples import load_data
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -278,6 +281,59 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
+
+    def test_simple_notification_default(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        event_data = load_data(
+            "python",
+            timestamp=before_now(minutes=10),
+            # fingerprint=[f"{GroupType.DEFAULT.value}-group1"],
+        )
+        event_manager = EventManager(event_data)
+        event_manager.normalize()
+        event = event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Evidence 1", "Value 1", True),
+                IssueEvidence("Evidence 2", "Value 2", False),
+                IssueEvidence("Evidence 3", "Value 3", False),
+            ],
+            GroupType.DEFAULT,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save()
+        event.occurrence = occurrence
+
+        # event.group.issue_category = GroupType.DEFAULT
+        # event.group.save()
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        # assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        checked_values = ["Evidence 1", "Value 1", "Evidence 2", "Value 2", "Evidence 3", "Value 3"]
+        for checked_value in checked_values:
+            assert (
+                checked_value in msg.alternatives[0][0]
+            ), f"{checked_value} not present in message"
 
     def test_simple_notification_perf(self):
         event_data = load_data(
