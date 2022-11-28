@@ -889,7 +889,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 ):
                     latest_release_params = LatestReleaseParams(
                         release=release,
-                        project_id=project_id,
+                        project=projects[project_id],
                         environment=_get_environment_from_transaction(data),
                     )
 

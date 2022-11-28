@@ -258,7 +258,7 @@ class ProjectBoostedReleases:
 
 @dataclass(frozen=True)
 class LatestReleaseParams:
-    project_id: int
+    project: Project
     release: Release
     environment: Optional[str]
 
@@ -276,7 +276,9 @@ class LatestReleaseBias:
         self.latest_release_params = latest_release_params
 
     def observe_release(self) -> "LatestReleaseBooster":
-        boost = self._is_latest_release() and not self._is_already_observed()
+        # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
+        # is a latest release.
+        boost = not self._is_already_observed() and self._is_latest_release()
 
         return LatestReleaseBooster(
             boost_latest_release=boost, latest_release_params=self.latest_release_params
@@ -291,11 +293,10 @@ class LatestReleaseBias:
         return release_observed == "1"
 
     def _is_latest_release(self) -> bool:
-        # TODO: implement latest release fetch.
-        return True
-
         latest_release = get_latest_release(
-            projects=[self.latest_release_params.project_id], environments=None
+            projects=[self.latest_release_params.project.id],
+            environments=None,
+            organization_id=self.latest_release_params.project.organization.id,
         )
 
         if len(latest_release) == 1:
@@ -306,18 +307,22 @@ class LatestReleaseBias:
 
     def _generate_cache_key_for_observed_release(self) -> str:
         return (
-            f"ds::p:{self.latest_release_params.project_id}"
+            f"ds::p:{self.latest_release_params.project.id}"
             f":r:{self.latest_release_params.release.id}"
             f"{_get_environment_cache_key(self.latest_release_params.environment)}"
         )
 
 
 class LatestReleaseBooster:
+    """
+    Class responsible of boosting a certain (release, environment) pair.
+    """
+
     def __init__(self, boost_latest_release: bool, latest_release_params: LatestReleaseParams):
         self.boost_latest_release = boost_latest_release
         self.latest_release_params = latest_release_params
         self.project_boosted_releases = ProjectBoostedReleases(
-            self.latest_release_params.project_id
+            self.latest_release_params.project.id
         )
 
     def boost_if_not_observed(self, on_boosted_release_added: Callable[[], None]) -> None:

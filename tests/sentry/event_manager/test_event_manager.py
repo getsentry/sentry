@@ -2964,6 +2964,65 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_boosts_only_latest_release(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            project = self.create_project(platform="python")
+
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.utcnow()
+            )
+            release_2 = Release.get_or_create(
+                project=project,
+                version="2.0",
+                # We must make sure the new release_2.date_added > release_1.date_added.
+                date_added=datetime.utcnow() + timedelta(hours=1),
+            )
+
+            # We add a transaction for release_2.
+            self.make_release_transaction(
+                release_version=release_2.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+            # We add a transaction for release_1 which is not anymore the latest release, therefore we should skip this.
+            self.make_release_transaction(
+                release_version=release_1.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+            assert (
+                self.redis_client.get(
+                    f"ds::p:{project.id}:r:{release_2.id}:e:{self.environment1.name}"
+                )
+                == "1"
+            )
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_2.id}:e:{self.environment1.name}": str(time()),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=time(),
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release_2.id}:e:{self.environment1.name}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                )
+            ]
+
+    @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_observed_release_and_different_environment(self):
         with self.options(
             {
