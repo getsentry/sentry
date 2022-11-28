@@ -195,22 +195,18 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     zerofill_results=zerofill_results,
                     include_other=include_other,
                 )
-            query_details = {
-                "selected_columns": query_columns,
-                "query": query,
-                "params": params,
-                "rollup": rollup,
-                "referrer": referrer,
-                "zerofill_results": zerofill_results,
-                "comparison_delta": comparison_delta,
-                "allow_metric_aggregates": allow_metric_aggregates,
-                "has_metrics": use_metrics,
-                "use_metrics_layer": use_metrics_layer,
-            }
-            if not metrics_enhanced:
-                sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.timeseries_query(**query_details)
-            return dataset.timeseries_query(**query_details)
+            return dataset.timeseries_query(
+                selected_columns=query_columns,
+                query=query,
+                params=params,
+                rollup=rollup,
+                referrer=referrer,
+                zerofill_results=zerofill_results,
+                comparison_delta=comparison_delta,
+                allow_metric_aggregates=allow_metric_aggregates,
+                has_metrics=use_metrics,
+                use_metrics_layer=use_metrics_layer,
+            )
 
         try:
             return Response(
