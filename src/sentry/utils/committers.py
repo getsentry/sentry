@@ -19,12 +19,13 @@ from typing import (
 from django.core.cache import cache
 from django.db.models import Q
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
-from sentry.models.groupowner import get_release_committers_for_group
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, get_release_committers_for_group
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -297,41 +298,64 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    event_frames = get_frame_paths(event)
-    sdk_name = get_sdk_name(event.data)
-    committers = get_event_file_committers(
-        project,
-        event.group_id,
-        event_frames,
-        event.platform,
-        frame_limit=frame_limit,
-        sdk_name=sdk_name,
-    )
-    commits = [commit for committer in committers for commit in committer["commits"]]
-    serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
-        [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
-    )
+    if features.has("organizations:commit-context", project.organization):
+        group_owners = GroupOwner.objects.filter(
+            group_id=event.group_id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context__isnull=False,
+        ).order_by("-date_added")
+        owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
+        if not owner:
+            return []
+        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        author = serialize(owner.user) if owner.user else {"email": commit.author.email}
 
-    serialized_commits_by_id = {}
+        return [
+            {
+                "author": author,
+                "commits": [serialize(commit, serializer=CommitSerializer(exclude=["author"]))],
+            }
+        ]
 
-    for (commit, score), serialized_commit in zip(commits, serialized_commits):
-        serialized_commit["score"] = score
-        serialized_commits_by_id[commit.id] = serialized_commit
-
-    serialized_committers: List[AuthorCommitsSerialized] = []
-    for committer in committers:
-        commit_ids = [commit.id for (commit, _) in committer["commits"]]
-        commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
-        serialized_committers.append(
-            {"author": committer["author"], "commits": dedupe_commits(commits_result)}
+    # TODO(nisanthan): Delete this else block once Commit Context has GA'd
+    else:
+        event_frames = get_frame_paths(event)
+        sdk_name = get_sdk_name(event.data)
+        committers = get_event_file_committers(
+            project,
+            event.group_id,
+            event_frames,
+            event.platform,
+            frame_limit=frame_limit,
+            sdk_name=sdk_name,
+        )
+        commits = [commit for committer in committers for commit in committer["commits"]]
+        serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
+            [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
         )
 
-    metrics.incr(
-        "feature.owners.has-committers",
-        instance="hit" if committers else "miss",
-        skip_internal=False,
-    )
-    return serialized_committers
+        serialized_commits_by_id = {}
+
+        for (commit, score), serialized_commit in zip(commits, serialized_commits):
+            serialized_commit["score"] = score
+            serialized_commits_by_id[commit.id] = serialized_commit
+
+        serialized_committers: List[AuthorCommitsSerialized] = []
+        for committer in committers:
+            commit_ids = [commit.id for (commit, _) in committer["commits"]]
+            commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+            serialized_committers.append(
+                {"author": committer["author"], "commits": dedupe_commits(commits_result)}
+            )
+
+        metrics.incr(
+            "feature.owners.has-committers",
+            instance="hit" if committers else "miss",
+            skip_internal=False,
+        )
+        return serialized_committers
 
 
 def dedupe_commits(
