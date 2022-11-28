@@ -21,15 +21,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 type HeaderProps = {
   data: BaseGroup;
   organization: Organization;
-  projectId: string;
   eventId?: string;
 };
 
-function CompactIssueHeader({data, organization, projectId, eventId}: HeaderProps) {
+function CompactIssueHeader({data, organization, eventId}: HeaderProps) {
   const basePath = `/organizations/${organization.slug}/issues/`;
 
   const issueLink = eventId
-    ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/?referrer=compact-issue`
+    ? `${basePath}${data.id}/events/${eventId}/?referrer=compact-issue`
     : `${basePath}${data.id}/?referrer=compact-issue`;
 
   const commentColor: keyof Aliases =
@@ -172,7 +171,6 @@ class CompactIssue extends Component<Props, State> {
         <CompactIssueHeader
           data={issue}
           organization={organization}
-          projectId={issue.project.slug}
           eventId={this.props.eventId}
         />
         {this.props.children}

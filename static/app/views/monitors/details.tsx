@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as PropTypes from 'prop-types';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorCheckIns from './monitorCheckIns';
@@ -20,20 +20,17 @@ import MonitorOnboarding from './onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
+  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+    organization: Organization;
+  };
 
 type State = AsyncView['state'] & {
   monitor: Monitor | null;
 };
 
 class MonitorDetails extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
   get orgSlug() {
-    return this.context.organization.slug;
+    return this.props.organization.slug;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -89,4 +86,4 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default MonitorDetails;
+export default withOrganization(MonitorDetails);

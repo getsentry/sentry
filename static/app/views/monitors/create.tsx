@@ -1,30 +1,28 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as PropTypes from 'prop-types';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] & RouteComponentProps<{orgId: string}, {}>;
-
-export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
+type Props = AsyncView['props'] &
+  RouteComponentProps<{orgId: string}, {}> & {
+    organization: Organization;
   };
 
+class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {
     return `Monitors - ${this.orgSlug}`;
   }
 
   get orgSlug() {
-    return this.context.organization.slug;
+    return this.props.organization.slug;
   }
 
   onSubmitSuccess = (data: Monitor) => {
@@ -56,6 +54,7 @@ export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> 
     );
   }
 }
+export default withOrganization(CreateMonitor);
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};
