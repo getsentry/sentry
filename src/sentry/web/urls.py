@@ -58,10 +58,12 @@ __all__ = ("urlpatterns",)
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
+from sentry.web.debug_urls import urlpatterns as debug_urls
+
 urlpatterns = []
+urlpatterns += debug_urls
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
-    from sentry.web.debug_urls import urlpatterns as debug_urls
 
     urlpatterns += debug_urls
 
