@@ -108,7 +108,7 @@ const QuickTraceWrapper = styled('div')`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(0.5)} 0;
+  margin: ${space(1)} 0;
 `;
 
 export default IssueQuickTrace;

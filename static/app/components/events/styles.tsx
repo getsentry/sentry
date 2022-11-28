@@ -6,14 +6,13 @@ import {Theme} from 'sentry/utils/theme';
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
+  margin: 0;
 
   /* Padding aligns with Layout.Body */
-  padding: 0 ${space(2)};
-  margin: ${space(1)} 0;
+  padding: ${space(1)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 0 ${space(4)};
-    margin: ${space(1.5)} 0;
+    padding: ${space(1.5)} ${space(4)};
   }
 `;
 

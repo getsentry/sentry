@@ -138,15 +138,15 @@ class GroupEventToolbar extends Component<Props> {
             />
           </NavigationContainer>
         </HeadingAndNavWrapper>
-        <StyledGlobalAppStoreConnectUpdateAlert
-          project={project}
-          organization={organization}
-        />
         <QuickTrace
           event={evt}
           group={group}
           organization={organization}
           location={location}
+        />
+        <StyledGlobalAppStoreConnectUpdateAlert
+          project={project}
+          organization={organization}
         />
       </Wrapper>
     );
