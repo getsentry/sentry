@@ -5573,7 +5573,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "user": {"email": "cathy@example.com"},
                 "tags": {"http.status_code": "200"},
             },
             project_id=project1.id,
@@ -5584,7 +5583,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "user": {"username": "catherine"},
                 "contexts": {"response": {"status_code": 400}},
             },
             project_id=project2.id,
@@ -5611,7 +5609,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "user": {"email": "cathy@example.com"},
                 "tags": {"http.status_code": "200"},
                 "contexts": {"response": {"status_code": 400}},
             },
@@ -5628,5 +5625,4 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        result = {r["http.status_code"] for r in data}
-        assert result == {"400"}
+        assert data[0]["http.status_code"] == "400"
