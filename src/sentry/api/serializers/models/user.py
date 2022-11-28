@@ -36,7 +36,7 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
-from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary, organization_service
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -209,7 +209,7 @@ class UserSerializer(Serializer):  # type: ignore
                 only_visible=False,
                 organization_ids=list(organization_ids),
             )
-            orgs_by_id: Mapping[int, ApiOrganization] = {
+            orgs_by_id: Mapping[int, ApiOrganizationSummary] = {
                 o.id: o for o in auth_identity_organizations
             }
 

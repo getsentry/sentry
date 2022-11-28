@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import (
     ApiOrganizationFlags,
     ApiOrganizationMember,
     ApiOrganizationMemberFlags,
+    ApiOrganizationSummary,
     ApiProject,
     ApiTeam,
     ApiTeamMember,
@@ -111,6 +112,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=project.status,
         )
 
+    def _serialize_organization_summary(self, org: "Organization") -> "ApiOrganizationSummary":
+        return ApiOrganizationSummary(
+            slug=org.slug,
+            id=org.id,
+            name=org.name,
+        )
+
     def _serialize_organization(self, org: "Organization") -> "ApiOrganization":
         api_org: ApiOrganization = ApiOrganization(
             slug=org.slug,
@@ -187,7 +195,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         scope: Optional[str],
         only_visible: bool,
         organization_ids: Optional[List[int]] = None,
-    ) -> List[ApiOrganization]:
+    ) -> List[ApiOrganizationSummary]:
+        # This needs to query the control tables for organization data and not the region ones, because spanning out
+        # would be very expansive.
         if user_id is not None:
             organizations = self._query_organizations(user_id, scope, only_visible)
         elif organization_ids is not None:
@@ -197,7 +207,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             organizations = list(qs)
         else:
             organizations = []
-        return [self._serialize_organization(o) for o in organizations]
+        return [self._serialize_organization_summary(o) for o in organizations]
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
