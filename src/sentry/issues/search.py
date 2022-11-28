@@ -18,7 +18,6 @@ ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
 class IntermediateSearchQueryPartial(Protocol):
     def __call__(
         self,
-        selected_columns: Sequence[str],
         groupby: Sequence[str],
         having: Sequence[Any],
         orderby: Sequence[str],
@@ -30,6 +29,8 @@ class SearchQueryPartial(Protocol):
     def __call__(
         self,
         dataset: snuba.Dataset,
+        selected_columns: Sequence[Any],
+        filter_keys: Mapping[str, Sequence[int]],
         conditions: Sequence[Any],
         aggregations: Sequence[Any],
         condition_resolver: Any,
@@ -43,9 +44,12 @@ GroupSearchStrategy = Callable[
     [
         SearchQueryPartial,
         Sequence[Any],
+        Sequence[Any],
         int,
         Sequence[int],
         Optional[Sequence[Environment]],
+        Optional[Sequence[int]],
+        Mapping[str, Sequence[int]],
         Sequence[Any],
     ],
     Optional[SnubaQueryParams],
@@ -90,12 +94,17 @@ def group_categories_from(
 
 def _query_params_for_error(
     query_partial: SearchQueryPartial,
+    selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
+    group_ids: Optional[Sequence[int]],
+    filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
 ) -> Optional[SnubaQueryParams]:
+    if group_ids:
+        filters = {"group_id": sorted(group_ids), **filters}
     error_conditions = _updated_conditions(
         "event.type",
         "!=",
@@ -108,6 +117,8 @@ def _query_params_for_error(
 
     params = query_partial(
         dataset=snuba.Dataset.Discover,
+        selected_columns=selected_columns,
+        filter_keys=filters,
         conditions=error_conditions,
         aggregations=aggregations,
         condition_resolver=snuba.get_snuba_column_name,
@@ -118,10 +129,13 @@ def _query_params_for_error(
 
 def _query_params_for_perf(
     query_partial: SearchQueryPartial,
+    selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
+    group_ids: Optional[Sequence[int]],
+    filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
@@ -136,13 +150,37 @@ def _query_params_for_perf(
             conditions,
         )
 
-        mod_agg = list(aggregations).copy() if aggregations else []
-        mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
+        if group_ids:
+            transaction_conditions = [
+                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
+                *transaction_conditions,
+            ]
+            selected_columns = [
+                [
+                    "arrayJoin",
+                    [
+                        [
+                            "arrayIntersect",
+                            [
+                                ["array", group_ids],
+                                "group_ids",
+                            ],
+                        ]
+                    ],
+                    "group_id",
+                ],
+                *selected_columns,
+            ]
+        else:
+            aggregations = list(aggregations).copy() if aggregations else []
+            aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
         params = query_partial(
             dataset=snuba.Dataset.Discover,
+            selected_columns=selected_columns,
+            filter_keys=filters,
             conditions=transaction_conditions,
-            aggregations=mod_agg,
+            aggregations=aggregations,
             condition_resolver=functools.partial(
                 snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
             ),
