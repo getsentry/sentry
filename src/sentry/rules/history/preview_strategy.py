@@ -40,19 +40,18 @@ def get_dataset_columns(columns: Sequence[Column]) -> Dict[Dataset, Sequence[str
     return dataset_columns
 
 
-def _events_kwargs(group_ids: Sequence[int]) -> Dict[str, Any]:
-    return {"conditions": [("group_id", "IN", group_ids)]}
+def _events_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    kwargs["conditions"] = [("group_id", "IN", group_ids)]
+    return kwargs
 
 
-def _transactions_kwargs(group_ids: Sequence[int]) -> Dict[str, Any]:
-    return {
-        "having": [("group_id", "IN", group_ids)],
-        "conditions": [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]],
-        "aggregations": [
-            ("arrayJoin", ["group_ids"], "group_id"),
-            ("count", "group_id", "groupCount"),
-        ],
-    }
+def _transactions_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    kwargs["having"] = [("group_id", "IN", group_ids)]
+    kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
+    if "aggregations" not in kwargs:
+        kwargs["aggregations"] = []
+    kwargs["aggregations"].append(("arrayJoin", ["group_ids"], "group_id"))
+    return kwargs
 
 
 """
@@ -65,12 +64,14 @@ GROUPS_STRATEGIES = {
 }
 
 
-def _event_kwargs(group_id: int) -> Dict[str, Any]:
-    return {"conditions": [("group_id", "=", group_id)]}
+def _event_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    kwargs["conditions"] = [("group_id", "=", group_id)]
+    return kwargs
 
 
-def _transaction_kwargs(group_id: int) -> Dict[str, Any]:
-    return {"conditions": [[["has", ["group_ids", group_id]], "=", 1]]}
+def _transaction_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    kwargs["conditions"] = [[["has", ["group_ids", group_id]], "=", 1]]
+    return kwargs
 
 
 """
