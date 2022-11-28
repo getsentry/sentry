@@ -74,7 +74,6 @@ for cmd in map(
         "sentry.runner.commands.performance.detect",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.cluster_transaction_names.cluster_transaction_names",
     ),
 ):
     cli.add_command(cmd)

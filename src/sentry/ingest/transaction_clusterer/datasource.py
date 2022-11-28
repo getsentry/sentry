@@ -30,7 +30,7 @@ def fetch_unique_transaction_names(
         ),
     )
     snuba_response = raw_snql_query(
-        snuba_request, referrer="sentry.ingest.cluster_transaction_names"
+        snuba_request, referrer="src.sentry.ingest.transaction_clusterer"
     )
 
     return (row["transaction"] for row in snuba_response["data"])

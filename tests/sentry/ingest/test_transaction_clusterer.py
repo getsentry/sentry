@@ -8,10 +8,10 @@ def test_multi_fanout():
         "/a/b0/c/d1/e",
         "/a/b0/c/d2/e",
         "/a/b1/c/d0/e",
-        "/a/b1/c/d1/e",
+        "/a/b1/c/d1/e/",
         "/a/b1/c/d2/e",
         "/a/b2/c/d0/e",
-        "/a/b2/c/d1/e",
+        "/a/b2/c/d1/e/",
         "/a/b2/c/d2/e",
     ]
     clusterer.add_input(transaction_names)
