@@ -46,6 +46,7 @@ Resulting in the following replacement rules:
 from collections import UserDict, defaultdict
 from typing import Iterable, List, Optional, Union
 
+import sentry_sdk
 from typing_extensions import TypeAlias
 
 from .base import Clusterer, ReplacementRule
@@ -64,9 +65,6 @@ MERGED = Merged()
 SEP = "/"
 
 
-# TODO: Metrics for tree size, spans for merge, etc.
-
-
 class TreeClusterer(Clusterer):
     def __init__(self, *, merge_threshold: int) -> None:
         self._merge_threshold = merge_threshold
@@ -81,11 +79,13 @@ class TreeClusterer(Clusterer):
 
     def get_rules(self) -> List[ReplacementRule]:
         """Merge high-cardinality nodes in the graph and extract rules"""
-        self._graph.merge(self._merge_threshold)
+        with sentry_sdk.start_span(op="txcluster_merge"):
+            self._graph.merge(self._merge_threshold)
         # Generate exactly 1 rule for every merge
         rule_paths = [path for path in self._graph.paths() if path[-1] is MERGED]
 
         # TODO: Warn if top level collapse
+        # (in production, we should not allow rules that merge the top-level URL segments)
 
         # Sort by path length, descending (most specific rule first)
         rule_paths.sort(key=len, reverse=True)
