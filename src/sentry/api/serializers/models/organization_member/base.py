@@ -42,7 +42,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in={user.actor_id for user in users_set},
+                    actor_id__in=users_set,
                     organization_id=organization_id,
                 )
             )
