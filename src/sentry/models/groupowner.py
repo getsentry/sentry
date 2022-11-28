@@ -80,7 +80,7 @@ class GroupOwner(Model):
 
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))
-        assert len(keys) == 1, "Must have team or user, not both"
+        assert len(keys) != 2, "Must have team or user or neither, not both"
         super().save(*args, **kwargs)
 
     def owner_id(self):
@@ -90,10 +90,16 @@ class GroupOwner(Model):
         if self.team_id:
             return f"team:{self.team_id}"
 
+        if not self.user_id and not self.team_id:
+            return None
+
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
         from sentry.models import ActorTuple
+
+        if not self.owner_id():
+            return None
 
         return ActorTuple.from_actor_identifier(self.owner_id())
 
@@ -115,6 +121,7 @@ class GroupOwner(Model):
                 cls.objects.filter(
                     group_id=group_id, project_id=project_id, type__in=autoassignment_types
                 )
+                .exclude(user_id__isnull=True, team_id__isnull=True)
                 .order_by("type")
                 .first()
             )
@@ -148,7 +155,9 @@ class GroupOwner(Model):
 
 def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
     group_ids = [g.id for g in group_list]
-    group_owners = GroupOwner.objects.filter(group__in=group_ids)
+    group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
+        user_id__isnull=True, team_id__isnull=True
+    )
     owner_details = defaultdict(list)
     for go in group_owners:
         owner_details[go.group_id].append(

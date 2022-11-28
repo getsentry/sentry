@@ -1649,6 +1649,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
             type=GroupOwnerType.CODEOWNERS.value,
             team=self.team,
         )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=None,
+            team=None,
+        )
         response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
         assert response.status_code == 200
         assert len(response.data) == 1

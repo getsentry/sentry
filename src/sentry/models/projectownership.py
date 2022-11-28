@@ -265,23 +265,23 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-
-            assignment = GroupAssignee.objects.assign(
-                event.group,
-                owner.resolve(),
-                create_only=True,
-                extra=details,
-            )
-
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment"
-                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                    else "issueowners.assignment",
-                    organization_id=ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=event.group.id,
+            if owner and owner.resolve():
+                assignment = GroupAssignee.objects.assign(
+                    event.group,
+                    owner.resolve(),
+                    create_only=True,
+                    extra=details,
                 )
+
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=event.group.id,
+                    )
 
     @classmethod
     def _matching_ownership_rules(
