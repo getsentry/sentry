@@ -27,11 +27,11 @@ function yieldingRafFrameSearch(
   const results: FlamegraphSearchResults['results'] = new Map();
   const isRegExpSearch = isRegExpString(query);
   const [_, lookup, flags] = parseRegExp(query) ?? [];
+  // we lowercase the query to make the search case insensitive (assumption of fzf)
   const lowercaseQuery = query.toLowerCase();
   let processed = 0;
 
   function work() {
-    // we lowercase the query to make the search case insensitive (assumption of fzf)
     const start = performance.now();
 
     while (performance.now() - start < budget && processed < frames.length) {
