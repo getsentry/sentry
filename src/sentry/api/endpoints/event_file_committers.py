@@ -46,12 +46,12 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             if not owner:
                 return Response({"committers": []})
             commit = Commit.objects.get(id=owner.context.get("commitId"))
-
+            author = serialize(owner.user) if owner.user else {"email": commit.author.email}
             return Response(
                 {
                     "committers": [
                         {
-                            "author": serialize(owner.user),
+                            "author": author,
                             "commits": [
                                 serialize(commit, serializer=CommitSerializer(exclude=["author"]))
                             ],
