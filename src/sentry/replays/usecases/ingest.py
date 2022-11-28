@@ -102,7 +102,7 @@ def ingest_recording_chunked(
         )
         ingest_recording(message, transaction)
 
-        # Segment chunks are always deleted regardless of success or failure.
+        # Segment chunks are always deleted if ingest behavior runs without error.
         with metrics.timer("replays.process_recording.store_recording.drop_segments"):
             parts.drop()
 
