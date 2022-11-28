@@ -98,26 +98,19 @@ export default NumberInput;
 const StepWrap = styled('div')<{size?: FormSize}>`
   display: flex;
   flex-direction: column;
-  height: ${p => p.theme.form[p.size ?? 'md'].height}px;
-  width: ${space(1.5)};
   align-items: center;
+  width: ${space(1.5)};
+  height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
 const StepButton = styled(Button)`
   display: flex;
   height: 50%;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.subText};
 `;
 
-const StyledIconChevron = styled(IconChevron)<{direction: 'up' | 'down'}>`
-  width: 0.6em;
-  height: 0.6em;
-
-  ${p =>
-    p.direction === 'up'
-      ? `
-    align-self: end;
-  `
-      : `align-self: start;`}
+const StyledIconChevron = styled(IconChevron)`
+  width: 0.5rem;
+  height: 0.5rem;
 `;
