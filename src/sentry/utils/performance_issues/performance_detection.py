@@ -634,11 +634,12 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
-        description = span.get("description")
-        if not description:
+        query = span.get("description", None)
+        if not query:
             return
 
-        if not description.startswith("SELECT"):
+        query.strip()
+        if not query.startswith("SELECT"):
             return
 
         if span_duration >= timedelta(
