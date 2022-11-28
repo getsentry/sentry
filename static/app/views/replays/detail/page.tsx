@@ -28,9 +28,8 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 
   const header = (
     <Header>
-      <HeaderContent>
-        <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
-      </HeaderContent>
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+
       <ButtonActionsWrapper>
         <DeleteButton />
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
@@ -42,9 +41,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <HeaderPlaceholder />
       )}
 
-      <MetaDataColumn>
-        <ReplayMetaData replayRecord={replayRecord} />
-      </MetaDataColumn>
+      <ReplayMetaData replayRecord={replayRecord} />
     </Header>
   );
 
@@ -59,26 +56,22 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 }
 
 const Header = styled(Layout.Header)`
+  gap: ${space(1)};
+  padding-bottom: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    gap: 0 ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
 `;
 
-const HeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
-`;
-
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
+  flex-direction: row;
   justify-content: flex-end;
   gap: ${space(1)};
-`;
-
-const MetaDataColumn = styled(Layout.HeaderActions)`
-  padding-left: ${space(3)};
-  align-self: end;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin-bottom: 0;
+  }
 `;
 
 const FullViewport = styled('div')`
