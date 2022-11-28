@@ -15,6 +15,7 @@ import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
 } from 'sentry/utils/profiling/flamegraphFrame';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
@@ -106,7 +107,8 @@ const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
-  index: Fuse<FlamegraphFrame>
+  index: Fuse<FlamegraphFrame>,
+  useFzf: boolean
 ): FlamegraphSearchResults['results'] {
   const results: FlamegraphSearchResults['results'] = new Map();
 
@@ -144,6 +146,25 @@ function frameSearch(
       return results;
     }
 
+    return results;
+  }
+
+  if (useFzf) {
+    // we lowercase the query to make the search case insensitive (assumption of fzf)
+    // when caseSensitive = false
+    const lowercaseQuery = query.toLowerCase();
+
+    for (let i = 0; i < frames.length; i++) {
+      const frame = frames[i]!;
+      const match = fzf(frame.frame.name, lowercaseQuery, false);
+
+      if (match.score > 0) {
+        results.set(getFlamegraphFrameSearchId(frame), {
+          frame,
+          match: match.matches[0],
+        });
+      }
+    }
     return results;
   }
 
@@ -252,7 +273,7 @@ function FlamegraphSearch({
       dispatch({
         type: 'set results',
         payload: {
-          results: frameSearch(value, allFrames, searchIndex),
+          results: frameSearch(value, allFrames, searchIndex, true),
           query: value,
         },
       });

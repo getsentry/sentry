@@ -27,7 +27,9 @@ function renderComponent(organization, eventView) {
 }
 
 function renderSimpleComponent(organization, extraProps) {
-  return render(<CreateAlertButton organization={organization} {...extraProps} />);
+  return render(<CreateAlertButton organization={organization} {...extraProps} />, {
+    context: TestStubs.routerContext(),
+  });
 }
 
 describe('CreateAlertFromViewButton', () => {
