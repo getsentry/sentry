@@ -115,7 +115,6 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
             "subtitle": self.event.title,
-            "default_issue_data": [("Issue Data", get_default_data(self.event)), None],
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -130,6 +129,13 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+        if not self.group.issue_category:
+            context.update(
+                {
+                    "default_issue_data": [("Issue Data", get_default_data(self.event)), None],
+                }
+            )
+
         return context
 
     def get_notification_title(
