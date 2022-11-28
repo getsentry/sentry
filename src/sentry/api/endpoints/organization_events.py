@@ -266,26 +266,25 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def data_fn(offset, limit):
-            query_details = {
-                "selected_columns": self.get_field_list(organization, request),
-                "query": request.GET.get("query"),
-                "params": params,
-                "snuba_params": snuba_params,
-                "equations": self.get_equation_list(organization, request),
-                "orderby": self.get_orderby(request),
-                "offset": offset,
-                "limit": limit,
-                "referrer": referrer,
-                "auto_fields": True,
-                "auto_aggregations": True,
-                "use_aggregate_conditions": True,
-                "allow_metric_aggregates": allow_metric_aggregates,
-                "transform_alias_to_input_format": True,
+            return dataset.query(
+                selected_columns=self.get_field_list(organization, request),
+                query=request.GET.get("query"),
+                params=params,
+                snuba_params=snuba_params,
+                equations=self.get_equation_list(organization, request),
+                orderby=self.get_orderby(request),
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                allow_metric_aggregates=allow_metric_aggregates,
+                transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                "has_metrics": use_metrics,
-                "use_metrics_layer": use_metrics_layer,
-            }
-            return dataset.query(**query_details)
+                has_metrics=use_metrics,
+                use_metrics_layer=use_metrics_layer,
+            )
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them
