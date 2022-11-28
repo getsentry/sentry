@@ -1,12 +1,6 @@
-import padStart from 'lodash/padStart';
-
 import {Crumb} from 'sentry/types/breadcrumbs';
+import {formatSecondsToClock} from 'sentry/utils/formatters';
 import type {ReplaySpan} from 'sentry/views/replays/types';
-
-function padZero(num: number, len = 2): string {
-  const str = String(num);
-  return padStart(str, len, '0');
-}
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -32,36 +26,9 @@ export function showPlayerTime(
   return formatTime(relativeTimeInMs(timestamp, relativeTimeMs), showMs);
 }
 
-// TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number, showMs?: boolean): string {
-  if (ms <= 0 || isNaN(ms)) {
-    if (showMs) {
-      return '00:00.000';
-    }
-
-    return '00:00';
-  }
-
-  const hour = Math.floor(ms / HOUR);
-  ms = ms % HOUR;
-  const minute = Math.floor(ms / MINUTE);
-  ms = ms % MINUTE;
-  const second = Math.floor(ms / SECOND);
-
-  let formattedTime = '00:00';
-
-  if (hour) {
-    formattedTime = `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
-  } else {
-    formattedTime = `${padZero(minute)}:${padZero(second)}`;
-  }
-
-  if (showMs) {
-    const milliseconds = Math.floor(ms % SECOND);
-    formattedTime = `${formattedTime}.${padZero(milliseconds, 3)}`;
-  }
-
-  return formattedTime;
+  const seconds = ms / 1000;
+  return formatSecondsToClock(showMs ? seconds : Math.floor(seconds));
 }
 
 /**
