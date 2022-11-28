@@ -16,6 +16,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.features = {}
 
     def do_request(self, url):
@@ -391,6 +392,34 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert links["next"]["results"] == "true"
         assert len(response.data) == 1
 
+    def test_orderby(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "a" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "b" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.two_min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/events/"
+        response = self.do_request(url)
+        assert len(response.data) == 2
+        assert response.data[0]["eventID"] == "a" * 32
+        assert response.data[1]["eventID"] == "b" * 32
+
     def test_perf_issue(self):
         event_data = load_data(
             "transaction",
@@ -408,9 +437,3 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
-
-
-class GroupEventsTestWithBuilder(GroupEventsTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:events-use-querybuilder"] = True
