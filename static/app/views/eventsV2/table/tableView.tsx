@@ -268,8 +268,15 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {isFirstPage, eventView, location, organization, tableData, isHomepage} =
-      this.props;
+    const {
+      isFirstPage,
+      eventView,
+      location,
+      organization,
+      tableData,
+      isHomepage,
+      projects,
+    } = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -302,12 +309,24 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         isHomepage,
       });
 
-      cell = (
-        <Tooltip title={t('View Event')}>
-          <StyledLink data-test-id="view-event" to={target}>
-            {cell}
-          </StyledLink>
-        </Tooltip>
+      const idLink = (
+        <StyledLink data-test-id="view-event" to={target}>
+          {cell}
+        </StyledLink>
+      );
+
+      cell = organization.features.includes('discover-quick-context') ? (
+        <QuickContextHoverWrapper
+          organization={organization}
+          dataRow={dataRow}
+          contextType={ContextType.EVENT}
+          projects={projects}
+          eventView={eventView}
+        >
+          {idLink}
+        </QuickContextHoverWrapper>
+      ) : (
+        <StyledTooltip title={t('View Event')}>{idLink}</StyledTooltip>
       );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
@@ -606,6 +625,7 @@ const PrependHeader = styled('span')`
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  max-width: max-content;
 `;
 
 const StyledLink = styled(Link)`

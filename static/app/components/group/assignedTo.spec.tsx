@@ -76,6 +76,13 @@ describe('Group > AssignedTo', () => {
     expect(screen.getByText('No-one')).toBeInTheDocument();
   });
 
+  it('does not render chevron when disableDropdown prop is passed', () => {
+    render(<AssignedTo disableDropdown projectId={project.id} group={GROUP_1} />, {
+      organization,
+    });
+    expect(screen.queryByTestId('assigned-to-chevron-icon')).not.toBeInTheDocument();
+  });
+
   it('can assign team', async () => {
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
