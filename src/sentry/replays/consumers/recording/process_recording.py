@@ -60,7 +60,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
-    def _process_recording(
+    def _process_chunked_recording(
         self,
         message_dict: RecordingSegmentMessage,
         message: Message[KafkaPayload],
@@ -112,7 +112,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
                 ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), current_transaction)
             elif message_dict["type"] == "replay_recording":
-                self._process_recording(
+                self._process_chunked_recording(
                     cast(RecordingSegmentMessage, message_dict),
                     message,
                     current_transaction,
