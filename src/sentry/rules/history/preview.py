@@ -11,8 +11,8 @@ from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     GROUP_CATEGORY_TO_DATASET,
-    GROUP_STRATEGIES,
-    GROUPS_STRATEGIES,
+    UPDATE_KWARGS_FOR_GROUP,
+    UPDATE_KWARGS_FOR_GROUPS,
 )
 from sentry.rules.processor import get_match_function
 from sentry.snuba.dataset import Dataset
@@ -216,10 +216,10 @@ def get_top_groups(
     # queries each dataset for top x groups and then gets top x overall
     query_params = []
     for dataset in datasets:
-        if dataset not in GROUPS_STRATEGIES:
+        if dataset not in UPDATE_KWARGS_FOR_GROUPS:
             continue
 
-        kwargs = GROUPS_STRATEGIES[dataset](
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
             group_ids,
             {
                 "dataset": dataset,
@@ -297,12 +297,12 @@ def get_events(
     for dataset, ids in group_ids.items():
         if (
             dataset not in columns
-            or dataset not in GROUP_STRATEGIES
+            or dataset not in UPDATE_KWARGS_FOR_GROUP
             or dataset == Dataset.Transactions
         ):
             # transaction query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
             continue
-        kwargs = GROUPS_STRATEGIES[dataset](
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
             ids,
             {
                 "dataset": dataset,
@@ -412,11 +412,11 @@ def get_frequency_buckets(
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
-    if dataset not in GROUP_STRATEGIES:
+    if dataset not in UPDATE_KWARGS_FOR_GROUP:
         return []
 
     # TODO: support counting of other fields (# of unique users, ...)
-    kwargs = GROUP_STRATEGIES[dataset](
+    kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
         group_id,
         {
             "dataset": dataset,

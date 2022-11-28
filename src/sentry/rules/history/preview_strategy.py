@@ -11,7 +11,7 @@ To add support for a new issue category/dataset:
     1. Add mapping from GroupCategory to Dataset
     2. Add mapping from Dataset to snuba column name
         a. The column name should be a field in sentry.snuba.events.Column
-    3. Add category-specific query params for GROUPS_STRATEGIES and GROUP_STRATEGIES
+    3. Add category-specific query params for UPDATE_KWARGS_FOR_GROUPS and UPDATE_KWARGS_FOR_GROUP
 """
 
 # Maps group category to dataset
@@ -40,12 +40,14 @@ def get_dataset_columns(columns: Sequence[Column]) -> Dict[Dataset, Sequence[str
     return dataset_columns
 
 
-def _events_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _events_from_groups_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Dict[str, Any]:
     kwargs["conditions"] = [("group_id", "IN", group_ids)]
     return kwargs
 
 
-def _transactions_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _transactions_from_groups_kwargs(
+    group_ids: Sequence[int], kwargs: Dict[str, Any]
+) -> Dict[str, Any]:
     kwargs["having"] = [("group_id", "IN", group_ids)]
     kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
     if "aggregations" not in kwargs:
@@ -58,18 +60,18 @@ def _transactions_kwargs(group_ids: Sequence[int], kwargs: Dict[str, Any]) -> Di
 Returns the rows that contain the group id.
 If there's a many-to-many relationship, the group id column should be arrayjoined
 """
-GROUPS_STRATEGIES = {
-    Dataset.Events: _events_kwargs,
-    Dataset.Transactions: _transactions_kwargs,
+UPDATE_KWARGS_FOR_GROUPS = {
+    Dataset.Events: _events_from_groups_kwargs,
+    Dataset.Transactions: _transactions_from_groups_kwargs,
 }
 
 
-def _event_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _events_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     kwargs["conditions"] = [("group_id", "=", group_id)]
     return kwargs
 
 
-def _transaction_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _transactions_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     kwargs["conditions"] = [[["has", ["group_ids", group_id]], "=", 1]]
     return kwargs
 
@@ -77,7 +79,7 @@ def _transaction_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]
 """
 Returns the rows that reference the group id without arrayjoining.
 """
-GROUP_STRATEGIES = {
-    Dataset.Events: _event_kwargs,
-    Dataset.Transactions: _transaction_kwargs,
+UPDATE_KWARGS_FOR_GROUP = {
+    Dataset.Events: _events_from_group_kwargs,
+    Dataset.Transactions: _transactions_from_group_kwargs,
 }
