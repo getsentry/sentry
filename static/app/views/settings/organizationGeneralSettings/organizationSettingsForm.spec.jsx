@@ -24,6 +24,7 @@ describe('OrganizationSettingsForm', function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
+      body: organization,
     });
 
     render(
@@ -91,6 +92,7 @@ describe('OrganizationSettingsForm', function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
+      body: organization,
     });
 
     render(

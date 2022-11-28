@@ -167,15 +167,10 @@ describe('AcceptOrganizationInvite', function () {
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
-    const {replace} = window.location;
-    window.location.replace = jest.fn();
-
     userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
-
-    window.location.replace = replace;
   });
 
   it('shows right options for logged in user and optional SSO', function () {
@@ -209,16 +204,10 @@ describe('AcceptOrganizationInvite', function () {
     render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
-
-    const {replace} = window.location;
-    window.location.replace = jest.fn();
-
     userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
-
-    window.location.replace = replace;
   });
 
   it('shows 2fa warning', function () {

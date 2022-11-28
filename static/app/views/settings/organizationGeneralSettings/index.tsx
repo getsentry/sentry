@@ -66,17 +66,20 @@ function OrganizationGeneralSettings(props: Props) {
 
   const handleSaveForm: React.ComponentProps<
     typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, data: Partial<Organization>) => {
-    if (data.slug && data.slug !== prevData.slug) {
-      changeOrganizationSlug(
-        prevData,
-        data as Partial<Organization> & Pick<Organization, 'slug'>
-      );
-      browserHistory.replace(`/settings/${data.slug}/`);
+  >['onSave'] = (prevData: Organization, updated: Organization) => {
+    if (updated.slug && updated.slug !== prevData.slug) {
+      changeOrganizationSlug(prevData, updated);
+
+      if (updated.features.includes('customer-domains')) {
+        const {organizationUrl} = updated.links;
+        window.location.replace(`${organizationUrl}/settings/organization/`);
+      } else {
+        browserHistory.replace(`/settings/${updated.slug}/`);
+      }
     } else {
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
-      updateOrganization(data);
+      updateOrganization(updated);
     }
   };
 

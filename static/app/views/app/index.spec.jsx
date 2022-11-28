@@ -3,8 +3,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
-const originalLocation = window.location;
-
 describe('App', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -28,17 +26,10 @@ describe('App', function () {
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard(),
     });
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        replace: jest.fn(),
-      },
-    });
   });
 
   afterEach(function () {
     jest.resetAllMocks();
-    window.location = originalLocation;
   });
 
   it('renders', function () {
