@@ -6,7 +6,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Union
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -298,5 +298,5 @@ def get_streaming_metrics_consumer(
         KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
         Topic(indexer_profile.input_topic),
         processing_factory,
-        IMMEDIATE,
+        CommitPolicy(commit_max_batch_time, commit_max_batch_size),
     )

@@ -1,4 +1,4 @@
-from typing import MutableMapping
+from typing import MutableMapping, Sequence
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer
@@ -85,6 +85,9 @@ class SlicingRouter(MessageRouter):
             settings.SENTRY_SLICING_CONFIG[sliceable].keys()
         )
 
+    def get_all_producers(self) -> Sequence[Producer]:
+        return [route.producer for route in self.__slice_to_producer.values()]
+
     def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         """
         Get route for the message. The message will be routed based on the org_id
@@ -102,7 +105,3 @@ class SlicingRouter(MessageRouter):
             producer = self.__slice_to_producer[slice_id]
 
         return producer
-
-    def shutdown(self) -> None:
-        for route in self.__slice_to_producer.values():
-            route.producer.flush()

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import MutableSequence, Optional
+from typing import MutableSequence, Sequence
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -28,14 +28,13 @@ class RoundRobinRouter(MessageRouter):
             self.all_broker_storages.append(broker_storage)
             self.all_producers.append(broker.get_producer())
 
+    def get_all_producers(self) -> Sequence[Producer]:
+        return self.all_producers
+
     def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         routing_key = message.payload.routing_header["key"]
         dest_id = routing_key % len(self.all_producers)
         return MessageRoute(self.all_producers[dest_id], Topic(f"result-topic-{dest_id}"))
-
-    def shutdown(self, timeout: Optional[float] = None) -> None:
-        for producer in self.all_producers:
-            producer.flush()
 
 
 def test_routing_producer() -> None:
