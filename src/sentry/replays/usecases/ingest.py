@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -50,6 +50,15 @@ class RecordingSegmentMessage(TypedDict):
     key_id: int | None
     received: int
     replay_recording: ReplayRecordingSegment
+
+
+class RecordingMessage(TypedDict):
+    replay_id: str
+    key_id: int | None
+    org_id: int
+    project_id: int
+    received: int
+    payload: bytes
 
 
 class MissingRecordingSegmentHeaders(ValueError):
@@ -99,7 +108,7 @@ def ingest_recording_chunked(
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(message_dict: dict[str, Any], transaction: Transaction) -> None:
+def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Transaction) -> None:
     """Ingest non-chunked recording messages."""
     with transaction.start_child(
         op="replays.usecases.ingest.ingest_recording_not_chunked",
