@@ -1,7 +1,9 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
+import * as PropTypes from 'prop-types';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
@@ -15,6 +17,15 @@ type State = AsyncView['state'] & {
 };
 
 export default class EditMonitor extends AsyncView<Props, State> {
+  static contextTypes = {
+    router: PropTypes.object,
+    organization: SentryTypes.Organization,
+  };
+
+  get orgSlug() {
+    return this.context.organization.slug;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
     return [['monitor', `/monitors/${params.monitorId}/`]];
@@ -24,13 +35,13 @@ export default class EditMonitor extends AsyncView<Props, State> {
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.props.params.orgId}/monitors/${data.id}/`);
+    browserHistory.push(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
 
   getTitle() {
     if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.props.params.orgId}`;
+      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
     }
-    return `Monitors - ${this.props.params.orgId}`;
+    return `Monitors - ${this.orgSlug}`;
   }
 
   renderBody() {
