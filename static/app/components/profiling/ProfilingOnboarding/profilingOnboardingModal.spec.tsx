@@ -162,7 +162,8 @@ describe('ProfilingOnboarding', function () {
     });
 
     render(
-      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />,
+      {context: TestStubs.routerContext()}
     );
 
     selectProject(project);
