@@ -107,7 +107,3 @@ register(
 
 # Using simple bools instead of rates for disabling individual detectors
 register(key="sentry:performance_issue_creation_enabled_n_plus_one_db", default=True)
-
-# Replacement rules for transaction names,
-# e.g. `{"rules": [{"type": "glob", "value": "/auth/login/*", "expires": <timestamp>}]}`
-register(key="sentry:transaction_name_normalize_rules", default={})

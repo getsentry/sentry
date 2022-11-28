@@ -1232,8 +1232,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
-    # Cluster transaction names to reduce their cardinality.
-    "projects:transaction-name-cluster": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
