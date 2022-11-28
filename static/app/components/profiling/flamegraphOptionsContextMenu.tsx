@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 
-import {IconChevron, IconCopy, IconGithub} from 'sentry/icons';
+import {IconCopy, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
@@ -46,7 +46,6 @@ interface FlameGraphOptionsContextMenuProps {
   isHighlightingAllOccurences: boolean;
   onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
-  onShowInTableView: () => void;
   profileGroup: ProfileGroup | null;
 }
 
@@ -190,18 +189,6 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
               icon={<IconGithub size="xs" />}
             >
               {t('Open in GitHub')}
-            </ProfilingContextMenuItemButton>
-            <ProfilingContextMenuItemButton
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => {
-                  props.onShowInTableView();
-                  // This is a button, so close the context menu.
-                  props.contextMenu.setOpen(false);
-                },
-              })}
-              icon={<IconChevron size="xs" direction="down" />}
-            >
-              {t('Show in table view')}
             </ProfilingContextMenuItemButton>
           </ProfilingContextMenuGroup>
         ) : null}

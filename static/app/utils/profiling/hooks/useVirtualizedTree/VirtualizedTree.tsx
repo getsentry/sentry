@@ -114,13 +114,6 @@ export class VirtualizedTree<T extends TreeLike> {
     // - if it exists, is it visible?
     //   - if it is visible, scroll to it
     //   - if it is not visible, expand its parents and scroll to it
-    const index = this.flattened.findIndex(n => matcher(n.node));
-    if (index >= 0) {
-      // Element is already visible somewhere in the tree
-      // const element = latestItemsRef.current[index];
-      // element.ref?.click();
-    }
-
     const node = this.findNode(matcher);
 
     if (!node) {

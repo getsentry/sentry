@@ -13,7 +13,7 @@ export interface FlamegraphEvents {
   ) => void;
   ['reset zoom']: () => void;
   ['set config view']: (configView: Rect) => void;
-  ['show in table view']: (frame: FlamegraphFrame[]) => void;
+  ['show in table view']: (frame: FlamegraphFrame) => void;
   ['transform config view']: (transform: mat3) => void;
   ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
