@@ -568,14 +568,24 @@ urlpatterns = [
             [
                 url(r"^$", RelayIndexEndpoint.as_view(), name="sentry-api-0-relays-index"),
                 url(
-                    r"^register/challenge/$",
+                    r"^(?P<organization_slug>[^\/]+)/register/challenge/$",
                     RelayRegisterChallengeEndpoint.as_view(),
                     name="sentry-api-0-relay-register-challenge",
                 ),
                 url(
-                    r"^register/response/$",
+                    r"^register/challenge/$",
+                    RelayRegisterChallengeEndpoint.as_view(),
+                    name="sentry-api-0-relay-register-challenge-orgless",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/register/response/$",
                     RelayRegisterResponseEndpoint.as_view(),
                     name="sentry-api-0-relay-register-response",
+                ),
+                url(
+                    r"^register/response/$",
+                    RelayRegisterResponseEndpoint.as_view(),
+                    name="sentry-api-0-relay-register-response-orgless",
                 ),
                 url(
                     r"^projectconfigs/$",

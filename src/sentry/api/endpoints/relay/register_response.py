@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -6,7 +8,7 @@ from sentry_relay import UnpackErrorSignatureExpired, validate_register_response
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay, relay_from_id
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models import Relay, RelayUsage
@@ -20,7 +22,7 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
     token = serializers.CharField(required=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -28,7 +30,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
     enforce_rate_limit = True
     rate_limits = RELAY_AUTH_RATE_LIMITS
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request, organization_slug: Optional[str]) -> Response:
         """
         Registers a Relay
         `````````````````

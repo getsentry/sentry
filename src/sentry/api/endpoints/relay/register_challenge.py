@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -6,7 +8,7 @@ from sentry_relay import create_register_challenge, is_version_supported
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -17,9 +19,10 @@ from . import RelayIdSerializer
 
 class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
+    organization_slug = serializers.CharField(required=False)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -27,7 +30,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
     enforce_rate_limit = True
     rate_limits = RELAY_AUTH_RATE_LIMITS
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request, organization_slug: Optional[str]) -> Response:
         """
         Requests to Register a Relay
         ````````````````````````````

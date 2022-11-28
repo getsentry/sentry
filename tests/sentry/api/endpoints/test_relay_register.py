@@ -7,9 +7,11 @@ from sentry_relay import generate_key_pair
 
 from sentry.models import Relay, RelayUsage
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class RelayRegisterTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -22,7 +24,7 @@ class RelayRegisterTest(APITestCase):
         self.private_key = self.key_pair[0]
         self.relay_id = str(uuid4())
 
-        self.path = reverse("sentry-api-0-relay-register-challenge")
+        self.path = reverse("sentry-api-0-relay-register-challenge", args=[self.organization.slug])
 
     def add_internal_key(self, public_key):
         if public_key not in settings.SENTRY_RELAY_WHITELIST_PK:
@@ -57,7 +59,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = private_key.pack(data)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=relay_id,
@@ -183,7 +185,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -214,7 +216,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -258,7 +260,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -272,7 +274,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = keys[0].pack(data)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -313,7 +315,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = keys[0].pack(data)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -341,7 +343,7 @@ class RelayRegisterTest(APITestCase):
         _, signature = self.private_key.pack(result)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data="a",
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -371,7 +373,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -399,7 +401,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -426,7 +428,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=str(uuid4()),
@@ -466,7 +468,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(result)
 
         self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
@@ -478,7 +480,7 @@ class RelayRegisterTest(APITestCase):
         raw_json, signature = self.private_key.pack(data)
 
         resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
             data=raw_json,
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
