@@ -122,7 +122,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             return
         last = self.__batch.messages[-1]
 
-        new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        new_message = Message(last.value.replace(self.__batch.messages))
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
             metrics.timing("batch_messages.build_time", elapsed_time)
