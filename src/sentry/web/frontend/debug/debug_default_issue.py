@@ -2,14 +2,12 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.event_manager import EventManager, get_event_type
 from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_default_data, get_group_settings_link, get_rules
 from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json
-from sentry.utils.samples import load_data
 
-from .mail import COMMIT_EXAMPLE, MailPreview, get_random, make_group_generator
+from .mail import COMMIT_EXAMPLE, MailPreview, make_event
 
 
 class DebugDefaultIssueEmailView(View):
@@ -18,32 +16,8 @@ class DebugDefaultIssueEmailView(View):
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
 
-        random = get_random(request)
-        group = next(make_group_generator(random, project))
-
-        data = dict(load_data(platform))
-        data["message"] = group.message
-        data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-        data.pop("logentry", None)
-        data["environment"] = "prod"
-        data["tags"] = [
-            ("logger", "javascript"),
-            ("environment", "prod"),
-            ("level", "error"),
-            ("device", "Other"),
-        ]
-        data["transaction"] = "sentry.tasks.process"
-
-        event_manager = EventManager(data)
-        event_manager.normalize()
-        data = event_manager.get_data()
-        event = event_manager.save(project.id)
-        # Prevent CI screenshot from constantly changing
-        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-        event_type = get_event_type(event.data)
-
-        group.message = event.search_message
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+        event = make_event(request, project, platform)
+        group = event.group
 
         rule = Rule(id=1, label="An example rule")
 

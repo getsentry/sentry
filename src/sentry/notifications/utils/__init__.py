@@ -55,7 +55,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.user_report import UserReportNotification
 
@@ -406,17 +406,17 @@ def get_transaction_data(event: Event) -> Any:
     return perf_to_email_html(spans, matched_problem)
 
 
-def get_default_data(event: Event) -> Any:
+def get_default_data(event: GroupEvent) -> Any:
     """Get data about a generic issue type to populate alert emails."""
 
-    # leaving this in for now as test data
-    # default_evidence = [
-    #     ["Row 1 Name", "Row 1 Value"],
-    #     ["Row 2 Name", "Row 2 Value"],
-    #     ["Row 3 Name", "Row 3 Value"],
-    # ]
+    # leaving this in for now as test data. can be removed once we have IssueOccurence and IssueEvidence
+    default_evidence = [
+        ["Row 1 Name", "Row 1 Value"],
+        ["Row 2 Name", "Row 2 Value"],
+        ["Row 3 Name", "Row 3 Value"],
+    ]
 
-    default_evidence = event.occurrence.evidence_display
+    # default_evidence = event.occurrence.evidence_display
     context = {}
     for row in default_evidence:
         context[row[0]] = row[1]
