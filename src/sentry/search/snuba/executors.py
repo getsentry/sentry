@@ -501,17 +501,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
                         group_queryset = group_queryset.filter(
                             Q(type=GroupType.ERROR.value)
-                            | Q(
-                                type__in=(
-                                    GroupType.PERFORMANCE_N_PLUS_ONE.value,
-                                    GroupType.PERFORMANCE_SLOW_SPAN.value,
-                                    GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
-                                    GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
-                                    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
-                                    GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
-                                    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-                                ),
-                                message__icontains=sf.value.raw_value,
+                            | (
+                                Q(
+                                    type__in=(
+                                        GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                                        GroupType.PERFORMANCE_SLOW_SPAN.value,
+                                        GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
+                                        GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
+                                        GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
+                                        GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
+                                        GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                                    )
+                                )
+                                and (
+                                    ~Q(message__icontains=sf.value.raw_value)
+                                    if sf.is_negation
+                                    else Q(message__icontains=sf.value.raw_value)
+                                )
                             )
                         )
 
