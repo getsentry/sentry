@@ -28,13 +28,20 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         snuba_limit = int(params.get("limit", 1000))
         merge_threshold = int(params.get("threshold", 100))
 
-        transaction_names = fetch_unique_transaction_names(
-            project,
-            (start, end),
-            snuba_limit,
+        transaction_names = list(
+            fetch_unique_transaction_names(
+                project,
+                (start, end),
+                snuba_limit,
+            )
         )
 
         clusterer = TreeClusterer(merge_threshold=merge_threshold)
         clusterer.add_input(transaction_names)
 
-        return Response(clusterer.get_rules())
+        return Response(
+            {
+                "rules": clusterer.get_rules(),
+                "meta": {"unique_transaction_names": len(transaction_names)},
+            }
+        )
