@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -27,6 +28,7 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
+  formatError,
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -65,6 +67,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     sort,
     referrer: 'api.profiling.landing-table',
   });
+
+  const transactionsError =
+    transactions.status === 'error' ? formatError(transactions.error) : null;
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
@@ -153,6 +158,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
+                {transactionsError && (
+                  <Alert type="error" showIcon>
+                    {transactionsError}
+                  </Alert>
+                )}
                 <ActionBar>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />

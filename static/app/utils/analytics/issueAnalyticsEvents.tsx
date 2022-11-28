@@ -1,3 +1,5 @@
+import {TagFacetsStyles} from 'sentry/components/group/tagFacets';
+
 type IssueStream = {
   group_id: string;
   tab: string;
@@ -39,13 +41,15 @@ export type IssueEventParameters = {
   'issue_group_details.tags.bar.clicked': {
     is_mobile: boolean;
     tag: string;
+    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
-    tag: string;
+    type: TagFacetsStyles;
     platform?: string;
+    tag?: string;
   };
   'issue_group_details.tags.switcher.clicked': {
     is_mobile: boolean;
