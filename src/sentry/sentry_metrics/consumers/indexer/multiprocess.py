@@ -15,17 +15,14 @@ from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingPayload,
     RoutingProducerStep,
 )
-from sentry.sentry_metrics.consumers.indexer.slicing_router import (
-    SlicingConfigurationException,
-    SlicingRouter,
-)
+from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils import kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -44,12 +41,14 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit_max_batch_size: int,
         commit_max_batch_time: int,
         config: MetricsIngestConfiguration,
+        slicing_router: Optional[SlicingRouter],
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
         self.__config = config
+        self.__slicing_router = slicing_router
 
     def create_with_partitions(
         self,
@@ -61,6 +60,7 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             commit_max_batch_size=self.__commit_max_batch_size,
             commit_max_batch_time_ms=self.__commit_max_batch_time,
+            slicing_router=self.__slicing_router,
         )
         transform_step = TransformStep(
             next_step=producer,
@@ -244,18 +244,14 @@ def get_metrics_producer_strategy(
     commit: Commit,
     commit_max_batch_size: int,
     commit_max_batch_time_ms: float,
+    slicing_router: Optional[SlicingRouter],
 ) -> Any:
     if config.is_output_sliced:
-        if config.use_case_id == UseCaseKey.PERFORMANCE:
-            sliceable = "generic_metrics"
-        else:
-            raise SlicingConfigurationException(
-                f"Slicing not supported for " f"{config.use_case_id}"
-            )
-        router = SlicingRouter(sliceable=sliceable)
+        if slicing_router is None:
+            raise ValueError("Slicing router is required for sliced output")
         return RoutingProducerStep(
             commit_function=commit,
-            message_router=router,
+            message_router=slicing_router,
         )
     else:
         return SimpleProduceStep(
@@ -280,6 +276,7 @@ def get_streaming_metrics_consumer(
     auto_offset_reset: str,
     factory_name: str,
     indexer_profile: MetricsIngestConfiguration,
+    slicing_router: Optional[SlicingRouter],
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     assert factory_name == "default"
@@ -289,6 +286,7 @@ def get_streaming_metrics_consumer(
         commit_max_batch_size=commit_max_batch_size,
         commit_max_batch_time=commit_max_batch_time,
         config=indexer_profile,
+        slicing_router=slicing_router,
     )
 
     cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]

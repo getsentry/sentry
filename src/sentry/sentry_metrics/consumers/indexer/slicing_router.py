@@ -1,4 +1,4 @@
-from typing import MutableMapping, Sequence
+from typing import MutableMapping, Optional, Sequence
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer
@@ -10,6 +10,7 @@ from sentry.ingest.slicing import (
     map_logical_partition_to_slice,
     map_org_id_to_logical_partition,
 )
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRoute,
     MessageRouter,
@@ -105,3 +106,16 @@ class SlicingRouter(MessageRouter):
             producer = self.__slice_to_producer[slice_id]
 
         return producer
+
+
+def get_slicing_router(config: MetricsIngestConfiguration) -> Optional[SlicingRouter]:
+    if config.is_output_sliced:
+        if config.use_case_id == UseCaseKey.PERFORMANCE:
+            sliceable = "generic_metrics"
+        else:
+            raise SlicingConfigurationException(
+                f"Slicing not supported for " f"{config.use_case_id}"
+            )
+        return SlicingRouter(sliceable=sliceable)
+    else:
+        return None

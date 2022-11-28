@@ -26,6 +26,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.multiprocess import get_metrics_producer_strategy
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
+from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int,
         output_block_size: int,
         config: MetricsIngestConfiguration,
+        slicing_router: Optional[SlicingRouter],
     ):
         self.__config = config
 
@@ -114,6 +116,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
+        self.__slicing_router = slicing_router
 
     def create_with_partitions(
         self,
@@ -125,6 +128,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             commit_max_batch_size=self.__commit_max_batch_size,
             commit_max_batch_time_ms=self.__commit_max_batch_time,
+            slicing_router=self.__slicing_router,
         )
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
@@ -167,6 +171,7 @@ def get_parallel_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     indexer_profile: MetricsIngestConfiguration,
+    slicing_router: Optional[SlicingRouter],
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
@@ -180,6 +185,7 @@ def get_parallel_metrics_consumer(
         input_block_size=input_block_size,
         output_block_size=output_block_size,
         config=indexer_profile,
+        slicing_router=slicing_router,
     )
 
     cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
