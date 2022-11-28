@@ -60,15 +60,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
-    @metrics.wraps("replays.process_recording.store_recording")
-    def _store(
-        self,
-        message_dict: RecordingSegmentMessage,
-        parts: RecordingSegmentParts,
-        current_transaction: Transaction,
-    ) -> None:
-        ingest_recording_chunked(message_dict, parts, current_transaction)
-
     def _process_recording(
         self,
         message_dict: RecordingSegmentMessage,
@@ -89,10 +80,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             ReplayRecordingMessageFuture(
                 message,
                 self.__threadpool.submit(
-                    self._store,
+                    ingest_recording_chunked,
                     message_dict=message_dict,
                     parts=parts,
-                    current_transaction=current_transaction,
+                    transaction=current_transaction,
                 ),
             )
         )
