@@ -119,7 +119,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "integrations",
         "jobs",
         "legal",
-        "legal",
         "login",
         "logout",
         "manage",
