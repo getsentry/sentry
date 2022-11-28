@@ -24,6 +24,7 @@ from sentry.search.events.constants import (
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
+    HTTP_STATUS_CODE_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
@@ -134,7 +135,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
-            "http.status_code": self._resolve_http_status_code,
+            HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
         }
 
     @property
@@ -1037,7 +1038,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 Function("nullif", [self.builder.column("http.status_code"), ""]),
                 self.builder.column("tags[http.status_code]"),
             ],
-            "http.status_code",
+            HTTP_STATUS_CODE_ALIAS,
         )
 
     @cached_property  # type: ignore
