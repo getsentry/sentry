@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
@@ -32,9 +33,7 @@ type HomepageQueryState = AsyncComponent['state'] & {
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
-  shouldReload = true;
-
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(_, prevState) {
     const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
     const hasInitiallyLoaded = prevState.loading && !this.state.loading;
     const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
@@ -78,7 +77,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         query,
       });
     }
-    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -110,12 +108,17 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
     return (
       <Results
         {...this.props}
         savedQuery={savedQuery ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
+        location={this.props.location}
         isHomepage
       />
     );
