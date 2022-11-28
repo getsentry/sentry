@@ -363,6 +363,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         return;
       }
 
+      const skipInactive = replayer.config;
+      if (skipInactive) {
+        // If the replayer is set to skip inactive, we should turn it off before
+        // manually scrubbing, so when the player resumes playing its not stuck
+        replayer.setConfig({skipInactive: false});
+      }
+
       const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
       const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
 
@@ -375,7 +382,9 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       if (playTimer.current) {
         window.clearTimeout(playTimer.current);
       }
-
+      if (skipInactive) {
+        replayer.setConfig({skipInactive: true});
+      }
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
