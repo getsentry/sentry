@@ -1,3 +1,5 @@
+import unittest
+
 import pytest
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
@@ -6,11 +8,15 @@ from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
+    DiscoverFunction,
+    FunctionArg,
     FunctionDetails,
+    InvalidSearchQuery,
     get_json_meta_type,
     parse_arguments,
     parse_combinator,
     parse_function,
+    with_default,
 )
 from sentry.utils.snuba import Dataset
 
@@ -285,3 +291,120 @@ def test_combinator_names_are_reserved(combinator):
         assert not function.endswith(
             combinator.kind
         ), f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
+
+
+def with_type(type, argument):
+    argument.get_type = lambda *_: type
+    return argument
+
+
+class DiscoverFunctionTest(unittest.TestCase):
+    def setUp(self):
+        self.fn_wo_optionals = DiscoverFunction(
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
+        )
+        self.fn_w_optionals = DiscoverFunction(
+            "w_optionals",
+            required_args=[FunctionArg("arg1")],
+            optional_args=[with_default("default", FunctionArg("arg2"))],
+            transform="",
+        )
+
+    def test_no_optional_valid(self):
+        self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
+
+    def test_no_optional_not_enough_arguments(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
+
+    def test_no_optional_too_may_arguments(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count(
+                "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_valid(self):
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
+        # because the last argument is optional, we don't need to provide it
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
+
+    def test_optional_not_enough_arguments(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
+
+    def test_optional_too_many_arguments(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count(
+                "fn_w_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_args_have_default(self):
+        with pytest.raises(
+            AssertionError, match="test: optional argument at index 0 does not have default"
+        ):
+            DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
+
+    def test_defining_duplicate_args(self):
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
+            DiscoverFunction(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                transform="",
+            )
+
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
+            DiscoverFunction(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
+            DiscoverFunction(
+                "test",
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+    def test_default_result_type(self):
+        fn = DiscoverFunction("fn", transform="")
+        assert fn.get_result_type() is None
+
+        fn = DiscoverFunction("fn", transform="", default_result_type="number")
+        assert fn.get_result_type() == "number"
+
+    def test_result_type_fn(self):
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
+        assert fn.get_result_type("fn()", []) is None
+
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: "number")
+        assert fn.get_result_type("fn()", []) == "number"
+
+        fn = DiscoverFunction(
+            "fn",
+            required_args=[with_type("number", FunctionArg("arg1"))],
+            transform="",
+            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+        )
+        assert fn.get_result_type("fn()", ["arg1"]) == "number"
+
+    def test_private_function(self):
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        assert fn.is_accessible() is False
+        assert fn.is_accessible(None) is False
+        assert fn.is_accessible([]) is False
+        assert fn.is_accessible(["other_fn"]) is False
+        assert fn.is_accessible(["fn"]) is True
