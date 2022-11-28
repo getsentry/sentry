@@ -45,6 +45,13 @@ export type IssueEventParameters = {
     value: string;
     platform?: string;
   };
+  'issue_group_details.tags.bar.hovered': {
+    is_mobile: boolean;
+    tag: string;
+    type: TagFacetsStyles;
+    value: string;
+    platform?: string;
+  };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
     type: TagFacetsStyles;
@@ -157,6 +164,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags.switcher.clicked':
     'Issue Group Details: Tags switcher clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
+  'issue_group_details.tags.bar.hovered': 'Issue Group Details: Tags value bar hovered',
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
 
