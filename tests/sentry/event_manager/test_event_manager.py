@@ -2900,7 +2900,7 @@ class DSLatestReleaseBoostTest(TestCase):
         return event
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_not_observed_release(self):
+    def test_boost_release_with_non_observed_release(self):
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
@@ -2937,7 +2937,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_observed_release_different_environment(self):
+    def test_boost_release_with_observed_release_and_different_environment(self):
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
@@ -2962,6 +2962,18 @@ class DSLatestReleaseBoostTest(TestCase):
             assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
                 f"ds::r:{self.release.id}:e:{self.environment1.name}": str(ts_1)
             }
+            assert ProjectBoostedReleases(
+                project_id=self.project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=self.release.id,
+                    timestamp=ts_1,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{self.release.id}:e:{self.environment1.name}",
+                    version=self.release.version,
+                    platform=Platform(self.project.platform),
+                )
+            ]
 
             # We simulate that a new transaction with same release but with a different environment value comes after
             # 30 minutes to show that we expect the entry for that release-env to be added to the boosted releases.
@@ -2986,6 +2998,26 @@ class DSLatestReleaseBoostTest(TestCase):
                     f"ds::r:{self.release.id}:e:{self.environment1.name}": str(ts_1),
                     f"ds::r:{self.release.id}:e:{self.environment2.name}": str(ts_2),
                 }
+                assert ProjectBoostedReleases(
+                    project_id=self.project.id
+                ).get_extended_boosted_releases() == [
+                    ExtendedBoostedRelease(
+                        id=self.release.id,
+                        timestamp=ts_1,
+                        environment=self.environment1.name,
+                        cache_key=f"ds::r:{self.release.id}:e:{self.environment1.name}",
+                        version=self.release.version,
+                        platform=Platform(self.project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=self.release.id,
+                        timestamp=ts_2,
+                        environment=self.environment2.name,
+                        cache_key=f"ds::r:{self.release.id}:e:{self.environment2.name}",
+                        version=self.release.version,
+                        platform=Platform(self.project.platform),
+                    ),
+                ]
 
             # We also test the case in which no environment is set, which can be the case as per
             # https://docs.sentry.io/platforms/javascript/configuration/options/#environment.
@@ -3006,6 +3038,34 @@ class DSLatestReleaseBoostTest(TestCase):
                     f"ds::r:{self.release.id}:e:{self.environment2.name}": str(ts_2),
                     f"ds::r:{self.release.id}": str(ts_3),
                 }
+                assert ProjectBoostedReleases(
+                    project_id=self.project.id
+                ).get_extended_boosted_releases() == [
+                    ExtendedBoostedRelease(
+                        id=self.release.id,
+                        timestamp=ts_1,
+                        environment=self.environment1.name,
+                        cache_key=f"ds::r:{self.release.id}:e:{self.environment1.name}",
+                        version=self.release.version,
+                        platform=Platform(self.project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=self.release.id,
+                        timestamp=ts_2,
+                        environment=self.environment2.name,
+                        cache_key=f"ds::r:{self.release.id}:e:{self.environment2.name}",
+                        version=self.release.version,
+                        platform=Platform(self.project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=self.release.id,
+                        timestamp=ts_3,
+                        environment=None,
+                        cache_key=f"ds::r:{self.release.id}",
+                        version=self.release.version,
+                        platform=Platform(self.project.platform),
+                    ),
+                ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_observed_release_and_same_environment(self):
