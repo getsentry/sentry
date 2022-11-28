@@ -42,6 +42,8 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     assert generate_rules(fake_project) == []
     get_blended_sample_rate.assert_called_with(fake_project)
     sentry_sdk.capture_exception.assert_called_with()
+    config_str = json.dumps({"rules": generate_rules(fake_project)})
+    validate_sampling_configuration(config_str)
 
 
 @patch(
@@ -70,6 +72,8 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.assert_called_with(
         fake_project.get_option("sentry:dynamic_sampling_biases", None)
     )
+    config_str = json.dumps({"rules": generate_rules(fake_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -122,6 +126,8 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -176,6 +182,8 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -239,6 +247,8 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -296,6 +306,8 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
@@ -316,6 +328,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
+    config_str = json.dumps({"rules": generate_rules(fake_project)})
+    validate_sampling_configuration(config_str)
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
@@ -356,11 +370,11 @@ def test_generate_rules_with_different_project_platforms(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": [release.version]},
+                    {"op": "eq", "name": "trace.release", "value": [release.version]},
                     {
-                        "op": "glob",
+                        "op": "eq",
                         "name": "trace.environment",
-                        "value": [environment],
+                        "value": environment,
                     },
                 ],
             },
@@ -379,6 +393,8 @@ def test_generate_rules_with_different_project_platforms(
         },
     ]
     assert generate_rules(default_project) == expected
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -413,8 +429,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "glob", "name": "trace.environment", "value": ["prod"]},
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": "prod"},
                 ],
             },
             "id": 1500,
@@ -427,8 +443,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {"op": "glob", "name": "trace.environment", "value": ["dev"]},
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": "dev"},
                 ],
             },
             "id": 1501,
@@ -441,15 +457,8 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "condition": {
                 "op": "and",
                 "inner": [
-                    {"op": "glob", "name": "trace.release", "value": ["1.0"]},
-                    {
-                        "op": "not",
-                        "inner": {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*"],
-                        },
-                    },
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": None},
                 ],
             },
             "id": 1502,
@@ -465,7 +474,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     ]
 
     assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": expected})
+    config_str = json.dumps({"rules": generate_rules(default_project)})
     validate_sampling_configuration(config_str)
 
 
@@ -487,6 +496,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
             "type": "trace",
         },
     ]
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -508,6 +519,8 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
             "type": "trace",
         },
     ]
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
 
 
 @pytest.mark.django_db
@@ -539,15 +552,8 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": [release.version]},
-                        {
-                            "op": "not",
-                            "inner": {
-                                "op": "glob",
-                                "name": "trace.environment",
-                                "value": ["*"],
-                            },
-                        },
+                        {"op": "eq", "name": "trace.release", "value": [release.version]},
+                        {"op": "eq", "name": "trace.environment", "value": None},
                     ],
                 },
                 "id": 1500 + index,
@@ -567,5 +573,5 @@ def test_generate_rules_return_uniform_rule_with_more_releases_than_the_limit(
         },
     ]
     assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": expected})
+    config_str = json.dumps({"rules": generate_rules(default_project)})
     validate_sampling_configuration(config_str)

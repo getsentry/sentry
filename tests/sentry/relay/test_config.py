@@ -529,11 +529,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["3.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -550,11 +550,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["4.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -571,11 +571,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["5.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -592,11 +592,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["6.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -613,11 +613,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["7.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
