@@ -23,7 +23,9 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 def create_audit_entry_from_user(
     user, api_key=None, ip_address=None, transaction_id=None, logger=None, **kwargs
 ):
-    entry = AuditLogEntry(actor_id=user.id, actor_key=api_key, ip_address=ip_address, **kwargs)
+    entry = AuditLogEntry(
+        actor_id=user.id if user else None, actor_key=api_key, ip_address=ip_address, **kwargs
+    )
 
     # Only create a real AuditLogEntry record if we are passing an event type
     # otherwise, we want to still log to our actual logging
