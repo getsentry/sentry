@@ -166,7 +166,6 @@ const HeadingAndNavWrapper = styled('div')`
   justify-content: space-between;
   align-items: flex-start;
   gap: ${space(3)};
-  margin-bottom: ${space(1)};
 `;
 
 const EventIdLink = styled(Link)`
