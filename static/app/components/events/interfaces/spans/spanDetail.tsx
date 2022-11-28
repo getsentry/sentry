@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import map from 'lodash/map';
 import omit from 'lodash/omit';
 
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
@@ -40,7 +39,6 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -68,7 +66,6 @@ type TransactionResult = {
 };
 
 type Props = {
-  api: Client;
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
@@ -651,4 +648,4 @@ const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
-export default withApi(SpanDetail);
+export default SpanDetail;
