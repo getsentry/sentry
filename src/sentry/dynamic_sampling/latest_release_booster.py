@@ -28,6 +28,10 @@ def _get_environment_cache_key(environment: Optional[str]) -> str:
 
 @dataclass(frozen=True)
 class BoostedRelease:
+    """
+    Class that represents a boosted release fetched from Redis.
+    """
+
     id: int
     timestamp: float
     environment: Optional[str]
@@ -56,6 +60,11 @@ class BoostedRelease:
 
 @dataclass(frozen=True)
 class ExtendedBoostedRelease(BoostedRelease):
+    """
+    Class the represents a boosted release with added information that are injected after the base release is
+    fetched from the cache.
+    """
+
     version: str
     platform: Platform
 
@@ -65,6 +74,10 @@ class ExtendedBoostedRelease(BoostedRelease):
 
 @dataclass
 class BoostedReleases:
+    """
+    Class that hides the complexity of extending boosted releases.
+    """
+
     boosted_releases: List[BoostedRelease] = field(default_factory=list)
 
     def add_release(
@@ -107,6 +120,12 @@ class BoostedReleases:
 
 
 class ProjectBoostedReleases:
+    """
+    Class responsible of hiding the complexity of handling boosted releases in the Redis hash. In addition, it provides
+    all the logic to handle an upper bound in the number of boosted releases that can be simultaneously be added to
+    a specific project.
+    """
+
     # Limit of boosted releases per project.
     BOOSTED_RELEASES_LIMIT = 10
     BOOSTED_RELEASES_HASH_EXPIRATION = 60 * 60 * 1000
@@ -116,15 +135,19 @@ class ProjectBoostedReleases:
         self.project_id = project_id
 
     def add_boosted_release(self, release_id: int, environment: Optional[str]):
+        """
+        Adds a release to the boosted releases hash with the boosting timestamp set to the current time, signaling that
+        the boosts starts now.
+        """
         # If we have reached the maximum number of boosted release, we are going to pop the least recently boosted
         # release.
         if self._is_limit_reached():
-            self._pop_lru_boosted_release()
+            self._remove_least_recently_boosted_release()
 
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         self.redis_client.hset(
             cache_key,
-            self._generate_cache_key_for_boosted_release_with_environment(release_id, environment),
+            self._generate_cache_key_for_boosted_release(release_id, environment),
             datetime.utcnow().replace(tzinfo=UTC).timestamp(),
         )
         # In order to avoid having the boosted releases hash in memory for an indefinite amount of time, we will expire
@@ -134,6 +157,7 @@ class ProjectBoostedReleases:
     def get_extended_boosted_releases(self) -> List[ExtendedBoostedRelease]:
         """
         Returns a list of boosted releases augmented with additional information such as release version and platform.
+        In addition, this function performs the cleanup of expired boosted releases.
         """
         # We read all boosted releases and we augment them in two separate loops in order to perform a single query
         # to fetch all the release models. This optimization avoids peforming a query for each release.
@@ -146,10 +170,16 @@ class ProjectBoostedReleases:
         return active
 
     def _get_boosted_releases(self) -> BoostedReleases:
-        cache_key = self._generate_cache_key_for_boosted_releases_hash()
+        """
+        Returns all the boosted releases and parses them based on key and value data.
 
+        This method should not be called directly as the boosted releases are not extended, thus they contain only a
+        subset of information.
+        """
         boosted_releases = BoostedReleases()
-        for boosted_release_cache_key, timestamp in self.redis_client.hgetall(cache_key).items():
+        for boosted_release_cache_key, timestamp in self.redis_client.hgetall(
+            self._generate_cache_key_for_boosted_releases_hash()
+        ).items():
             extracted_data = self._extract_data_from_cache_key(boosted_release_cache_key)
             if extracted_data:
                 release_id, environment = extracted_data
@@ -162,7 +192,16 @@ class ProjectBoostedReleases:
 
         return boosted_releases
 
-    def _pop_lru_boosted_release(self):
+    def _remove_least_recently_boosted_release(self):
+        """
+        Removes the least recently boosted release by considering the timestamp of creation.
+        If multiple boosted releases have the same timestamp, the first one in order will be removed.
+
+        This removal strategy works under the heuristic that whenever we have reached the maximum number of boosted
+        transactions it makes more sense to replace the oldest boost because it was the one that already worked for
+        more time. Of course, this logic doesn't work well in case boosts all happened close to each other but in that
+        case no more optimal removal strategy is possible.
+        """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         boosted_releases = self.redis_client.hgetall(cache_key)
 
@@ -180,18 +219,16 @@ class ProjectBoostedReleases:
             self.redis_client.hdel(cache_key, lru_boosted_release[0])
 
     def _is_limit_reached(self):
-        cache_key = self._generate_cache_key_for_boosted_releases_hash()
-        length = self.redis_client.hlen(cache_key)
-
-        return length >= self.BOOSTED_RELEASES_LIMIT
+        return (
+            self.redis_client.hlen(self._generate_cache_key_for_boosted_releases_hash())
+            >= self.BOOSTED_RELEASES_LIMIT
+        )
 
     def _generate_cache_key_for_boosted_releases_hash(self) -> str:
         return f"ds::p:{self.project_id}:boosted_releases"
 
     @staticmethod
-    def _generate_cache_key_for_boosted_release_with_environment(
-        release_id: int, environment: Optional[str]
-    ) -> str:
+    def _generate_cache_key_for_boosted_release(release_id: int, environment: Optional[str]) -> str:
         return f"ds::r:{release_id}{_get_environment_cache_key(environment)}"
 
     @staticmethod
@@ -226,7 +263,12 @@ class LatestReleaseParams:
     environment: Optional[str]
 
 
-class LatestReleaseObserver:
+class LatestReleaseBias:
+    """
+    Class responsible of tracking all the (release, environment) pairs that have been observed in order to compute
+    whether a certain release should be boosted.
+    """
+
     ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 
     def __init__(self, latest_release_params: LatestReleaseParams):

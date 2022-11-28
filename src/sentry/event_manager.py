@@ -53,10 +53,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (
-    LatestReleaseObserver,
-    LatestReleaseParams,
-)
+from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -897,7 +894,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     )
 
                     # TODO: implement sentry monitoring.
-                    LatestReleaseObserver(
+                    LatestReleaseBias(
                         latest_release_params=latest_release_params
                     ).observe_release().boost_if_not_observed(
                         lambda: schedule_invalidate_project_config(
