@@ -35,7 +35,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import resolve_field
+from sentry.search.events.fields import get_columns_from_function
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -1352,9 +1352,9 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate):
-    function = resolve_field(aggregate)
-    if function.aggregate is not None:
-        return function.aggregate[1]
+    columns = get_columns_from_function(aggregate)
+    if len(columns) > 0:
+        return columns[0]
     return None
 
 

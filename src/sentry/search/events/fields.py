@@ -442,18 +442,6 @@ FIELD_ALIASES = {
 }
 
 
-def format_column_arguments(column_args, arguments):
-    for i in range(len(column_args)):
-        if isinstance(column_args[i], (list, tuple)):
-            if isinstance(column_args[i][0], ArgValue):
-                column_args[i][0] = arguments[column_args[i][0].arg]
-            format_column_arguments(column_args[i][1], arguments)
-        elif isinstance(column_args[i], str):
-            column_args[i] = column_args[i].format(**arguments)
-        elif isinstance(column_args[i], ArgValue):
-            column_args[i] = arguments[column_args[i].arg]
-
-
 def parse_arguments(function: str, columns: str) -> List[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
@@ -512,109 +500,16 @@ def parse_arguments(function: str, columns: str) -> List[str]:
     return [arg for arg in args if arg]
 
 
-def resolve_field(field, params=None, functions_acl=None):
+def get_columns_from_function(field) -> List[str]:
     if not isinstance(field, str):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
     if match:
-        return resolve_function(field, match, params, functions_acl)
-
-    if field in FIELD_ALIASES:
-        special_field = FIELD_ALIASES[field]
-        return ResolvedFunction(None, special_field.get_field(params), None)
-
-    tag_match = TAG_KEY_RE.search(field)
-    tag_field = tag_match.group("tag") if tag_match else field
-
-    if VALID_FIELD_PATTERN.match(tag_field):
-        return ResolvedFunction(None, field, None)
+        function = match.group("function")
+        return parse_arguments(function, match.group("columns"))
     else:
-        raise InvalidSearchQuery(f"Invalid characters in field {field}")
-
-
-def resolve_function(field, match=None, params=None, functions_acl=False):
-    if params is not None and field in params.get("aliases", {}):
-        alias = params["aliases"][field]
-        return ResolvedFunction(
-            FunctionDetails(field, FUNCTIONS["percentage"], []),
-            None,
-            alias.aggregate,
-        )
-    function_name, columns, alias = parse_function(field, match)
-    function = FUNCTIONS[function_name]
-    if not function.is_accessible(functions_acl):
-        raise InvalidSearchQuery(f"{function.name}: no access to private function")
-
-    arguments = function.format_as_arguments(field, columns, params)
-    details = FunctionDetails(field, function, arguments)
-
-    if function.transform is not None:
-        snuba_string = function.transform.format(**arguments)
-        if alias is None:
-            alias = get_function_alias_with_columns(function.name, columns)
-        return ResolvedFunction(
-            details,
-            None,
-            [snuba_string, None, alias],
-        )
-    elif function.conditional_transform is not None:
-        condition, match, fallback = function.conditional_transform
-        if alias is None:
-            alias = get_function_alias_with_columns(function.name, columns)
-
-        if arguments[condition.arg] is not None:
-            snuba_string = match.format(**arguments)
-        else:
-            snuba_string = fallback.format(**arguments)
-        return ResolvedFunction(
-            details,
-            None,
-            [snuba_string, None, alias],
-        )
-
-    elif function.aggregate is not None:
-        aggregate = deepcopy(function.aggregate)
-
-        aggregate[0] = aggregate[0].format(**arguments)
-        if isinstance(aggregate[1], (list, tuple)):
-            format_column_arguments(aggregate[1], arguments)
-        elif isinstance(aggregate[1], ArgValue):
-            arg = aggregate[1].arg
-            # The aggregate function has only a single argument
-            # however that argument is an expression, so we have
-            # to make sure to nest it so it doesn't get treated
-            # as a list of arguments by snuba.
-            if isinstance(arguments[arg], (list, tuple)):
-                aggregate[1] = [arguments[arg]]
-            else:
-                aggregate[1] = arguments[arg]
-
-        if alias is not None:
-            aggregate[2] = alias
-        elif aggregate[2] is None:
-            aggregate[2] = get_function_alias_with_columns(function.name, columns)
-
-        return ResolvedFunction(details, None, aggregate)
-    elif function.column is not None:
-        # These can be very nested functions, so we need to iterate through all the layers
-        addition = deepcopy(function.column)
-        addition[0] = addition[0].format(**arguments)
-        if isinstance(addition[1], (list, tuple)):
-            format_column_arguments(addition[1], arguments)
-        if len(addition) < 3:
-            if alias is not None:
-                addition.append(alias)
-            else:
-                addition.append(get_function_alias_with_columns(function.name, columns))
-        elif len(addition) == 3:
-            if alias is not None:
-                addition[2] = alias
-            elif addition[2] is None:
-                addition[2] = get_function_alias_with_columns(function.name, columns)
-            else:
-                addition[2] = addition[2].format(**arguments)
-        return ResolvedFunction(details, addition, None)
+        return []
 
 
 def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
