@@ -214,6 +214,9 @@ class OrganizationMixin:
         if self.active_organization:
             current_org_slug = self.active_organization.organization.slug
             url = Organization.get_url(current_org_slug)
+            if using_customer_domain:
+                url_prefix = generate_organization_url(request.subdomain)
+                url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
