@@ -121,7 +121,7 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
-        if not self.group.issue_category:
+        if self.group.issue_category not in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]:
             context.update(
                 {
                     "default_issue_data": [("Issue Data", get_default_data(self.event)), None],
