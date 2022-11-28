@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
@@ -7,7 +8,7 @@ jest.mock('sentry/components/replays/replayCountContext');
 
 describe('IssueReplayCount', function () {
   const groupId = '3363325111';
-  const organization = TestStubs.Organization();
+  const {organization, routerContext} = initializeOrg();
 
   it('does not render when a group has no replays', async function () {
     const mockReplaysCount = {};
@@ -31,7 +32,8 @@ describe('IssueReplayCount', function () {
     const {container} = render(
       <ReplayCountContext.Provider value={mockReplaysCount}>
         <IssueReplayCount groupId={groupId} />
-      </ReplayCountContext.Provider>
+      </ReplayCountContext.Provider>,
+      {context: routerContext}
     );
 
     await waitFor(() => {

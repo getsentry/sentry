@@ -30,7 +30,10 @@ describe('ReplayTagsTableRow', () => {
   });
 
   it('Should render the tag value as a link if we get a link result from generateUrl', () => {
-    render(<ReplayTagsTableRow tag={genericTag} generateUrl={() => 'https://foo.bar'} />);
+    render(
+      <ReplayTagsTableRow tag={genericTag} generateUrl={() => 'https://foo.bar'} />,
+      {context: TestStubs.routerContext()}
+    );
 
     expect(screen.getByText('foo')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();

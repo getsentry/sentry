@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -58,7 +58,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />);
+    render(<CommitRow commit={commit} />, {context: TestStubs.routerContext()});
     expect(
       screen.getByText(
         textWithMarkupMatcher(
@@ -67,7 +67,7 @@ describe('commitRow', () => {
       )
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText(/Invite/));
+    userEvent.click(screen.getByText(/Invite/));
 
     // @ts-ignore we are mocking this import
     expect(openInviteMembersModal.mock.calls[0][0].initialData[0].emails).toEqual(

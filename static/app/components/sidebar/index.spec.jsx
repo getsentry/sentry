@@ -9,7 +9,7 @@ import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
-  const {organization, router} = initializeOrg();
+  const {organization, router, routerContext} = initializeOrg();
   const broadcast = TestStubs.Broadcast();
   const user = TestStubs.User();
   const apiMocks = {};
@@ -22,7 +22,7 @@ describe('Sidebar', function () {
     </PersistedStoreProvider>
   );
 
-  const renderSidebar = props => render(getElement(props));
+  const renderSidebar = props => render(getElement(props), {context: routerContext});
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({

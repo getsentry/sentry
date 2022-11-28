@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -13,6 +11,7 @@ import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import {useParams} from 'sentry/utils/useParams';
 
 import AppStoreConnect from './appStoreConnect';
 import Http from './http';
@@ -29,7 +28,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = WithRouterProps<RouteParams, {}> & {
+type Props = {
   appStoreConnectSourcesQuantity: number;
   /**
    * Callback invoked with the updated config value.
@@ -66,12 +65,12 @@ function DebugFileCustomRepository({
   onSave,
   sourceConfig,
   sourceType,
-  params: {orgId, projectId: projectSlug},
   appStoreConnectStatusData,
   closeModal,
   organization,
   appStoreConnectSourcesQuantity,
 }: Props) {
+  const {orgId, projectId: projectSlug} = useParams<RouteParams>();
   function handleSave(data?: Record<string, any>) {
     if (!data) {
       closeModal();
@@ -193,7 +192,7 @@ function DebugFileCustomRepository({
   );
 }
 
-export default withRouter(DebugFileCustomRepository);
+export default DebugFileCustomRepository;
 
 export const modalCss = css`
   width: 100%;

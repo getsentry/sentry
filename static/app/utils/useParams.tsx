@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {customerDomain, usingCustomerDomain} from 'sentry/constants';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-export function useParams() {
+export function useParams<P = Record<string, string>>(): P {
   const contextParams = useRouteContext().params;
 
   // Memoize params as mutating for customer domains causes other hooks

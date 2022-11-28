@@ -6,7 +6,7 @@ import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts'
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock, rulesEndpointMock;
-  const {organization, project, router} = initializeOrg();
+  const {organization, project, router, routerContext} = initializeOrg();
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
@@ -34,7 +34,8 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         projectSlug={project.slug}
         location={router.location}
         isProjectStabilized
-      />
+      />,
+      {context: routerContext}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -111,7 +112,8 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         projectSlug={project.slug}
         location={router.location}
         isProjectStabilized
-      />
+      />,
+      {context: routerContext}
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(

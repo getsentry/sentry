@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -13,6 +14,7 @@ import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 describe('ProjectTeams', function () {
   let org;
   let project;
+  let routerContext;
 
   const team1 = TestStubs.Team();
   const team2 = TestStubs.Team({
@@ -23,8 +25,10 @@ describe('ProjectTeams', function () {
   });
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.ProjectDetails();
+    const initialData = initializeOrg();
+    org = initialData.organization;
+    project = initialData.project;
+    routerContext = initialData.routerContext;
 
     TeamStore.loadInitialData([team1, team2]);
 
@@ -248,7 +252,8 @@ describe('ProjectTeams', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         project={project}
         organization={org}
-      />
+      />,
+      {context: routerContext}
     );
 
     // Add new team

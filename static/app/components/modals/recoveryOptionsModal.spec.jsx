@@ -6,6 +6,7 @@ describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
   const onClose = jest.fn();
   const mockId = TestStubs.Authenticators().Recovery().authId;
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -25,7 +26,8 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
-      />
+      />,
+      {context: routerContext}
     );
   }
 

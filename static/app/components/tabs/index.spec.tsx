@@ -202,6 +202,7 @@ describe('Tabs', () => {
   });
 
   it('renders tab links', () => {
+    const routerContext = TestStubs.routerContext();
     render(
       <Tabs>
         <TabList>
@@ -216,7 +217,8 @@ describe('Tabs', () => {
             <Item key={tab.key}>{tab.content}</Item>
           ))}
         </TabPanels>
-      </Tabs>
+      </Tabs>,
+      {context: routerContext}
     );
 
     TABS.forEach(tab => {

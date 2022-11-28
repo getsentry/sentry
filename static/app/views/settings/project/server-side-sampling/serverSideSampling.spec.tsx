@@ -267,7 +267,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
-    const {organization, projects, router} = getMockData({
+    const {organization, projects, router, routerContext} = getMockData({
       projects: mockedProjects,
     });
 
@@ -282,7 +282,8 @@ describe('Server-Side Sampling', function () {
         project={projects[2]}
         router={router}
         withModal
-      />
+      />,
+      {context: routerContext}
     );
 
     expect(mockRequests.distribution).toHaveBeenCalled();

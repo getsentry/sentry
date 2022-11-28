@@ -9,6 +9,7 @@ describe('Tag Facets', function () {
   let tagsMock;
   const project = TestStubs.Project();
   const tags = ['os', 'device', 'release'];
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
@@ -213,6 +214,7 @@ describe('Tag Facets', function () {
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(await screen.findByRole('button', {name: 'Show All Tags'})).toHaveAttribute(
@@ -233,6 +235,7 @@ describe('Tag Facets', function () {
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(
@@ -477,6 +480,7 @@ describe('Tag Facets', function () {
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(await screen.findByRole('button', {name: 'View All Tags'})).toHaveAttribute(
@@ -497,6 +501,7 @@ describe('Tag Facets', function () {
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(

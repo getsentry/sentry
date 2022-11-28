@@ -127,7 +127,9 @@ describe('EventsV2 > Landing', function () {
       features: [...features, 'discover-query-builder-as-landing-page'],
     });
 
-    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
+    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />, {
+      context: TestStubs.routerContext(),
+    });
 
     expect(screen.getByText('Discover')).toHaveAttribute(
       'href',

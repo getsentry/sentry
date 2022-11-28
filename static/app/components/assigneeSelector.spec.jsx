@@ -285,7 +285,9 @@ describe('AssigneeSelector', () => {
 
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
+      context: TestStubs.routerContext(),
+    });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     await openMenu();

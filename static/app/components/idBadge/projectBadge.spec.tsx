@@ -4,7 +4,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function () {
   it('renders with Avatar and team name', function () {
-    render(<ProjectBadge project={TestStubs.Project()} />);
+    const routerContext = TestStubs.routerContext();
+    render(<ProjectBadge project={TestStubs.Project()} />, {context: routerContext});
 
     expect(screen.getByRole('img')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(

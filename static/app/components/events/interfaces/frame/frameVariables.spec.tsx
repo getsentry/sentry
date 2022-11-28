@@ -12,7 +12,7 @@ describe('Frame Variables', function () {
       relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
     });
 
-    const {organization, router} = initializeOrg({
+    const {organization, router, routerContext} = initializeOrg({
       ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
@@ -65,7 +65,7 @@ describe('Frame Variables', function () {
           },
         }}
       />,
-      {organization, router}
+      {organization, router, context: routerContext}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);

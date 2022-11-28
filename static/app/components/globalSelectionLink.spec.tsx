@@ -5,7 +5,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
-  const getContext = (query: {environment: string; project: string[]}) =>
+  const getContext = (query?: {environment: string; project: string[]}) =>
     TestStubs.routerContext([
       {
         router: TestStubs.router({
@@ -37,7 +37,8 @@ describe('GlobalSelectionLink', function () {
 
   it('does not have global selection values in query', function () {
     const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>
+      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
+      {context: getContext()}
     );
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);

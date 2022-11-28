@@ -17,11 +17,14 @@ describe('EventAttachments', function () {
   };
 
   it('shows attachments limit reached notice', function () {
-    render(<EventAttachments {...props} />);
+    render(<EventAttachments {...props} />, {context: routerContext});
 
     expect(screen.getByText('Attachments (0)')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute('href', '');
+    expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/attachments/?types=event.minidump&types=event.applecrashreport'
+    );
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',

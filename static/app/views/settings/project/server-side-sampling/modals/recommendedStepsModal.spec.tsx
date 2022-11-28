@@ -23,9 +23,9 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   });
 
   it('render all recommended steps', function () {
-    const {organization, project} = getMockData();
+    const {organization, project, routerContext} = getMockData();
 
-    renderGlobalModal();
+    renderGlobalModal({context: routerContext});
 
     openModal(modalProps => (
       <RecommendedStepsModal

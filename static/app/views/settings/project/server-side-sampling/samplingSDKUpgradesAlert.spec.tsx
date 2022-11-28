@@ -26,7 +26,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   });
 
   it('renders content with update sdks info', function () {
-    const {organization, project} = getMockData();
+    const {organization, project, routerContext} = getMockData();
 
     render(
       <Fragment>
@@ -37,7 +37,8 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
           onReadDocs={jest.fn()}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
         />
-      </Fragment>
+      </Fragment>,
+      {context: routerContext}
     );
 
     expect(screen.getByTestId('recommended-sdk-upgrades-alert')).toBeInTheDocument();
