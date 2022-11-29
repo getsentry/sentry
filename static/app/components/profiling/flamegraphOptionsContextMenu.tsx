@@ -159,7 +159,11 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
             </ProfilingContextMenuItemCheckbox>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
-                onClick: props.onCopyFunctionNameClick,
+                onClick: () => {
+                  props.onCopyFunctionNameClick();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
               })}
               icon={<IconCopy size="xs" />}
             >
