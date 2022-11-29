@@ -28,12 +28,18 @@
 /src/sentry/quotas/                @getsentry/owners-ingest
 /src/sentry/relay/                 @getsentry/owners-ingest
 /src/sentry/utils/data_filters.py  @getsentry/owners-ingest
-/src/sentry/utils/performance_issues/   @getsentry/performance
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 /src/sentry/tasks/store.py         @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py       @getsentry/owners-ingest
+/tests/sentry/event_manager/       @getsentry/owners-ingest
+/tests/sentry/ingest/              @getsentry/owners-ingest
+/tests/sentry/relay/               @getsentry/owners-ingest
+/tests/relay_integration/          @getsentry/owners-ingest
+
+# Performance
+/src/sentry/utils/performance_issues/   @getsentry/performance
 
 # Security
 /src/sentry/net/                    @getsentry/security
