@@ -166,13 +166,14 @@ export class Results extends Component<Props, State> {
     const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
-      !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(
-        prevState.eventView,
-        eventView,
-        prevYAxisArray,
-        yAxisArray
-      )
+      prevQuery.field.length !== 0 &&
+      (!isAPIPayloadSimilar(currentQuery, prevQuery) ||
+        this.hasChartParametersChanged(
+          prevState.eventView,
+          eventView,
+          prevYAxisArray,
+          yAxisArray
+        ))
     ) {
       api.clear();
       this.canLoadEvents();
