@@ -7,6 +7,7 @@ import time
 import zlib
 from datetime import datetime
 from io import BytesIO
+from itertools import groupby
 from os.path import splitext
 from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit
@@ -843,6 +844,36 @@ def get_function_for_token(frame, token, previous_frame=None):
     return frame_function_name
 
 
+def fold_function_name(function_name):
+    """
+    Fold multiple consecutive occurences of the same property name into a single group, excluding the last component.
+
+    foo | foo
+    foo.foo | foo.foo
+    foo.foo.foo | {foo#2}.foo
+    bar.foo.foo | bar.foo.foo
+    bar.foo.foo.foo | bar.{foo#2}.foo
+    bar.foo.foo.onError | bar.{foo#2}.onError
+    bar.bar.bar.foo.foo.onError | {bar#3}.{foo#2}.onError
+    bar.foo.foo.bar.bar.onError | bar.{foo#2}.{bar#2}.onError
+    """
+
+    parts = function_name.split(".")
+
+    if len(parts) == 1:
+        return function_name
+
+    tail = parts.pop()
+    grouped = [list(g) for _, g in groupby(parts)]
+
+    def format_groups(p):
+        if len(p) == 1:
+            return p[0]
+        return f"\u007b{p[0]}#{len(p)}\u007d"
+
+    return f'{".".join(map(format_groups, grouped))}.{tail}'
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Modern SourceMap processor using symbolic-sourcemapcache.
@@ -1030,8 +1061,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # The tokens are 1-indexed.
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
-                new_frame["function"] = get_function_for_token(
-                    new_frame, token, processable_frame.previous_frame
+                new_frame["function"] = fold_function_name(
+                    get_function_for_token(new_frame, token, processable_frame.previous_frame)
                 )
 
                 filename = token.src

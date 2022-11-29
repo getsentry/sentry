@@ -93,7 +93,7 @@ function Content({
             ].join('');
           });
           const seriesLabel = seriesData[0].value[0];
-          contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
+          contents.push(`<div class="tooltip-footer">${seriesLabel}</div>`);
         } else {
           contents = [
             '<div class="tooltip-series tooltip-series-solo">',
