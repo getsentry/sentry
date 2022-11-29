@@ -1,6 +1,6 @@
 import {PureComponent} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,6 +32,8 @@ import {
 } from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import SelectorItems from './selectorItems';
 import {getRelativeSummary, timeRangeAutoCompleteFilter} from './utils';
@@ -593,6 +595,6 @@ const StyledPinButton = styled(PageFilterPinButton)`
   margin: 0 ${space(1)};
 `;
 
-export default withRouter(TimeRangeSelector);
+export default withSentryRouter(TimeRangeSelector);
 
 export {TimeRangeRoot};
