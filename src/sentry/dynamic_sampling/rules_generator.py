@@ -14,8 +14,6 @@ from sentry.dynamic_sampling.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
-    Condition,
-    Inner,
     ReleaseRule,
     RuleType,
 )
@@ -34,21 +32,6 @@ HEALTH_CHECK_GLOBS = [
 ]
 
 ALL_ENVIRONMENTS = "*"
-
-
-def _generate_environment_condition(environment: Optional[str]) -> Union[Condition, Inner]:
-    environment_condition = {
-        "op": "glob",
-        "name": "trace.environment",
-        "value": [environment if environment is not None else ALL_ENVIRONMENTS],
-    }
-
-    # In case we want to generate a rule for a trace without an environment we can use negations to express it as
-    # a trace that has an environment that doesn't match any environment.
-    if environment is None:
-        environment_condition = {"op": "not", "inner": environment_condition}  # type: ignore
-
-    return environment_condition  # type: ignore
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -119,11 +102,18 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     "op": "and",
                     "inner": [
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.release",
                             "value": [boosted_release.version],
                         },
-                        _generate_environment_condition(boosted_release.environment),
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            # When environment is None, it will be mapped to equivalent null in json.
+                            # When Relay receives a rule with "value": null it will match it against events without
+                            # the environment tag set.
+                            "value": boosted_release.environment,
+                        },
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,

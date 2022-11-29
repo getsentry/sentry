@@ -1,19 +1,25 @@
-import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform} from 'sentry/utils/platform';
+import useOrganization from 'sentry/utils/useOrganization';
+
+import {TagFacetsStyles} from '.';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 
 type Props = {
+  project: Project;
   segments: TagSegment[];
   title: string;
   totalValues: number;
@@ -21,15 +27,43 @@ type Props = {
   onTagClick?: (title: string, value: TagSegment) => void;
 };
 
+const _debounceTrackHover = debounce(
+  ({
+    tag,
+    value,
+    platform,
+    is_mobile,
+    organization,
+    type,
+  }: {
+    is_mobile: boolean;
+    organization: Organization;
+    tag: string;
+    type: TagFacetsStyles;
+    value: string;
+    platform?: string;
+  }) => {
+    trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+      tag,
+      value,
+      platform,
+      is_mobile,
+      organization,
+      type,
+    });
+  },
+  300
+);
+
 function TagFacetsDistributionMeter({
   colors = COLORS,
   segments,
   title,
   totalValues,
   onTagClick,
+  project,
 }: Props) {
-  const [expanded, setExpanded] = useState<boolean>(false);
-
+  const organization = useOrganization();
   function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -45,14 +79,6 @@ function TagFacetsDistributionMeter({
         <TitleDescription>
           <Label>{segments[0].name || t('n/a')}</Label>
         </TitleDescription>
-        <StyledChevron
-          direction={expanded ? 'up' : 'down'}
-          size="md"
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          aria-label={`expand-${title}`}
-        />
       </Title>
     );
   }
@@ -74,10 +100,33 @@ function TagFacetsDistributionMeter({
           const segmentProps: SegmentValue = {
             index,
             to: value.url,
-            onClick: () => onTagClick?.(title, value),
+            onClick: () => {
+              trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+                tag: title,
+                value: value.value,
+                platform: project.platform,
+                is_mobile: isMobilePlatform(project?.platform),
+                organization,
+                type: 'distributions',
+              });
+              return onTagClick?.(title, value);
+            },
           };
           return (
-            <div key={value.value} style={{width: pct + '%'}}>
+            <div
+              key={value.value}
+              style={{width: pct + '%'}}
+              onMouseOver={() =>
+                _debounceTrackHover({
+                  tag: title,
+                  value: value.value,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'distributions',
+                })
+              }
+            >
               <Tooltip
                 title={renderLegend(true)}
                 containerDisplayMode="block"
@@ -142,7 +191,7 @@ function TagFacetsDistributionMeter({
   return (
     <TagSummary>
       {renderTitle()}
-      {expanded ? renderLegend() : renderSegments()}
+      {renderSegments()}
     </TagSummary>
   );
 }
@@ -182,7 +231,6 @@ const TitleDescription = styled('div')`
 
 const Label = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  max-width: 150px;
 `;
 
 const OtherSegment = styled('span')<{color: string}>`
@@ -208,10 +256,6 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
   text-align: right;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;
-`;
-
-const StyledChevron = styled(IconChevron)`
-  margin: -${space(0.5)} 0 0 ${space(0.5)};
 `;
 
 const LegendGrid = styled('div')`

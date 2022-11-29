@@ -22,10 +22,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface AssignedToProps {
   group: Group;
   projectId: Project['id'];
+  disableDropdown?: boolean;
   onAssign?: AssigneeSelectorDropdownProps['onAssign'];
 }
 
-function AssignedTo({group, projectId}: AssignedToProps) {
+function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
   useEffect(() => {
@@ -50,7 +51,7 @@ function AssignedTo({group, projectId}: AssignedToProps) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown id={group.id}>
+        <AssigneeSelectorDropdown disabled={disableDropdown} id={group.id}>
           {({loading, assignedTo, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
@@ -70,7 +71,12 @@ function AssignedTo({group, projectId}: AssignedToProps) {
                 )}
                 <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
               </ActorWrapper>
-              <IconChevron direction={isOpen ? 'up' : 'down'} />
+              {!disableDropdown && (
+                <IconChevron
+                  data-test-id="assigned-to-chevron-icon"
+                  direction={isOpen ? 'up' : 'down'}
+                />
+              )}
             </DropdownButton>
           )}
         </AssigneeSelectorDropdown>

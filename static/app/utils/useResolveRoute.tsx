@@ -5,6 +5,7 @@ import {OrganizationSummary} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';
+import {normalizeUrl} from './withDomainRequired';
 
 /**
  * If organization is passed, then a URL with the route will be returned with the customer domain prefix attached if the
@@ -19,7 +20,7 @@ function useResolveRoute(route: string, organization?: OrganizationSummary) {
 
   if (!organization) {
     if (hasCustomerDomain) {
-      return `${sentryUrl}${route}`;
+      return `${sentryUrl}${normalizeUrl(route)}`;
     }
     return route;
   }
@@ -36,7 +37,7 @@ function useResolveRoute(route: string, organization?: OrganizationSummary) {
     }
     return route;
   }
-  return `${organizationUrl}${route}`;
+  return `${organizationUrl}${normalizeUrl(route)}`;
 }
 
 export default useResolveRoute;

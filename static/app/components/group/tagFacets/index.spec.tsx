@@ -1,17 +1,15 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  MOBILE_TAGS,
-  MOBILE_TAGS_FORMATTER,
-  TagFacets,
-} from 'sentry/components/group/tagFacets';
+import {MOBILE_TAGS_FORMATTER, TagFacets} from 'sentry/components/group/tagFacets';
 import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
 describe('Tag Facets', function () {
   let tagsMock;
   const project = TestStubs.Project();
+  const tags = ['os', 'device', 'release'];
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
@@ -99,7 +97,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="bars"
         />,
         {
@@ -120,7 +118,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="bars"
         />,
         {
@@ -161,7 +159,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
           style="bars"
         />,
@@ -187,7 +185,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="bars"
         />,
@@ -210,12 +208,13 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="bars"
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(await screen.findByRole('button', {name: 'Show All Tags'})).toHaveAttribute(
@@ -230,12 +229,13 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="bars"
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(
@@ -270,7 +270,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="bars"
         />,
@@ -324,7 +324,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="bars"
         />,
@@ -361,7 +361,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="breakdowns"
         />,
         {
@@ -382,7 +382,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="breakdowns"
         />,
         {
@@ -425,7 +425,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
           style="breakdowns"
         />,
@@ -451,7 +451,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
@@ -474,12 +474,13 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(await screen.findByRole('button', {name: 'View All Tags'})).toHaveAttribute(
@@ -494,12 +495,13 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
           organization,
+          context: routerContext,
         }
       );
       expect(
@@ -518,7 +520,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
@@ -553,7 +555,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
@@ -607,7 +609,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           tagFormatter={MOBILE_TAGS_FORMATTER}
           style="breakdowns"
         />,
@@ -644,7 +646,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="distributions"
           tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
@@ -666,7 +668,7 @@ describe('Tag Facets', function () {
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="distributions"
           tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
@@ -688,36 +690,13 @@ describe('Tag Facets', function () {
       expect(screen.getByText('100%')).toBeInTheDocument();
     });
 
-    it('displays tag breakdown when expand button is clicked', async function () {
-      render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={MOBILE_TAGS}
-          style="distributions"
-        />,
-        {
-          organization,
-        }
-      );
-      await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
-      });
-      expect(screen.queryByText('iOS 16.0')).not.toBeInTheDocument();
-      expect(screen.queryByText('33%')).not.toBeInTheDocument();
-      userEvent.click(screen.getByLabelText('expand-os'));
-      expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
-      expect(screen.getByText('33%')).toBeInTheDocument();
-    });
-
     it('displays tag breakdown when hovering over segments', async function () {
       render(
         <TagFacets
           environments={[]}
           groupId="1"
           project={project}
-          tagKeys={MOBILE_TAGS}
+          tagKeys={tags}
           style="distributions"
           tagFormatter={MOBILE_TAGS_FORMATTER}
         />,
