@@ -49,7 +49,8 @@ function VitalChartMetrics({
   field,
   vital,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const theme = useTheme();
 
   const {utc, legend, vitalPoor, markLines, chartOptions} = getVitalChartDefinitions({
