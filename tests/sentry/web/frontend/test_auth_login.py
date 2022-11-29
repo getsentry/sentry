@@ -443,7 +443,7 @@ class AuthLoginCustomerDomainTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
+            ("http://albertos-apples.testserver/auth/login/", 302),
             ("http://testserver/organizations/new/", 302),
         ]
 
@@ -460,8 +460,8 @@ class AuthLoginCustomerDomainTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-            ("/issues/", 302),
+            ("http://albertos-apples.testserver/auth/login/", 302),
+            ("http://albertos-apples.testserver/issues/", 302),
         ]
 
     def test_login_valid_credentials_invalid_customer_domain(self):
@@ -481,9 +481,9 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://invalid.testserver{reverse('sentry-login')}", 302),
+                ("http://invalid.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/auth/login/", 302),
-                ("/issues/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
             ]
 
     def test_login_valid_credentials_non_staff(self):
@@ -504,8 +504,8 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                ("/issues/", 302),
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
             ]
 
     def test_login_valid_credentials_not_a_member(self):
@@ -548,6 +548,6 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
+                ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://testserver/organizations/new/", 302),
             ]
