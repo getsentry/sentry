@@ -467,7 +467,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
-        body: groups,
+        body: {data: groups, endpoint: 'endpoint'},
         headers: {
           'X-Hits': groups.length,
         },
@@ -483,6 +483,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
+              endpoint: null,
             },
           })
         );
@@ -495,6 +496,20 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              endpoint: 'endpoint',
+            }),
+          })
+        );
+      });
     });
 
     it('invalid preview alert', async () => {
@@ -514,7 +529,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
-        body: [],
+        body: {data: [], endpoint: 'endpoint'},
         headers: {
           'X-Hits': 0,
         },

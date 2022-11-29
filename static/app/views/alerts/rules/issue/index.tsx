@@ -154,6 +154,7 @@ type State = AsyncView['state'] & {
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
+  previewEndpoint: null | string;
   previewError: boolean;
   previewGroups: string[] | null;
   previewPage: number;
@@ -251,6 +252,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       sendingNotification: false,
       incompatibleConditions: null,
       incompatibleFilters: null,
+      previewEndpoint: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -365,7 +367,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule, previewCursor} = this.state;
+    const {project, rule, previewCursor, previewEndpoint} = this.state;
 
     if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
@@ -390,21 +392,23 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           actionMatch: rule?.actionMatch || 'all',
           filterMatch: rule?.filterMatch || 'all',
           frequency: rule?.frequency || 60,
+          endpoint: previewEndpoint,
         },
       })
       .then(([data, _, resp]) => {
-        GroupStore.add(data);
+        GroupStore.add(data.data);
 
         const pageLinks = resp?.getResponseHeader('Link');
         const hits = resp?.getResponseHeader('X-Hits');
         const issueCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
-          previewGroups: data.map(g => g.id),
+          previewGroups: data.data.map(g => g.id),
           previewError: false,
           pageLinks: pageLinks ?? '',
           issueCount,
           loadingPreview: false,
+          previewEndpoint: data.endpoint,
         });
       })
       .catch(_ => {
