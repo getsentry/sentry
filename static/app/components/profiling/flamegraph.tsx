@@ -33,7 +33,7 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {
-  computeConfigViewWithStategy,
+  computeConfigViewWithStrategy,
   formatColorForFrame,
   Rect,
   watchForResize,
@@ -168,7 +168,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         // was specified, this should be used as the initial view.
         defined(zoomIntoFrame)
       ) {
-        const newConfigView = computeConfigViewWithStategy(
+        const newConfigView = computeConfigViewWithStrategy(
           'min',
           newView.configView,
           new Rect(
@@ -222,7 +222,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     };
 
     const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
-      const newConfigView = computeConfigViewWithStategy(
+      const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
         new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
