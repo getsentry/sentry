@@ -35,7 +35,8 @@ type Props = {
 };
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();
