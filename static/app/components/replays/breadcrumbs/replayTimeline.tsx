@@ -28,7 +28,7 @@ function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
 
   if (!replay) {
-    return <Placeholder height="48px" bottomGutter={2} />;
+    return <Placeholder height="54px" bottomGutter={2} />;
   }
 
   const durationMs = replay.getDurationMs();
