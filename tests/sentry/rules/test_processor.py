@@ -49,20 +49,20 @@ class MockConditionTrue(EventCondition):
 
 class RuleProcessorTest(TestCase):
     def setUp(self):
-        self.event = self.store_event(data={}, project_id=self.project.id)
-        self.event = next(self.event.build_group_events())
+        self.group_event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(self.group_event.build_group_events())
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
         )
 
     # this test relies on a few other tests passing
     def test_integrated(self):
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -74,12 +74,18 @@ class RuleProcessorTest(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
-        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 1
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
 
         # should not apply twice due to default frequency
         results = list(rp.apply())
         assert len(results) == 0
-        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 1
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
 
         # now ensure that moving the last update backwards
         # in time causes the rule to trigger again
@@ -89,13 +95,16 @@ class RuleProcessorTest(TestCase):
 
         results = list(rp.apply())
         assert len(results) == 1
-        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 2
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 2
+        )
 
     def test_ignored_issue(self):
-        self.event.group.status = GroupStatus.IGNORED
-        self.event.group.save()
+        self.group_event.group.status = GroupStatus.IGNORED
+        self.group_event.group.save()
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -105,10 +114,10 @@ class RuleProcessorTest(TestCase):
         assert len(results) == 0
 
     def test_resolved_issue(self):
-        self.event.group.status = GroupStatus.RESOLVED
-        self.event.group.save()
+        self.group_event.group.status = GroupStatus.RESOLVED
+        self.group_event.group.save()
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -132,11 +141,11 @@ class RuleProcessorTest(TestCase):
 
     def test_multiple_rules(self):
         rule_2 = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
         )
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -209,7 +218,7 @@ class RuleProcessorTest(TestCase):
             "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
         ) as passes:
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=True,
                 is_new_group_environment=True,
@@ -247,18 +256,18 @@ class RuleProcessorTestFilters(TestCase):
     )
 
     def setUp(self):
-        self.event = self.store_event(data={}, project_id=self.project.id)
-        self.event = next(self.event.build_group_events())
+        self.group_event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(self.group_event.build_group_events())
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "conditions": [EVERY_EVENT_COND_DATA, filter_data],
                 "actions": [EMAIL_ACTION_DATA],
@@ -267,7 +276,7 @@ class RuleProcessorTestFilters(TestCase):
         # patch the rule registry to contain the mocked rules
         with patch("sentry.rules.processor.rules", init_registry()):
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=True,
                 is_new_group_environment=True,
@@ -285,9 +294,9 @@ class RuleProcessorTestFilters(TestCase):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterFalse"}
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "conditions": [EVERY_EVENT_COND_DATA, filter_data],
                 "actions": [EMAIL_ACTION_DATA],
@@ -296,7 +305,7 @@ class RuleProcessorTestFilters(TestCase):
         # patch the rule registry to contain the mocked rules
         with patch("sentry.rules.processor.rules", init_registry()):
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=True,
                 is_new_group_environment=True,
@@ -307,10 +316,10 @@ class RuleProcessorTestFilters(TestCase):
 
     def test_no_filters(self):
         # setup an alert rule with 1 conditions and no filters that passes
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "conditions": [EVERY_EVENT_COND_DATA],
                 "actions": [EMAIL_ACTION_DATA],
@@ -319,7 +328,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -334,15 +343,15 @@ class RuleProcessorTestFilters(TestCase):
 
     def test_no_conditions(self):
         # if a rule has no conditions/triggers it should still pass
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
         )
 
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
@@ -359,15 +368,15 @@ class RuleProcessorTestFilters(TestCase):
         # setup an alert rule with 1 conditions and no filters that passes
         self.create_release(project=self.project, version="2021-02.newRelease")
 
-        self.event = self.store_event(
+        self.group_event = self.store_event(
             data={"release": "2021-02.newRelease"}, project_id=self.project.id
         )
-        self.event = next(self.event.build_group_events())
+        self.group_event = next(self.group_event.build_group_events())
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "actions": [EMAIL_ACTION_DATA],
                 "filter_match": "any",
@@ -381,7 +390,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -403,20 +412,20 @@ class RuleProcessorTestFilters(TestCase):
             environments=[self.environment],
         )
 
-        self.event = self.store_event(
+        self.group_event = self.store_event(
             data={
                 "release": release.version,
                 "tags": [["environment", self.environment.name]],
             },
             project_id=self.project.id,
         )
-        self.event = next(self.event.build_group_events())
+        self.group_event = next(self.group_event.build_group_events())
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             environment_id=self.environment.id,
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "actions": [EMAIL_ACTION_DATA],
                 "filter_match": "any",
@@ -430,7 +439,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         rp = RuleProcessor(
-            self.event,
+            self.group_event,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -446,11 +455,11 @@ class RuleProcessorTestFilters(TestCase):
 
 class RuleProcessorActiveReleaseTest(TestCase):
     def setUp(self):
-        self.event = self.store_event(
+        self.group_event = self.store_event(
             data={"message": "Hello world"},
             project_id=self.project.id,
         )
-        self.event = next(self.event.build_group_events())
+        self.group_event = next(self.group_event.build_group_events())
 
         self.oldRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -460,7 +469,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         )
         GroupRelease.objects.create(
             project_id=self.project.id,
-            group_id=self.event.group.id,
+            group_id=self.group_event.group.id,
             release_id=self.oldRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
@@ -473,7 +482,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         )
         GroupRelease.objects.create(
             project_id=self.project.id,
-            group_id=self.event.group.id,
+            group_id=self.group_event.group.id,
             release_id=self.newRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
@@ -481,9 +490,9 @@ class RuleProcessorActiveReleaseTest(TestCase):
         self.oldRelease.add_project(self.project)
         self.newRelease.add_project(self.project)
 
-        self.event.data["tags"] = (("sentry:release", self.newRelease.version),)
+        self.group_event.data["tags"] = (("sentry:release", self.newRelease.version),)
 
-        Rule.objects.filter(project=self.event.project).delete()
+        Rule.objects.filter(project=self.group_event.project).delete()
 
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_default_notification_setting_off(self, mock_get_release_committers):
@@ -491,7 +500,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -514,7 +523,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -538,7 +547,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
             project=self.project,
         )
         Rule.objects.create(
-            project=self.event.project,
+            project=self.group_event.project,
             data={
                 "actions": [EMAIL_ACTION_DATA],
                 "filter_match": "any",
@@ -554,7 +563,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -592,7 +601,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
-                self.event,
+                self.group_event,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
