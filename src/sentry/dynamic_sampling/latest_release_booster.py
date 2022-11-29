@@ -293,6 +293,8 @@ class LatestReleaseBias:
         return release_observed == "1"
 
     def _is_latest_release(self) -> bool:
+        # This function orders releases by date_released if present, otherwise date_added. Thus, those fields are
+        # what defines the total order relation between all releases.
         latest_release = get_latest_release(
             projects=[self.latest_release_params.project.id],
             environments=None,
