@@ -131,10 +131,10 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             self.__next_step.submit(new_message)
             if self.__apply_backpressure is True:
                 self.__apply_backpressure = False
-        except MessageRejected:
-            self.__apply_backpressure = True
             self.__batch_start = None
             self.__batch = None
+        except MessageRejected:
+            self.__apply_backpressure = True
 
     def terminate(self) -> None:
         self.__closed = True
