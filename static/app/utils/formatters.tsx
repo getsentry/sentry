@@ -192,7 +192,7 @@ export function formatSecondsToClock(
   {padAll}: {padAll: boolean} = {padAll: true}
 ) {
   if (seconds <= 0 || isNaN(seconds)) {
-    return '00:00';
+    return '0:00';
   }
 
   const divideBy = (msValue: number, time: number) => {
