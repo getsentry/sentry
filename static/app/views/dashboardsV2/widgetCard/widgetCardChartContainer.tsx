@@ -72,7 +72,8 @@ export function WidgetCardChartContainer({
   noPadding,
   chartZoomOptions,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
