@@ -77,12 +77,17 @@ function getHoverBody(
 }
 
 // NOTE: Will be adding switch cases as more contexts require headers.
-function getHoverHeader(dataRow: EventData, contextType: ContextType) {
+function getHoverHeader(
+  dataRow: EventData,
+  contextType: ContextType,
+  organization: Organization
+) {
   switch (contextType) {
     case ContextType.RELEASE:
       return (
         <HoverHeader
           title={t('Release')}
+          organization={organization}
           copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
           copyContent={dataRow.release}
         />
@@ -92,6 +97,7 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
         dataRow.id && (
           <HoverHeader
             title={t('Event ID')}
+            organization={organization}
             copyLabel={getShortEventId(dataRow.id)}
             copyContent={dataRow.id}
           />
@@ -127,6 +133,7 @@ const addFieldAsColumn = (
 const fiveMinutesInMs = 5 * 60 * 1000;
 
 type HoverHeaderProps = {
+  organization: Organization;
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
@@ -138,6 +145,7 @@ function HoverHeader({
   hideCopy = false,
   copyLabel,
   copyContent,
+  organization,
 }: HoverHeaderProps) {
   return (
     <HoverHeaderWrapper>
@@ -151,6 +159,12 @@ function HoverHeader({
               cursor="pointer"
               data-test-id="quick-context-hover-header-copy-icon"
               size="xs"
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('discover_v2.quick_context_header_copy', {
+                  organization,
+                  clipBoardTitle: title,
+                });
+              }}
             />
           </Clipboard>
         )}
@@ -493,7 +507,7 @@ function EventContext(props: EventContextProps) {
             <ContextHeader>
               <Title>
                 {t('Status')}
-                {!('tags[http.status_code]' in dataRow) && (
+                {!('http.status_code' in dataRow) && (
                   <Tooltip
                     skipWrapper
                     title={t('Add HTTP status code as a column')}
@@ -504,7 +518,7 @@ function EventContext(props: EventContextProps) {
                       cursor="pointer"
                       onClick={() =>
                         addFieldAsColumn(
-                          'tags[http.status_code]',
+                          'http.status_code',
                           organization,
                           location,
                           eventView
@@ -614,7 +628,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         showUnderline
         displayTimeout={600}
         delay={HOVER_DELAY}
-        header={getHoverHeader(dataRow, contextType)}
+        header={getHoverHeader(dataRow, contextType, organization)}
         body={getHoverBody(
           dataRow,
           contextType,

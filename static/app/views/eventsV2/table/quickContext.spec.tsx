@@ -527,7 +527,7 @@ describe('Quick Context', function () {
         expect.objectContaining({
           pathname: '/mock-pathname/',
           query: expect.objectContaining({
-            field: ['title', 'tags[http.status_code]'],
+            field: ['title', 'http.status_code'],
           }),
         })
       );

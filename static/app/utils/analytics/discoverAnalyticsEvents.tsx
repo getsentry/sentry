@@ -8,6 +8,7 @@ export type DiscoverEventParameters = {
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
   'discover_v2.quick_context_add_column': {column: string};
+  'discover_v2.quick_context_header_copy': {clipBoardTitle: string};
   'discover_v2.quick_context_hover_contexts': {
     contextType: ContextType;
     eventType?: 'error' | 'transaction';
@@ -49,5 +50,7 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_views.add_to_dashboard.confirm':
     'Discover2: Add to Dashboard modal form submitted',
   'discover_v2.quick_context_hover_contexts': 'Discover2: Hover over Quick Context',
-  'discover_v2.quick_context_add_column': 'Discover2: Add column from quick context',
+  'discover_v2.quick_context_add_column': 'Discover2: Add column from Quick Context',
+  'discover_v2.quick_context_header_copy':
+    'Discover2: Copy value from Quick Context header',
 };
