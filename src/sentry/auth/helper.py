@@ -23,7 +23,6 @@ from django.views import View
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
-from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -38,11 +37,18 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
-    OrganizationMemberTeam,
     User,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
+from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, email_service
+from sentry.services.hybrid_cloud.organization import (
+    ApiOrganization,
+    ApiOrganizationMember,
+    ApiOrganizationMemberFlags,
+    organization_service,
+)
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -98,16 +104,16 @@ class AuthIdentityHandler:
 
     auth_provider: AuthProvider
     provider: Provider
-    organization: Organization
+    organization: ApiOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
 
     @cached_property
-    def user(self) -> User | AnonymousUser:
+    def user(self) -> User | APIUser | AnonymousUser:
         email = self.identity.get("email")
         if email:
             try:
-                user = resolve_email_to_user(email)
+                user = email_service.resolve_email_to_user(email)
             except AmbiguousUserFromEmail as e:
                 user = e.users[0]
                 self.warn_about_ambiguous_email(email, e.users, user)
@@ -159,11 +165,12 @@ class AuthIdentityHandler:
         )
 
     @staticmethod
-    def _set_linked_flag(member: OrganizationMember) -> None:
-        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-            setattr(member.flags, "sso:invalid", False)
-            setattr(member.flags, "sso:linked", True)
-            member.save()
+    def _set_linked_flag(member: ApiOrganizationMember) -> None:
+        if member.flags.sso__invalid or not member.flags.sso__linked:
+            member.flags.sso__invalid = False
+            member.flags.sso__linked = True
+
+            member.save()  # TODO: Service-ify
 
     def handle_existing_identity(
         self,
@@ -180,11 +187,10 @@ class AuthIdentityHandler:
             last_synced=now,
         )
 
-        try:
-            member = OrganizationMember.objects.get(
-                user=auth_identity.user, organization=self.organization
-            )
-        except OrganizationMember.DoesNotExist:
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=auth_identity.user.id
+        )
+        if member is None:
             # this is likely the case when someone was removed from the org
             # but still has access to rejoin
             member = self._handle_new_membership(auth_identity)
@@ -218,7 +224,7 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: AuthIdentity) -> OrganizationMember | None:
+    def _handle_new_membership(self, auth_identity: AuthIdentity) -> ApiOrganizationMember | None:
         user = auth_identity.user
 
         # If the user is either currently *pending* invite acceptance (as indicated
@@ -239,14 +245,14 @@ class AuthIdentityHandler:
             # In that case, delete the invite request and create a new membership.
             invite_helper.handle_invite_not_approved()
 
-        flags = OrganizationMember.flags["sso:linked"]
+        flags = ApiOrganizationMemberFlags(sso__linked=True)
         # if the org doesn't have the ability to add members then anyone who got added
         # this way should be disabled until the org upgrades
         if not features.has("organizations:invite-members", self.organization):
-            flags = flags | OrganizationMember.flags["member-limit:restricted"]
+            flags.member_limit__restricted = True
 
         # Otherwise create a new membership
-        om = OrganizationMember.objects.create(
+        om = organization_service.add_organization_member(
             organization=self.organization,
             role=self.organization.default_role,
             user=user,
@@ -255,16 +261,16 @@ class AuthIdentityHandler:
 
         default_teams = self.auth_provider.default_teams.all()
         for team in default_teams:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
+            organization_service.add_team_member(team=team, organization_member=om)
 
         AuditLogEntry.objects.create(
             organization=self.organization,
             actor=user,
             ip_address=self.request.META["REMOTE_ADDR"],
             target_object=om.id,
-            target_user=om.user,
+            target_user=om.user_id,
             event=audit_log.get_event_id("MEMBER_ADD"),
-            data=om.get_audit_log_data(),
+            data=organization_service.get_audit_log_data(organization_member=om),
         )
 
         return om
@@ -362,11 +368,10 @@ class AuthIdentityHandler:
 
         # since we've identified an identity which is no longer valid
         # lets preemptively mark it as such
-        try:
-            other_member = OrganizationMember.objects.get(
-                user=auth_identity.user_id, organization=self.organization
-            )
-        except OrganizationMember.DoesNotExist:
+        other_member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=auth_identity.user_id
+        )
+        if other_member is None:
             return
         other_member.flags["sso:invalid"] = True
         other_member.flags["sso:linked"] = False
@@ -374,15 +379,17 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> OrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
         """
-        try:
-            return OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        except OrganizationMember.DoesNotExist:
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+        if member is None:
             return self._handle_new_membership(auth_identity)
+        return member
 
     def _respond(
         self,
@@ -824,9 +831,10 @@ class AuthHelper(Pipeline):
         data = self.fetch_state()
         config = self.provider.build_config(data)
 
-        try:
-            om = OrganizationMember.objects.get(user=request.user, organization=self.organization)
-        except OrganizationMember.DoesNotExist:
+        om = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=request.user.id
+        )
+        if om is None:
             return self.error(ERR_UID_MISMATCH)
 
         # disable require 2FA for the organization

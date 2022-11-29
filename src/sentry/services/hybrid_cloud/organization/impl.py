@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import dataclasses
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Optional, Set, cast
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Optional, Set, cast
 
 from sentry.models import (
     Organization,
@@ -26,6 +28,10 @@ from sentry.services.hybrid_cloud.organization import (
     ApiUserOrganizationContext,
     OrganizationService,
 )
+from sentry.services.hybrid_cloud.util import flags_to_bits
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -37,7 +43,7 @@ def unescape_flag_name(flag_name: str) -> str:
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
-    def _serialize_member_flags(self, member: "OrganizationMember") -> "ApiOrganizationMemberFlags":
+    def _serialize_member_flags(self, member: OrganizationMember) -> ApiOrganizationMemberFlags:
         result = ApiOrganizationMemberFlags()
         for f in dataclasses.fields(ApiOrganizationMemberFlags):
             setattr(result, f.name, getattr(member.flags, unescape_flag_name(f.name)))
@@ -45,13 +51,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def _serialize_member(
         self,
-        member: "OrganizationMember",
-    ) -> "ApiOrganizationMember":
+        member: OrganizationMember,
+    ) -> ApiOrganizationMember:
         api_member = ApiOrganizationMember(
             id=member.id,
             organization_id=member.organization_id,
             user_id=member.user.id if member.user is not None else None,
             role=member.role,
+            has_global_access=member.has_global_access,
             scopes=list(member.get_scopes()),
             flags=self._serialize_member_flags(member),
         )
@@ -76,13 +83,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return api_member
 
-    def _serialize_flags(self, org: "Organization") -> "ApiOrganizationFlags":
+    def _serialize_flags(self, org: Organization) -> ApiOrganizationFlags:
         result = ApiOrganizationFlags()
         for f in dataclasses.fields(result):
             setattr(result, f.name, getattr(org.flags, f.name))
         return result
 
-    def _serialize_team(self, team: Team) -> "ApiTeam":
+    def _serialize_team(self, team: Team) -> ApiTeam:
         return ApiTeam(
             id=team.id,
             status=team.status,
@@ -92,7 +99,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def _serialize_team_member(
         self, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
-    ) -> "ApiTeamMember":
+    ) -> ApiTeamMember:
         result = ApiTeamMember(
             id=team_member.id,
             is_active=team_member.is_active,
@@ -103,7 +110,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return result
 
-    def _serialize_project(self, project: Project) -> "ApiProject":
+    def _serialize_project(self, project: Project) -> ApiProject:
         return ApiProject(
             id=project.id,
             slug=project.slug,
@@ -112,14 +119,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=project.status,
         )
 
-    def _serialize_organization_summary(self, org: "Organization") -> "ApiOrganizationSummary":
+    def _serialize_organization_summary(self, org: Organization) -> ApiOrganizationSummary:
         return ApiOrganizationSummary(
             slug=org.slug,
             id=org.id,
             name=org.name,
         )
 
-    def _serialize_organization(self, org: "Organization") -> "ApiOrganization":
+    def _serialize_organization(self, org: Organization) -> ApiOrganization:
         api_org: ApiOrganization = ApiOrganization(
             slug=org.slug,
             id=org.id,
@@ -232,3 +239,53 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return [r.organization for r in results if scope in r.get_scopes()]
 
         return [r.organization for r in results]
+
+    def get_teams(self, team_ids: Iterable[int]) -> List[ApiTeam]:
+        teams: Iterable[Team] = Team.objects.filter(id__in=list(team_ids))
+        return [self._serialize_team(team) for team in teams]
+
+    @staticmethod
+    def _deserialize_member_flags(flags: ApiOrganizationMemberFlags) -> int:
+        return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
+
+    def add_organization_member(
+        self,
+        *,
+        organization: ApiOrganization,
+        user: APIUser,
+        flags: ApiOrganizationMemberFlags | None,
+        role: str | None,
+    ) -> ApiOrganizationMember:
+        member = OrganizationMember.objects.create(
+            organization_id=organization.id,
+            user_id=user.id,
+            flags=self._deserialize_member_flags(flags) if flags else 0,
+            role=role or organization.default_role,
+        )
+        return self._serialize_member(member)
+
+    def add_team_member(
+        self, *, team: ApiTeam, organization_member: ApiOrganizationMember
+    ) -> ApiTeamMember:
+        omt = OrganizationMemberTeam.objects.create(
+            team_id=team.id, organizationmember_id=organization_member.id
+        )
+        project_ids = ()  # TODO?
+        return self._serialize_team_member(omt, project_ids)
+
+    def get_audit_log_data(
+        self, *, organization_member: ApiOrganizationMember
+    ) -> Mapping[str, Any]:
+        from sentry.services.hybrid_cloud.user import user_service
+
+        user = user_service.get_user(user_id=organization_member.user_id)
+        teams = self.get_teams(mt.team_id for mt in organization_member.member_teams)
+        return {
+            "email": user.email,
+            "user": None,  # TODO,
+            "teams": [t.id for t in teams],
+            "teams_slugs": [t.slug for t in teams],
+            "has_global_access": organization_member.has_global_access,
+            "role": organization_member.role,
+            "invite_status": None,  # TODO
+        }

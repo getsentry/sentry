@@ -1,19 +1,22 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.roles.manager import TeamRole
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int]
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
         status.  When user_id is provided, membership data related to that user from the organization
@@ -30,7 +33,7 @@ class OrganizationService(InterfaceWithLifecycle):
         scope: Optional[str],
         only_visible: bool,
         organization_ids: Optional[List[int]] = None,
-    ) -> List["ApiOrganizationSummary"]:
+    ) -> List[ApiOrganizationSummary]:
         """
         When user_id is set, returns all organizations associated with that user id given
         a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
@@ -48,7 +51,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def check_membership_by_email(
         self, organization_id: int, email: str
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by an email
         """
@@ -57,7 +60,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def check_membership_by_id(
         self, organization_id: int, user_id: int
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by a user id
         """
@@ -72,7 +75,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     def get_organization_by_slug(
         self, *, user_id: Optional[int], slug: str, only_visible: bool
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
@@ -81,6 +84,33 @@ class OrganizationService(InterfaceWithLifecycle):
             return None
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
+
+    @abstractmethod
+    def get_teams(self, team_ids: Iterable[int]) -> List[ApiTeam]:
+        pass
+
+    @abstractmethod
+    def add_organization_member(
+        self,
+        *,
+        organization: ApiOrganization,
+        user: APIUser,
+        flags: ApiOrganizationMemberFlags | None,
+        role: str | None,
+    ) -> ApiOrganizationMember:
+        pass
+
+    @abstractmethod
+    def add_team_member(
+        self, *, team: ApiTeam, organization_member: ApiOrganizationMember
+    ) -> ApiTeamMember:
+        pass
+
+    @abstractmethod
+    def get_audit_log_data(
+        self, *, organization_member: ApiOrganizationMember
+    ) -> Mapping[str, Any]:
+        pass
 
 
 def impl_with_db() -> OrganizationService:
@@ -116,7 +146,7 @@ class ApiTeam:
 class ApiTeamMember:
     id: int = -1
     is_active: bool = False
-    role: Optional["TeamRole"] = None
+    role: Optional[TeamRole] = None
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team_id: int = -1
@@ -161,6 +191,7 @@ class ApiOrganizationMember:
     user_id: Optional[int] = None
     member_teams: List[ApiTeamMember] = field(default_factory=list)
     role: str = ""
+    has_global_access: bool = False
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     flags: ApiOrganizationMemberFlags = field(default_factory=lambda: ApiOrganizationMemberFlags())
@@ -196,6 +227,8 @@ class ApiOrganization(ApiOrganizationSummary):
     projects: List[ApiProject] = field(default_factory=list)
 
     flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
+
+    default_role: str = ""
 
 
 @dataclass

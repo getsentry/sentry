@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
-from sentry.models import Model, Organization
+from sentry.models import Model
 
+from ..services.hybrid_cloud.organization import ApiOrganization
 from .store import PipelineSessionStore
 
 
@@ -11,7 +12,7 @@ class PipelineRequestState:
 
     state: PipelineSessionStore
     provider_model: Model
-    organization: Organization
+    organization: ApiOrganization
     provider_key: str
 
 
