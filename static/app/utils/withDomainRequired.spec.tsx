@@ -23,12 +23,18 @@ describe('normalizeUrl', function () {
     const location = TestStubs.location();
     const cases = [
       // input, expected
-      ['/settings/organization', '/settings/organization'],
+      ['/settings/acme/', '/settings/organization/'],
+      ['/settings/organization', '/settings/organization/'],
       ['/settings/sentry/members/', '/settings/members/'],
       ['/settings/sentry/members/3/', '/settings/members/3/'],
       ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
       ['/settings/account/security/', '/settings/account/security/'],
       ['/settings/account/details/', '/settings/account/details/'],
+      ['/settings/sentry/billing/receipts/', '/settings/billing/receipts/'],
+      [
+        '/settings/acme/developer-settings/release-bot/',
+        '/settings/developer-settings/release-bot/',
+      ],
       ['/organizations/new', '/organizations/new'],
       ['/organizations/new/', '/organizations/new/'],
       ['/join-request/acme', '/join-request/'],
@@ -56,17 +62,23 @@ describe('normalizeUrl', function () {
 
   it('replaces pathname in objects', function () {
     const location = TestStubs.location();
-    result = normalizeUrl({pathname: '/settings/organization'}, location);
-    // @ts-ignore
-    expect(result.pathname).toEqual('/settings/organization');
+    result = normalizeUrl({pathname: '/settings/acme/'}, location);
+    expect(result.pathname).toEqual('/settings/organization/');
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
-    // @ts-ignore
     expect(result.pathname).toEqual('/settings/members');
 
     result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
-    // @ts-ignore
     expect(result.pathname).toEqual('/issues');
+
+    result = normalizeUrl(
+      {
+        pathname: '/organizations/sentry/profiling/profile/sentry/abc123/',
+        query: {sorting: 'call order'},
+      },
+      location
+    );
+    expect(result.pathname).toEqual('/profiling/profile/sentry/abc123/');
 
     result = normalizeUrl(
       {
@@ -75,18 +87,17 @@ describe('normalizeUrl', function () {
       },
       location
     );
-    // @ts-ignore
     expect(result.pathname).toEqual('/issues');
   });
 
   it('replaces pathname in function callback', function () {
     const location = TestStubs.location();
     function objectCallback(_loc: Location): LocationDescriptorObject {
-      return {pathname: '/settings/organization'};
+      return {pathname: '/settings/'};
     }
     result = normalizeUrl(objectCallback, location);
     // @ts-ignore
-    expect(result.pathname).toEqual('/settings/organization');
+    expect(result.pathname).toEqual('/settings/');
 
     function stringCallback(_loc: Location): LocationDescriptor {
       return '/organizations/a-long-slug/discover/';

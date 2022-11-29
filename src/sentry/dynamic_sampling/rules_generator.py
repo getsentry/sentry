@@ -7,10 +7,7 @@ from pytz import UTC
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.key_transactions import get_key_transactions
-from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    get_boosted_releases,
-)
+from sentry.dynamic_sampling.latest_release_booster import get_augmented_boosted_releases
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
@@ -18,12 +15,10 @@ from sentry.dynamic_sampling.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
-    Condition,
-    Inner,
     ReleaseRule,
     RuleType,
 )
-from sentry.models import Project, Release
+from sentry.models import Project
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz
@@ -38,21 +33,6 @@ HEALTH_CHECK_GLOBS = [
 ]
 
 ALL_ENVIRONMENTS = "*"
-
-
-def _generate_environment_condition(environment: Optional[str]) -> Union[Condition, Inner]:
-    environment_condition = {
-        "op": "glob",
-        "name": "trace.environment",
-        "value": [environment if environment is not None else ALL_ENVIRONMENTS],
-    }
-
-    # In case we want to generate a rule for a trace without an environment we can use negations to express it as
-    # a trace that has an environment that doesn't match any environment.
-    if environment is None:
-        environment_condition = {"op": "not", "inner": environment_condition}  # type: ignore
-
-    return environment_condition  # type: ignore
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -109,23 +89,9 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
 
 
 def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[ReleaseRule]:
-    boosted_release_in_cache = get_boosted_releases(project_id)
-    if not boosted_release_in_cache:
-        return []
-
-    # Capped to latest 5 releases
-    boosted_releases_objs = Release.objects.filter(
-        id__in=[r[0] for r in boosted_release_in_cache[-BOOSTED_RELEASES_LIMIT:]]
-    )
-    boosted_releases_dict = {release.id: release.version for release in boosted_releases_objs}
-
-    boosted_release_versions = []
-    for (release_id, environment, timestamp) in boosted_release_in_cache:
-        if release_id not in boosted_releases_dict:
-            continue
-        boosted_release_versions.append((boosted_releases_dict[release_id], environment, timestamp))
-
+    boosted_releases = get_augmented_boosted_releases(project_id, BOOSTED_RELEASES_LIMIT)
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
+
     return cast(
         List[ReleaseRule],
         [
@@ -137,26 +103,33 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
                     "op": "and",
                     "inner": [
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.release",
-                            "value": [release_version],
+                            "value": [boosted_release.version],
                         },
-                        _generate_environment_condition(environment),
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            # When environment is None, it will be mapped to equivalent null in json.
+                            # When Relay receives a rule with "value": null it will match it against events without
+                            # the environment tag set.
+                            "value": boosted_release.environment,
+                        },
                     ],
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
                 "timeRange": {
-                    "start": str(datetime.utcfromtimestamp(timestamp).replace(tzinfo=UTC)),
+                    "start": str(
+                        datetime.utcfromtimestamp(boosted_release.timestamp).replace(tzinfo=UTC)
+                    ),
                     "end": str(
-                        datetime.utcfromtimestamp(timestamp + BOOSTED_RELEASE_TIMEOUT).replace(
-                            tzinfo=UTC
-                        )
+                        datetime.utcfromtimestamp(
+                            boosted_release.timestamp + boosted_release.platform.time_to_adoption
+                        ).replace(tzinfo=UTC)
                     ),
                 },
             }
-            for idx, (release_version, environment, timestamp) in enumerate(
-                boosted_release_versions
-            )
+            for idx, boosted_release in enumerate(boosted_releases)
         ],
     )
 
