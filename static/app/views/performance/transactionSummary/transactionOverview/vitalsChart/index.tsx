@@ -38,7 +38,8 @@ function VitalsChart({
   start: propsStart,
   end: propsEnd,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const api = useApi();
   const theme = useTheme();
 
