@@ -129,6 +129,10 @@ const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
     background: ${p => p.theme.level[p.level]};
     border-color: ${p => p.theme.level[p.level]};
     padding: 0 ${space(0.75)};
+
+    span {
+      color: ${p => p.theme.buttonCountActive} !important;
+    }
   }
 `;
 
