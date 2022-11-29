@@ -91,9 +91,9 @@ def query_sso_state(
 
                 if SiloMode.get_current_mode() != SiloMode.MONOLITH:
                     # Giant hack for now until we have control silo org membership table.
-                    from sentry.testutils.silo import exempt_from_silo_limits
-
-                    with exempt_from_silo_limits():
+                    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                        SiloMode.MONOLITH
+                    ):
                         user_ids = get_user_ids(member.organization_id, member.id)
                 else:
                     user_ids = get_user_ids(member.organization_id, member.id)
