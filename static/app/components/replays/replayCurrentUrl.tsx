@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Input, InputGroup} from 'sentry/components/inputGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput, {
   StyledCopyButton,
@@ -12,9 +13,9 @@ function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
   if (!replay) {
     return (
-      <UrlCopyInput size="sm" disabled>
-        {''}
-      </UrlCopyInput>
+      <InputGroup>
+        <Input readOnly disabled size="sm" />
+      </InputGroup>
     );
   }
 
