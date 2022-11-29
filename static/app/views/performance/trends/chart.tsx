@@ -24,6 +24,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {ViewProps} from '../types';
