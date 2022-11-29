@@ -20,6 +20,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
