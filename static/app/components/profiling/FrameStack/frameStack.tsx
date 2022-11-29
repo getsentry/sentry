@@ -6,7 +6,7 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
@@ -24,6 +24,7 @@ import {ProfileDetails} from './profileDetails';
 
 interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
+  canvasScheduler: CanvasScheduler;
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
@@ -238,6 +239,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
         tree={maybeFilteredOrInvertedTree ?? []}
+        canvasScheduler={props.canvasScheduler}
         canvasPoolManager={props.canvasPoolManager}
       />
 
