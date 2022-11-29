@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -110,7 +111,7 @@ describe('OrganizationStats', function () {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
         groupBy: ['category', 'outcome'],
-        project: [],
+        project: [-1],
         field: ['sum(quantity)'],
       },
       UsageStatsPerMin: {
@@ -123,7 +124,7 @@ describe('OrganizationStats', function () {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
         groupBy: ['outcome', 'project'],
-        project: [],
+        project: [-1],
         field: ['sum(quantity)'],
         category: 'error',
       },
@@ -244,7 +245,8 @@ describe('OrganizationStats', function () {
       if (query?.statsPeriod === '5m') {
         return;
       }
-      expect(query.project).toEqual(defaultSelection.projects);
+      expect(query.project).toEqual([ALL_ACCESS_PROJECTS]);
+      expect(defaultSelection.projects).toEqual([]);
     });
   });
 
