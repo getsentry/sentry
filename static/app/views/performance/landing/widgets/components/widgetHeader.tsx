@@ -31,7 +31,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
         {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>
       <HeaderActionsContainer>
-        {HeaderActions ? <HeaderActions {...props} /> : null}
+        {HeaderActions && <HeaderActions {...props} />}
       </HeaderActionsContainer>
     </WidgetHeaderContainer>
   );
