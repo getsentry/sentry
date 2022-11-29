@@ -243,7 +243,8 @@ export function Chart({
   projects,
   project,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const theme = useTheme();
 
   const handleLegendSelectChanged = legendChange => {
