@@ -149,7 +149,10 @@ export class OrganizationStats extends Component<Props> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    return this.hasProjectStats ? [-1, ...this.props.selection.projects] : [-1];
+    const selection_projects = this.props.selection.projects.length
+      ? this.props.selection.projects
+      : [-1];
+    return this.hasProjectStats ? selection_projects : [-1];
   }
 
   /**
