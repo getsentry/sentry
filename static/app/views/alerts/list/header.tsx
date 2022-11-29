@@ -7,8 +7,10 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,7 +44,15 @@ const AlertHeader = ({router, activeTab}: Props) => {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledLayoutTitle>{t('Alerts')}</StyledLayoutTitle>
+        <StyledLayoutTitle>
+          {t('Alerts')}
+          <PageHeadingQuestionTooltip
+            title={tct(
+              'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date. [link: Read the docs].',
+              {link: <ExternalLink href="https://docs.sentry.io/product/alerts/" />}
+            )}
+          />
+        </StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <Actions gap={1}>

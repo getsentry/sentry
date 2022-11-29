@@ -2,8 +2,10 @@ import styled from '@emotion/styled';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {t} from 'sentry/locale';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
@@ -16,7 +18,15 @@ function StatsHeader({organization, activeTab}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
+        <StyledLayoutTitle>
+          {t('Stats')}
+          <PageHeadingQuestionTooltip
+            title={tct(
+              'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+              {link: <ExternalLink href="https://docs.sentry.io/product/stats/" />}
+            )}
+          />
+        </StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         {activeTab !== 'stats' && (

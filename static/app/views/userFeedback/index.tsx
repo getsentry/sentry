@@ -9,15 +9,17 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
@@ -126,7 +128,19 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
               <Header>
-                <PageHeading>{t('User Feedback')}</PageHeading>
+                <PageHeading>
+                  {t('User Feedback')}
+                  <PageHeadingQuestionTooltip
+                    title={tct(
+                      'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments. [link: Read the docs].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                        ),
+                      }
+                    )}
+                  />
+                </PageHeading>
               </Header>
               <Filters>
                 <PageFilterBar>

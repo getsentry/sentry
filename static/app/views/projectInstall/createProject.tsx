@@ -149,7 +149,9 @@ class CreateProject extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PageHeading withMargins>{t('Name your project & assign it a team')}</PageHeading>
+        <PageHeading withMargins>
+          {t('3. Name your project & assign it a team')}
+        </PageHeading>
         {createProjectForm}
       </Fragment>
     );
@@ -292,7 +294,7 @@ class CreateProject extends Component<Props, State> {
               }
             )}
           </HelpText>
-          <PageHeading withMargins>{t('Choose your platform')}</PageHeading>
+          <PageHeading withMargins>{t('1. Choose your platform')}</PageHeading>
           <PlatformPicker
             platform={platform}
             defaultCategory={this.defaultCategory}

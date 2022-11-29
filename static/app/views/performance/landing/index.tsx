@@ -9,15 +9,17 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -163,7 +165,19 @@ export function PerformanceLanding(props: Props) {
         >
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>{t('Performance')}</StyledHeading>
+              <StyledHeading>
+                {t('Performance')}
+                <PageHeadingQuestionTooltip
+                  title={tct(
+                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions. [link: Read the docs].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/performance/" />
+                      ),
+                    }
+                  )}
+                />
+              </StyledHeading>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (

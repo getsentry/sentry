@@ -10,15 +10,17 @@ import uniqBy from 'lodash/uniqBy';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
@@ -141,7 +143,19 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
         <Fragment>
           <ProjectsHeader>
             <Title>
-              <PageHeading>{t('Projects')}</PageHeading>
+              <PageHeading>
+                {t('Projects')}
+                <PageHeadingQuestionTooltip
+                  title={tct(
+                    "A high-level overview of errors, transactions, and deployments filtered by teams you're part of. [link: Read the docs].",
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/projects/" />
+                      ),
+                    }
+                  )}
+                />
+              </PageHeading>
             </Title>
             <Layout.HeaderActions>
               <ButtonContainer>
