@@ -15,7 +15,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
