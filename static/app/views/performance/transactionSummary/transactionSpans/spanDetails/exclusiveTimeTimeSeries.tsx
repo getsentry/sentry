@@ -22,6 +22,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
