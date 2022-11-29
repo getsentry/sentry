@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import keyBy from 'lodash/keyBy';
 
 import Link from 'sentry/components/links/link';
@@ -8,7 +9,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project, TagWithTopValues} from 'sentry/types';
+import {Organization, Project, TagWithTopValues} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -19,6 +20,7 @@ import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
 import {TagFacetsProps} from './tagFacetsTypes';
+import {TagFacetsStyles} from '.';
 
 type State = {
   loading: boolean;
@@ -146,6 +148,7 @@ export default function TagFacetsBars({
                   platform: project?.platform,
                   is_mobile: isMobilePlatform(project?.platform),
                   organization,
+                  type: 'bars',
                 }
               );
             }}
@@ -178,10 +181,38 @@ type Props = {
    * in the order they want bars displayed.
    */
   data: Point[];
+  project: Project;
+  tag: string;
   maxItems?: number;
-  project?: Project;
-  tag?: string;
 };
+
+const _debounceTrackHover = debounce(
+  ({
+    tag,
+    value,
+    platform,
+    is_mobile,
+    organization,
+    type,
+  }: {
+    is_mobile: boolean;
+    organization: Organization;
+    tag: string;
+    type: TagFacetsStyles;
+    value: string;
+    platform?: string;
+  }) => {
+    trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+      tag,
+      value,
+      platform,
+      is_mobile,
+      organization,
+      type,
+    });
+  },
+  300
+);
 
 function BreakdownBars({data, maxItems, project, tag}: Props) {
   const organization = useOrganization();
@@ -207,16 +238,25 @@ function BreakdownBars({data, maxItems, project, tag}: Props) {
               to={point.url}
               aria-label={t('Add %s to the search query', point.label)}
               onClick={() => {
-                if (tag && project) {
-                  trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
-                    tag,
-                    value: point.label,
-                    platform: project.platform,
-                    is_mobile: isMobilePlatform(project?.platform),
-                    organization,
-                  });
-                }
+                trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+                  tag,
+                  value: point.label,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'bars',
+                });
               }}
+              onMouseOver={() =>
+                _debounceTrackHover({
+                  tag,
+                  value: point.label,
+                  platform: project.platform,
+                  is_mobile: isMobilePlatform(project?.platform),
+                  organization,
+                  type: 'bars',
+                })
+              }
             >
               {bar}
             </Link>
