@@ -7,12 +7,14 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
 import {Item, TabList, Tabs} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -128,7 +130,15 @@ function IssueListHeader({
       noActionWrap={!organization.features.includes('issue-list-saved-searches-v2')}
     >
       <Layout.HeaderContent>
-        <StyledLayoutTitle>{t('Issues')}</StyledLayoutTitle>
+        <StyledLayoutTitle>
+          {t('Issues')}
+          <PageHeadingQuestionTooltip
+            title={tct(
+              'Detailed views of errors and performance problems in your application grouped by events with a similar set of characteristics. [link: Read the docs].',
+              {link: <ExternalLink href="https://docs.sentry.io/product/issues/" />}
+            )}
+          />
+        </StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
