@@ -125,7 +125,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1373,9 +1373,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = GROUP_TYPE_TO_TEXT[problem.type]
     return metadata
 
 
