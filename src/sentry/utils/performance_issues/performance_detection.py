@@ -912,8 +912,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
+        hash = span.get("hash", None)
 
-        if not span_id or not op:
+        if not span_id or not op or not hash:
             return
 
         if op not in self.settings.get("allowed_span_ops", []):
@@ -954,7 +955,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
-            desc=os.path.commonprefix([span["description"] for span in self.spans]),
+            desc=os.path.commonprefix([span.get("description", "") for span in self.spans]),
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
@@ -969,8 +970,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return f"1-{problem_class}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
-        span_a_start = span_a["start_timestamp"] or 0
-        span_b_start = span_b["start_timestamp"] or 0
+        span_a_start: int = span_a.get("start_timestamp", 0) or 0
+        span_b_start: int = span_b.get("start_timestamp", 0) or 0
 
         return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
 
