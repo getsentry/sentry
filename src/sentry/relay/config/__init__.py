@@ -36,7 +36,6 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
 from sentry.relay.utils import to_camel_case_name
-from sentry.search.utils import get_latest_release
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -158,32 +157,10 @@ def get_project_config(
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
     feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
 
-    # In this case we should override old conditionnal rules if they exists
+    # In this case we should override old conditional rules if they exist
     # or just return uniform rule
     if feature_multiplexer.is_on_dynamic_sampling:
         return {"rules": generate_rules(project)}
-    elif feature_multiplexer.is_on_dynamic_sampling_deprecated:
-        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
-        if dynamic_sampling is not None:
-            # filter out rules that do not have active set to True
-            active_rules = []
-            for rule in dynamic_sampling["rules"]:
-                if rule.get("active"):
-                    inner_rule = rule["condition"]["inner"]
-                    if (
-                        inner_rule
-                        and inner_rule[0]["name"] == "trace.release"
-                        and inner_rule[0]["value"] == ["latest"]
-                    ):
-                        # get latest overall (no environments filters)
-                        environment = None
-                        rule["condition"]["inner"][0]["value"] = get_latest_release(
-                            [project], environment
-                        )
-                    active_rules.append(rule)
-
-            return {"rules": active_rules, "mode": "total"}
-
     return None
 
 
