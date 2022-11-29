@@ -6,13 +6,10 @@ import {getCrumbsByColumn} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
-
-const EVENT_STICK_MARKER_WIDTH = 4;
 
 type Props = {
   crumbs: Crumb[];
@@ -29,7 +26,9 @@ function ReplayTimelineEvents({
   startTimestampMs,
   width,
 }: Props) {
-  const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
+  const markerWidth = crumbs.length < 200 ? 4 : crumbs.length < 500 ? 6 : 10;
+
+  const totalColumns = Math.floor(width / markerWidth);
   const eventsByCol = getCrumbsByColumn(
     startTimestampMs,
     durationMs,
@@ -41,7 +40,11 @@ function ReplayTimelineEvents({
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
-          <Event crumbs={breadcrumbs} startTimestampMs={startTimestampMs} />
+          <Event
+            crumbs={breadcrumbs}
+            markerWidth={markerWidth}
+            startTimestampMs={startTimestampMs}
+          />
         </EventColumn>
       ))}
     </Timeline.Columns>
@@ -62,13 +65,14 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   crumbs,
+  markerWidth,
   startTimestampMs,
 }: {
   crumbs: Crumb[];
+  markerWidth: number;
   startTimestampMs: number;
   className?: string;
 }) {
-  const {setActiveTab} = useActiveReplayTab();
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -102,29 +106,8 @@ function Event({
   // We just need to stack up to 3 times
   const totalStackNumber = Math.min(crumbs.length, 3);
 
-  // If there is only 1 event use the tab navigation handler on the node
-  const nodeClickHandler = () => {
-    if (crumbs.length === 1) {
-      const crumb = crumbs[0];
-
-      switch (crumb.type) {
-        case 'navigation':
-        case 'debug':
-          setActiveTab('network');
-          break;
-        case 'ui':
-          setActiveTab('dom');
-          break;
-        case 'error':
-        default:
-          setActiveTab('console');
-          break;
-      }
-    }
-  };
-
   return (
-    <IconPosition onClick={nodeClickHandler}>
+    <IconPosition markerWidth={markerWidth}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
         {crumbs.slice(0, totalStackNumber).map((crumb, index) => (
           <IconNode
@@ -161,10 +144,10 @@ const IconNodeTooltip = styled(Tooltip)`
   align-items: center;
 `;
 
-const IconPosition = styled('div')`
+const IconPosition = styled('div')<{markerWidth: number}>`
   position: absolute;
   transform: translate(-50%);
-  margin-left: ${EVENT_STICK_MARKER_WIDTH / 2}px;
+  margin-left: ${p => p.markerWidth / 2}px;
 `;
 
 const IconNode = styled('div')<{
