@@ -1,5 +1,5 @@
-import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
-import {useHover, useKeyboard} from '@react-aria/interactions';
+import {forwardRef, Fragment, useEffect, useRef} from 'react';
+import {useHover, useKeyboard, usePress} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
@@ -125,16 +125,19 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
   };
 
   // Open submenu on hover
-  const [isHovering, setIsHovering] = useState(false);
-  const {hoverProps} = useHover({onHoverChange: setIsHovering});
-  const prevIsHovering = usePrevious(isHovering);
+  const {hoverProps, isHovered} = useHover({});
+  // Toggle submenu on press
+  const {pressProps} = usePress({
+    onPress: () => state.selectionManager.toggleSelection(node.key),
+  });
+  const prevIsHovered = usePrevious(isHovered);
   const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
-    if (isHovering === prevIsHovering && isFocused === prevIsFocused) {
+    if (isHovered === prevIsHovered && isFocused === prevIsFocused) {
       return;
     }
 
-    if (isHovering && isFocused) {
+    if (isHovered && isFocused) {
       if (isSubmenuTrigger) {
         state.selectionManager.select(node.key);
         return;
@@ -142,9 +145,9 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
       state.selectionManager.clearSelection();
     }
   }, [
-    isHovering,
+    isHovered,
     isFocused,
-    prevIsHovering,
+    prevIsHovered,
     prevIsFocused,
     isSubmenuTrigger,
     node.key,
@@ -188,7 +191,13 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
 
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
+  const props = mergeProps(
+    submenuTriggerProps,
+    menuItemProps,
+    hoverProps,
+    keyboardProps,
+    pressProps
+  );
   const itemLabel = node.rendered ?? label;
   const innerWrapProps = {as: to ? Link : 'div', to};
 
