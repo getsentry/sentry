@@ -7,7 +7,7 @@ from typing import Any, Deque, Mapping, Optional, Tuple
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import Commit, Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
