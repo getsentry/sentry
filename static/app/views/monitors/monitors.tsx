@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
@@ -21,7 +20,6 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -70,13 +68,8 @@ function NewMonitorButton(props: ButtonProps) {
 }
 
 class Monitors extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
   get orgSlug() {
-    return this.context.organization.slug;
+    return this.props.organization.slug;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
