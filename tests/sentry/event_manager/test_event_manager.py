@@ -3327,7 +3327,9 @@ class DSLatestReleaseBoostTest(TestCase):
                     )
                     == "1"
                 )
-                # We call first the get_extended_boosted_releases() method in order to delete expired boosted releases.
+                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                    f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
+                }
                 assert ProjectBoostedReleases(
                     project_id=project.id
                 ).get_extended_boosted_releases() == [
@@ -3340,9 +3342,6 @@ class DSLatestReleaseBoostTest(TestCase):
                         platform=Platform(project.platform),
                     )
                 ]
-                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
-                    f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
-                }
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
@@ -3374,18 +3373,19 @@ class DSLatestReleaseBoostTest(TestCase):
         ts = time()
 
         project = self.create_project(platform="python")
-        releases = [
-            Release.get_or_create(
-                project=project,
-                version="1.0",
-                date_added=datetime.now() + timedelta(hours=x - 1),
-            )
-            # We create exactly BOOSTED_RELEASES_LIMIT number of releases.
-            for x in range(1, 3)
-        ]
+        release_1 = Release.get_or_create(
+            project=project,
+            version="1.0",
+            date_added=datetime.now(),
+        )
+        release_2 = Release.get_or_create(
+            project=project,
+            version="2.0",
+            date_added=datetime.now() + timedelta(hours=1),
+        )
 
-        expected_releases = {}
-        for release in releases:
+        # We boost with increasing timestamps, so that we know that the smallest will be evicted.
+        for release, boost_time in ((release_1, ts - 2), (release_2, ts - 1)):
             self.redis_client.set(
                 f"ds::p:{project.id}:r:{release.id}",
                 1,
@@ -3394,12 +3394,8 @@ class DSLatestReleaseBoostTest(TestCase):
             self.redis_client.hset(
                 f"ds::p:{project.id}:boosted_releases",
                 f"ds::r:{release.id}",
-                ts,
+                boost_time,
             )
-
-        # We expect to have all the previous release except the first one added which is the least recently boosted.
-        for release in releases[1:]:
-            expected_releases.update({f"ds::r:{release.id}": str(ts)})
 
         with self.options(
             {
@@ -3419,19 +3415,36 @@ class DSLatestReleaseBoostTest(TestCase):
                 timestamp=self.timestamp,
             )
 
-            # We also expect to have the newly boosted release.
-            expected_releases.update({f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)})
-
             assert (
                 self.redis_client.get(
                     f"ds::p:{project.id}:r:{release_3.id}:e:{self.environment1.name}"
                 )
                 == "1"
             )
-            assert (
-                self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases")
-                == expected_releases
-            )
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_2.id}": str(ts - 1),
+                f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts - 1,
+                    environment=None,
+                    cache_key=f"ds::r:{release_2.id}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_3.id,
+                    timestamp=ts,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release_3.id}:e:{self.environment1.name}",
+                    version=release_3.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time()
     @mock.patch(

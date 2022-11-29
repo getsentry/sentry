@@ -26,6 +26,19 @@ def _get_environment_cache_key(environment: Optional[str]) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
 
 
+def _get_project_platform(project_id: int) -> Platform:
+    try:
+        return Platform(Project.objects.get(id=project_id).platform)  # type:ignore
+    except Project.DoesNotExist:
+        # If we don't find the project of this release we just default to having no platform name in the
+        # BoostedRelease.
+        return Platform()
+
+
+def _is_release_active(current_timestamp: int, expiration_timestamp: int) -> bool:
+    return current_timestamp <= expiration_timestamp
+
+
 @dataclass(frozen=True)
 class BoostedRelease:
     """
@@ -45,17 +58,8 @@ class BoostedRelease:
             environment=self.environment,
             cache_key=self.cache_key,
             version=release.version,
-            platform=Platform(self._get_project_platform_from_release(release, project_id)),
+            platform=_get_project_platform(project_id),
         )
-
-    @staticmethod
-    def _get_project_platform_from_release(release: Release, project_id: int) -> Optional[str]:
-        try:
-            return release.projects.get(id=project_id).platform  # type:ignore
-        except Project.DoesNotExist:
-            # If we don't find the project of this release we just default to having no platform name in the
-            # BoostedRelease.
-            return None
 
 
 @dataclass(frozen=True)
@@ -69,7 +73,9 @@ class ExtendedBoostedRelease(BoostedRelease):
     platform: Platform
 
     def is_active(self, current_timestamp: int) -> bool:
-        return current_timestamp <= (self.timestamp + self.platform.time_to_adoption)
+        return _is_release_active(
+            current_timestamp, self.timestamp + self.platform.time_to_adoption
+        )
 
 
 @dataclass
@@ -133,16 +139,14 @@ class ProjectBoostedReleases:
     def __init__(self, project_id: int):
         self.redis_client = get_redis_client_for_ds()
         self.project_id = project_id
+        self.project_platform = _get_project_platform(self.project_id)
 
     def add_boosted_release(self, release_id: int, environment: Optional[str]):
         """
         Adds a release to the boosted releases hash with the boosting timestamp set to the current time, signaling that
         the boosts starts now.
         """
-        # If we have reached the maximum number of boosted release, we are going to pop the least recently boosted
-        # release.
-        if self._is_limit_reached():
-            self._remove_least_recently_boosted_release()
+        self._remove_lrb_if_limit_is_reached()
 
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         self.redis_client.hset(
@@ -192,37 +196,54 @@ class ProjectBoostedReleases:
 
         return boosted_releases
 
-    def _remove_least_recently_boosted_release(self):
+    def _remove_lrb_if_limit_is_reached(self):
         """
-        Removes the least recently boosted release by considering the timestamp of creation.
-        If multiple boosted releases have the same timestamp, the first one in order will be removed.
+        Removes all the expired releases and also the least recently boosted release in case the limit of boosted
+        releases is reached.
 
-        This removal strategy works under the heuristic that whenever we have reached the maximum number of boosted
-        transactions it makes more sense to replace the oldest boost because it was the one that already worked for
-        more time. Of course, this logic doesn't work well in case boosts all happened close to each other but in that
-        case no more optimal removal strategy is possible.
+        For efficiency reasons, this function performs two things simultaneously:
+        1. It counts the number of active releases and keeps track of expired releases for deletion
+        2. It finds the least recently boosted active release to remove in case the limit of boosted release is reached
         """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         boosted_releases = self.redis_client.hgetall(cache_key)
+        current_timestamp = datetime.utcnow().replace(tzinfo=UTC).timestamp()
 
         lru_boosted_release = None
-        for boosted_release, timestamp in boosted_releases.items():
+        active_releases = 0
+        keys_to_delete = []
+        for boosted_release_key, timestamp in boosted_releases.items():
             timestamp = float(timestamp)
-            # With this logic we want to find the boosted release with the lowest timestamp, if multiple releases
-            # have the same timestamp we are going to take the first one in the hash.
-            if lru_boosted_release is None or (
-                lru_boosted_release and lru_boosted_release[1] < timestamp
+
+            # For efficiency reasons we don't parse the release and extend it with information, therefore we have to
+            # check timestamps in the following way.
+            if _is_release_active(
+                current_timestamp, timestamp + self.project_platform.time_to_adoption
             ):
-                lru_boosted_release = (boosted_release, timestamp)
+                # With this logic we want to find the boosted release with the lowest timestamp, if multiple releases
+                # have the same timestamp we are going to take the first one in the hash.
+                #
+                # We run this logic while counting the number of active release so that we can remove it in O(1) in case
+                # the number of active releases is >= the limit.
+                #
+                # We leverage OR execution order to avoid the condition lru_boosted_release is not None because:
+                # The expression x or y first evaluates x;
+                # if x is true, its value is returned;
+                # otherwise, y is evaluated and the resulting value is returned.
+                if lru_boosted_release is None or timestamp < lru_boosted_release[1]:
+                    lru_boosted_release = (boosted_release_key, timestamp)
+                # We count this release because it is an active release.
+                active_releases += 1
+            else:
+                keys_to_delete.append(boosted_release_key)
 
-        if lru_boosted_release:
-            self.redis_client.hdel(cache_key, lru_boosted_release[0])
+        # We delete the least recently boosted release if we have surpassed the limit of elements in the hash.
+        if active_releases >= self.BOOSTED_RELEASES_LIMIT and lru_boosted_release:
+            keys_to_delete.append(lru_boosted_release[0])
 
-    def _is_limit_reached(self):
-        return (
-            self.redis_client.hlen(self._generate_cache_key_for_boosted_releases_hash())
-            >= self.BOOSTED_RELEASES_LIMIT
-        )
+        # If we have some keys to remove from redis we are going to remove them in batch for efficiency.
+        if keys_to_delete:
+            self.redis_client.hdel(cache_key, *keys_to_delete)
 
     def _generate_cache_key_for_boosted_releases_hash(self) -> str:
         return f"ds::p:{self.project_id}:boosted_releases"
