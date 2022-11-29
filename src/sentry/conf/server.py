@@ -1109,6 +1109,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue actions on issue details
     "organizations:issue-actions-v2": False,
+    # Enable new issue alert "issue owners" fallback
+    "organizations:issue-alert-fallback-targeting": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
