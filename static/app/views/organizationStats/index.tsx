@@ -26,6 +26,7 @@ import {
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -151,8 +152,8 @@ export class OrganizationStats extends Component<Props> {
   get projectIds(): number[] {
     const selection_projects = this.props.selection.projects.length
       ? this.props.selection.projects
-      : [-1];
-    return this.hasProjectStats ? selection_projects : [-1];
+      : [ALL_ACCESS_PROJECTS];
+    return this.hasProjectStats ? selection_projects : [ALL_ACCESS_PROJECTS];
   }
 
   /**
