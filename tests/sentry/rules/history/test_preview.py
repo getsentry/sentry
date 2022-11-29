@@ -649,6 +649,66 @@ class FrequencyConditionTest(TestCase, SnubaTestCase):
         result = preview(self.project, conditions, [], "any", "all", 0)
         assert group in result
 
+    def test_interval_comparison(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        group = None
+        for time, count in ((prev_hour, 2), (prev_hour - timedelta(minutes=5), 1)):
+            for i in range(count):
+                group = self.store_event(
+                    project_id=self.project.id, data={"timestamp": iso_format(time)}
+                ).group
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 99,
+                "interval": "5m",
+                "comparisonType": "percent",
+                "comparisonInterval": "5m",
+            },
+        ]
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group in result
+
+        conditions[0]["value"] = 100
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group not in result
+
+        conditions.append(
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 99,
+                "interval": "5m",
+                "comparisonType": "percent",
+                "comparisonInterval": "5m",
+            }
+        )
+        result = preview(self.project, conditions, [], "any", "all", 0)
+        assert group in result
+
+    def test_unique_user(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        group = None
+        for user in range(3):
+            for i in range(2):
+                group = self.store_event(
+                    project_id=self.project.id,
+                    data={"timestamp": iso_format(prev_hour), "user": {"id": str(user)}},
+                ).group
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+                "value": 2,
+                "interval": "5m",
+            }
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group in result
+
+        conditions[0]["value"] = 3
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group not in result
+
 
 @freeze_time()
 @region_silo_test
