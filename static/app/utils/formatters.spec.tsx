@@ -1,8 +1,13 @@
 import {
+  DAY,
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
+  formatSecondsToClock,
   getDuration,
+  MONTH,
+  parseClockToSeconds,
+  WEEK,
 } from 'sentry/utils/formatters';
 
 describe('getDuration()', function () {
