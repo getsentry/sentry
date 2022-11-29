@@ -8,7 +8,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export function AnomalyChart(props: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const location = useLocation();
   const {data, statsPeriod, height, start: propsStart, end: propsEnd} = props;
 
