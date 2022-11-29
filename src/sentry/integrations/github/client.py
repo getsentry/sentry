@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
+from sentry.integrations.utils.code_mapping import RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -163,16 +163,17 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         for repo_info in repositories:
             full_name = repo_info["full_name"]
-            branch = repo_info["default_branch"]
             try:
-                trees[full_name] = RepoTree(
-                    Repo(full_name, branch),
-                    files=self.get_cached_repo_files(full_name, branch),
-                )
-            except Exception:
-                # Catching the exception ensures that we can make progress with the rest
-                # of the repositories
-                logger.exception(f"We have failed to fetch the tree for {repo_info}.")
+                repo_tree = self.get_cached_repo_files(full_name, repo_info["default_branch"])
+                # This assertion will help clear the cache off dictionaries
+                assert type(repo_tree) == RepoTree
+                trees[full_name] = repo_tree
+
+                logger.info(f"Using cached trees for {gh_org}.")
+            except AssertionError:
+                # Reset the control cache in order to repopulate
+                cache.delete(cache_key)
+                logger.exception(f"We reset the cache for {cache_key}.")
 
         return trees
 
