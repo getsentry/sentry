@@ -73,10 +73,13 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, stacktrace_frame_file_path: str) -> None:
-        self.full_path = stacktrace_frame_file_path
-        if stacktrace_frame_file_path.find("/") > -1:
+        # XXX: Write few more test cases in utils/code_mappings
+        # XXX: Perhaps split up FrameFilename into more than one class
+        # e.g. ./app/utils/handleXhrErrorResponse.tsx
+        self.full_path = stacktrace_frame_file_path.replace("./", "")
+        if self.full_path.find("/") > -1:
             # XXX: This code assumes that all stack trace frames are part of a module
-            self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
+            self.root, self.file_and_dir_path = self.full_path.split("/", 1)
 
             # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
@@ -262,14 +265,9 @@ class CodeMappingTreesHelper:
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
 
-    def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
-        """Tries to see if the stacktrace without the root matches the file from the
-        source code. Use existing code mappings to exclude some source files
-        """
-        # Exit early because we should not be processing source files for existing code maps
-        if self._matches_current_code_mappings(src_file, frame_filename):
-            return False
-
+    def _potential_match_with_transformation(
+        self, src_file: str, frame_filename: FrameFilename
+    ) -> bool:
         match = False
         # For instance:
         #  src_file: "src/sentry/integrations/slack/client.py"
@@ -285,6 +283,27 @@ class CodeMappingTreesHelper:
             match = (
                 split[0].rfind(f"/{frame_filename.root}") > -1 or split[0] == frame_filename.root
             )
+        return match
+
+    def _potential_match_no_transformation(
+        self, src_file: str, frame_filename: FrameFilename
+    ) -> bool:
+        # static/app/utils/handleXhrErrorResponse.tsx && app/utils/handleXhrErrorResponse.tsx
+        return src_file.rfind(frame_filename.full_path) > -1
+
+    def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
+        """Tries to see if the stacktrace without the root matches the file from the
+        source code. Use existing code mappings to exclude some source files
+        """
+        # Exit early because we should not be processing source files for existing code maps
+        if self._matches_current_code_mappings(src_file, frame_filename):
+            return False
+
+        match = False
+        if frame_filename.full_path.endswith(".py"):
+            match = self._potential_match_with_transformation(src_file, frame_filename)
+        else:
+            match = self._potential_match_no_transformation(src_file, frame_filename)
 
         return match
 

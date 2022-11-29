@@ -19,6 +19,7 @@ from sentry.utils.safe import get_path
 
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
 GROUP_ANALYSIS_RANGE = timedelta(days=14)
+SUPPORTED_LANGUAGES = ["javascript", "python"]
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ def derive_code_mappings(
     project_id: int,
     data: NodeData,
     dry_run=False,
-) -> None:
+) -> List[RepositoryProjectPathConfig]:
     """
     Derive code mappings for a project given data from a recent event.
 
@@ -68,20 +69,23 @@ def derive_code_mappings(
         report_project_codemappings(code_mappings, stacktrace_paths, project)
         return
 
-    set_project_codemappings(code_mappings, organization_integration, project)
+    return set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
     Get the stacktrace_paths from the event data.
     """
-    if data["platform"] != "python":
+    if data["platform"] not in SUPPORTED_LANGUAGES:
         return []
+
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = {frame["filename"] for frame in stacktrace["frames"]}
+            paths = {
+                frame["filename"] for frame in stacktrace["frames"] if frame.get("in_app") is True
+            }
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project.")
@@ -129,11 +133,12 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-) -> None:
+) -> List[RepositoryProjectPathConfig]:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
+    stored_code_mappings = []
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
         repository, _ = Repository.objects.get_or_create(
@@ -167,6 +172,9 @@ def set_project_codemappings(
                     "existing_code_mapping": cm,
                 },
             )
+        else:
+            stored_code_mappings.append(cm)
+    return stored_code_mappings
 
 
 def report_project_codemappings(
