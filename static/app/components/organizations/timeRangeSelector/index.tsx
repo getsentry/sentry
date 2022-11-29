@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import SelectorItems from './selectorItems';

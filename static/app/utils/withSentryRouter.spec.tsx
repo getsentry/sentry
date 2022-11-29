@@ -3,6 +3,7 @@ import {WithRouterProps} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const mockUsingCustomerDomain = jest.fn();

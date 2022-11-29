@@ -21,6 +21,7 @@ import {
 } from 'sentry/utils/dates';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {Theme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
