@@ -23,10 +23,6 @@ from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
-Span = Dict[str, Any]
-TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
-
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
     "django",
@@ -183,6 +179,11 @@ class EventPerformanceProblem:
             cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
             for _id, (event, _) in zip(ids, items)
         ]
+
+
+Span = Dict[str, Any]
+TransactionSpans = List[Span]
+PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
