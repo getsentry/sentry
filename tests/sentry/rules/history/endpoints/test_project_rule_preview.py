@@ -32,8 +32,8 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             filterMatch="all",
             frequency=10,
         )
-        assert len(resp.data) == 1
-        assert resp.data[0]["id"] == str(group.id)
+        assert len(resp.data["data"]) == 1
+        assert resp.data["data"][0]["id"] == str(group.id)
 
     def test_invalid_conditions(self):
         conditions = [
@@ -66,3 +66,38 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             frequency=10,
         )
         assert resp.status_code == 400
+
+    def test_endpoint(self):
+        with freeze_time(timezone.now()) as frozen_time:
+            resp = self.get_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+                endpoint="invalid endpoint",
+            )
+
+            tz = resp.data["endpoint"].tzinfo
+            endpoint = frozen_time.time_to_freeze.replace(tzinfo=tz)
+            assert resp.data["endpoint"] == endpoint
+            frozen_time.tick(1)
+
+            resp = self.get_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+                endpoint=endpoint,
+            )
+
+            assert resp.data["endpoint"] == endpoint

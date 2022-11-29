@@ -1,3 +1,5 @@
+from dateutil.parser import parse as parse_datetime
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +30,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
                 "actionMatch": "all",
                 "filterMatch": "all",
                 "frequency": 60,
+                "endpoint": (Optional) datetime
             }}
 
         """
@@ -39,6 +42,10 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             raise ValidationError
 
         data = serializer.validated_data
+        try:
+            endpoint = parse_datetime(request.data["endpoint"])
+        except (TypeError, ValueError, KeyError):
+            endpoint = timezone.now()
         results = preview(
             project,
             data.get("conditions", []),
@@ -46,6 +53,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             data.get("actionMatch"),
             data.get("filterMatch"),
             data.get("frequency"),
+            endpoint,
         )
 
         if results is None:
@@ -58,4 +66,8 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
+        response.data = {
+            "data": response.data,
+            "endpoint": endpoint,
+        }
         return response
