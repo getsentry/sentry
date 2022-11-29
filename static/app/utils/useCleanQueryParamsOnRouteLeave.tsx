@@ -21,10 +21,7 @@ export function handleRouteLeave<Q extends object>({
     field => newLocation.query[field] !== undefined
   );
 
-  if (
-    newLocation.pathname === oldPathname ||
-    (newLocation.pathname !== oldPathname && !hasSomeValues)
-  ) {
+  if (newLocation.pathname === oldPathname || !hasSomeValues) {
     return;
   }
 

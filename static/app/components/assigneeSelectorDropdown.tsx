@@ -377,10 +377,13 @@ export class AssigneeSelectorDropdown extends Component<
 
     return (
       <InviteMemberLink
-        to=""
+        to="#invite-member"
         data-test-id="invite-member"
         disabled={loading}
-        onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+        onClick={event => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
       >
         <MenuItemFooterWrapper>
           <IconContainer>

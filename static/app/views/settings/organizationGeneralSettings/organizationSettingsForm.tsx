@@ -15,7 +15,7 @@ type Props = {
   access: Set<Scope>;
   initialData: Organization;
   location: Location;
-  onSave: (previous: Organization, updated: Record<string, any>) => void;
+  onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
@@ -50,10 +50,10 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         saveOnBlur
         allowUndo
         initialData={initialData}
-        onSubmitSuccess={(_resp, model) => {
+        onSubmitSuccess={(updated, _model) => {
           // Special case for slug, need to forward to new slug
           if (typeof onSave === 'function') {
-            onSave(initialData, model.initialData);
+            onSave(initialData, updated);
           }
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}

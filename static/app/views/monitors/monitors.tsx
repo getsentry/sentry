@@ -68,12 +68,16 @@ function NewMonitorButton(props: ButtonProps) {
 }
 
 class Monitors extends AsyncView<Props, State> {
+  get orgSlug() {
+    return this.props.organization.slug;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
+    const {location} = this.props;
     return [
       [
         'monitorList',
-        `/organizations/${params.orgId}/monitors/`,
+        `/organizations/${this.orgSlug}/monitors/`,
         {
           query: location.query,
         },
@@ -82,7 +86,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return `Monitors - ${this.props.params.orgId}`;
+    return `Monitors - ${this.orgSlug}`;
   }
 
   componentDidMount() {
