@@ -347,7 +347,7 @@ class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
             raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
-            projects = self.get_projects(request, organization, project_ids)  # type: ignore[arg-type]
+            projects = self.get_projects(request, organization, project_ids=project_ids)
         except ValueError:
             raise ParseError(detail="Invalid project ids")
 
