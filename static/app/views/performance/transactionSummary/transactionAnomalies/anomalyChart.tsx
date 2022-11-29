@@ -19,7 +19,8 @@ type Props = {
 };
 
 export function AnomalyChart(props: Props) {
-  const {location, router} = useRouteContext();
+  const {router} = useRouteContext();
+  const location = useLocation();
   const {data, statsPeriod, height, start: propsStart, end: propsEnd} = props;
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
