@@ -917,6 +917,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not span_id or not op or not hash:
             return
 
+        description = span.get("description")
+        if not description:
+            return
+
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
