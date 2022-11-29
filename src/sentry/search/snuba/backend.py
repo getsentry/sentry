@@ -548,9 +548,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                             lambda query: Q(type=GroupType.ERROR.value)
                             | _perf_issue_message_condition(query)
                         )
+                        # negation should only apply on the message search icontains, we have to include the
+                        # type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
                         if not message_filter.is_negation
-                        # if we're negating the message search term: '!message:something' we shouldn't apply
-                        # the `type=GroupType.ERROR` check since we'll end up excluding all error issues
                         else QCallbackCondition(lambda query: _perf_issue_message_condition(query))
                     }
                 )
