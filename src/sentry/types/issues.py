@@ -45,6 +45,11 @@ GROUP_TYPE_TO_TEXT = {
 }
 
 
+PERFORMANCE_TYPES = [
+    gt.value for gt, gc in GROUP_TYPE_TO_CATEGORY.items() if gc == GroupCategory.PERFORMANCE
+]
+
+
 def get_category_type_mapping():
     category_type_mapping = defaultdict(list)
 
