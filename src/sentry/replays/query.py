@@ -124,6 +124,8 @@ def query_replays_dataset(
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Discard short replays (5 seconds by arbitrary decision).
+                Condition(Column("duration"), Op.GTE, 5),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
