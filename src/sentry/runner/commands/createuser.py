@@ -49,6 +49,7 @@ def _set_superadmin(user):
 @click.command()
 @click.option(
     "--email",
+    "emails",
     multiple=True,
     default=None,
     help="Email(s) to create account(s) for.",
@@ -77,14 +78,14 @@ def _set_superadmin(user):
     "--force-update", default=False, is_flag=True, help="If true, will update existing users."
 )
 @configuration
-def createuser(email, org_id, password, superuser, staff, no_password, no_input, force_update):
+def createuser(emails, org_id, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
 
     from django.conf import settings
 
     if not no_input:
-        if not email:
-            email = _get_email()
+        if not emails:
+            emails = _get_email()
 
         if not (password or no_password):
             password = _get_password()
@@ -105,7 +106,7 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
         staff = superuser
 
     # Verify we have an email to work with.
-    if not email:
+    if not emails:
         raise click.ClickException("Invalid or missing email address.")
 
     if not no_password and not password:
@@ -115,10 +116,10 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
     from sentry.models import User
 
     # Loop through the email list provided.
-    for user_email in email:
+    for email in emails:
         fields = dict(
-            email=user_email,
-            username=user_email,
+            email=email,
+            username=email,
             is_superuser=superuser,
             is_staff=staff,
             is_active=True,
@@ -126,7 +127,7 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
 
         verb = None
         try:
-            user = User.objects.get(username=user_email)
+            user = User.objects.get(username=email)
         except User.DoesNotExist:
             user = None
 
@@ -137,7 +138,7 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
                 verb = "updated"
             else:
                 raise click.ClickException(
-                    f"User: {user_email} exists, use --force-update to force."
+                    f"User: {email} exists, use --force-update to force."
                 )
         # Create a new user if they don't already exist.
         else:
@@ -179,4 +180,4 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
         if superuser and (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
             _set_superadmin(user)
 
-        click.echo(f"User {verb}: {user_email}")
+        click.echo(f"User {verb}: {email}")
