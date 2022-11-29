@@ -295,9 +295,7 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            "total_duration_threshold": 200,  # ms
             "duration_threshold": 100,  # ms
-            "span_duration_threshold": 5,  # ms
             "consecutive_count_threshold": 2,
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
@@ -917,28 +915,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans.append(span)
 
     def _validate_and_store_performance_problem(self):
-        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
-        exceeds_span_duration_threshold = all(
-            get_span_duration(span).total_seconds() * 1000
-            > self.settings.get("span_duration_threshold")
-            for span in independent_db_spans
-        )
-        exceeds_total_duration_threshold = exceeds_duration_threshold = self._sum_span_duration(
-            self.consecutive_db_spans
-        ) > self.settings.get("total_duration_threshold")
+        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
         exceeds_duration_threshold = self._sum_span_duration(
             independent_db_spans
         ) > self.settings.get("duration_threshold")
-
-        if (
-            exceeds_count_threshold
-            and exceeds_span_duration_threshold
-            and exceeds_total_duration_threshold
-            and exceeds_duration_threshold
-        ):
+        if exceeds_count_threshold and exceeds_duration_threshold:
             self._store_performance_problem()
 
     def _store_performance_problem(self) -> None:
