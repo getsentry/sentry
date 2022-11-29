@@ -406,19 +406,19 @@ def get_transaction_data(event: Event) -> Any:
     return perf_to_email_html(spans, matched_problem)
 
 
-def get_default_data(event: GroupEvent) -> Any:
+def get_generic_data(event: GroupEvent) -> Any:
     """Get data about a generic issue type to populate alert emails."""
-    default_evidence = event.occurrence.evidence_display
+    generic_evidence = event.occurrence.evidence_display
     context = {}
-    for row in default_evidence:
+    for row in generic_evidence:
         context[row.name] = row.value
 
-    return default_email_html(context)
+    return generic_email_html(context)
 
 
-def default_email_html(context: Any) -> Any:
+def generic_email_html(context: Any) -> Any:
     """Format issue evidence into a (stringified) HTML table for emails"""
-    return render_to_string("sentry/emails/default_table.html", {"data": context})
+    return render_to_string("sentry/emails/generic_table.html", {"data": context})
 
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:

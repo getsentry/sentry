@@ -11,7 +11,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
-    get_default_data,
+    get_generic_data,
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
@@ -54,7 +54,7 @@ class AlertRuleNotification(ProjectNotification):
         self.template_path = (
             f"sentry/emails/{event.group.issue_category.name.lower()}"
             if hasattr(event.group, "issue_category")
-            else "sentry/emails/default"
+            else "sentry/emails/generic"
         )
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
@@ -124,7 +124,7 @@ class AlertRuleNotification(ProjectNotification):
         if self.group.issue_category not in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]:
             context.update(
                 {
-                    "default_issue_data": [("Issue Data", get_default_data(self.event)), None],
+                    "generic_issue_data": [("Issue Data", get_generic_data(self.event)), None],
                 }
             )
 
