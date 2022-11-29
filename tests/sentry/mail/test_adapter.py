@@ -282,7 +282,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
-    def test_simple_notification_default(self):
+    def test_simple_notification_generic(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -300,13 +300,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            GroupType.DEFAULT,
+            GroupType.GENERIC,
             ensure_aware(datetime.now()),
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.DEFAULT
+        event.group.type = GroupType.GENERIC
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
