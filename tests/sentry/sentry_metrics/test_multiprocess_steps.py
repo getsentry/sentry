@@ -13,11 +13,7 @@ from arroyo.types import Message, Partition, Topic
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import (
-    BatchMessages,
-    DuplicateMessage,
-    MetricsBatchBuilder,
-)
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
@@ -195,8 +191,6 @@ def test_metrics_batch_builder():
         Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
     )
     batch_builder_time.append(message1)
-    with pytest.raises(DuplicateMessage):
-        batch_builder_time.append(message1)
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())

@@ -34,10 +34,6 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     return consumer_config
 
 
-class DuplicateMessage(Exception):
-    pass
-
-
 class MetricsBatchBuilder:
     """
     Batches up individual messages - type: Message[KafkaPayload] - into a
