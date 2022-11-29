@@ -273,7 +273,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 )
                                 .join(''),
                               '</div>',
-                              `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
+                              `<div class="tooltip-footer">${intervalStart} &mdash; ${intervalEnd}</div>`,
                               '<div class="tooltip-arrow"></div>',
                             ].join('');
                           },

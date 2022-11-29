@@ -27,10 +27,14 @@ class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
         # There are 2 use-cases for this method. For the 'Tags' tab we
         # get the top 10 values, for the tag distribution bars we get 9
         # This should ideally just be specified by the client
-        if keys:
-            value_limit = 9
+        limit = request.GET.get("limit")
+        if limit is not None:
+            value_limit = int(limit)
         else:
-            value_limit = 10
+            if keys:
+                value_limit = 9
+            else:
+                value_limit = 10
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 

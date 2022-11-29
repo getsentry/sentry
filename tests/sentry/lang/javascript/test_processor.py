@@ -24,6 +24,7 @@ from sentry.lang.javascript.processor import (
     fetch_release_archive_for_url,
     fetch_release_file,
     fetch_sourcemap,
+    fold_function_name,
     generate_module,
     get_function_for_token,
     get_max_age,
@@ -1141,6 +1142,18 @@ class GetFunctionForTokenTest(unittest.TestCase):
         frame = self.get_frame({"function": "original"})
         token = self.get_token("__webpack_require__")
         assert get_function_for_token(frame, token, previous_frame) == "original"
+
+
+class FoldFunctionNameTest(unittest.TestCase):
+    def test_dedupe_properties(self):
+        assert fold_function_name("foo") == "foo"
+        assert fold_function_name("foo.foo") == "foo.foo"
+        assert fold_function_name("foo.foo.foo") == "{foo#2}.foo"
+        assert fold_function_name("bar.foo.foo") == "bar.foo.foo"
+        assert fold_function_name("bar.foo.foo.foo") == "bar.{foo#2}.foo"
+        assert fold_function_name("bar.foo.foo.onError") == "bar.{foo#2}.onError"
+        assert fold_function_name("bar.bar.bar.foo.foo.onError") == "{bar#3}.{foo#2}.onError"
+        assert fold_function_name("bar.foo.foo.bar.bar.onError") == "bar.{foo#2}.{bar#2}.onError"
 
 
 class FetchSourcemapTest(TestCase):
