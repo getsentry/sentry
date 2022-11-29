@@ -116,7 +116,11 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
     # Loop through the email list provided.
     for user_email in email.split(","):
         fields = dict(
-            email=user_email, username=user_email, is_superuser=superuser, is_staff=staff, is_active=True
+            email=user_email,
+            username=user_email,
+            is_superuser=superuser,
+            is_staff=staff,
+            is_active=True,
         )
 
         verb = None
@@ -131,7 +135,9 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
                 user.update(**fields)
                 verb = "updated"
             else:
-                raise click.ClickException(f"User: {user_email} exists, use --force-update to force.")
+                raise click.ClickException(
+                    f"User: {user_email} exists, use --force-update to force."
+                )
         # Create a new user if they don't already exist.
         else:
             user = User.objects.create(**fields)
