@@ -286,17 +286,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-
-        event_data = load_data(
-            "python",
-            timestamp=before_now(minutes=10),
-            # fingerprint=[f"{GroupType.DEFAULT.value}-group1"],
-        )
-        event_manager = EventManager(event_data)
-        event_manager.normalize()
-        event = event_manager.save(self.project.id)
         event = event.for_group(event.groups[0])
-
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
             uuid.uuid4().hex,
@@ -316,8 +306,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        # event.group.issue_category = GroupType.DEFAULT
-        # event.group.save()
+        event.group.type = GroupType.DEFAULT
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -328,7 +317,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
-        # assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
         checked_values = ["Evidence 1", "Value 1", "Evidence 2", "Value 2", "Evidence 3", "Value 3"]
         for checked_value in checked_values:
             assert (
