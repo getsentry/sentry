@@ -126,7 +126,7 @@ class Node(UserDict):  # type: ignore
             yield from child.paths(ancestors=path)
 
     @property
-    def is_leaf(self):
+    def is_leaf(self) -> bool:
         return not self.values()
 
     def count_leaf_nodes(self) -> int:
