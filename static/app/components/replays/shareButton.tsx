@@ -27,7 +27,7 @@ function ShareModal({currentTimeSec, Header, Body}) {
   // Use `value` instead of `defaultValue` so the number resets to
   // `currentTimeSec` if the user toggles isCustom
   const value = isCustom
-    ? undefined
+    ? formatSecondsToClock(customSeconds, {padAll: false})
     : formatSecondsToClock(currentTimeSec, {padAll: false});
 
   return (
@@ -51,9 +51,7 @@ function ShareModal({currentTimeSec, Header, Body}) {
             placeholder=""
             disabled={!isCustom}
             value={value}
-            onChange={e => {
-              setSeconds(parseClockToSeconds(e.target.value));
-            }}
+            onChange={e => setSeconds(parseClockToSeconds(e.target.value))}
           />
         </InputRow>
       </Body>
