@@ -49,8 +49,9 @@ def _set_superadmin(user):
 @click.command()
 @click.option(
     "--email",
+    multiple=True,
     default=None,
-    help="Email to create account for, accepts a comma separated list of emails if multiple accounts are to be created.",
+    help="Email(s) to create account(s) for.",
 )
 @click.option(
     "--org-id",
@@ -114,7 +115,7 @@ def createuser(email, org_id, password, superuser, staff, no_password, no_input,
     from sentry.models import User
 
     # Loop through the email list provided.
-    for user_email in email.split(","):
+    for user_email in email:
         fields = dict(
             email=user_email,
             username=user_email,
