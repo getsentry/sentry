@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TrendFunctionField} from '../../../trends/types';
