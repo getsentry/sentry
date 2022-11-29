@@ -168,7 +168,8 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
   } = props;
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
