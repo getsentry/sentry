@@ -50,7 +50,7 @@ function ListLink({
       className={classNames({[activeClassName]: active}, className)}
       disabled={disabled}
     >
-      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : to}>
+      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
         {children}
       </RouterLink>
     </StyledLi>

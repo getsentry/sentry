@@ -30,6 +30,7 @@ describe('normalizeUrl', function () {
       ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
       ['/settings/account/security/', '/settings/account/security/'],
       ['/settings/account/details/', '/settings/account/details/'],
+      ['/settings/sentry/billing/receipts/', '/settings/billing/receipts/'],
       [
         '/settings/acme/developer-settings/release-bot/',
         '/settings/developer-settings/release-bot/',
