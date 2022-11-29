@@ -97,6 +97,17 @@ class IssueOccurrence:
             parse_date(data["detection_time"]),
         )
 
+    @property
+    def evidence_display_primary(self) -> Optional[IssueEvidence]:
+        """
+        Returns the most important piece of evidence for display in space constrained integrations.
+        If multiple pieces of evidence are marked as important, returns the first one seen.
+        """
+        for evidence in self.evidence_display:
+            if evidence.important:
+                return evidence
+        return None
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, IssueOccurrence):
             return NotImplemented
