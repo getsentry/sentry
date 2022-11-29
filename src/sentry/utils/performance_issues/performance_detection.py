@@ -957,7 +957,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             desc=os.path.commonprefix([span["description"] for span in self.spans]),
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
-            parent_span_ids=last_span["parent_span_id"],
+            parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=[span["span_id"] for span in self.spans],
         )
 
