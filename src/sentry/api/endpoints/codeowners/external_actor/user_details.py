@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Tuple
+from typing import Any
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -15,15 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
-class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  # type: ignore
-    def convert_args(
+class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    def convert_args(  # type: ignore[override]
         self,
         request: Request,
         organization_slug: str,
         external_user_id: int,
         *args: Any,
         **kwargs: Any,
-    ) -> Tuple[Any, Any]:
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
         kwargs["external_user"] = self.get_external_actor_or_404(
             external_user_id, kwargs["organization"]
