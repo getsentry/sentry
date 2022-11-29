@@ -14,6 +14,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {ViewProps} from '../../../types';
