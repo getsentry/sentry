@@ -36,7 +36,9 @@ function ShareModal({currentTimeSec, Header, Body}) {
         <h3>Share Replay</h3>
       </Header>
       <Body>
-        <TextCopyInput size="sm">{url.toString()}</TextCopyInput>
+        <StyledTextCopyInput aria-label={t('Deeplink to current timestamp')} size="sm">
+          {url.toString()}
+        </StyledTextCopyInput>
 
         <InputRow>
           <StyledCheckbox
@@ -45,7 +47,7 @@ function ShareModal({currentTimeSec, Header, Body}) {
             checked={isCustom}
             onChange={() => setIsCustom(prev => !prev)}
           />
-          <StyledLabel htmlFor="replay_share_custom_time">Start At</StyledLabel>
+          <StyledLabel htmlFor="replay_share_custom_time">{t('Start at')}</StyledLabel>
           <StyledInput
             name="time"
             placeholder=""
@@ -79,6 +81,13 @@ function ShareButton() {
   );
 }
 
+const StyledTextCopyInput = styled(TextCopyInput)`
+  /* Keep height consistent with the other input in the modal */
+  input {
+    height: 38px;
+  }
+`;
+
 const InputRow = styled('div')`
   margin-top: ${space(2)};
   display: flex;
@@ -97,6 +106,7 @@ const StyledLabel = styled('label')`
 
 const StyledInput = styled(Input)`
   width: auto;
+  max-width: 90px;
 `;
 
 export default ShareButton;

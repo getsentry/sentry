@@ -44,7 +44,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
+export function InputGroup({children, className}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -63,7 +63,9 @@ export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
 
   return (
     <InputGroupContext.Provider value={contextValue}>
-      <InputGroupWrap disabled={inputProps.disabled}>{children}</InputGroupWrap>
+      <InputGroupWrap className={className} disabled={inputProps.disabled}>
+        {children}
+      </InputGroupWrap>
     </InputGroupContext.Provider>
   );
 }
