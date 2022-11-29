@@ -47,6 +47,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     location,
     organization,
     withStaticFilters,
+    InteractiveTitle,
   } = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
@@ -98,6 +99,11 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...rest}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => {
         return (
@@ -117,7 +123,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                 {t('View All')}
               </Button>
             </div>
-            <ContainerActions {...provided.widgetData.chart} />
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
         );
       }}

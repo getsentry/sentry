@@ -31,7 +31,7 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
-  const {ContainerActions} = props;
+  const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
@@ -123,6 +123,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             : t('Compared to the last period')}
         </Subtitle>
       )}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       HeaderActions={provided => (
         <Fragment>
           {provided.widgetData?.overall?.hasData ? (
@@ -142,7 +147,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               })}
             </Fragment>
           ) : null}
-          <ContainerActions {...provided.widgetData.chart} />
+          {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
         </Fragment>
       )}
       Queries={Queries}

@@ -95,7 +95,7 @@ export function transformFieldsWithStops(props: {
 
 export function VitalWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location} = props;
+  const {ContainerActions, eventView, organization, location, InteractiveTitle} = props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -210,6 +210,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
@@ -262,7 +267,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 {t('View All')}
               </Button>
             </div>
-            <ContainerActions {...provided.widgetData.chart} />
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
         );
       }}

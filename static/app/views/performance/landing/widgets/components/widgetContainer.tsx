@@ -4,8 +4,10 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -117,20 +119,38 @@ const _WidgetContainer = (props: Props) => {
   // `eventView` from the props is the _landing page_ EventView, which is different
   const widgetEventView = makeEventViewForWidget(props.eventView, chartDefinition);
 
+  const showNewWidgetDesign = organization.features.includes(
+    'performance-new-widget-designs'
+  );
+
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    ContainerActions: containerProps => (
-      <WidgetContainerActions
-        {...containerProps}
-        eventView={widgetEventView}
-        allowedCharts={allowedCharts}
-        chartSetting={chartSetting}
-        setChartSetting={setChartSetting}
-        rowChartSettings={rowChartSettings}
-      />
-    ),
+    InteractiveTitle: showNewWidgetDesign
+      ? containerProps => (
+          <WidgetInteractiveTitle
+            {...containerProps}
+            eventView={widgetEventView}
+            allowedCharts={allowedCharts}
+            chartSetting={chartSetting}
+            setChartSetting={setChartSetting}
+            rowChartSettings={rowChartSettings}
+          />
+        )
+      : null,
+    ContainerActions: !showNewWidgetDesign
+      ? containerProps => (
+          <WidgetContainerActions
+            {...containerProps}
+            eventView={widgetEventView}
+            allowedCharts={allowedCharts}
+            chartSetting={chartSetting}
+            setChartSetting={setChartSetting}
+            rowChartSettings={rowChartSettings}
+          />
+        )
+      : null,
   };
 
   const passedProps = pick(props, [
@@ -155,6 +175,56 @@ const _WidgetContainer = (props: Props) => {
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
+};
+
+export const WidgetInteractiveTitle = ({
+  chartSetting,
+  eventView,
+  setChartSetting,
+  allowedCharts,
+  rowChartSettings,
+}) => {
+  const organization = useOrganization();
+  const menuOptions: React.ComponentProps<
+    typeof CompositeSelect
+  >['sections'][number]['options'] = [];
+
+  const settingsMap = WIDGET_DEFINITIONS({organization});
+  for (const setting of allowedCharts) {
+    const options = settingsMap[setting];
+    menuOptions.push({
+      value: setting,
+      label: options.title,
+      disabled: setting !== chartSetting && rowChartSettings.includes(setting),
+    });
+  }
+
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+
+  const options = [
+    ...menuOptions,
+    chartDefinition.allowsOpenInDiscover
+      ? {label: t('Open in Discover'), value: 'open_in_discover'}
+      : null,
+  ].filter(Boolean) as React.ComponentProps<typeof CompactSelect>['options'];
+
+  const handleChange = option => {
+    if (option.value === 'open_in_discover') {
+      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+    } else {
+      setChartSetting(option.value);
+    }
+  };
+
+  return (
+    <CompactSelect
+      options={options}
+      value={chartSetting}
+      onChange={handleChange}
+      renderWrapAs={TextOverflow}
+      triggerProps={{borderless: true, size: 'zero'}}
+    />
+  );
 };
 
 export const WidgetContainerActions = ({

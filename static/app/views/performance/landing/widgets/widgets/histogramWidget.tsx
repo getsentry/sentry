@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ type AreaDataType = {
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, location} = props;
+  const {ContainerActions, location, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
 
   const Queries = useMemo(() => {
@@ -51,11 +51,14 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
             : t('In the last period')}
         </Subtitle>
       )}
-      HeaderActions={provided => (
-        <Fragment>
-          <ContainerActions {...provided.widgetData.chart} />
-        </Fragment>
-      )}
+      HeaderActions={provided =>
+        ContainerActions && <ContainerActions {...provided.widgetData.chart} />
+      }
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       Queries={Queries}
       Visualizations={[
         {
