@@ -72,7 +72,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
-    ...(apiResponse.duration ? {duration: duration(apiResponse.duration * 1000)} : {}),
+    ...(apiResponse.duration !== undefined
+      ? {duration: duration(apiResponse.duration * 1000)}
+      : {}),
     tags,
   };
 }
