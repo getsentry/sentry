@@ -409,6 +409,10 @@ def get_transaction_data(event: Event) -> Any:
 def get_generic_data(event: GroupEvent) -> Any:
     """Get data about a generic issue type to populate alert emails."""
     generic_evidence = event.occurrence.evidence_display
+
+    if not generic_evidence:
+        return ""
+
     context = {}
     for row in generic_evidence:
         context[row.name] = row.value
