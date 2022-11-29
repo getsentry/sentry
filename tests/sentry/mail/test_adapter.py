@@ -283,6 +283,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "my rule" in msg.alternatives[0][0]
 
     def test_simple_notification_generic(self):
+        """Test that an issue that is neither error nor performance type renders a generic email template"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
