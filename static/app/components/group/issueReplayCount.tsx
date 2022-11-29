@@ -20,7 +20,7 @@ function IssueReplayCount({groupId}: Props) {
   const organization = useOrganization();
   const count = useContext(ReplayCountContext)[groupId];
 
-  if (count === undefined) {
+  if (count === undefined || count === 0) {
     return null;
   }
 
