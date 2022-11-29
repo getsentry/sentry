@@ -119,8 +119,10 @@ def test_batch_messages_rejected_message():
 
     # if we try to submit a batch when the next step is
     # not ready to accept more messages we'll get a
-    # MessageRejected error which will bubble up to the
-    # StreamProcessor.
+    # MessageRejected error. This will be reraised for
+    # to the stream processor on the subsequent call to submit
+    batch_messages_step.submit(message=message2)
+
     with pytest.raises(MessageRejected):
         batch_messages_step.submit(message=message2)
 
