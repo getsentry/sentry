@@ -16,6 +16,7 @@ import {
   ReleaseWithHealth,
 } from 'sentry/types';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -133,8 +134,9 @@ function ReleaseEventsChart({
     }
   }
 
-  const projects = location.query.project;
-  const environments = location.query.environment;
+  const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
+  const projects = eventView.project as number[];
+  const environments = eventView.environment as string[];
   const markLines = generateReleaseMarkLines(release, project, theme, location);
 
   return (
