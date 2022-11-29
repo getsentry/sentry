@@ -381,8 +381,10 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             and request.data["sentryOrgRole"]
         ):
             role = request.data["sentryOrgRole"].lower()
+            idp_role_restricted = True
         else:
             role = organization.default_role
+            idp_role_restricted = False
 
         # Allow any role as long as it doesn't have `org:admin` permissions
         allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -437,6 +439,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 )
 
                 # TODO: are invite tokens needed for SAML orgs?
+                member.flags["idp:provisioned"] = True
+                member.flags["idp:role-restricted"] = idp_role_restricted
                 if settings.SENTRY_ENABLE_INVITES:
                     member.token = member.generate_token()
                 member.save()
