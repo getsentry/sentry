@@ -98,7 +98,7 @@ class IssueOccurrence:
         )
 
     @property
-    def evidence_display_primary(self) -> Optional[IssueEvidence]:
+    def important_evidence_display(self) -> Optional[IssueEvidence]:
         """
         Returns the most important piece of evidence for display in space constrained integrations.
         If multiple pieces of evidence are marked as important, returns the first one seen.

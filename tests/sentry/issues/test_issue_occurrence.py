@@ -66,21 +66,21 @@ class IssueOccurrenceEvidenceDisplayPrimaryTest(BaseIssueOccurrenceTest, TestCas
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
         occurrence = self.build_occurrence(evidence_display=[important_evidence])
-        assert occurrence.evidence_display_primary == important_evidence
+        assert occurrence.important_evidence_display == important_evidence
 
     def test_multiple_evidence_one_important(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
         occurrence = self.build_occurrence(
             evidence_display=[IssueEvidence("Evidence", "evidence", False), important_evidence]
         )
-        assert occurrence.evidence_display_primary == important_evidence
+        assert occurrence.important_evidence_display == important_evidence
 
     def test_multiple_evidence_multiple_important(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
         occurrence = self.build_occurrence(
             evidence_display=[important_evidence, IssueEvidence("Evidence", "evidence", True)]
         )
-        assert occurrence.evidence_display_primary == important_evidence
+        assert occurrence.important_evidence_display == important_evidence
 
     def test_multiple_evidence_no_important(self) -> None:
         occurrence = self.build_occurrence(
@@ -89,8 +89,8 @@ class IssueOccurrenceEvidenceDisplayPrimaryTest(BaseIssueOccurrenceTest, TestCas
                 IssueEvidence("Evidence", "evidence", False),
             ]
         )
-        assert occurrence.evidence_display_primary is None
+        assert occurrence.important_evidence_display is None
 
     def test_none(self) -> None:
         occurrence = self.build_occurrence(evidence_display=[])
-        assert occurrence.evidence_display_primary is None
+        assert occurrence.important_evidence_display is None
