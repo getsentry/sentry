@@ -1,11 +1,12 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FormPanel from './formPanel';
 import {Field, FieldObject, JsonFormObject} from './types';
@@ -166,4 +167,4 @@ class JsonForm extends Component<Props, State> {
   }
 }
 
-export default withRouter(JsonForm);
+export default withSentryRouter(JsonForm);
