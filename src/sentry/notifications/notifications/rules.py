@@ -123,12 +123,12 @@ class AlertRuleNotification(ProjectNotification):
             )
         if self.group.issue_category not in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]:
             generic_issue_data_html = get_generic_data(self.event)
-            section_header = "Issue Data" if generic_issue_data_html != "" else ""
-            context.update(
-                {
-                    "generic_issue_data": [(section_header, generic_issue_data_html, None)],
-                }
-            )
+            if generic_issue_data_html:
+                context.update(
+                    {
+                        "generic_issue_data": [("Issue Data", generic_issue_data_html, None)],
+                    }
+                )
 
         return context
 

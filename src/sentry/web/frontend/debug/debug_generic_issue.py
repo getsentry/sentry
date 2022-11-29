@@ -48,7 +48,7 @@ class DebugGenericIssueEmailView(View):
         rule = Rule(id=1, label="An example rule")
 
         generic_issue_data_html = get_generic_data(event)
-        section_header = "Issue Data" if generic_issue_data_html != "" else ""
+        section_header = "Issue Data" if generic_issue_data_html else ""
 
         return MailPreview(
             html_template="sentry/emails/generic.html",
