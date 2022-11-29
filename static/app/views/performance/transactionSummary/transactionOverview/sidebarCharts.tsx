@@ -80,7 +80,8 @@ function SidebarCharts({
   eventView,
   transactionName,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const location = useLocation();
+  const {router} = useRouteContext();
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
