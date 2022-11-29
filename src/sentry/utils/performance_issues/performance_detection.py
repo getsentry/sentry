@@ -940,6 +940,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def on_complete(self):
         self._maybe_store_problem()
+        self.spans = []
 
     def _maybe_store_problem(self):
         if len(self.spans) < 1:
