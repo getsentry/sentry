@@ -899,7 +899,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                                 environment=_get_environment_from_transaction(data),
                             )
 
-                            def on_release_boosted():
+                            def on_release_boosted() -> None:
                                 message = (
                                     f"New (release, environment) pair ({latest_release_params.release.id}, "
                                     f"{latest_release_params.environment}) observed and boosted"

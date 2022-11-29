@@ -28,14 +28,14 @@ def _get_environment_cache_key(environment: Optional[str]) -> str:
 
 def _get_project_platform(project_id: int) -> Platform:
     try:
-        return Platform(Project.objects.get(id=project_id).platform)  # type:ignore
+        return Platform(Project.objects.get(id=project_id).platform)
     except Project.DoesNotExist:
         # If we don't find the project of this release we just default to having no platform name in the
         # BoostedRelease.
         return Platform()
 
 
-def _is_release_active(current_timestamp: int, expiration_timestamp: int) -> bool:
+def _is_release_active(current_timestamp: float, expiration_timestamp: float) -> bool:
     return current_timestamp <= expiration_timestamp
 
 
@@ -72,7 +72,7 @@ class ExtendedBoostedRelease(BoostedRelease):
     version: str
     platform: Platform
 
-    def is_active(self, current_timestamp: int) -> bool:
+    def is_active(self, current_timestamp: float) -> bool:
         return _is_release_active(
             current_timestamp, self.timestamp + self.platform.time_to_adoption
         )
@@ -141,7 +141,7 @@ class ProjectBoostedReleases:
         self.project_id = project_id
         self.project_platform = _get_project_platform(self.project_id)
 
-    def add_boosted_release(self, release_id: int, environment: Optional[str]):
+    def add_boosted_release(self, release_id: int, environment: Optional[str]) -> None:
         """
         Adds a release to the boosted releases hash with the boosting timestamp set to the current time, signaling that
         the boosts starts now.
@@ -196,7 +196,7 @@ class ProjectBoostedReleases:
 
         return boosted_releases
 
-    def _remove_lrb_if_limit_is_reached(self):
+    def _remove_lrb_if_limit_is_reached(self) -> None:
         """
         Removes all the expired releases and also the least recently boosted release in case the limit of boosted
         releases is reached.
@@ -230,7 +230,7 @@ class ProjectBoostedReleases:
                 # The expression x or y first evaluates x;
                 # if x is true, its value is returned;
                 # otherwise, y is evaluated and the resulting value is returned.
-                if lru_boosted_release is None or timestamp < lru_boosted_release[1]:
+                if lru_boosted_release is None or timestamp < lru_boosted_release[1]:  # type:ignore
                     lru_boosted_release = (boosted_release_key, timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
@@ -313,7 +313,7 @@ class LatestReleaseBias:
         release_observed = self.redis_client.getset(name=cache_key, value=self.OBSERVED_VALUE)
         self.redis_client.pexpire(cache_key, self.ONE_DAY_TIMEOUT_MS)
 
-        return release_observed == self.OBSERVED_VALUE
+        return release_observed == self.OBSERVED_VALUE  # type:ignore
 
     def _is_latest_release(self) -> bool:
         # This function orders releases by date_released if present, otherwise date_added. Thus, those fields are
@@ -327,7 +327,9 @@ class LatestReleaseBias:
 
             # We only want to handle the case in which we have a single latest release.
             if len(latest_release) == 1:
-                return latest_release[0] == self.latest_release_params.release.version
+                return (
+                    latest_release[0] == self.latest_release_params.release.version
+                )  # type:ignore
 
             return False
         except Release.DoesNotExist():
