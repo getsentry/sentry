@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.tasks.beacon import send_beacon_metric
 
-logger = logging.getLogger("beacon")
+logger = logging.getLogger(__name__)
 
 # These is an arbitrarily picked limit for both the # of batched metrics supported,
 # as well as the size of the dict for each metric

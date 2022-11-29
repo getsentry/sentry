@@ -23,7 +23,7 @@ from sentry.utils import metrics
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 
-logger = logging.getLogger("tasks.releasemonitor")
+logger = logging.getLogger("sentry.tasks.releasemonitor")
 
 
 @instrumented_task(

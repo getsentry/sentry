@@ -301,7 +301,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
     label = "The issue affects more than {value} percent of sessions in {interval}"
-    logger = logging.getLogger("rules.event_frequency")
+    logger = logging.getLogger("sentry.rules.event_frequency")
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.intervals = percent_intervals
