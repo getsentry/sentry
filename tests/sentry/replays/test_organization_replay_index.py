@@ -98,30 +98,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
-    def test_get_replays_require_duration(self):
-        """Test returned replays must have a substantive duration."""
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        replay2_id = uuid.uuid4().hex
-        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
-        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=6)
-
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
-        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
-        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
-
-        with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-
-            response_data = response.json()
-            assert "data" in response_data
-            assert len(response_data["data"]) == 1
-
     def test_get_replays_require_timely_initial_sequence(self):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
@@ -130,8 +106,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id, segment_id=1))
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
