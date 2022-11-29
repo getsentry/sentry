@@ -27,6 +27,14 @@ export function showPlayerTime(
 }
 
 export function formatTime(ms: number, showMs?: boolean): string {
+  if (ms <= 0 || isNaN(ms)) {
+    if (showMs) {
+      return '00:00.000';
+    }
+
+    return '00:00';
+  }
+
   const seconds = ms / 1000;
   return formatSecondsToClock(showMs ? seconds : Math.floor(seconds));
 }

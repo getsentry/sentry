@@ -191,6 +191,10 @@ export function formatSecondsToClock(
   seconds: number,
   {padAll}: {padAll: boolean} = {padAll: true}
 ) {
+  if (seconds <= 0 || isNaN(seconds)) {
+    return '00:00';
+  }
+
   const divideBy = (msValue: number, time: number) => {
     return {
       quotient: msValue < 0 ? Math.ceil(msValue / time) : Math.floor(msValue / time),
