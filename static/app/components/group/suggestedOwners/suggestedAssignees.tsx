@@ -74,7 +74,7 @@ const SuggestedAssignees = ({
                     <ActorName>
                       {owner.actor.type === 'team'
                         ? `#${owner.actor.name}`
-                        : owner.actor.name}
+                        : owner.actor.name || owner.actor.email || t('Unknown author')}
                     </ActorName>
                   </ActorWrapper>
                 </SuggestedOwnerHovercard>
