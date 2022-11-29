@@ -42,7 +42,8 @@ function TrendChart({
   start: propsStart,
   end: propsEnd,
 }: Props) {
-  const {location, router} = useRouteContext();
+  const {router} = useRouteContext();
+  const location = useLocation();
   const api = useApi();
   const theme = useTheme();
 
