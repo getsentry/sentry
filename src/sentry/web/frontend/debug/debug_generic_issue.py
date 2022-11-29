@@ -48,6 +48,7 @@ class DebugGenericIssueEmailView(View):
         rule = Rule(id=1, label="An example rule")
 
         generic_issue_data_html = get_generic_data(event)
+        section_header = "Issue Data" if generic_issue_data_html != "" else ""
 
         return MailPreview(
             html_template="sentry/emails/generic.html",
@@ -61,7 +62,7 @@ class DebugGenericIssueEmailView(View):
                 # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
                 #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
                 "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
-                "generic_issue_data": [("Issue Data", mark_safe(generic_issue_data_html), None)],
+                "generic_issue_data": [(section_header, mark_safe(generic_issue_data_html), None)],
                 "tags": event.tags,
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
