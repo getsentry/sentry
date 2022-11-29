@@ -269,6 +269,7 @@ class LatestReleaseBias:
     whether a certain release should be boosted.
     """
 
+    OBSERVED_VALUE = "1"
     ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 
     def __init__(self, latest_release_params: LatestReleaseParams):
@@ -287,25 +288,29 @@ class LatestReleaseBias:
     def _is_already_observed(self) -> bool:
         cache_key = self._generate_cache_key_for_observed_release()
 
-        release_observed = self.redis_client.getset(name=cache_key, value=1)
+        # This atomic operation returns the value at the cache_key which is None if not set.
+        release_observed = self.redis_client.getset(name=cache_key, value=self.OBSERVED_VALUE)
         self.redis_client.pexpire(cache_key, self.ONE_DAY_TIMEOUT_MS)
 
-        return release_observed == "1"
+        return release_observed == self.OBSERVED_VALUE
 
     def _is_latest_release(self) -> bool:
         # This function orders releases by date_released if present, otherwise date_added. Thus, those fields are
         # what defines the total order relation between all releases.
-        latest_release = get_latest_release(
-            projects=[self.latest_release_params.project.id],
-            environments=None,
-            organization_id=self.latest_release_params.project.organization.id,
-        )
+        try:
+            latest_release = get_latest_release(
+                projects=[self.latest_release_params.project.id],
+                environments=None,
+                organization_id=self.latest_release_params.project.organization.id,
+            )
 
-        if len(latest_release) == 1:
-            latest_release = latest_release[0]
-            return latest_release == self.latest_release_params.release.version
+            # We only want to handle the case in which we have a single latest release.
+            if len(latest_release) == 1:
+                return latest_release[0] == self.latest_release_params.release.version
 
-        return False
+            return False
+        except Release.DoesNotExist():
+            return False
 
     def _generate_cache_key_for_observed_release(self) -> str:
         return (

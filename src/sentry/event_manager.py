@@ -887,21 +887,39 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                     ).is_on_dynamic_sampling
                     and data.get("type") == "transaction"
                 ):
-                    latest_release_params = LatestReleaseParams(
-                        release=release,
-                        project=projects[project_id],
-                        environment=_get_environment_from_transaction(data),
-                    )
+                    with sentry_sdk.start_span(
+                        op="event_manager.dynamic_sampling_observe_latest_release"
+                    ) as span, metrics.timer(
+                        "event_manager.dynamic_sampling_observe_latest_release"
+                    ) as metrics_tags:
+                        try:
+                            latest_release_params = LatestReleaseParams(
+                                release=release,
+                                project=projects[project_id],
+                                environment=_get_environment_from_transaction(data),
+                            )
 
-                    # TODO: implement sentry monitoring.
-                    LatestReleaseBias(
-                        latest_release_params=latest_release_params
-                    ).observe_release().boost_if_not_observed(
-                        lambda: schedule_invalidate_project_config(
-                            project_id=project_id,
-                            trigger="dynamic_sampling:boost_release",
-                        )
-                    )
+                            def on_release_boosted():
+                                message = (
+                                    f"New (release, environment) pair ({latest_release_params.release.id}, "
+                                    f"{latest_release_params.environment}) observed and boosted"
+                                )
+
+                                span.set_tag("dynamic_sampling.observe_release_status", message)
+                                metrics_tags["dynamic_sampling.observe_release_status"] = message
+
+                                schedule_invalidate_project_config(
+                                    project_id=project_id,
+                                    trigger="dynamic_sampling:boost_release",
+                                )
+
+                            # fmt: off
+                            LatestReleaseBias(latest_release_params=latest_release_params)\
+                                .observe_release()\
+                                .boost_if_not_observed(on_boosted_release_added=on_release_boosted)
+                            # fmt: on
+                        except Exception:
+                            sentry_sdk.capture_exception()
 
 
 def _get_environment_from_transaction(data: EventDict) -> Optional[str]:

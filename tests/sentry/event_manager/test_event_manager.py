@@ -2908,13 +2908,13 @@ class DSLatestReleaseBoostTest(TestCase):
 
             project = self.create_project(platform="python")
             release_1 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
             release_2 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow() + timedelta(hours=1)
+                project=project, version="1.0", date_added=datetime.now() + timedelta(hours=1)
             )
             release_3 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow() + timedelta(hours=2)
+                project=project, version="1.0", date_added=datetime.now() + timedelta(hours=2)
             )
 
             for release, environment in (
@@ -2980,13 +2980,13 @@ class DSLatestReleaseBoostTest(TestCase):
 
             project = self.create_project(platform="python")
             release_1 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
             release_2 = Release.get_or_create(
                 project=project,
                 version="2.0",
                 # We must make sure the new release_2.date_added > release_1.date_added.
-                date_added=datetime.utcnow() + timedelta(hours=1),
+                date_added=datetime.now() + timedelta(hours=1),
             )
 
             # We add a transaction for latest release release_2.
@@ -3038,7 +3038,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ):
             project = self.create_project(platform="python")
             release = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
 
             self.make_release_transaction(
@@ -3174,7 +3174,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ):
             project = self.create_project(platform="python")
             release = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
 
             for environment in (self.environment1.name, self.environment2.name):
@@ -3207,7 +3207,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
             # Old cache key
             release_1 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
             self.redis_client.hset(
                 f"ds::p:{project.id}:boosted_releases",
@@ -3217,7 +3217,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
             # New cache key
             release_2 = Release.get_or_create(
-                project=project, version="2.0", date_added=datetime.utcnow() + timedelta(hours=1)
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
             )
             self.redis_client.hset(
                 f"ds::p:{project.id}:boosted_releases",
@@ -3281,11 +3281,17 @@ class DSLatestReleaseBoostTest(TestCase):
         for platform in ("python", "java", None):
             project = self.create_project(platform=platform)
 
-            for release_version, environment in (
-                (f"1.0-{platform}", self.environment1.name),
-                (f"2.0-{platform}", self.environment2.name),
+            for index, (release_version, environment) in enumerate(
+                (
+                    (f"1.0-{platform}", self.environment1.name),
+                    (f"2.0-{platform}", self.environment2.name),
+                )
             ):
-                release = Release.get_or_create(project=project, version=release_version)
+                release = Release.get_or_create(
+                    project=project,
+                    version=release_version,
+                    date_added=datetime.now() + timedelta(hours=index),
+                )
                 self.redis_client.set(
                     f"ds::p:{project.id}:r:{release.id}:e:{environment}", 1, 60 * 60 * 24
                 )
@@ -3293,11 +3299,15 @@ class DSLatestReleaseBoostTest(TestCase):
                     f"ds::p:{project.id}:boosted_releases",
                     f"ds::r:{release.id}:e:{environment}",
                     # We set the creation time in order to expire it by 1 second.
-                    ts - (Platform(platform).time_to_adoption - 1),
+                    ts - Platform(platform).time_to_adoption - 1,
                 )
 
             # We add a new boosted release that is not expired.
-            release_3 = Release.get_or_create(project=project, version=f"3.0-{platform}")
+            release_3 = Release.get_or_create(
+                project=project,
+                version=f"3.0-{platform}",
+                date_added=datetime.now() + timedelta(hours=2),
+            )
             with self.options(
                 {
                     "dynamic-sampling:boost-latest-release": True,
@@ -3310,15 +3320,14 @@ class DSLatestReleaseBoostTest(TestCase):
                     checksum="b" * 32,
                     timestamp=self.timestamp,
                 )
+
                 assert (
                     self.redis_client.get(
                         f"ds::p:{project.id}:r:{release_3.id}:e:{self.environment1.name}"
                     )
                     == "1"
                 )
-                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
-                    f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
-                }
+                # We call first the get_extended_boosted_releases() method in order to delete expired boosted releases.
                 assert ProjectBoostedReleases(
                     project_id=project.id
                 ).get_extended_boosted_releases() == [
@@ -3331,6 +3340,9 @@ class DSLatestReleaseBoostTest(TestCase):
                         platform=Platform(project.platform),
                     )
                 ]
+                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                    f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
+                }
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
@@ -3366,7 +3378,7 @@ class DSLatestReleaseBoostTest(TestCase):
             Release.get_or_create(
                 project=project,
                 version="1.0",
-                date_added=datetime.utcnow() + timedelta(hours=x - 1),
+                date_added=datetime.now() + timedelta(hours=x - 1),
             )
             # We create exactly BOOSTED_RELEASES_LIMIT number of releases.
             for x in range(1, 3)
@@ -3397,7 +3409,7 @@ class DSLatestReleaseBoostTest(TestCase):
             release_3 = Release.get_or_create(
                 project=project,
                 version="3.0",
-                date_added=datetime.utcnow() + timedelta(hours=2),
+                date_added=datetime.now() + timedelta(hours=2),
             )
             self.make_release_transaction(
                 release_version=release_3.version,
@@ -3436,7 +3448,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
             project = self.create_project(platform="python")
             release_1 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.utcnow()
+                project=project, version="1.0", date_added=datetime.now()
             )
 
             # We want to test that if we have the same release, but we send different environments that go over the
