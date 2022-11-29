@@ -313,7 +313,7 @@ class LatestReleaseBias:
         release_observed = self.redis_client.getset(name=cache_key, value=self.OBSERVED_VALUE)
         self.redis_client.pexpire(cache_key, self.ONE_DAY_TIMEOUT_MS)
 
-        return release_observed == self.OBSERVED_VALUE  # type:ignore
+        return bool(release_observed == self.OBSERVED_VALUE)
 
     def _is_latest_release(self) -> bool:
         # This function orders releases by date_released if present, otherwise date_added. Thus, those fields are
@@ -327,9 +327,7 @@ class LatestReleaseBias:
 
             # We only want to handle the case in which we have a single latest release.
             if len(latest_release) == 1:
-                return (
-                    latest_release[0] == self.latest_release_params.release.version
-                )  # type:ignore
+                return bool(latest_release[0] == self.latest_release_params.release.version)
 
             return False
         except Release.DoesNotExist():
