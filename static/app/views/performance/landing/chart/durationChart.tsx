@@ -40,8 +40,7 @@ function DurationChart({
   backupField,
   usingBackupAxis,
 }: Props) {
-  const {location} = useRouteContext();
-
+  const location = useLocation();
   const api = useApi();
 
   // construct request parameters for fetching chart data
