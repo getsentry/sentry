@@ -476,7 +476,6 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod, utc} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -487,6 +486,20 @@ class EventView {
       if (fields.length === 0) {
         fields = EventView.getFields(saved);
       }
+
+      const {start, end, statsPeriod, utc} = normalizeDateTimeParams(
+        location.query.start ||
+          location.query.end ||
+          location.query.statsPeriod ||
+          location.query.utc
+          ? location.query
+          : {
+              start: saved.start,
+              end: saved.end,
+              statsPeriod: saved.range,
+              utc: saved.utc,
+            }
+      );
       return new EventView({
         id: id || saved.id,
         name: decodeScalar(location.query.name) || saved.name,
