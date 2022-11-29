@@ -134,6 +134,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       event_type: event.type,
       organization_id: parseInt(organization.id, 10),
       project_platforms: getSelectedProjectPlatforms(location, projects),
+      has_otel: event?.contexts?.otel !== undefined,
     });
 
     const {isSidebarVisible} = this.state;
