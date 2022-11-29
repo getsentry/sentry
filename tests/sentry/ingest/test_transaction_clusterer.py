@@ -16,7 +16,7 @@ def test_multi_fanout():
         "/a/b2/c1/d2/e",
     ]
     clusterer.add_input(transaction_names)
-    assert clusterer.get_rules() == ["/a/*/c/*", "/a/*"]
+    assert clusterer.get_rules() == ["/a/*/c/*/**", "/a/*/**"]
 
 
 def test_single_leaf_bail():

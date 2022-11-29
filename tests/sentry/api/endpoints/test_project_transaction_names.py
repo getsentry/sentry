@@ -44,4 +44,4 @@ class ProjectTransactionNamesClusterTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {"rules": ["/a/*"], "meta": {"unique_transaction_names": 4}}
+        assert response.data == {"rules": ["/a/*/**"], "meta": {"unique_transaction_names": 4}}

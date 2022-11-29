@@ -103,7 +103,9 @@ class TreeClusterer(Clusterer):
 
     @staticmethod
     def _build_rule(path: List["Edge"]) -> ReplacementRule:
-        return ReplacementRule(SEP.join(["*" if isinstance(key, Merged) else key for key in path]))
+        path_str = SEP.join(["*" if isinstance(key, Merged) else key for key in path])
+        path_str += "/**"
+        return ReplacementRule(path_str)
 
 
 #: Represents the edges between graph nodes. These edges serve as keys in the
@@ -123,8 +125,12 @@ class Node(UserDict):  # type: ignore
             yield path
             yield from child.paths(ancestors=path)
 
+    @property
+    def is_leaf(self):
+        return not self.values()
+
     def count_leaf_nodes(self) -> int:
-        if not self.values():
+        if self.is_leaf:
             return 1
         else:
             return sum(child.count_leaf_nodes() for child in self.values())
