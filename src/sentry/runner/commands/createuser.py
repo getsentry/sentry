@@ -137,9 +137,7 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
                 user.update(**fields)
                 verb = "updated"
             else:
-                raise click.ClickException(
-                    f"User: {email} exists, use --force-update to force."
-                )
+                raise click.ClickException(f"User: {email} exists, use --force-update to force.")
         # Create a new user if they don't already exist.
         else:
             user = User.objects.create(**fields)
