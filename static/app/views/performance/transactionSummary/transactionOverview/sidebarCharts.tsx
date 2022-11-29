@@ -32,6 +32,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
