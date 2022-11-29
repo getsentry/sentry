@@ -1,9 +1,9 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Clipboard from 'sentry/components/clipboard';
 import {Body, Hovercard} from 'sentry/components/hovercard';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Version from 'sentry/components/version';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,7 +12,6 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import EventContext from './eventContext';
@@ -22,6 +21,24 @@ import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
 
 const HOVER_DELAY: number = 400;
+
+type NoContextProps = {
+  isLoading: boolean;
+};
+
+export function NoContext({isLoading}: NoContextProps) {
+  return isLoading ? (
+    <NoContextWrapper>
+      <LoadingIndicator
+        data-test-id="quick-context-loading-indicator"
+        hideMessage
+        size={32}
+      />
+    </NoContextWrapper>
+  ) : (
+    <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
+  );
+}
 
 function getHoverBody(
   dataRow: EventData,
@@ -144,14 +161,7 @@ type ContextProps = {
 
 export function QuickContextHoverWrapper(props: ContextProps) {
   const location = useLocation();
-  const queryClient = useQueryClient();
   const {dataRow, contextType, organization, projects, eventView} = props;
-
-  useEffect(() => {
-    return () => {
-      queryClient.clear();
-    };
-  }, [queryClient]);
 
   return (
     <HoverWrapper>

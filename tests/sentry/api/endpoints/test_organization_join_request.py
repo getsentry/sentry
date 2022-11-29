@@ -1,8 +1,8 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
 from django.core import mail
-from exam import fixture
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
@@ -22,7 +22,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         super(SlackActivityNotificationTest, self).setUp()
         self.email = "test@example.com"
 
-    @fixture
+    @cached_property
     def owner(self):
         return OrganizationMember.objects.get(user=self.user, organization=self.organization)
 

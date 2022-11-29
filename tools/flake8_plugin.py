@@ -63,9 +63,6 @@ class SentryVisitor(ast.NodeVisitor):
 
 
 class SentryCheck:
-    name = "sentry-flake8"
-    version = "0"
-
     def __init__(self, tree: ast.AST, filename: str) -> None:
         self.tree = tree
         self.filename = filename

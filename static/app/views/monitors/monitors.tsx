@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -47,24 +46,13 @@ type State = AsyncView['state'] & {
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
   return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Button
-          to={`/organizations/${organization.slug}/monitors/create/`}
-          priority="primary"
-          disabled={!hasAccess}
-          tooltipProps={{
-            disabled: hasAccess,
-          }}
-          title={t(
-            'You must be an organization owner, manager, or admin to create a new monitor'
-          )}
-          {...props}
-        >
-          {props.children}
-        </Button>
-      )}
-    </Access>
+    <Button
+      to={`/organizations/${organization.slug}/monitors/create/`}
+      priority="primary"
+      {...props}
+    >
+      {props.children}
+    </Button>
   );
 }
 
@@ -113,11 +101,11 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <HeaderTitle>
-              {t('Monitors')} <FeatureBadge type="beta" />
+              {t('Cron Monitors')} <FeatureBadge type="beta" />
             </HeaderTitle>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <NewMonitorButton size="sm">{t('New Monitor')}</NewMonitorButton>
+            <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -164,13 +152,13 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Monitor your recurring jobs')}</h3>
+                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
                 <p>
                   {t(
-                    'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
+                    "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
-                <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
+                <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
               </OnboardingPanel>
             )}
           </Layout.Main>

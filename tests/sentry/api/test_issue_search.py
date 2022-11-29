@@ -303,13 +303,13 @@ class ConvertTypeValueTest(TestCase):
         with self.feature("organizations:performance-issues"):
             assert convert_type_value(["error"], [self.project], self.user, None) == [1]
             assert convert_type_value(
-                ["performance_n_plus_one"], [self.project], self.user, None
-            ) == [1000]
+                ["performance_n_plus_one_db_queries"], [self.project], self.user, None
+            ) == [1006]
             assert convert_type_value(
                 ["performance_slow_span"], [self.project], self.user, None
             ) == [1001]
             assert convert_type_value(
-                ["error", "performance_n_plus_one"], [self.project], self.user, None
-            ) == [1, 1000]
+                ["error", "performance_n_plus_one_db_queries"], [self.project], self.user, None
+            ) == [1, 1006]
             with pytest.raises(InvalidSearchQuery):
                 convert_type_value(["hellboy"], [self.project], self.user, None)

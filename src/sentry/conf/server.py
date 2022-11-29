@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-
 import os
 import os.path
 import platform
@@ -288,6 +287,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -604,6 +604,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
+    "sentry.ingest.transaction_clusterer.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -684,6 +685,9 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
+    Queue(
+        "transactions.name_clusterer", routing_key="transactions.name_clusterer"
+    ),  # TODO: add workers
 ]
 
 for queue in CELERY_QUEUES:
@@ -811,6 +815,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "transaction-name-clusterer": {
+        "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
     },
 }
 
@@ -970,12 +979,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -988,8 +993,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable metrics baseline in discover
-    "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
     "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -998,8 +1001,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable profiling on-boarding checklist
-    "organizations:profiling-onboarding-checklist": False,
+    # Enable performance spans in flamecharts
+    "organizations:profiling-flamechart-spans": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1040,6 +1043,8 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-normalize": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
+    # Sanitize transaction names in the ingestion pipeline.
+    "organizations:transaction-name-sanitization": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1089,14 +1094,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget library
-    "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": True,
-    # Enables usage of custom measurements in dashboard widgets
-    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1115,8 +1114,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
-    # Enable new saved searches sidebar and visibility features
-    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1185,18 +1182,12 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
-    "organizations:server-side-sampling-allow-incompatible-platforms": False,
-    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
-    "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
-    # Enable the mobile screenshot gallery in the attachments tab
-    "organizations:mobile-screenshot-gallery": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable deobfuscating exception values in Java issues
+    "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -1563,6 +1554,8 @@ SENTRY_RELEASE_MONITOR = (
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
 
+# Whether or not to run transaction clusterer
+SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1911,6 +1904,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates consuming issue platform occurrence data in the development environment
+SENTRY_USE_ISSUE_OCCURRENCE = False
+
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2075,6 +2071,12 @@ SENTRY_DEVSERVICES = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
+                if settings.SENTRY_USE_ISSUE_OCCURRENCE
+                else "",
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
+                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2511,6 +2513,7 @@ KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
+KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2561,6 +2564,7 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
     KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
+    KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
 }
 
 
@@ -2885,6 +2889,8 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
+SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
+
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
 
@@ -2929,3 +2935,6 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
+
+# Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
+SENTRY_SIGNUP_URL = None

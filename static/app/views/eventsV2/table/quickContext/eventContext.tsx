@@ -6,7 +6,6 @@ import {
   getStacktrace,
   StackTracePreviewContent,
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
-import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
@@ -21,22 +20,18 @@ import {
   HttpStatus,
 } from 'sentry/views/performance/transactionDetails/eventMetas';
 
+import ActionDropDown, {ContextValueType} from './actionDropdown';
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,
   ContextHeader,
   ContextRow,
+  ContextTitle,
   NoContextWrapper,
-  StyledIconAdd,
   Wrapper,
 } from './styles';
-import {
-  addFieldAsColumn,
-  BaseContextProps,
-  ContextType,
-  fiveMinutesInMs,
-  NoContext,
-} from './utils';
+import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 interface EventContextProps extends BaseContextProps {
   eventView?: EventView;
@@ -51,7 +46,7 @@ function EventContext(props: EventContextProps) {
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
     {
-      staleTime: fiveMinutesInMs,
+      staleTime: tenSecondInMs,
     }
   );
 
@@ -73,83 +68,69 @@ function EventContext(props: EventContextProps) {
     const traceId = data.contexts?.trace?.trace_id ?? '';
     const {start, end} = getTraceTimeRangeFromEvent(data);
     const project = projects?.find(p => p.slug === data.projectID);
+    const transactionDuration = getDuration(
+      data.endTimestamp - data.startTimestamp,
+      2,
+      true
+    );
     return (
       <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
           <ContextHeader>
-            {t('Transaction Duration')}
-            {!('transaction.duration' in dataRow) && (
-              <Tooltip
-                skipWrapper
-                title={t('Add transaction duration as a column')}
-                position="right"
-              >
-                <StyledIconAdd
-                  data-test-id="quick-context-transaction-duration-add-button"
-                  cursor="pointer"
-                  onClick={() =>
-                    addFieldAsColumn(
-                      'transaction.duration',
-                      organization,
-                      location,
-                      eventView
-                    )
-                  }
-                  color="gray300"
-                  size="xs"
-                  isCircled
-                />
-              </Tooltip>
+            <ContextTitle>{t('Transaction Duration')}</ContextTitle>
+            {location && eventView && (
+              <ActionDropDown
+                dataRow={dataRow}
+                contextValueType={ContextValueType.DURATION}
+                location={location}
+                eventView={eventView}
+                organization={organization}
+                queryKey="transaction.duration"
+                value={transactionDuration}
+              />
             )}
           </ContextHeader>
-          <EventContextBody>
-            {getDuration(data.endTimestamp - data.startTimestamp, 2, true)}
-          </EventContextBody>
+          <EventContextBody>{transactionDuration}</EventContextBody>
         </EventContextContainer>
         {location && (
           <EventContextContainer>
-            <ContextHeader>
-              {t('Status')}
-              {!('http.status_code' in dataRow) && (
-                <Tooltip
-                  skipWrapper
-                  title={t('Add HTTP status code as a column')}
-                  position="right"
-                >
-                  <StyledIconAdd
-                    data-test-id="quick-context-http-status-add-button"
-                    cursor="pointer"
-                    onClick={() =>
-                      addFieldAsColumn(
-                        'http.status_code',
-                        organization,
-                        location,
-                        eventView
-                      )
-                    }
-                    color="gray300"
-                    size="xs"
-                    isCircled
-                  />
-                </Tooltip>
-              )}
-            </ContextHeader>
-            <EventContextBody>
-              <ContextRow>
-                <TraceMetaQuery
-                  location={location}
-                  orgSlug={organization.slug}
-                  traceId={traceId}
-                  start={start}
-                  end={end}
-                >
-                  {metaResults => getStatusBodyText(project, data, metaResults?.meta)}
-                </TraceMetaQuery>
-                <HttpStatusWrapper>
-                  (<HttpStatus event={data} />)
-                </HttpStatusWrapper>
-              </ContextRow>
-            </EventContextBody>
+            <TraceMetaQuery
+              location={location}
+              orgSlug={organization.slug}
+              traceId={traceId}
+              start={start}
+              end={end}
+            >
+              {metaResults => {
+                const status = getStatusBodyText(project, data, metaResults?.meta);
+                return (
+                  <Fragment>
+                    <ContextHeader>
+                      <ContextTitle>{t('Status')}</ContextTitle>
+                      {location && eventView && (
+                        <ActionDropDown
+                          dataRow={dataRow}
+                          contextValueType={ContextValueType.STRING}
+                          location={location}
+                          eventView={eventView}
+                          organization={organization}
+                          queryKey="transaction.status"
+                          value={status}
+                        />
+                      )}
+                    </ContextHeader>
+                    <EventContextBody>
+                      <ContextRow>
+                        {status}
+                        <HttpStatusWrapper>
+                          (<HttpStatus event={data} />)
+                        </HttpStatusWrapper>
+                      </ContextRow>
+                    </EventContextBody>
+                  </Fragment>
+                );
+              }}
+            </TraceMetaQuery>
           </EventContextContainer>
         )}
       </Wrapper>
@@ -163,20 +144,17 @@ function EventContext(props: EventContextProps) {
       {!dataRow.title && (
         <ErrorTitleContainer>
           <ContextHeader>
-            {t('Title')}
-            {!('title' in dataRow) && (
-              <Tooltip skipWrapper title={t('Add title as a column')} position="right">
-                <StyledIconAdd
-                  data-test-id="quick-context-title-add-button"
-                  cursor="pointer"
-                  onClick={() =>
-                    addFieldAsColumn('title', organization, location, eventView)
-                  }
-                  color="gray300"
-                  size="xs"
-                  isCircled
-                />
-              </Tooltip>
+            <ContextTitle>{t('Title')}</ContextTitle>
+            {location && eventView && (
+              <ActionDropDown
+                dataRow={dataRow}
+                contextValueType={ContextValueType.STRING}
+                location={location}
+                eventView={eventView}
+                organization={organization}
+                queryKey="title"
+                value={data.title}
+              />
             )}
           </ContextHeader>
           <ErrorTitleBody>{data.title}</ErrorTitleBody>

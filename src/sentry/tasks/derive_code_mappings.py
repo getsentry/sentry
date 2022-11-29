@@ -70,7 +70,7 @@ def derive_code_mappings(
 
     try:
         with lock.acquire():
-            trees = installation.get_trees_for_org(3600 * 3)
+            trees = installation.get_trees_for_org()
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
@@ -90,15 +90,15 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
     Get the stacktrace_paths from the event data.
     """
-    if data["platform"] not in SUPPORTED_LANGUAGES:
-        return []
-
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
+            frames = stacktrace["frames"]
             paths = {
-                frame["filename"] for frame in stacktrace["frames"] if frame.get("in_app") is True
+                frame["filename"]
+                for frame in frames
+                if frame and frame.get("in_app") and frame.get("filename")
             }
             stacktrace_paths.update(paths)
         except Exception:

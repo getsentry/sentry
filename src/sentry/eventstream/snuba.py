@@ -20,7 +20,7 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -108,13 +108,9 @@ class SnubaProtocolEventStream(EventStream):
             "queue": self._get_queue_for_post_process(event),
         }
 
-    @staticmethod
-    def _is_transaction_event(event: Event) -> bool:
-        return event.get_event_type() == "transaction"  # type: ignore
-
     def insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -124,9 +120,10 @@ class SnubaProtocolEventStream(EventStream):
         group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
-        if isinstance(event, GroupEvent):
+        if isinstance(event, GroupEvent) and not event.occurrence:
             logger.error(
-                "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+                "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
+                "associated with an `IssueOccurrence`",
                 exc_info=True,
             )
             return
@@ -161,7 +158,7 @@ class SnubaProtocolEventStream(EventStream):
             else False
         )
 
-        is_transaction_event = self._is_transaction_event(event)
+        event_type = self._get_event_type(event)
 
         self._send(
             project.id,
@@ -169,7 +166,7 @@ class SnubaProtocolEventStream(EventStream):
             extra_data=(
                 {
                     "group_id": event.group_id,
-                    "group_ids": [group.id for group in event.groups],
+                    "group_ids": [group.id for group in getattr(event, "groups", [])],
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,
@@ -181,6 +178,7 @@ class SnubaProtocolEventStream(EventStream):
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
+                    "occurrence_data": self._get_occurrence_data(event),
                 },
                 {
                     "is_new": is_new,
@@ -193,7 +191,7 @@ class SnubaProtocolEventStream(EventStream):
             ),
             headers=headers,
             skip_semantic_partitioning=skip_semantic_partitioning,
-            is_transaction_event=is_transaction_event,
+            event_type=event_type,
         )
 
     def start_delete_groups(
@@ -378,7 +376,7 @@ class SnubaProtocolEventStream(EventStream):
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
-        is_transaction_event: bool = False,
+        event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
         raise NotImplementedError
 
@@ -392,7 +390,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
-        is_transaction_event: bool = False,
+        event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
         if headers is None:
             headers = {}
@@ -400,8 +398,10 @@ class SnubaEventStream(SnubaProtocolEventStream):
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         entity = "events"
-        if is_transaction_event:
+        if event_type == EventStreamEventType.Transaction:
             entity = "transactions"
+        if event_type == EventStreamEventType.Generic:
+            entity = "search_issues"
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
@@ -420,7 +420,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,

@@ -470,8 +470,20 @@ class SpanTreeModel {
                   spanModel.isEmbeddedTransactionTimeAdjusted,
               };
 
+              const bounds = generateBounds({
+                startTimestamp: spanModel.span.start_timestamp,
+                endTimestamp: spanModel.span.timestamp,
+              });
+
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
-              acc.descendants.push(enhancedSibling);
+
+              // It's possible that a section in the minimap is selected so some spans in this group may be out of view
+              bounds.isSpanVisibleInView
+                ? acc.descendants.push(enhancedSibling)
+                : acc.descendants.push({
+                    type: 'filtered_out',
+                    span: spanModel.span,
+                  });
             }
           });
 

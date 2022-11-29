@@ -2,7 +2,6 @@ import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
 import Alert from 'sentry/components/alert';
 import {Form} from 'sentry/components/forms';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -10,7 +9,6 @@ import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'sentry/utils/useApi';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -56,22 +54,15 @@ export function CreateSavedSearchModal({
   query,
   sort,
 }: CreateSavedSearchModalProps) {
-  const savedSearchesV2Enabled = organization.features.includes(
-    'issue-list-saved-searches-v2'
-  );
-
-  const api = useApi();
   const [error, setError] = useState(null);
 
-  const {mutateAsync: createSavedSearchV2} = useCreateSavedSearch();
+  const {mutateAsync: createSavedSearch} = useCreateSavedSearch();
 
   const initialData = {
     name: '',
     query,
     sort: validateSortOption({organization, sort}),
-    visibility: organization.features.includes('issue-list-saved-searches-v2')
-      ? SavedSearchVisibility.Owner
-      : SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.Owner,
   };
 
   const handleSubmit: OnSubmitCallback = async (
@@ -95,25 +86,14 @@ export function CreateSavedSearchModal({
     });
 
     try {
-      if (savedSearchesV2Enabled) {
-        await createSavedSearchV2({
-          orgSlug: organization.slug,
-          name: data.name,
-          query: data.query,
-          sort: data.sort,
-          type: SavedSearchType.ISSUE,
-          visibility: data.visibility,
-        });
-      } else {
-        await createSavedSearch(
-          api,
-          organization.slug,
-          data.name,
-          data.query,
-          data.sort,
-          data.visibility
-        );
-      }
+      await createSavedSearch({
+        orgSlug: organization.slug,
+        name: data.name,
+        query: data.query,
+        sort: data.sort,
+        type: SavedSearchType.ISSUE,
+        visibility: data.visibility,
+      });
 
       closeModal();
       clearIndicators();
