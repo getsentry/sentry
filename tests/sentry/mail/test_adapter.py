@@ -319,11 +319,54 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
-        checked_values = ["Evidence 1", "Value 1", "Evidence 2", "Value 2", "Evidence 3", "Value 3"]
+        checked_values = [
+            "Issue Data",
+            "Evidence 1",
+            "Value 1",
+            "Evidence 2",
+            "Value 2",
+            "Evidence 3",
+            "Value 3",
+        ]
         for checked_value in checked_values:
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
+
+    def test_simple_notification_generic_no_evidence(self):
+        """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [],  # no evidence
+            GroupType.GENERIC,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save()
+        event.occurrence = occurrence
+
+        event.group.type = GroupType.GENERIC
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert "Issue Data" not in msg.alternatives[0][0]
 
     def test_simple_notification_perf(self):
         event_data = load_data(
