@@ -955,7 +955,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") for span in self.spans]),
+            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
