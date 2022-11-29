@@ -1,7 +1,10 @@
-from typing import Optional, Set
+from __future__ import annotations
+
+from typing import Any
 
 import sentry_sdk
 from django.core.cache import cache
+from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
@@ -24,6 +27,8 @@ from sentry.models import (
     ProjectStatus,
     ReleaseProject,
 )
+from sentry.models.environment import Environment
+from sentry.models.release import Release
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -42,14 +47,14 @@ class OrganizationPermission(SentryPermission):
         "DELETE": ["org:admin"],
     }
 
-    def is_not_2fa_compliant(self, request: Request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return (
             organization.flags.require_2fa
             and not Authenticator.objects.user_has_2fa(request.user)
             and not is_active_superuser(request)
         )
 
-    def needs_sso(self, request: Request, organization):
+    def needs_sso(self, request: Request, organization: Organization) -> bool:
         # XXX(dcramer): this is very similar to the server-rendered views
         # logic for checking valid SSO
         if not request.access.requires_sso:
@@ -60,12 +65,14 @@ class OrganizationPermission(SentryPermission):
             return True
         return False
 
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(
+        self, request: Request, view: object, organization: Organization
+    ) -> bool:
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
-    def is_member_disabled_from_limit(self, request: Request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
         return is_member_disabled_from_limit(request, organization)
 
 
@@ -166,18 +173,18 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
-class OrganizationEndpoint(Endpoint):
+class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
     permission_classes = (OrganizationPermission,)
 
     def get_projects(
         self,
-        request,
-        organization,
-        force_global_perms=False,
-        include_all_accessible=False,
-        project_ids: Optional[Set[int]] = None,
-        project_slugs: Optional[Set[str]] = None,
-    ):
+        request: HttpRequest,
+        organization: Organization,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
         """
         Determines which project ids to filter the endpoint by. If a list of
         project ids is passed in via the `project` querystring argument then
@@ -227,12 +234,12 @@ class OrganizationEndpoint(Endpoint):
 
     def _get_projects_by_id(
         self,
-        project_ids,
-        request,
-        organization,
-        force_global_perms=False,
-        include_all_accessible=False,
-    ):
+        project_ids: set[int],
+        request: HttpRequest,
+        organization: Organization,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+    ) -> list[Project]:
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         user = getattr(request, "user", None)
         # A project_id of -1 means 'all projects I have access to'
@@ -273,7 +280,7 @@ class OrganizationEndpoint(Endpoint):
 
         return projects
 
-    def get_requested_project_ids_unchecked(self, request: Request):
+    def get_requested_project_ids_unchecked(self, request: Request) -> set[int]:
         """
         Returns the project ids that were requested by the request.
 
@@ -285,12 +292,16 @@ class OrganizationEndpoint(Endpoint):
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
-    def get_environments(self, request: Request, organization):
+    def get_environments(self, request: Request, organization: Organization) -> list[Environment]:
         return get_environments(request, organization)
 
     def get_filter_params(
-        self, request: Request, organization, date_filter_optional=False, project_ids=None
-    ):
+        self,
+        request: Request,
+        organization: Organization,
+        date_filter_optional: bool = False,
+        project_ids: set[int] | None = None,
+    ) -> dict[str, Any]:
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
@@ -336,7 +347,7 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
-            projects = self.get_projects(request, organization, project_ids)
+            projects = self.get_projects(request, organization, project_ids)  # type: ignore[arg-type]
         except ValueError:
             raise ParseError(detail="Invalid project ids")
 
@@ -363,7 +374,9 @@ class OrganizationEndpoint(Endpoint):
 
         return params
 
-    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if resolve_region(request) is None:
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
@@ -400,9 +413,13 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(
-        self, request: Request, organization, project_ids=None, include_all_accessible=True
-    ):
+    def get_projects(  # type: ignore[override]
+        self,
+        request: Request,
+        organization: Organization,
+        project_ids: set[int] | None = None,
+        include_all_accessible: bool = True,
+    ) -> list[Project]:
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -428,7 +445,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             project_ids=project_ids,
         )
 
-    def has_release_permission(self, request: Request, organization, release):
+    def has_release_permission(
+        self, request: Request, organization: Organization, release: Release
+    ) -> bool:
         """
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
@@ -457,4 +476,4 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             if key is not None and actor_id is not None:
                 cache.set(key, has_perms, 60)
 
-        return has_perms
+        return has_perms  # type: ignore[no-any-return]
