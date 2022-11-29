@@ -9,9 +9,10 @@ from sentry.eventstore.models import GroupEvent
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.condition_activity import ConditionActivity, get_dataset_columns
+from sentry.types.condition_activity import ConditionActivity
 
 key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
