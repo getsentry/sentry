@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import (
     EVENTS,
-    PROJECT_ID,
+    create_event,
     create_span,
     modify_span_start,
 )
@@ -214,87 +214,21 @@ class PerformanceDetectionTest(unittest.TestCase):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
             assert_n_plus_one_db_problem(perf_problems)
 
-    def test_calls_detect_render_blocking_asset(self):
-        render_blocking_asset_event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-        non_render_blocking_asset_event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                modify_span_start(
-                    create_span("resource.script", duration=1000.0),
-                    2000.0,
-                ),
-            ],
-        }
-        no_fcp_event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": None,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-        no_measurements_event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": None,
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-        short_render_blocking_asset_event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=200.0),
-            ],
-        }
+    def test_calls_detect_slow_span(self):
+        no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
+        slow_span_event = create_event([create_span("db", 1001.0)] * 1)
+        slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
 
         sdk_span_mock = Mock()
 
-        _detect_performance_problems(non_render_blocking_asset_event, sdk_span_mock)
+        _detect_performance_problems(no_slow_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_problems(short_render_blocking_asset_event, sdk_span_mock)
+        _detect_performance_problems(slow_not_allowed_op_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_problems(no_fcp_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(no_measurements_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(render_blocking_asset_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        _detect_performance_problems(slow_span_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -303,18 +237,14 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
                 call(
                     "_pi_sdk_name",
-                    "",
+                    "sentry.python",
                 ),
                 call(
                     "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
                 ),
                 call(
-                    "_pi_render_blocking_assets_fp",
-                    "6060649d4f8435d88735",
-                ),
-                call(
-                    "_pi_render_blocking_assets",
+                    "_pi_slow_span",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
