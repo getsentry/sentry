@@ -81,13 +81,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        """
-        This method returns a User object given an actor ID
-        :param actor_id:
-        An actor ID to fetch
-        :return:
-        """
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 
     def get_user(self, user_id: int) -> Optional[APIUser]:

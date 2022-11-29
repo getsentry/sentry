@@ -28,21 +28,24 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         # Preload to avoid fetching each user individually
         prefetch_related_objects(item_list, "user", "inviter")
-        users_set = {
-            organization_member.user_id
-            for organization_member in item_list
-            if organization_member.user_id
-        }
+        users_set = sorted(
+            {
+                organization_member.user_id
+                for organization_member in item_list
+                if organization_member.user_id
+            }
+        )
         users_by_id: Mapping[int, Any] = {
-            u["id"]: u for u in user_service.serialize_users(user_ids=sorted(users_set))
+            u["id"]: u for u in user_service.serialize_users(user_ids=users_set)
         }
+        actor_ids = [u.actor_id for u in user_service.get_many(user_ids=users_set)]
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in=users_set,
+                    actor_id__in=actor_ids,
                     organization_id=organization_id,
                 )
             )
