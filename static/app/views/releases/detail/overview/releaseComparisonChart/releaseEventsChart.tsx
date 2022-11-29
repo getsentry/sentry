@@ -55,8 +55,8 @@ function ReleaseEventsChart({
   end,
   utc,
 }: Props) {
-  const {location, router} = useRouteContext();
-
+  const location = useLocation();
+  const {router, location: _location} = useRouteContext();
   const api = useApi();
   const theme = useTheme();
 
