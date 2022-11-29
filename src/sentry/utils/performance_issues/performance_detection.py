@@ -66,6 +66,11 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
 }
 
+# TODO make title here dynamic for remaining group types
+GROUP_TYPE_TO_TITLE = {
+    GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
+}
+
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
@@ -97,6 +102,10 @@ class PerformanceProblem:
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
         }
+
+    @property
+    def title(self) -> str:
+        return GROUP_TYPE_TO_TITLE.get(self.type, "N+1 Query")
 
     @classmethod
     def from_dict(cls, data: dict) -> PerformanceProblem:
@@ -1249,7 +1258,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=span.get("op"),
                     desc=span.get("description", ""),
-                    parent_span_ids=[],
+                    parent_span_ids=[span.get("parent_span_id")],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
                     cause_span_ids=[],
                     offender_span_ids=[span.get("span_id", None)],
