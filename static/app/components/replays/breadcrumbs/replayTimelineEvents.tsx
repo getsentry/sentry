@@ -60,19 +60,12 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   }
 `;
 
-function Event({
-  crumbs,
-  startTimestampMs,
-}: {
-  crumbs: Crumb[];
-  startTimestampMs: number;
-  className?: string;
-}) {
+function Event({crumbs, startTimestampMs}: {crumbs: Crumb[]; startTimestampMs: number}) {
   const {setActiveTab} = useActiveReplayTab();
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const title = crumbs.map(crumb => (
+  const buttons = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
@@ -84,6 +77,7 @@ function Event({
       onClick={handleClick}
     />
   ));
+  const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
@@ -184,4 +178,8 @@ const IconNode = styled('div')<{
   user-select: none;
 `;
 
+const TooltipWrapper = styled('div')`
+  max-height: calc(100vh - ${space(4)});
+  overflow: auto;
+`;
 export default ReplayTimelineEvents;
