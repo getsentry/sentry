@@ -479,6 +479,17 @@ def is_null(column: str) -> Function:
             [Condition(Column("project_id"), Op.NEQ, 1)],
             id="!project_id:1",
         ),
+        pytest.param(
+            "foo",
+            [
+                Condition(
+                    Function("positionCaseInsensitive", [Column("transaction_name"), "foo"]),
+                    Op.NEQ,
+                    0,
+                )
+            ],
+            id="foo",
+        ),
     ],
 )
 @pytest.mark.django_db

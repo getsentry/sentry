@@ -10,6 +10,7 @@ import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Artifact, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
@@ -193,7 +194,7 @@ const StyledDataSection = styled(DataSection)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
+  margin: ${space(0.5)} 0;
 `;
 
 const ErrorList = styled(List)`

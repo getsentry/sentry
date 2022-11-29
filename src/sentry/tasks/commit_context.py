@@ -20,7 +20,7 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 
-logger = logging.getLogger("tasks.commit_context")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(

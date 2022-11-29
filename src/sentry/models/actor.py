@@ -100,7 +100,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
-    def from_actor_identifier(cls, actor_identifier: Union[int, str]) -> "ActorTuple":
+    def from_actor_identifier(cls, actor_identifier: Union[int, str, None]) -> "ActorTuple":
         from sentry.models import Team, User
         from sentry.utils.auth import find_users
 
@@ -116,6 +116,10 @@ class ActorTuple(namedtuple("Actor", "id type")):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
+
+        if actor_identifier is None:
+            return None
+
         # If we have an integer, fall back to assuming it's a User
         if isinstance(actor_identifier, int):
             return cls(actor_identifier, User)

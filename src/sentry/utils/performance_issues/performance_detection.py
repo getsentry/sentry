@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import random
 import re
 from abc import ABC, abstractmethod
@@ -47,7 +48,9 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
+    FILE_IO_MAIN_THREAD = "file_io_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -61,7 +64,9 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -78,7 +83,9 @@ class PerformanceProblem:
     desc: str
     type: GroupType
     parent_span_ids: Optional[Sequence[str]]
+    # For related spans that caused the bad spans
     cause_span_ids: Optional[Sequence[str]]
+    # The actual bad spans
     offender_span_ids: Sequence[str]
 
     def to_dict(
@@ -294,6 +301,18 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": 100,  # ms
             "consecutive_count_threshold": 2,
         },
+        DetectorType.FILE_IO_MAIN_THREAD: [
+            {
+                # 16ms is when frame drops will start being evident
+                "duration_threshold": 16,
+            }
+        ],
+        DetectorType.N_PLUS_ONE_API_CALLS: {
+            "duration_threshold": 5,  # ms
+            "concurrency_threshold": 5,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+        },
     }
 
 
@@ -317,6 +336,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
         ),
+        DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
     }
 
     for _, detector in detectors.items():
@@ -868,6 +889,103 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 )
 
 
+class NPlusOneAPICallsDetector(PerformanceDetector):
+    """
+    Detect parallel network calls to the same endpoint.
+
+      [-------- transaction -----------]
+         [-------- parent span -----------]
+          [n0] https://service.io/resources/?id=12443
+          [n1] https://service.io/resources/?id=13342
+          [n2] https://service.io/resources/?id=13441
+          ...
+    """
+
+    __slots__ = ["stored_problems"]
+    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+
+    def init(self):
+        # TODO: Only store the span IDs and timestamps instead of entire span objects
+        self.stored_problems: PerformanceProblemsMap = {}
+        self.spans: list[Span] = []
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        hash = span.get("hash", None)
+
+        if not span_id or not op or not hash:
+            return
+
+        description = span.get("description")
+        if not description:
+            return
+
+        if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+        span_duration = get_span_duration(span)
+
+        if span_duration < duration_threshold:
+            return
+
+        previous_span = self.spans[-1] if len(self.spans) > 0 else None
+
+        if previous_span is None:
+            self.spans.append(span)
+        elif self._spans_are_concurrent(previous_span, span) and self._spans_are_similar(
+            previous_span, span
+        ):
+            self.spans.append(span)
+        else:
+            self._maybe_store_problem()
+            self.spans = [span]
+
+    def on_complete(self):
+        self._maybe_store_problem()
+        self.spans = []
+
+    def _maybe_store_problem(self):
+        if len(self.spans) < 1:
+            return
+
+        if len(self.spans) < self.settings["count"]:
+            return
+
+        last_span = self.spans[-1]
+
+        fingerprint = self._fingerprint()
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint=fingerprint,
+            op=last_span["op"],
+            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
+            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            cause_span_ids=[],
+            parent_span_ids=[last_span.get("parent_span_id", None)],
+            offender_span_ids=[span["span_id"] for span in self.spans],
+        )
+
+    def _fingerprint(self) -> str:
+        offender_hash = self.spans[-1]["hash"]
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS
+        fingerprint = hashlib.sha1(offender_hash.encode("utf8")).hexdigest()
+
+        return f"1-{problem_class}-{fingerprint}"
+
+    def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
+        span_a_start: int = span_a.get("start_timestamp", 0) or 0
+        span_b_start: int = span_b.get("start_timestamp", 0) or 0
+
+        return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
+
+    def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
+        return (
+            span_a["hash"] == span_b["hash"]
+            and span_a["parent_span_id"] == span_b["parent_span_id"]
+        )
+
+
 class ConsecutiveDBSpanDetector(PerformanceDetector):
     """
     Let X and Y be the consecutive db span count threshold and the span duration threshold respectively,
@@ -1208,6 +1326,58 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+
+class FileIOMainThreadDetector(PerformanceDetector):
+    """
+    Checks for a file io span on the main thread
+    """
+
+    __slots__ = ("spans_involved", "stored_problems")
+
+    settings_key = DetectorType.FILE_IO_MAIN_THREAD
+
+    def init(self):
+        self.spans_involved = {}
+        self.most_recent_start_time = {}
+        self.most_recent_hash = {}
+        self.stored_problems = {}
+
+    def visit_span(self, span: Span):
+        if self._is_file_io_on_main_thread(span):
+            settings_for_span = self.settings_for_span(span)
+            if not settings_for_span:
+                return
+
+            op, span_id, op_prefix, span_duration, settings = settings_for_span
+            if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
+                fingerprint = self._fingerprint(span)
+                self.stored_problems[fingerprint] = PerformanceProblem(
+                    fingerprint=fingerprint,
+                    op=span.get("op"),
+                    desc=span.get("description", ""),
+                    parent_span_ids=[],
+                    type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                    cause_span_ids=[],
+                    offender_span_ids=[span.get("span_id", None)],
+                )
+
+    def _fingerprint(self, span) -> str:
+        call_stack = ".".join(
+            [
+                f"{item.get('module', '')}.{item.get('function', '')}"
+                for item in span.get("data", {}).get("call_stack", [])
+            ]
+        ).encode("utf8")
+        hashed_stack = hashlib.sha1(call_stack).hexdigest()
+        return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+
+    def _is_file_io_on_main_thread(self, span: Span) -> bool:
+        data = span.get("data", {})
+        if data is None:
+            return False
+        # doing is True since the value can be any type
+        return data.get("blocked_ui_thread", False) is True
 
 
 # Reports metrics and creates spans for detection

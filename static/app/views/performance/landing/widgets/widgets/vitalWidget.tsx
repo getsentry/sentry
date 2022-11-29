@@ -20,6 +20,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -94,8 +95,9 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location, InteractiveTitle} = props;
+  const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -139,7 +141,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <DiscoverQuery
               {...provided}
               eventView={_eventView}
-              location={props.location}
+              location={location}
               limit={4}
               cursor="0:0:1"
               noPagination
@@ -215,6 +217,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
           : null
       }
+      location={location}
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
@@ -342,7 +345,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                     {!props.withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
                       />
                     )}
                   </Fragment>

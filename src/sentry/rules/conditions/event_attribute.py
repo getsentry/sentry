@@ -5,13 +5,10 @@ from django import forms
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.condition_activity import (
-    DATASET_TO_COLUMN_NAME,
-    ConditionActivity,
-    get_dataset_columns,
-)
+from sentry.types.condition_activity import ConditionActivity
 
 # Maps attributes to snuba columns
 ATTR_CHOICES = {
