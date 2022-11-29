@@ -43,6 +43,7 @@ Resulting in the following replacement rules:
 
 """
 
+import logging
 from collections import UserDict, defaultdict
 from typing import Iterable, List, Optional, Union
 
@@ -65,6 +66,9 @@ MERGED = Merged()
 SEP = "/"
 
 
+logger = logging.getLogger(__name__)
+
+
 class TreeClusterer(Clusterer):
     def __init__(self, *, merge_threshold: int) -> None:
         self._merge_threshold = merge_threshold
@@ -81,6 +85,11 @@ class TreeClusterer(Clusterer):
         """Merge high-cardinality nodes in the graph and extract rules"""
         with sentry_sdk.start_span(op="txcluster_merge"):
             self._graph.merge(self._merge_threshold)
+
+        if self._graph.count_leaf_nodes() == 1:
+            logger.warning("Graph collapsed into a single path, merge threshold might be too low")
+            return []
+
         # Generate exactly 1 rule for every merge
         rule_paths = [path for path in self._graph.paths() if path[-1] is MERGED]
 
@@ -113,6 +122,12 @@ class Node(UserDict):  # type: ignore
             path = ancestors + [name]
             yield path
             yield from child.paths(ancestors=path)
+
+    def count_leaf_nodes(self) -> int:
+        if not self.values():
+            return 1
+        else:
+            return sum(child.count_leaf_nodes() for child in self.values())
 
     def merge(self, merge_threshold: int) -> None:
         """Recursively merge children of high-cardinality nodes"""

@@ -13,6 +13,17 @@ def test_multi_fanout():
         "/a/b2/c/d0/e",
         "/a/b2/c/d1/e/",
         "/a/b2/c/d2/e",
+        "/a/b2/c1/d2/e",
     ]
     clusterer.add_input(transaction_names)
     assert clusterer.get_rules() == ["/a/*/c/*", "/a/*"]
+
+
+def test_single_leaf_bail():
+    clusterer = TreeClusterer(merge_threshold=1)
+    transaction_names = [
+        "/a/b1/c/",
+        "/a/b2/c/",
+    ]
+    clusterer.add_input(transaction_names)
+    assert clusterer.get_rules() == []
