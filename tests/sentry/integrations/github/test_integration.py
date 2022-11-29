@@ -11,10 +11,13 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.derive_code_mappings import derive_code_mappings
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -52,6 +55,11 @@ TREE_RESPONSES = {
         "status_code": 404,
         "body": {"message": "Not Found"},
     },
+}
+
+PYTHON_EVENT = {
+    "platform": "python",
+    "stacktrace": {"frames": [{"filename": "sentry/api/endpoints/auth_login.py"}]},
 }
 
 
@@ -634,3 +642,24 @@ class GitHubIntegrationTest(IntegrationTestCase):
             trees = installation.get_trees_for_org()
             assert logger.info.called_with("Using cached trees for Test-Organization.")
             assert trees == expected_trees
+
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings": True})
+    # XXX: In reality we should test all the way from post-processing rather than when the task
+    # starts processing
+    def test_derive_code_mappings_full_integration(self):
+        with self.tasks():
+            self.assert_setup_flow()  # This somehow creates the integration
+
+        event = self.store_event(data=PYTHON_EVENT, project_id=self.project.id)
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+        derive_code_mappings(self.project.id, event.data)
+        code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
+        assert code_mapping.exists()
+        assert code_mapping.first().automatically_generated is True
+
+        # This causes the repo to not to be in the cache and cause the assertion
+        cache.delete("githubtrees:repo:Test-Organization/foo")
+        # We want to run a second time to test the caching code
+        # XXX: The output shows the AssertionError; handle it
+        derive_code_mappings(self.project.id, event.data)
