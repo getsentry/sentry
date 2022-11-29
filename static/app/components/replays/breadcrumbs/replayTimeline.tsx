@@ -29,9 +29,7 @@ function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
 
   const elem = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({
-    elem,
-  });
+  const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   if (!replay) {
     return <Placeholder height="48px" bottomGutter={2} />;
