@@ -8,7 +8,7 @@ from unittest.mock import Mock, call
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
@@ -70,10 +70,17 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
     )
 
     message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+        )
     )
     message2 = Message(
-        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"another value", []),
+            Partition(Topic("topic"), 0),
+            2,
+            datetime.now(),
+        )
     )
     return (batch_messages_step, message1, message2)
 
@@ -102,7 +109,7 @@ def test_batch_messages() -> None:
     batch_messages_step.submit(message=message2)
 
     assert next_step.submit.call_args == call(
-        Message(message2.partition, message2.offset, [message1, message2], message2.timestamp),
+        Message(Value([message1, message2], message2.committable)),
     )
 
     assert batch_messages_step._BatchMessages__batch is None
