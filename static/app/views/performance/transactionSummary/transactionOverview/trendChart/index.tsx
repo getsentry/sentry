@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -13,6 +12,8 @@ import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TrendFunctionField} from '../../../trends/types';
 import {generateTrendFunctionAsString} from '../../../trends/utils';
@@ -20,24 +21,20 @@ import {ViewProps} from '../../../types';
 
 import Content from './content';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    trendFunction: TrendFunctionField;
-    trendParameter: string;
-    withoutZerofill: boolean;
-  };
+type Props = ViewProps & {
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  trendFunction: TrendFunctionField;
+  trendParameter: string;
+  withoutZerofill: boolean;
+};
 
 function TrendChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
-  router,
   trendFunction,
   trendParameter,
   queryExtra,
@@ -45,6 +42,8 @@ function TrendChart({
   start: propsStart,
   end: propsEnd,
 }: Props) {
+  const {router} = useRouteContext();
+  const location = useLocation();
   const api = useApi();
   const theme = useTheme();
 
@@ -146,4 +145,4 @@ function TrendChart({
   );
 }
 
-export default withRouter(TrendChart);
+export default TrendChart;

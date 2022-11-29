@@ -1,6 +1,4 @@
 import {useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -17,6 +15,7 @@ import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
@@ -31,7 +30,7 @@ type Props = {
   event: EventTransaction;
   organization: Organization;
   affectedSpanIds?: string[];
-} & WithRouterProps;
+};
 
 function TraceErrorAlerts({
   isLoading,
@@ -85,7 +84,8 @@ function TraceErrorAlerts({
   );
 }
 
-function SpansInterface({event, affectedSpanIds, organization, location}: Props) {
+function SpansInterface({event, affectedSpanIds, organization}: Props) {
+  const location = useLocation();
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
 
   const waterfallModel = useMemo(
@@ -192,4 +192,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withRouter(withOrganization(SpansInterface));
+export default withOrganization(SpansInterface);

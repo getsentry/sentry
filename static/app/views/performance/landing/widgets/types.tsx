@@ -32,7 +32,6 @@ export type PerformanceWidgetProps = {
   chartSetting: PerformanceWidgetSetting;
   eventView: EventView;
   fields: string[];
-  location: Location;
 
   organization: Organization;
   title: string;

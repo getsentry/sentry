@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -27,21 +25,22 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {ZoomKeys} from './utils';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
-type Props = WithRouterProps & {
+type Props = {
   eventView: EventView;
-  location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
 };
 
 export default function ExclusiveTimeHistogram(props: Props) {
-  const {location, organization, eventView, spanSlug} = props;
+  const {organization, eventView, spanSlug} = props;
+  const location = useLocation();
 
   const start = decodeScalar(location.query[ZoomKeys.MIN]);
   const end = decodeScalar(location.query[ZoomKeys.MAX]);
@@ -95,7 +94,6 @@ export default function ExclusiveTimeHistogram(props: Props) {
                     isLoading={isLoading}
                     isErrored={!!error}
                     chartData={histogram}
-                    location={location}
                     spanSlug={spanSlug}
                   />
                 )}
@@ -112,7 +110,6 @@ type ChartProps = {
   chartData: HistogramData | null;
   isErrored: boolean;
   isLoading: boolean;
-  location: Location;
   spanSlug: SpanSlug;
   zoomProps: any;
   disableChartPadding?: boolean;

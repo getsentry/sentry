@@ -43,7 +43,7 @@ class Container extends Component<Props> {
   }
 
   render() {
-    const {api, organization, location, eventView, router} = this.props;
+    const {api, organization, location, eventView} = this.props;
 
     // construct request parameters for fetching chart data
     const globalSelection = eventView.getPageFilters();
@@ -115,7 +115,6 @@ class Container extends Component<Props> {
                       <Chart
                         data={results}
                         loading={loading || reloading}
-                        router={router}
                         statsPeriod={globalSelection.datetime.period}
                         start={start}
                         end={end}

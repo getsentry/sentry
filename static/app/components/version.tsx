@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,6 +10,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -61,8 +60,8 @@ const Version = ({
   projectId,
   truncate,
   className,
-  location,
-}: WithRouterProps & Props) => {
+}: Props) => {
+  const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
@@ -187,8 +186,4 @@ const TooltipClipboardIconWrapper = styled('span')`
   }
 `;
 
-type PropsWithoutOrg = Omit<Props, 'organization'>;
-
-export default withOrganization(
-  withRouter(Version)
-) as React.ComponentClass<PropsWithoutOrg>;
+export default withOrganization(Version);

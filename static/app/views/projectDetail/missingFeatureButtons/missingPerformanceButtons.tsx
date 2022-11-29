@@ -1,6 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -9,15 +6,18 @@ import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
 type Props = {
   organization: Organization;
-} & WithRouterProps;
+};
 
-function MissingPerformanceButtons({organization, router}: Props) {
+function MissingPerformanceButtons({organization}: Props) {
+  const {router} = useRouteContext();
+
   function handleTourAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
       eventKey: 'project_detail.performance_tour.advance',
@@ -78,4 +78,4 @@ function MissingPerformanceButtons({organization, router}: Props) {
   );
 }
 
-export default withRouter(MissingPerformanceButtons);
+export default MissingPerformanceButtons;

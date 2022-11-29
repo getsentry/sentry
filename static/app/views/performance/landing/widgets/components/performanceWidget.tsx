@@ -1,6 +1,4 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -80,7 +78,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
           queries={queries}
           api={api}
         />
-        <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+        <DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
       </MEPDataProvider>
     </Fragment>
   );
@@ -96,7 +94,7 @@ function trackDataComponentClicks(
   });
 }
 
-function _DataDisplay<T extends WidgetDataConstraint>(
+export function DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
 ) {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
@@ -158,8 +156,6 @@ function _DataDisplay<T extends WidgetDataConstraint>(
     </Container>
   );
 }
-
-export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (

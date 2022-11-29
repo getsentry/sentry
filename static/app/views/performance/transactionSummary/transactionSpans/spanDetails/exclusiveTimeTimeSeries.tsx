@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -23,19 +22,22 @@ import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
-type Props = WithRouterProps & {
+type Props = {
   eventView: EventView;
-  location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
   withoutZerofill: boolean;
 };
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
-  const {location, router, organization, eventView, spanSlug, withoutZerofill} = props;
+  const location = useLocation();
+  const {router} = useRouteContext();
+  const {organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();
   const theme = useTheme();

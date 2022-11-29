@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption} from 'echarts';
 import {LegendComponentOption} from 'echarts';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -12,6 +11,8 @@ import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {DashboardFilters, Widget, WidgetType} from '../types';
 
@@ -21,8 +22,9 @@ import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -52,8 +54,6 @@ type Props = WithRouterProps & {
 };
 
 export function WidgetCardChartContainer({
-  location,
-  router,
   api,
   organization,
   selection,
@@ -72,6 +72,8 @@ export function WidgetCardChartContainer({
   noPadding,
   chartZoomOptions,
 }: Props) {
+  const location = useLocation();
+  const {router} = useRouteContext();
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -198,7 +200,7 @@ export function WidgetCardChartContainer({
   );
 }
 
-export default withRouter(WidgetCardChartContainer);
+export default WidgetCardChartContainer;
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

@@ -1,6 +1,4 @@
 import {useEffect} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -13,9 +11,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withProject from 'sentry/utils/withProject';
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * Disable logging to Sentry
    */
@@ -28,7 +27,8 @@ type Props = WithRouterProps & {
   project?: Project;
 };
 
-function RouteError({error, disableLogSentry, disableReport, project, routes}: Props) {
+function RouteError({error, disableLogSentry, disableReport, project}: Props) {
+  const routes = useRoutes();
   const {organization} = useLegacyStore(OrganizationStore);
 
   useEffect(() => {
@@ -133,4 +133,4 @@ const Heading = styled('h1')`
   margin-bottom: ${space(1)};
 `;
 
-export default withRouter(withProject(RouteError));
+export default withProject(RouteError);

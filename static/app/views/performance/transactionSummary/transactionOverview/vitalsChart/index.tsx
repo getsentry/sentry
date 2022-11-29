@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -15,32 +14,32 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {ViewProps} from '../../../types';
 
 import Content from './content';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    withoutZerofill: boolean;
-  };
+type Props = ViewProps & {
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  withoutZerofill: boolean;
+};
 
 function VitalsChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
-  router,
   queryExtra,
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
 }: Props) {
+  const location = useLocation();
+  const {router} = useRouteContext();
   const api = useApi();
   const theme = useTheme();
 
@@ -154,4 +153,4 @@ function VitalsChart({
   );
 }
 
-export default withRouter(VitalsChart);
+export default VitalsChart;
