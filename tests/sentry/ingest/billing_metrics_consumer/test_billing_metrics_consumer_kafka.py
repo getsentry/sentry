@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic
+from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
@@ -15,6 +16,7 @@ from sentry.utils.outcomes import Outcome
 
 
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
+@freeze_time("1985-10-26 21:00:00")
 def test_outcomes_consumed(track_outcome):
     # Based on test_ingest_consumer_kafka.py
 
@@ -80,7 +82,10 @@ def test_outcomes_consumed(track_outcome):
         encoded = json.dumps(bucket).encode()
         payload = KafkaPayload(key=None, value=encoded, headers=[])
         message = Message(
-            Partition(topic, index=0), generate_kafka_message.counter, payload, datetime.now()
+            Partition(topic, index=0),
+            generate_kafka_message.counter,
+            payload,
+            datetime.now(timezone.utc),
         )
         generate_kafka_message.counter += 1
         return message
@@ -107,7 +112,7 @@ def test_outcomes_consumed(track_outcome):
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
-                    timestamp=datetime(1970, 1, 2, 10, 17, 36),
+                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
                     event_id=None,
                     category=DataCategory.TRANSACTION,
                     quantity=3,
