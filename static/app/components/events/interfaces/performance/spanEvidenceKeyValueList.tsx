@@ -7,15 +7,15 @@ import {RawSpanType} from '../spans/types';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
-  parentSpan: RawSpanType | TraceContextSpanProxy;
-  repeatingSpan: RawSpanType | TraceContextSpanProxy;
+  offendingSpan: RawSpanType | TraceContextSpanProxy | null;
+  parentSpan: RawSpanType | TraceContextSpanProxy | null;
   transactionName: string;
 };
 
 export function SpanEvidenceKeyValueList({
   transactionName,
   parentSpan,
-  repeatingSpan,
+  offendingSpan,
 }: SpanEvidenceKeyValueListProps) {
   const data: KeyValueListData = [
     {
@@ -30,16 +30,16 @@ export function SpanEvidenceKeyValueList({
     },
     {
       key: '2',
-      subject: t('Repeating Span'),
-      value: getSpanEvidenceValue(repeatingSpan),
+      subject: t('Offending Span'),
+      value: getSpanEvidenceValue(offendingSpan),
     },
   ];
 
   return <KeyValueList data={data} />;
 }
 
-function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy) {
-  if (!span.op && !span.description) {
+function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) {
+  if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
 

@@ -20,6 +20,15 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
+function getEvidenceDescription(event: EventTransaction) {
+  if (event.perfProblem?.type === 1008) {
+    return t('Span Evidence identifies the span where the file IO occurred.');
+  }
+  return t(
+    'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
+  );
+}
+
 export function SpanEvidenceSection({event, organization}: Props) {
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
@@ -27,19 +36,14 @@ export function SpanEvidenceSection({event, organization}: Props) {
     return null;
   }
 
-  const {parentSpan, repeatingSpan, affectedSpanIds} = spanInfo;
+  const {parentSpan, offendingSpan, affectedSpanIds} = spanInfo;
 
   return (
-    <DataSection
-      title={t('Span Evidence')}
-      description={t(
-        'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
-      )}
-    >
+    <DataSection title={t('Span Evidence')} description={getEvidenceDescription(event)}>
       <SpanEvidenceKeyValueList
         transactionName={event.title}
         parentSpan={parentSpan}
-        repeatingSpan={repeatingSpan}
+        offendingSpan={offendingSpan}
       />
 
       <TraceViewWrapper>

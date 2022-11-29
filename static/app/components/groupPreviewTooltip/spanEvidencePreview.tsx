@@ -89,7 +89,7 @@ const SpanEvidencePreviewBody = ({
         <SpanEvidenceKeyValueList
           transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
-          repeatingSpan={spanInfo.repeatingSpan}
+          offendingSpan={spanInfo.offendingSpan}
         />
       </SpanEvidencePreviewWrapper>
     );

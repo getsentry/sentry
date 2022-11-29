@@ -522,6 +522,7 @@ export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
+  type: number;
 };
 
 interface EventBase {
