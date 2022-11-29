@@ -946,11 +946,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if len(self.spans) < 1:
             return
 
-        last_span = self.spans[-1]
-
         if len(self.spans) < self.settings["count"]:
-            self.spans = []
             return
+
+        last_span = self.spans[-1]
 
         fingerprint = self._fingerprint()
         self.stored_problems[fingerprint] = PerformanceProblem(
