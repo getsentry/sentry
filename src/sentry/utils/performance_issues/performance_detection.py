@@ -207,7 +207,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None):
+def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -492,7 +492,7 @@ class PerformanceDetector(ABC):
 
     type: DetectorType
 
-    def __init__(self, settings: Dict[str, Any], event: Event):
+    def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
