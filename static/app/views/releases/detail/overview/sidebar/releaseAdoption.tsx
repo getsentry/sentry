@@ -61,8 +61,8 @@ function ReleaseAdoption({
   reloading,
   errored,
 }: Props) {
-  const {location, router} = useRouteContext();
-
+  const location = useLocation();
+  const {router} = useRouteContext();
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
