@@ -170,10 +170,13 @@ class DatabaseBackedAuthService(AuthService):
             result.user = user_service.serialize_user(expired_user)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
-            result.user = user_service.serialize_user(fake_request.user)
-            from django.db import connections
+            from django.db import connections, transaction
 
-            connections.close_all()
+            with transaction.atomic():
+                result.user = user_service.serialize_user(fake_request.user)
+                transaction.set_rollback(True)
+            if SiloMode.single_process_silo_mode():
+                connections.close_all()
 
         return result
 
