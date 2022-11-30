@@ -473,13 +473,14 @@ export class Client {
           }
         }
 
-        const responseContentType = response.clone().headers.get('content-type');
+        const responseContentType = response.headers.get('content-type');
         const isResponseJSON = responseContentType?.includes('json');
 
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
           try {
-            responseJSON = await response.clone().json();
+            // responseJSON = await response.clone().json();
+            responseJSON = JSON.parse(responseText);
           } catch (error) {
             if (error.name === 'AbortError') {
               ok = false;
@@ -499,7 +500,7 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
-          rawResponse: response.clone(),
+          rawResponse: response,
         };
 
         // Respect the response content-type header
