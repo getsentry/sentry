@@ -45,7 +45,9 @@ class ProjectTransactionNamesClusterTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {
+        data = response.data
+        data["meta"]["unique_transaction_names"].sort()
+        assert data == {
             "rules": ["/a/*/**"],
             "meta": {
                 "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]
