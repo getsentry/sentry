@@ -917,6 +917,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not span_id or not op or not hash:
             return
 
+        description = span.get("description")
+        if not description:
+            return
+
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
@@ -955,7 +959,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") for span in self.spans]),
+            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
