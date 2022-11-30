@@ -11,6 +11,7 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 export const DEFAULT_SORT = '-startedAt';
 
 export const REPLAY_LIST_FIELDS = [
+  'activity',
   'countErrors',
   'duration',
   'finishedAt',

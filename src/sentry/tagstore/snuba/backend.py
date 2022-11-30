@@ -463,14 +463,17 @@ class SnubaTagStorage(TagStorage):
     def get_perf_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
-        filters = {"project_id": project_ids, "group_id": group_id_list}
+        filters = {"project_id": project_ids}
         if environment_ids:
             filters["environment"] = environment_ids
 
         result = snuba.query(
             dataset=Dataset.Transactions,
             groupby=["group_id"],
-            conditions=[[f"tags[{key}]", "=", value]],
+            conditions=[
+                [["hasAny", ["group_ids", ["array", group_id_list]]], "=", 1],
+                [f"tags[{key}]", "=", value],
+            ],
             filter_keys=filters,
             aggregations=[
                 ["arrayJoin", ["group_ids"], "group_id"],
@@ -736,7 +739,7 @@ class SnubaTagStorage(TagStorage):
     def get_perf_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        filters_keys = {"project_id": project_ids, "group_id": group_ids}
+        filters_keys = {"project_id": project_ids}
         if environment_ids:
             filters_keys["environment"] = environment_ids
 
@@ -744,6 +747,7 @@ class SnubaTagStorage(TagStorage):
             dataset=Dataset.Transactions,
             start=start,
             end=start,
+            conditions=[[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]],
             filter_keys=filters_keys,
             aggregations=[
                 ["arrayJoin", ["group_ids"], "group_id"],

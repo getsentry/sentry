@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.models import Project, ProjectKey
-from sentry.relay import config
 from sentry.utils import metrics
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
@@ -59,7 +58,7 @@ class JavaScriptSdkLoader(BaseView):
 
         return (
             {
-                "config": config.get_project_key_config(key),
+                "config": {"dsn": key.dsn_public},
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
             },

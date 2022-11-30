@@ -1,5 +1,4 @@
 from unittest import mock
-from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -138,14 +137,14 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
 
     def test_associate_pending_invite(self):
         # The org member invite should have a non matching email, but the
-        # member id and token will match from the cookie, allowing association
+        # member id and token will match from the session, allowing association
         member = OrganizationMember.objects.create(
             organization=self.organization, email="different.email@example.com", token="abc"
         )
 
-        self.request.COOKIES["pending-invite"] = urlencode(
-            {"memberId": member.id, "token": member.token, "url": ""}
-        )
+        self.request.session["invite_member_id"] = member.id
+        self.request.session["invite_token"] = member.token
+        self.save_session()
 
         auth_identity = self.handler.handle_new_user()
 

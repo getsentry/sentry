@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.tree import trim_tree
+from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -72,8 +72,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
-        tree = []
+        tree: JSONData = {}
         try:
+            # We do not cache this call since it is a rather large object
             contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
@@ -88,7 +89,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            tree = trim_tree(contents["tree"], ["python"])
+            tree = contents["tree"]
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -97,20 +98,41 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             if msg == "Git Repository is empty.":
                 logger.warning(f"{repo_full_name} is empty.")
             elif msg == "Not Found":
-                logger.error(f"The Github App does not have access to {repo_full_name}.")
+                logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                sentry_sdk.capture_exception(e)
+                logger.exception("An unknown error has ocurred.")
 
         return tree
 
+    def get_repo_files(
+        self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
+    ) -> List[str]:
+        """It return all files for a repo or just source code files.
+
+        repo_full_name: e.g. getsentry/sentry
+        tree_sha: A branch or a commit sha
+        only_source_code_files: Include all files or just the source code files
+        """
+        repo_files = []
+        try:
+            tree = self.get_tree(repo_full_name, tree_sha)
+            if tree is not None:
+                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
+                if only_source_code_files:
+                    repo_files = filter_source_code_files(files=repo_files)
+        except Exception:
+            logger.exception("An unknown error has ocurred.")
+
+        return repo_files
+
     def get_trees_for_org(
-        self, org_slug: str, gh_org: str, cache_seconds: int = 3600 * 24
-    ) -> JSONData:
+        self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
+    ) -> Dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org.
         """
-        trees: JSONData = {}
-        cache_key = f"githubtrees:repositories:{org_slug}:{gh_org}"
+        trees: Dict[str, RepoTree] = {}
+        cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
         repo_key = "githubtrees:repo"
         cached_repositories = cache.get(cache_key, [])
         if not cached_repositories:
@@ -125,10 +147,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 try:
                     full_name: str = repo_info["full_name"]
                     branch = repo_info["default_branch"]
-                    trees[full_name] = {
-                        "default_branch": branch,
-                        "files": self.get_tree(full_name, branch),
-                    }
+                    files = self.get_repo_files(full_name, branch)
+                    repo = Repo(full_name, branch)
+                    trees[full_name] = RepoTree(repo, files)
                     cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
                 except Exception:
                     # Catching the exception ensures that we can make progress with the rest
@@ -138,9 +159,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
             logger.info(f"Caching trees for {gh_org} org until {next_time}.")
         else:
-            for repo_info in cached_repositories:
-                trees[repo_info["full_name"]] = cache.get(f"{repo_key}:{repo_info['full_name']}")
-            logger.info(f"Using cached trees for {gh_org}.")
+            try:
+                for repo_info in cached_repositories:
+                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
+                    # This assertion will help clear the cache off dictionaries
+                    assert type(repo_tree) == RepoTree
+                    trees[repo_info["full_name"]] = repo_tree
+
+                logger.info(f"Using cached trees for {gh_org}.")
+            except AssertionError:
+                # Reset the control cache in order to repopulate
+                cache.delete(cache_key)
+                logger.exception(f"We reset the cache for {cache_key}.")
 
         return trees
 
@@ -347,6 +377,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         contents = self.post(
             path="/graphql",
             data={"query": query},
+        )
+        sentry_sdk.add_breadcrumb(
+            category="sentry.integrations.client.github",
+            message="get_blame_for_file query results",
+            level="info",
+            data=contents,
         )
         try:
             results: Sequence[Mapping[str, Any]] = (

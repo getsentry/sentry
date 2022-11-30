@@ -20,7 +20,8 @@ const MIN_VIDEO_WIDTH = {px: 325};
 const MIN_CONTENT_WIDTH = {px: 325};
 const MIN_SIDEBAR_WIDTH = {px: 325};
 const MIN_VIDEO_HEIGHT = {px: 200};
-const MIN_CONTENT_HEIGHT = {px: 200};
+const MIN_CONTENT_HEIGHT = {px: 180};
+const MIN_SIDEBAR_HEIGHT = {px: 120};
 
 type Props = {
   layout?: LayoutKey;
@@ -43,7 +44,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </VideoSection>
   );
 
-  if (layout === 'video_only') {
+  if (layout === LayoutKey.video_only) {
     return (
       <BodyContent>
         {timeline}
@@ -60,7 +61,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </ErrorBoundary>
   );
 
-  if (layout === 'no_video') {
+  if (layout === LayoutKey.no_video) {
     return (
       <BodyContent>
         {timeline}
@@ -68,42 +69,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           key={layout}
           left={{
             content: focusArea,
-            default: '75%',
-            min: MIN_CONTENT_WIDTH,
-          }}
-          right={{
-            content: <SideCrumbsTags />,
-            min: MIN_SIDEBAR_WIDTH,
-          }}
-        />
-      </BodyContent>
-    );
-  }
-
-  if (layout === 'top') {
-    const mainSplit = (
-      <SplitPanel
-        key={layout + '_main'}
-        top={{
-          content: video,
-          default: '50%',
-          min: MIN_VIDEO_HEIGHT,
-        }}
-        bottom={{
-          content: focusArea,
-          min: MIN_CONTENT_HEIGHT,
-        }}
-      />
-    );
-
-    return (
-      <BodyContent>
-        {timeline}
-        <SplitPanel
-          key={layout}
-          left={{
-            content: mainSplit,
-            default: '75%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
@@ -120,37 +86,17 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
       key={layout}
       top={{
         content: video,
-        default: '50%',
+        default: '65%',
         min: MIN_CONTENT_WIDTH,
       }}
       bottom={{
         content: <SideCrumbsTags />,
-        min: MIN_SIDEBAR_WIDTH,
+        min: MIN_SIDEBAR_HEIGHT,
       }}
     />
   );
 
-  if (layout === 'sidebar_right') {
-    return (
-      <BodyContent>
-        {timeline}
-        <SplitPanel
-          key={layout}
-          left={{
-            content: focusArea,
-            default: '60%',
-            min: MIN_CONTENT_WIDTH,
-          }}
-          right={{
-            content: sideVideoCrumbs,
-            min: MIN_SIDEBAR_WIDTH,
-          }}
-        />
-      </BodyContent>
-    );
-  }
-
-  if (layout === 'sidebar_left') {
+  if (layout === LayoutKey.sidebar_left) {
     return (
       <BodyContent>
         {timeline}
@@ -162,7 +108,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
           }}
           right={{
             content: focusArea,
-            default: '60%',
+            default: '1fr',
             min: MIN_CONTENT_WIDTH,
           }}
         />
@@ -187,7 +133,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
             <SplitPanel
               left={{
                 content: video,
-                default: '70%',
+                default: '1fr',
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
@@ -195,12 +141,11 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
               }}
             />
           ),
-
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content: focusArea,
-          default: '60%',
+          default: '1fr',
           min: MIN_CONTENT_HEIGHT,
         }}
       />

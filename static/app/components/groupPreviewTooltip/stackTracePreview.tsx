@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,10 +18,10 @@ import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import useApi from 'sentry/utils/useApi';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function getStacktrace(event: Event): StacktraceType | null {
+export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
       .find(e => e.type === EntryType.EXCEPTION)
@@ -52,7 +52,7 @@ function getStacktrace(event: Event): StacktraceType | null {
   return null;
 }
 
-function StackTracePreviewContent({
+export function StackTracePreviewContent({
   event,
   stacktrace,
   orgFeatures = [],
@@ -123,98 +123,60 @@ function StackTracePreviewBody({
   onRequestEnd,
   onUnmount,
 }: StackTracePreviewBodyProps) {
-  const api = useApi();
   const organization = useOrganization();
 
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-  const [event, setEvent] = useState<Event | null>(null);
-
-  const fetchData = useCallback(async () => {
-    onRequestBegin();
-
-    // Data is already loaded
-    if (event) {
-      onRequestEnd();
-      return;
-    }
-
-    // These are required props to load data
-    if (issueId && eventId && !projectSlug) {
-      onRequestEnd();
-      return;
-    }
-
-    try {
-      const evt = await api.requestPromise(
-        eventId && projectSlug
-          ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-          : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`,
-        {query: {referrer: 'api.issues.preview-error'}}
-      );
-      setEvent(evt);
-      setStatus('loaded');
-    } catch {
-      setEvent(null);
-      setStatus('error');
-    } finally {
-      onRequestEnd();
-    }
-  }, [
-    event,
-    issueId,
-    eventId,
-    projectSlug,
-    onRequestEnd,
-    onRequestBegin,
-    api,
-    organization.slug,
-  ]);
+  const {data, isLoading, isError} = useQuery<Event>(
+    [
+      eventId && projectSlug
+        ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
+        : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`,
+      {query: {referrer: 'api.issues.preview-error'}},
+    ],
+    {staleTime: 60000}
+  );
 
   useEffect(() => {
-    fetchData();
-
-    return () => {
-      onUnmount();
-    };
-  }, [fetchData, onUnmount]);
-
-  const stacktrace = useMemo(() => (event ? getStacktrace(event) : null), [event]);
-
-  switch (status) {
-    case 'loading':
-      return (
-        <NoStackTraceWrapper>
-          <LoadingIndicator hideMessage size={32} />
-        </NoStackTraceWrapper>
-      );
-    case 'error':
-      return (
-        <NoStackTraceWrapper>{t('Failed to load stack trace.')}</NoStackTraceWrapper>
-      );
-    case 'loaded': {
-      if (stacktrace && event) {
-        return (
-          <StackTracePreviewWrapper>
-            <StackTracePreviewContent
-              event={event}
-              stacktrace={stacktrace}
-              groupingCurrentLevel={groupingCurrentLevel}
-              orgFeatures={organization.features}
-            />
-          </StackTracePreviewWrapper>
-        );
-      }
-
-      return (
-        <NoStackTraceWrapper>
-          {t('There is no stack trace available for this issue.')}
-        </NoStackTraceWrapper>
-      );
+    if (isLoading) {
+      onRequestBegin();
+    } else {
+      onRequestEnd();
     }
-    default: {
-      return null;
-    }
+
+    return onUnmount;
+  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+
+  const stacktrace = useMemo(() => (data ? getStacktrace(data) : null), [data]);
+
+  if (isLoading) {
+    return (
+      <NoStackTraceWrapper>
+        <LoadingIndicator hideMessage size={32} />
+      </NoStackTraceWrapper>
+    );
   }
+
+  if (isError) {
+    return <NoStackTraceWrapper>{t('Failed to load stack trace.')}</NoStackTraceWrapper>;
+  }
+
+  if (stacktrace && data) {
+    return (
+      <StackTracePreviewWrapper>
+        <StackTracePreviewContent
+          event={data}
+          stacktrace={stacktrace}
+          groupingCurrentLevel={groupingCurrentLevel}
+          orgFeatures={organization.features}
+        />
+      </StackTracePreviewWrapper>
+    );
+  }
+
+  return (
+    <NoStackTraceWrapper>
+      {t('There is no stack trace available for this issue.')}
+    </NoStackTraceWrapper>
+  );
 }
 
 function StackTracePreview({children, ...props}: StackTracePreviewProps) {

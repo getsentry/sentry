@@ -1,7 +1,7 @@
 import {Theme} from 'sentry/utils/theme';
 
 export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => `
-  border-radius: ${theme.borderRadius};
+  border-radius: ${theme.linkBorderRadius};
 
   &.focus-visible {
     box-shadow: ${theme.linkFocus} 0 0 0 2px;

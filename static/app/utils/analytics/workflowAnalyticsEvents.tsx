@@ -74,41 +74,18 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
-  'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
-  'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
+    has_pull_request: boolean;
+  };
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
-  };
-  'issue_details.viewed': IssueDetailsWithAlert &
-    BaseEventAnalyticsParams & {
-      error_count: number;
-      error_has_replay: boolean;
-      event_errors: string;
-      group_has_replay: boolean;
-      has_owner: boolean;
-      is_assigned: boolean;
-      issue_age: number;
-      num_comments: number;
-      has_external_issue?: boolean;
-      integration_assignment_source?: string;
-      issue_level?: string;
-      issue_status?: string;
-      project_has_replay?: boolean;
-      project_platform?: string;
-    };
-  'new_alert_rule.viewed': RuleViewed & {
-    duplicate_rule: string;
-    session_id: string;
-    wizard_v3: string;
   };
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
     rule_id: string;
   };
-  'project_creation_page.viewed': {};
-  'team_insights.viewed': {};
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -146,14 +123,9 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
-  'issue_details.viewed': 'Issue Details: Viewed',
-  'issue_details.suspect_commits': 'Issue Details: Suspect Commits',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
-  'new_alert_rule.viewed': 'New Alert Rule: Viewed',
-  'team_insights.viewed': 'Team Insights: Viewed',
-  'project_creation_page.viewed': 'Project Create: Creation page viewed',
   'project_creation_page.created': 'Project Create: Project Created',
 };

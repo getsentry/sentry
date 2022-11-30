@@ -122,7 +122,7 @@ function Task(props: Props) {
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink300" isSolid />
+      <IconLock color="pink400" isSolid />
     </Tooltip>
   );
 
@@ -224,7 +224,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -260,7 +260,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'pink300',
+  color: 'pink400',
 };
 
 const completedItemAnimation = {

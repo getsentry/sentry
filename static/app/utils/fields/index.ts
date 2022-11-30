@@ -1,5 +1,7 @@
 import {t} from 'sentry/locale';
 
+// Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
+
 export enum FieldKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
@@ -27,6 +29,10 @@ export enum FieldKey {
   DEVICE_NAME = 'device.name',
   DEVICE_ONLINE = 'device.online',
   DEVICE_ORIENTATION = 'device.orientation',
+  DEVICE_SCREEN_DENSITY = 'device.screen_density',
+  DEVICE_SCREEN_DPI = 'device.screen_dpi',
+  DEVICE_SCREEN_HEIGHT_PIXELS = 'device.screen_height_pixels',
+  DEVICE_SCREEN_WIDTH_PIXELS = 'device.screen_width_pixels',
   DEVICE_SIMULATOR = 'device.simulator',
   DEVICE_UUID = 'device.uuid',
   DIST = 'dist',
@@ -519,6 +525,26 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.DEVICE_SCREEN_DENSITY]: {
+    desc: t('Pixel density of the device screen'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DEVICE_SCREEN_DPI]: {
+    desc: t('Dots per inch of the device screen'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS]: {
+    desc: t('Height of the device screen in pixels'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DEVICE_SCREEN_WIDTH_PIXELS]: {
+    desc: t('Width of the device screen in pixels'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.DEVICE_SIMULATOR]: {
     desc: t('Indicates if it occured on a simulator'),
     kind: FieldKind.FIELD,
@@ -1001,6 +1027,10 @@ export const DISCOVER_FIELDS = [
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_BATTERY_LEVEL,
   FieldKey.DEVICE_ORIENTATION,
+  FieldKey.DEVICE_SCREEN_DENSITY,
+  FieldKey.DEVICE_SCREEN_DPI,
+  FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
+  FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
   FieldKey.DEVICE_SIMULATOR,
   FieldKey.DEVICE_ONLINE,
   FieldKey.DEVICE_CHARGING,

@@ -174,7 +174,14 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
             'transaction:"/bar/:orgId/"',
             lambda: [
                 Condition(
-                    Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                            [""],
+                            [resolve_tag_value(USE_CASE_ID, ORG_ID, "<< unparameterized >>")],
+                        ],
+                    ),
                     Op.EQ,
                     rhs=resolve_tag_value(USE_CASE_ID, ORG_ID, "/bar/:orgId/"),
                 )
@@ -1380,8 +1387,19 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     )
                 ],
             ),
@@ -1429,8 +1447,19 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     ),
                     Column(
                         name=resolve_tag_key(self.use_case_id, self.org_id, "platform"),

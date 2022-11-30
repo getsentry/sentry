@@ -142,4 +142,33 @@ describe('SearchBar', () => {
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
   });
+
+  it('Submits wildcard searches', async () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventsv2/`,
+      body: {
+        data: [
+          {project_id: 1, transaction: 'clients.call'},
+          {project_id: 1, transaction: 'clients.fetch'},
+        ],
+      },
+    });
+    render(<SearchBar {...testProps} onSearch={onSearch} />);
+
+    userEvent.paste(screen.getByRole('textbox'), 'client*');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{Enter}');
+
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith('transaction:client*');
+  });
 });

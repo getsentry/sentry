@@ -33,7 +33,7 @@ function DashboardCard({
   }
 
   return (
-    <Link data-test-id={`card-${title}`} onClick={onClick} to={to}>
+    <Link data-test-id={`card-${title}`} onClick={onClick} to={to} aria-label={title}>
       <StyledDashboardCard interactive>
         <CardHeader>
           <CardContent>

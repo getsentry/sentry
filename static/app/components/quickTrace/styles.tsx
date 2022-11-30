@@ -28,7 +28,7 @@ const nodeColors = (theme: Theme) => ({
     border: theme.red300,
   },
   warning: {
-    color: theme.red300,
+    color: theme.errorText,
     background: theme.background,
     border: theme.red300,
   },

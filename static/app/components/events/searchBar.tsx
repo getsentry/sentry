@@ -73,7 +73,7 @@ const getMeasurementTags = (
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
     tags[key] = {
-      ...measurements[key],
+      ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
     };
     return tags;
@@ -214,7 +214,7 @@ function SearchBar(props: SearchBarProps) {
           STATIC_SPAN_TAGS,
           STATIC_FIELD_TAGS
         )
-      : STATIC_FIELD_TAGS_WITHOUT_TRACING;
+      : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
     assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 

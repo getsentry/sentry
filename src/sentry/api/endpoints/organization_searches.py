@@ -6,7 +6,10 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.savedsearch import OrganizationSearchSerializer
+from sentry.api.serializers.rest_framework.savedsearch import (
+    OrganizationSearchAdminSerializer,
+    OrganizationSearchMemberSerializer,
+)
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 
@@ -50,24 +53,43 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(list(query), request.user))
 
     def post(self, request: Request, organization) -> Response:
-        serializer = OrganizationSearchSerializer(data=request.data)
+        if request.access.has_scope("org:write"):
+            serializer = OrganizationSearchAdminSerializer(data=request.data)
+        else:
+            serializer = OrganizationSearchMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
 
-        # Prevent from creating duplicate queries
-        if (
-            SavedSearch.objects
-            # Query duplication for pinned searches is fine, exlcuded these
-            .exclude(visibility=Visibility.OWNER_PINNED)
-            .filter(Q(is_global=True) | Q(organization=organization), query=result["query"])
-            .exists()
-        ):
-            return Response(
-                {"detail": "Query {} already exists".format(result["query"])}, status=400
-            )
+        if result["visibility"] == Visibility.ORGANIZATION:
+            # Check for conflicts against existing org searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.ORGANIZATION,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"An organization search for '{result['query']}' already exists"},
+                    status=400,
+                )
+        elif result["visibility"] == Visibility.OWNER:
+            # Check for conflicts against the user's searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.OWNER,
+                owner=request.user,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"A search for '{result['query']}' already exists"},
+                    status=400,
+                )
 
         saved_search = SavedSearch.objects.create(
             organization=organization,

@@ -3,11 +3,10 @@ import math
 import random
 from collections import namedtuple
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
-from dateutil.parser import parse as parse_datetime
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -105,7 +104,11 @@ def zerofill(data, start, end, rollup, orderby):
     for obj in data:
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
-            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -113,8 +116,7 @@ def zerofill(data, start, end, rollup, orderby):
 
     for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
-            rv = rv + data_by_time[key]
-            data_by_time[key] = []
+            rv.extend(data_by_time[key])
         else:
             rv.append({"time": key})
 

@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import orderBy from 'lodash/orderBy';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -82,13 +83,13 @@ function BreadcrumbsContainer({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loadBreadcrumbs() {
-    let crumbs = data.values;
+    let crumbs = orderBy(data.values, 'timestamp', 'desc');
 
     // Add the (virtual) breadcrumb based on the error or message event if possible.
     const virtualCrumb = getVirtualCrumb(event);
 
     if (virtualCrumb) {
-      crumbs = [...crumbs, virtualCrumb];
+      crumbs = [virtualCrumb, ...crumbs];
     }
 
     const transformedCrumbs = transformCrumbs(crumbs);

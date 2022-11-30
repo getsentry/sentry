@@ -1,5 +1,12 @@
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
-import Input, {InputProps} from 'sentry/components/input';
+import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import FormModel from 'sentry/components/forms/model';
+import {
+  Input,
+  InputGroup,
+  InputProps,
+  InputTrailingItems,
+} from 'sentry/components/inputGroup';
 
 export interface InputFieldProps
   extends Omit<FormFieldProps, 'children'>,
@@ -28,19 +35,33 @@ function defaultField({
   onChange,
   onBlur,
   onKeyDown,
+  model,
+  name,
+  hideControlState,
   ...rest
 }: {
+  model: FormModel;
+  name: string;
   onBlur: OnEvent;
   onChange: OnEvent;
   onKeyDown: OnEvent;
+  hideControlState?: boolean;
 }) {
   return (
-    <Input
-      onBlur={e => onBlur(e.target.value, e)}
-      onKeyDown={e => onKeyDown((e.target as any).value, e)}
-      onChange={e => onChange(e.target.value, e)}
-      {...rest}
-    />
+    <InputGroup>
+      <Input
+        onBlur={e => onBlur(e.target.value, e)}
+        onKeyDown={e => onKeyDown((e.target as any).value, e)}
+        onChange={e => onChange(e.target.value, e)}
+        name={name}
+        {...rest}
+      />
+      {!hideControlState && (
+        <InputTrailingItems>
+          <FormFieldControlState model={model} name={name} />
+        </InputTrailingItems>
+      )}
+    </InputGroup>
   );
 }
 
@@ -48,10 +69,12 @@ function defaultField({
  * InputField should be thought of as a "base" field, and generally not used
  * within the Form itself.
  */
-function InputField({field = defaultField, ...props}: InputFieldProps) {
+function InputField({field = defaultField, hideControlState, ...props}: InputFieldProps) {
   return (
-    <FormField {...props}>
-      {({children: _children, ...otherFieldProps}) => field(otherFieldProps)}
+    <FormField {...props} hideControlState flexibleControlStateSize>
+      {({children: _children, ...otherFieldProps}) =>
+        field({...otherFieldProps, hideControlState})
+      }
     </FormField>
   );
 }

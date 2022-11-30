@@ -28,12 +28,6 @@ export const chart = {
   getModel: jest.fn(() => ({option: model})),
 };
 
-// eslint-disable-next-line
-export const doZoom = (wrapper, chart = chart) => {
-  wrapper.find('ChartZoom').instance().handleDataZoom({}, chart);
-  wrapper.find('ChartZoom').instance().handleChartFinished({}, chart);
-};
-
 export const mockZoomRange = (startValue, endValue) => {
   chart.getModel.mockImplementation(() => ({
     ...model,

@@ -8,6 +8,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -48,14 +49,13 @@ function NumberField({
   fieldConfig,
   onPropertyChange,
 }: FieldProps) {
-  const value =
-    data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
+  const value = data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : NaN;
 
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      value === '' &&
       data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
+      isNaN(value) &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
       onPropertyChange(index, name, `${fieldConfig.placeholder}`);
@@ -66,14 +66,13 @@ function NumberField({
 
   return (
     <InlineNumberInput
-      type="number"
+      min={0}
       name={name}
       value={value}
       placeholder={`${fieldConfig.placeholder}`}
       disabled={disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onPropertyChange(index, name, e.target.value)
-      }
+      onChange={newVal => onPropertyChange(index, name, String(newVal))}
+      aria-label={t('Value')}
     />
   );
 }
@@ -125,9 +124,6 @@ function MailActionFields({
         {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
-        ...(organization.features?.includes('alert-release-notification-workflow')
-          ? [{value: MailActionTargetType.ReleaseMembers, label: t('Release Members')}]
-          : []),
       ]}
       memberValue={MailActionTargetType.Member}
       teamValue={MailActionTargetType.Team}
@@ -229,6 +225,7 @@ interface Props {
   onReset: (rowIndex: number, name: string, value: string) => void;
   organization: Organization;
   project: Project;
+  incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   ownership?: null | IssueOwnership;
@@ -246,6 +243,7 @@ function RuleNode({
   onReset,
   ownership,
   incompatibleRule,
+  incompatibleBanner,
 }: Props) {
   const handleDelete = useCallback(() => {
     onDelete(index);
@@ -450,13 +448,13 @@ function RuleNode({
   }
 
   function renderIncompatibleRuleBanner() {
-    if (!incompatibleRule) {
+    if (!incompatibleBanner) {
       return null;
     }
     return (
       <MarginlessAlert type="error" showIcon>
         {t(
-          'This condition conflicts with other condition(s) above. Please select a different condition.'
+          'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
       </MarginlessAlert>
     );
@@ -513,7 +511,7 @@ function RuleNode({
   const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
   const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
   return (
-    <RuleRowContainer>
+    <RuleRowContainer incompatible={incompatibleRule}>
       <RuleRow>
         <Rule>
           {isNew && <StyledFeatureBadge type="new" />}
@@ -591,7 +589,7 @@ const InlineInput = styled(Input)`
   min-height: 28px;
 `;
 
-const InlineNumberInput = styled(Input)`
+const InlineNumberInput = styled(NumberInput)`
   width: 90px;
   height: 28px;
   min-height: 28px;
@@ -613,10 +611,11 @@ const RuleRow = styled('div')`
   padding: ${space(1)};
 `;
 
-const RuleRowContainer = styled('div')`
+const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.innerBorder} solid;
+  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
 `;
 
 const Rule = styled('div')`

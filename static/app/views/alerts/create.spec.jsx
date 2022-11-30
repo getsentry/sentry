@@ -118,7 +118,7 @@ describe('ProjectAlertsCreate', function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+        expect(screen.getAllByText('all')).toHaveLength(2);
       });
       await waitFor(() => {
         expect(screen.getByText('24 hours')).toBeInTheDocument();
@@ -534,7 +534,7 @@ describe('ProjectAlertsCreate', function () {
       features: ['issue-alert-incompatible-rules'],
     });
     const errorText =
-      'This condition conflicts with other condition(s) above. Please select a different condition.';
+      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});
@@ -568,6 +568,7 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue has happened at least {x} times (Note: this is approximate)',
@@ -576,7 +577,8 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
       userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.paste(screen.getByDisplayValue('10'), '-');
+      userEvent.clear(screen.getByDisplayValue('10'));
+      userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });

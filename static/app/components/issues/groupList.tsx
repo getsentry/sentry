@@ -1,6 +1,5 @@
-import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {Component} from 'react';
+import {browserHistory, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -12,6 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
@@ -21,6 +21,8 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
@@ -273,7 +275,7 @@ class GroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <Fragment>
+      <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
         <Panel>
           <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
@@ -304,11 +306,11 @@ class GroupList extends Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </Fragment>
+      </IssuesReplayCountProvider>
     );
   }
 }
 
 export {GroupList};
 
-export default withApi(withRouter(GroupList));
+export default withApi(withSentryRouter(GroupList));
