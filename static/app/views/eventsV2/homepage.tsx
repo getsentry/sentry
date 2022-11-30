@@ -34,7 +34,7 @@ type HomepageQueryState = AsyncComponent['state'] & {
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(_, prevState) {
     const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
     const hasInitiallyLoaded = prevState.loading && !this.state.loading;
     const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
@@ -78,7 +78,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         query,
       });
     }
-    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
