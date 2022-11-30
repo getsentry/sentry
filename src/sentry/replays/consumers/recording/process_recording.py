@@ -17,7 +17,6 @@ from arroyo.types import Message, Position
 from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
-from sentry.replays.cache import RecordingSegmentParts
 from sentry.replays.usecases.ingest import (
     RecordingMessage,
     RecordingSegmentChunkMessage,
@@ -67,15 +66,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         message: Message[KafkaPayload],
         current_transaction: Transaction,
     ) -> None:
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["replay_recording"]["id"],
-        )
-        parts = RecordingSegmentParts(
-            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
-        )
-
         # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
             ReplayRecordingMessageFuture(
@@ -83,7 +73,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__threadpool.submit(
                     ingest_recording_chunked,
                     message_dict=message_dict,
-                    parts=parts,
                     transaction=current_transaction,
                 ),
             )
@@ -188,7 +177,3 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__commit(self.__commit_data)
                 self.__last_committed = now
                 self.__commit_data = {}
-
-
-def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
-    return f"{project_id}:{replay_id}:{segment_id}"

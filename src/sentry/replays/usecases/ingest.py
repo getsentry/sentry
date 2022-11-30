@@ -78,7 +78,6 @@ class RecordingIngestMessage:
 @metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
-    parts: RecordingSegmentParts,
     transaction: Transaction,
 ) -> None:
     """Ingest chunked recording messages."""
@@ -86,6 +85,15 @@ def ingest_recording_chunked(
         op="replays.usecases.ingest.ingest_recording_chunked",
         description="ingest_recording_chunked",
     ):
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["replay_recording"]["id"],
+        )
+        parts = RecordingSegmentParts(
+            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+        )
+
         try:
             recording_segment_with_headers = collate_segment_chunks(parts)
         except ValueError:
