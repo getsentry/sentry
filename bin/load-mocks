@@ -940,18 +940,7 @@ def create_mock_transactions(
                 "hash": "63f1e89e6a073441",
             }
 
-        repeating_spans = [
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-            make_repeating_span(200),
-        ]
+        repeating_spans = [make_repeating_span(200) for _ in range(10)]
 
         parent_span = {
             "timestamp": (
@@ -983,6 +972,52 @@ def create_mock_transactions(
         )
 
         time.sleep(1.0)
+
+        create_sample_event(
+            project=backend_project,
+            platform="transaction",
+            transaction="/file-io-main-thread/",
+            event_id=uuid4().hex,
+            user=transaction_user,
+            timestamp=timestamp + timedelta(milliseconds=300),
+            start_timestamp=timestamp,
+            trace=trace_id,
+            parent_span_id=frontend_root_span_id,
+            spans=[
+                parent_span,
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=200)).timestamp(),
+                    "start_timestamp": timestamp.timestamp(),
+                    "description": "1669031858711_file.txt (4.0 kB)",
+                    "op": "file.write",
+                    "span_id": uuid4().hex[:16],
+                    "parent_span_id": parent_span_id,
+                    "status": "ok",
+                    "data": {
+                        "blocked_ui_thread": True,
+                        "call_stack": [
+                            {
+                                "function": "onClick",
+                                "in_app": True,
+                                "lineno": 2,
+                                "module": "io.sentry.samples.android.MainActivity$$ExternalSyntheticLambda6",
+                                "native": False,
+                            },
+                            {
+                                "filename": "MainActivity.java",
+                                "function": "lambda$onCreate$5$io-sentry-samples-android-MainActivity",
+                                "in_app": True,
+                                "lineno": 93,
+                                "module": "io.sentry.samples.android.MainActivity",
+                                "native": False,
+                            },
+                        ],
+                        "file.path": "/data/user/0/io.sentry.samples.android/files/1669031858711_file.txt",
+                        "file.size": 4010,
+                    },
+                },
+            ],
+        )
 
 
 if __name__ == "__main__":
