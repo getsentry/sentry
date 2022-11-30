@@ -53,7 +53,7 @@ class AlertRuleNotification(ProjectNotification):
         self.rules = notification.rules
         self.template_path = (
             f"sentry/emails/{event.group.issue_category.name.lower()}"
-            if hasattr(event.group, "issue_category")
+            if event.group.issue_category in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]
             else "sentry/emails/generic"
         )
 

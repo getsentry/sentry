@@ -301,13 +301,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            GroupType.GENERIC,
+            GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.GENERIC
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -348,13 +348,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            GroupType.GENERIC,
+            GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.GENERIC
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
