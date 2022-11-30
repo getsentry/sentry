@@ -951,11 +951,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if extension and extension in [".js", ".css"]:
             return
 
-        # Ignore cancelled requests
-        status = span.get("data", {}).get("status")
-        if status and status == "cancelled":
-            return
-
         # Ignore backendy transactions
         trace_op = span.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
