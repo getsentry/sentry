@@ -1,11 +1,11 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -80,6 +80,7 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
+  canvasScheduler: CanvasScheduler;
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
@@ -94,6 +95,7 @@ export function FrameStackTable({
   expanded,
   referenceNode,
   canvasPoolManager,
+  canvasScheduler,
   getFrameColor,
   formatDuration,
   recursion,
@@ -112,8 +114,8 @@ export function FrameStackTable({
 
   const [clickedContextMenuNode, setClickedContextMenuClose] =
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
-
   const contextMenu = useContextMenu({container: scrollContainerRef});
+
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
@@ -145,7 +147,7 @@ export function FrameStackTable({
         handleRowMouseEnter,
         handleExpandTreeNode,
         handleRowKeyDown,
-        tabIndexKey,
+        selectedNodeIndex,
       }
     ) => {
       return (
@@ -158,7 +160,7 @@ export function FrameStackTable({
           referenceNode={referenceNode}
           frameColor={getFrameColor(r.item.node)}
           formatDuration={formatDuration}
-          tabIndex={tabIndexKey === r.key ? 0 : 1}
+          tabIndex={selectedNodeIndex === r.key ? 0 : 1}
           onClick={handleRowClick}
           onExpandClick={handleExpandTreeNode}
           onKeyDown={handleRowKeyDown}
@@ -178,6 +180,7 @@ export function FrameStackTable({
     scrollContainerStyles,
     containerStyles,
     handleSortingChange,
+    handleScrollTo,
     clickedGhostRowRef,
     hoveredGhostRowRef,
   } = useVirtualizedTree({
@@ -203,6 +206,15 @@ export function FrameStackTable({
     },
     [sort, direction, handleSortingChange]
   );
+
+  useEffect(() => {
+    function onShowInTableView(frame: FlamegraphFrame) {
+      handleScrollTo(el => el.node === frame.node);
+    }
+
+    canvasScheduler.on('show in table view', onShowInTableView);
+    return () => canvasScheduler.off('show in table view', onShowInTableView);
+  }, [canvasScheduler, handleScrollTo]);
 
   return (
     <FrameBar>

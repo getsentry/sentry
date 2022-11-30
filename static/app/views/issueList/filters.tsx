@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -12,10 +10,11 @@ import {
 } from 'sentry/components/smartSearchBar/actions';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import IssueListSearchBar from './searchBar';
 
-interface Props extends WithRouterProps {
+interface Props {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
@@ -23,14 +22,9 @@ interface Props extends WithRouterProps {
   sort: string;
 }
 
-function IssueListFilters({
-  organization,
-  savedSearch,
-  query,
-  sort,
-  onSearch,
-  location,
-}: Props) {
+function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Props) {
+  const location = useLocation();
+
   const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
 
   return (
@@ -86,4 +80,4 @@ const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   }
 `;
 
-export default withRouter(IssueListFilters);
+export default IssueListFilters;

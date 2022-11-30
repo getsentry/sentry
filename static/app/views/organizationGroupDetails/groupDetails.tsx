@@ -203,6 +203,7 @@ class GroupDetails extends Component<Props, State> {
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      has_otel: event?.contexts?.otel !== undefined,
     });
   }
 
