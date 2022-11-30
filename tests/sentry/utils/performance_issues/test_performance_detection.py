@@ -880,15 +880,14 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(query_waterfall_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
-                call("_pi_all_issue_count", 2),
+                call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", ""),
                 call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
                 call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
                 call("_pi_consecutive_db", "abca1c35669c11f2"),
-                call("_pi_slow_span", "870ada8266466319"),
             ]
         )
 
