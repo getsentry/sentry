@@ -24,7 +24,7 @@ body:
     attributes:
       label: Identification
       placeholder: Link to Sentry or org slug or slug id (non-PII)
-      description: If you are using SaaS, in order to speed up investigations - could you please include a link to where you found the issue (if it applies) or your organization slug? If you are concerned with exposing your organization slug (which is included on links to sentry.io) you can share your organization ID which can be found in your client keys (DSN) which follow the format `https://{tag}@o{ORGANISATION_ID}.ingest.sentry.io/{PROJECT_ID}`
+      description: (Optional info) If you are using SaaS, in order to speed up investigations - could you please include a link to where you found the issue (if it applies) or your organization slug? If you are concerned with exposing your organization slug (which is included on links to sentry.io) you can share your organization ID which can be found in your client keys (DSN) which follow the format `https://{tag}@o{ORGANISATION_ID}.ingest.sentry.io/{PROJECT_ID}`
     validations:
       required: false
   - type: textarea
