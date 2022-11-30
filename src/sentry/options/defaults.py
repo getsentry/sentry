@@ -344,7 +344,7 @@ register("processing.can-use-scrubbers", default=True)
 
 # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
 # Set this value of the fraction of projects that you want to use it for.
-register("processing.sourcemapcache-processor", default=0.0)
+register("processing.sourcemapcache-processor", default=0.0)  # unused
 
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
@@ -523,6 +523,7 @@ register(
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
+register("performance.issues.file_io_main_thread-creation", default=0.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)

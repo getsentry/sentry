@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -137,6 +137,14 @@ const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: [],
+      });
+    });
+
     afterEach(() => {
       queryClient.clear();
       MockApiClient.clearMockResponses();
@@ -210,6 +218,12 @@ describe('Quick Context', function () {
         url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
         body: [],
       });
+
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -280,37 +294,19 @@ describe('Quick Context', function () {
       expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
     });
 
-    it('Does not render suspect commit to context when row lacks event id', async () => {
-      const dataRowWithoutId: unknown = {
-        issue: 'SENTRY-VVY',
-        release: 'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76',
-        title: 'error: Error -3 while decompressing data: invalid stored block lengths',
-        'issue.id': 3512441874,
-        'project.name': 'sentry',
-      };
-
-      MockApiClient.addMockResponse({
-        url: '/issues/3512441874/',
-        method: 'GET',
-        body: mockedGroup,
-      });
-
-      renderQuickContextContent(dataRowWithoutId as EventData);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId('quick-context-suspect-commits-container')
-        ).not.toBeInTheDocument();
-      });
-    });
-
     it('Renders Suspect Commits', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
         body: mockedGroup,
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: {
+          eventID: '6b43e285de834ec5b5fe30d62d549b20',
+        },
       });
 
       MockApiClient.addMockResponse({
@@ -367,7 +363,9 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Release/i)).toBeInTheDocument();
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
-      expect(screen.getByTestId('version-hover-header-copy-icon')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
     });
 
     it('Renders Release details for release', async () => {
@@ -529,7 +527,7 @@ describe('Quick Context', function () {
         expect.objectContaining({
           pathname: '/mock-pathname/',
           query: expect.objectContaining({
-            field: ['title', 'tags[http.status_code]'],
+            field: ['title', 'http.status_code'],
           }),
         })
       );
@@ -589,6 +587,24 @@ describe('Quick Context', function () {
       ).toBeInTheDocument();
     });
 
+    it('Renders event id header', async () => {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
+      expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
+    });
+
     it('Renders stack trace as context', async () => {
       const frame: Frame = {
         colNo: 0,
@@ -642,16 +658,39 @@ describe('Quick Context', function () {
         ],
       } as EventError;
 
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: ['issue', 'transaction.duration'],
+          },
+        })
+      );
+
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
         body: makeEvent(errorEvent),
       });
 
+      delete defaultRow.title;
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId('quick-context-title-add-button');
+      expect(addAsColumnButton).toBeInTheDocument();
+      expect(screen.getByText(/Title/i)).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['issue', 'transaction.duration', 'title'],
+          }),
+        })
+      );
     });
   });
 });

@@ -16,7 +16,7 @@ type Props = {
   access: Set<Scope>;
   initialData: Organization;
   location: Location;
-  onSave: (previous: Organization, updated: Record<string, any>) => void;
+  onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 

@@ -230,6 +230,7 @@ class WidgetCard extends Component<Props, State> {
       noDashboardsMEPProvider,
       dashboardFilters,
       isWidgetInvalid,
+      location,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -289,6 +290,7 @@ class WidgetCard extends Component<Props, State> {
                 </Fragment>
               ) : noLazyLoad ? (
                 <WidgetCardChartContainer
+                  location={location}
                   api={api}
                   organization={organization}
                   selection={selection}
@@ -303,6 +305,7 @@ class WidgetCard extends Component<Props, State> {
               ) : (
                 <LazyLoad once resize height={200}>
                   <WidgetCardChartContainer
+                    location={location}
                     api={api}
                     organization={organization}
                     selection={selection}

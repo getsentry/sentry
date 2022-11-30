@@ -34,6 +34,7 @@ MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
 TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
+HTTP_STATUS_CODE_ALIAS = "http.status_code"
 
 
 class ThresholdDict(TypedDict):

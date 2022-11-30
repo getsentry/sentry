@@ -51,8 +51,6 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
     },
     ref
   ) => {
-    const isSelected = tabIndex === 0;
-
     const handleExpanding = useCallback(
       (evt: React.MouseEvent) => {
         evt.stopPropagation();
@@ -61,6 +59,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
       [node, onExpandClick]
     );
 
+    const isSelected = tabIndex === 0;
     return (
       <FrameCallersRow
         ref={ref}
@@ -186,7 +185,6 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
-  scroll-margin-top: 24px;
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 24px;
 

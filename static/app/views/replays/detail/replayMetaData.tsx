@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -71,18 +71,21 @@ function ReplayMetaData({replayRecord}: Props) {
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
-      <KeyMetricData>
-        {replayRecord ? (
-          <Fragment>
-            <ErrorTag to={errorsTabHref} icon={null} type="error">
-              {replayRecord?.countErrors}
-            </ErrorTag>
-            <Link to={errorsTabHref}>{t('Errors')}</Link>
-          </Fragment>
-        ) : (
-          <HeaderPlaceholder />
-        )}
-      </KeyMetricData>
+
+      {replayRecord ? (
+        <StyledLink to={errorsTabHref}>
+          <ErrorTag
+            icon={null}
+            type={replayRecord.countErrors ? 'error' : 'black'}
+            level={replayRecord.countErrors ? 'fatal' : 'default'}
+          >
+            {replayRecord.countErrors}
+          </ErrorTag>
+          {tn('Error', 'Errors', replayRecord.countErrors)}
+        </StyledLink>
+      ) : (
+        <HeaderPlaceholder />
+      )}
     </KeyMetrics>
   );
 }
@@ -96,31 +99,39 @@ export const HeaderPlaceholder = styled(
 `;
 
 const KeyMetrics = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(3)};
-  grid-template-columns: repeat(4, max-content);
   align-items: center;
   justify-content: end;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    justify-content: start;
+  }
 `;
 
 const KeyMetricData = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: normal;
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
+  display: flex;
   align-items: center;
   gap: ${space(1)};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
-const ErrorTag = styled(Tag)`
+const StyledLink = styled(Link)`
+  display: flex;
+  gap: ${space(1)};
+`;
+
+const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
   ${Background} {
-    background: ${p => p.theme.tag.error.iconColor};
+    background: ${p => p.theme.level[p.level]};
+    border-color: ${p => p.theme.level[p.level]};
     padding: 0 ${space(0.75)};
 
     span {
-      color: white !important;
+      color: ${p => p.theme.buttonCountActive} !important;
     }
   }
 `;

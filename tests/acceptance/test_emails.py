@@ -43,7 +43,7 @@ def read_txt_email_fixture(name: str) -> str:
 
 
 def build_url(path: str, format: str = "html") -> str:
-    return f"{path}?{urlencode({'format': format, 'seed': b'123'})}"
+    return f"{path}?{urlencode({'format': format, 'seed': b'123', 'is_test': True})}"
 
 
 class EmailTestCase(AcceptanceTestCase):

@@ -56,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {MetricsBaselineContainer} from './metricsBaselineContainer';
+import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -166,13 +166,14 @@ export class Results extends Component<Props, State> {
     const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
-      !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(
-        prevState.eventView,
-        eventView,
-        prevYAxisArray,
-        yAxisArray
-      )
+      prevQuery.field.length !== 0 &&
+      (!isAPIPayloadSimilar(currentQuery, prevQuery) ||
+        this.hasChartParametersChanged(
+          prevState.eventView,
+          eventView,
+          prevYAxisArray,
+          yAxisArray
+        ))
     ) {
       api.clear();
       this.canLoadEvents();
@@ -634,7 +635,7 @@ export class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsBaselineContainer
+                    <ResultsChart
                       api={api}
                       router={router}
                       organization={organization}

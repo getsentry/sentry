@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0343_drop_savedsearch_userdefault_fk_constraints_and_remove_state"),
+        ("sentry", "0344_add_idp_flags"),
     ]
 
     operations = [

@@ -4,6 +4,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -15,11 +16,20 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.features = {}
 
     def do_request(self, url):
         with self.feature(self.features):
             return self.client.get(url, format="json")
+
+    def _parse_links(self, header):
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = {}
+        for url, attrs in parse_link_header(header).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+        return links
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -360,6 +370,56 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             assert len(response.data) == 1, response.data
             assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]
 
+    def test_pagination(self):
+        self.login_as(user=self.user)
+
+        for _ in range(2):
+            event = self.store_event(
+                data={
+                    "fingerprint": ["group_1"],
+                    "event_id": "a" * 32,
+                    "message": "foo",
+                    "timestamp": iso_format(self.min_ago),
+                },
+                project_id=self.project.id,
+            )
+
+        url = f"/api/0/issues/{event.group.id}/events/?per_page=1"
+        response = self.do_request(url)
+        links = self._parse_links(response["Link"])
+        assert response.status_code == 200, response.content
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+        assert len(response.data) == 1
+
+    def test_orderby(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "a" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "b" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.two_min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/events/"
+        response = self.do_request(url)
+        assert len(response.data) == 2
+        assert response.data[0]["eventID"] == "a" * 32
+        assert response.data[1]["eventID"] == "b" * 32
+
     def test_perf_issue(self):
         event_data = load_data(
             "transaction",
@@ -377,9 +437,3 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
-
-
-class GroupEventsTestWithBuilder(GroupEventsTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:events-use-querybuilder"] = True

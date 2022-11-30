@@ -26,7 +26,7 @@ type Props = {
   showTitle?: boolean;
 };
 
-type SegmentValue = {
+export type SegmentValue = {
   index: number;
   onClick: () => void;
   to: LocationDescriptor;
