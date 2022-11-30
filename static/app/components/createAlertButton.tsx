@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import {
   AlertType,
   AlertWizardAlertNames,
@@ -126,7 +126,7 @@ const CreateAlertButton = ({
   onEnter,
   ...buttonProps
 }: CreateAlertButtonProps) => {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const api = useApi();
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();

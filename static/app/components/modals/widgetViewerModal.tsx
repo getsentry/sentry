@@ -48,7 +48,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
@@ -169,7 +169,7 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
   } = props;
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state

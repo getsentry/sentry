@@ -25,7 +25,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {ViewProps} from '../types';
 
@@ -244,7 +244,7 @@ export function Chart({
   project,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const theme = useTheme();
 
   const handleLegendSelectChanged = legendChange => {

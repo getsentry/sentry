@@ -15,7 +15,7 @@ import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields'
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {ViewProps} from '../../../types';
 
@@ -39,7 +39,7 @@ function VitalsChart({
   end: propsEnd,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 

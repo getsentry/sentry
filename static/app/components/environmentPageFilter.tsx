@@ -13,7 +13,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
@@ -39,7 +39,7 @@ function EnvironmentPageFilter({
   maxTitleLength = 20,
   size = 'md',
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();

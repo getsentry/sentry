@@ -23,7 +23,7 @@ import {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -62,7 +62,7 @@ function ReleaseAdoption({
   errored,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);

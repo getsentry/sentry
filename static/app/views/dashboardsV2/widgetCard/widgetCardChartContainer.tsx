@@ -12,7 +12,7 @@ import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {DashboardFilters, Widget, WidgetType} from '../types';
 
@@ -73,7 +73,7 @@ export function WidgetCardChartContainer({
   chartZoomOptions,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries

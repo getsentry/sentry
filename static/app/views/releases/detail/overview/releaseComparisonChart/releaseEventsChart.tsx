@@ -21,7 +21,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
@@ -57,7 +57,7 @@ function ReleaseEventsChart({
   utc,
 }: Props) {
   const location = useLocation();
-  const {router, location: _location} = useRouteContext();
+  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 

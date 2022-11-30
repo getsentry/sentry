@@ -20,7 +20,7 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   customDropdownButton: (config: {
@@ -65,7 +65,7 @@ function EnvironmentSelector({
   customLoadingIndicator,
   disabled,
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
