@@ -20,7 +20,7 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 
-logger = logging.getLogger("sentry.tasks.commit_context")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -65,7 +65,7 @@ def process_commit_context(
             }
             # Delete old owners
             to_be_deleted = owners.filter(
-                date_added__gte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
+                date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
             )
 
             if len(to_be_deleted):
@@ -73,7 +73,7 @@ def process_commit_context(
                     record.delete()
 
             current_owners = owners.filter(
-                date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
+                date_added__gte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
             ).order_by("-date_added")
 
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
