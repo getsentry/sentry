@@ -945,15 +945,18 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
+        # Ignore anything that looks like an asset
         parsed_url = urlparse(span.get("data", {}).get("url") or "")
-        _filename, extension = os.path.splitext(parsed_url.path)
+        _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css"]:
             return
 
+        # Ignore cancelled requests
         status = span.get("data", {}).get("status")
         if status and status == "cancelled":
             return
 
+        # Ignore backendy transactions
         trace_op = span.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return
