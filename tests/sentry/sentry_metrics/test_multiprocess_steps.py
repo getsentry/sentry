@@ -37,11 +37,6 @@ MESSAGE_PROCESSOR = MessageProcessor(
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.committable == expected.committable
 
-    if isinstance(actual.value, BrokerValue):
-        assert actual.offset == expected.offset
-        assert actual.partition == expected.partition
-        assert actual.timestamp == expected.timestamp
-
     actual_payload: KafkaPayload = actual.payload
     expected_payload: KafkaPayload = expected.payload
 
