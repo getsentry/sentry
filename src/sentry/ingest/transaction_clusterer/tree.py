@@ -18,7 +18,7 @@ We build a tree that looks like this:
       /2022-07-15-but-what-about-me
     /settings
 
-As soon as the node /users has more than X children, we merge them:
+As soon as the node /users has reached the threshold of X children, we merge them:
 
 /users
   /*
@@ -28,7 +28,7 @@ As soon as the node /users has more than X children, we merge them:
       /2022-07-15-but-what-about-me
     /settings
 
-If /posts now also has more than X children, those are merged as well:
+If /posts now also has reached the threshold of X children, those are merged as well:
 
 /users
   /*
@@ -38,8 +38,10 @@ If /posts now also has more than X children, those are merged as well:
 
 Resulting in the following replacement rules:
 
-/users/*/posts/*  # To replace both identifiers
-/users/*          # For URLs with only one identifier, e.g. /users/*/settings
+/users/*/posts/*/**  # To replace both identifiers
+/users/*/**          # For URLs with only one identifier, e.g. /users/*/settings
+
+The replacement rules are interpreted by Relay to match and replace `*`, and to match but ignore `**`.
 
 """
 
