@@ -2,7 +2,18 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Optional, Set, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    cast,
+)
 
 from sentry.models import (
     Organization,
@@ -192,6 +203,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
+
+    def check_memberships_among_users(
+        self, *, organization: ApiOrganization, users: Collection[APIUser]
+    ) -> Iterable[ApiOrganizationMember]:
+        members: Iterable[OrganizationMember] = OrganizationMember.objects.filter(
+            organization=organization, user__in=users
+        )
+        return (self._serialize_member(member) for member in members)
 
     def close(self) -> None:
         pass

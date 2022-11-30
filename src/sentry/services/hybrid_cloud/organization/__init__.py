@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Collection, Iterable, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -64,6 +64,16 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         Used to look up an organization membership by a user id
         """
+        pass
+
+    @abstractmethod
+    def check_memberships_among_users(
+        self,
+        *,
+        organization: ApiOrganization,
+        users: Collection[APIUser],
+    ) -> Iterable[ApiOrganizationMember]:
+        """Look up memberships of all users in the given org."""
         pass
 
     @abstractmethod

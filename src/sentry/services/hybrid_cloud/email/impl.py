@@ -1,40 +1,110 @@
 from __future__ import annotations
 
-from typing import Collection, Iterable
+import abc
+from dataclasses import dataclass
+from typing import Collection, Iterable, Type
 
-from sentry.models import OrganizationMember, UserEmail
-from sentry.services.hybrid_cloud.email import ApiUserEmail, EmailService
-from sentry.services.hybrid_cloud.organization import (
-    ApiOrganization,
-    ApiOrganizationMember,
-    organization_service,
-)
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.models import UserEmail
+from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, EmailService
+from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.user import APIUser
+from sentry.utils import metrics
 
 
 class DatabaseBackedEmailService(EmailService):
-    def get_user_emails(self, *, email: str) -> Iterable[ApiUserEmail]:
-        user_emails: Iterable[UserEmail] = UserEmail.objects.filter(
-            email__iexact=email, user__is_active=True
-        )
-        return (self._serialize_user_email(user_email) for user_email in user_emails)
+    def resolve_email_to_user(
+        self, email: str, organization: ApiOrganization | None = None
+    ) -> APIUser | None:
+        candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
+        if not candidates:
+            return None
+        return _EmailResolver(email, organization).resolve(candidates)
 
-    @classmethod
-    def _serialize_user_email(cls, user_email: UserEmail) -> ApiUserEmail:
-        return ApiUserEmail(
-            id=user_email.id,
-            user=user_service.serialize_user(user_email.user),
-            email=user_email.email,
-            is_verified=user_email.is_verified,
-            is_primary=user_email.is_primary(),
-        )
 
-    def get_members_for_users(
-        self, *, organization: ApiOrganization, users: Collection[APIUser]
-    ) -> Iterable[ApiOrganizationMember]:
-        members: Iterable[OrganizationMember] = (
-            OrganizationMember.objects.filter(organization=organization, user__in=users)
-            .values_list("user", flat=True)
-            .distinct()
+@dataclass
+class _EmailResolver:
+    email: str
+    organization: ApiOrganization | None
+
+    def resolve(self, candidates: Collection[UserEmail]) -> APIUser:
+        """Pick the user best matching the email address."""
+
+        if not candidates:
+            raise ValueError
+        if len(candidates) == 1:
+            (unique_email,) = candidates
+            return unique_email.user
+
+        for step_cls in self.get_steps():
+            step = step_cls(self)
+            last_candidates = candidates
+            candidates = tuple(step.apply(candidates))
+            if len(candidates) == 1:
+                # Success: We've narrowed down to only one candidate
+                (choice,) = candidates
+                step.if_conclusive(last_candidates, choice)
+                return choice.user
+            if len(candidates) == 0:
+                # If the step eliminated all, ignore it and go to the next step
+                candidates = last_candidates
+
+        self.if_inconclusive(candidates)
+        raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
+
+    def if_inconclusive(self, remaining_candidates: Collection[UserEmail]) -> None:
+        """Hook to call if no step resolves to a single user."""
+        metrics.incr("auth.email_resolution.no_resolution", sample_rate=1.0)
+
+    @dataclass
+    class ResolutionStep(abc.ABC):
+        parent: _EmailResolver
+
+        @abc.abstractmethod
+        def apply(self, candidates: Collection[UserEmail]) -> Iterable[UserEmail]:
+            raise NotImplementedError
+
+        def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
+            """Hook to call if this step resolves to a single user."""
+            pass
+
+    class IsVerified(ResolutionStep):
+        """Prefer verified email addresses."""
+
+        def apply(self, candidates: Collection[UserEmail]) -> Iterable[UserEmail]:
+            return (ue for ue in candidates if ue.is_verified)
+
+        def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_verification", sample_rate=1.0)
+
+    class HasOrgMembership(ResolutionStep):
+        """Prefer users who belong to the organization."""
+
+        def apply(self, candidates: Collection[UserEmail]) -> Iterable[UserEmail]:
+            if not self.parent.organization:
+                return ()
+
+            memberships = organization_service.check_memberships_among_users(
+                organization=self.parent.organization,
+                users=[ue.user for ue in candidates],
+            )
+            user_ids_in_org = {m.user_id for m in memberships}
+            return (ue for ue in candidates if ue.user.id in user_ids_in_org)
+
+        def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_org_membership", sample_rate=1.0)
+
+    class IsPrimary(ResolutionStep):
+        """Prefer users whose primary address matches the address in question."""
+
+        def apply(self, candidates: Collection[UserEmail]) -> Iterable[UserEmail]:
+            return (ue for ue in candidates if ue.is_primary())
+
+        def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_primary_email", sample_rate=1.0)
+
+    def get_steps(self) -> Iterable[Type[ResolutionStep]]:
+        return (
+            self.IsVerified,
+            self.HasOrgMembership,
+            self.IsPrimary,
         )
-        return (organization_service.serialize_member(member) for member in members)
