@@ -25,8 +25,12 @@ class SystemOptionsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         query = request.GET.get("query")
+        for_admin = False
         if query == "is:required":
             option_list = options.filter(flag=options.FLAG_REQUIRED)
+        elif query == "for:admin":
+            for_admin = True
+            option_list = options.all()
         elif query:
             return Response(f"{query} is not a supported search query", status=400)
         else:
@@ -37,6 +41,7 @@ class SystemOptionsEndpoint(Endpoint):
         results = {}
         for k in option_list:
             disabled, disabled_reason = False, None
+            is_secret = for_admin and self.__is_secret(k.name)
 
             if smtp_disabled and k.name[:5] == "mail.":
                 disabled_reason, disabled = "smtpDisabled", True
@@ -48,7 +53,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name),
+                "value": options.get(k.name) if not is_secret else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -60,6 +65,10 @@ class SystemOptionsEndpoint(Endpoint):
             }
 
         return Response(results)
+
+    def __is_secret(self, name: str) -> bool:
+        keywords = ["secret", "token", "key"]
+        return any([k in name for k in keywords])
 
     def has_permission(self, request: Request):
         if not request.access.has_permission("options.admin"):
