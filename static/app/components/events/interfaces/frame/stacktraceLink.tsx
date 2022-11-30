@@ -82,7 +82,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       return;
     }
 
-    const {error, integrations, sourceUrl} = match;
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
       organization,
@@ -90,9 +89,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       project_id: project?.id,
       state:
         // Should follow the same logic in render
-        sourceUrl
+        match.sourceUrl
           ? 'match'
-          : error || integrations.length > 0
+          : match.error || match.integrations.length > 0
           ? 'no_match'
           : !promptDismissed
           ? 'prompt'
