@@ -9,6 +9,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 ORGANIZATION_MAPPING_EXPIRY = timedelta(hours=4)
 
@@ -26,7 +27,11 @@ def organizationmapping_repair(**kwargs) -> None:
     with metrics.timer("sentry.hybrid_cloud.tasks.organizationmapping.repair", sample_rate=1.0):
         expiration_threshold_time = timezone.now() - ORGANIZATION_MAPPING_EXPIRY
         # Enumerate unverified mappings, mark verified if they exist in the region silo, delete them if they're > 4 hours old
-        for mapping in OrganizationMapping.objects.filter(verified=False).iterator():
+        mappings = RangeQuerySetWrapper(
+            OrganizationMapping.objects.filter(verified=False),
+            limit=10000,
+        )
+        for mapping in mappings:
             org = organization_service.get_organization_by_id(
                 id=mapping.organization_id, user_id=None
             )

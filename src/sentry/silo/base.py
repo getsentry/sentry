@@ -6,8 +6,6 @@ import itertools
 from enum import Enum
 from typing import Any, Callable, Iterable
 
-from django.conf import settings
-
 
 class SiloMode(Enum):
     """Defines which "silo" component the application is acting as.
@@ -33,6 +31,8 @@ class SiloMode(Enum):
 
     @classmethod
     def get_current_mode(cls) -> SiloMode:
+        from django.conf import settings
+
         return cls.resolve(settings.SILO_MODE)
 
 

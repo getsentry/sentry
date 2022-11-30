@@ -10,7 +10,7 @@ class APIOrganizationMappingSerializer(Serializer):  # type: ignore
     def serialize(self, obj: APIOrganizationMapping, attrs: Mapping[str, Any], user: User):
         return {
             "id": obj.id,
-            "organization_id": str(obj.organization_id),
+            "organizationId": str(obj.organization_id),
             "slug": obj.slug,
-            "region_name": obj.region_name,
+            "regionName": obj.region_name,
         }

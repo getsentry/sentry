@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
+from sentry.silo import SiloMode
 from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -822,7 +823,7 @@ CELERYBEAT_SCHEDULE = {
 }
 
 # This is brittle. We can't use SiloMode constants because of the settings import
-if SILO_MODE in ["MONOLITH", "CONTROL"]:
+if SILO_MODE in [SiloMode.MONOLITH, SiloMode.CONTROL]:
     CELERYBEAT_SCHEDULE.update(
         {
             "hybrid-cloud-organizationmapping-repair": {

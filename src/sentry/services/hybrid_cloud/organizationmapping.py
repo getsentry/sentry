@@ -65,7 +65,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 mapping = OrganizationMapping.objects.create(
                     organization_id=organization_id,
                     slug=slug,
-                    stripe_id=stripe_id,
+                    customer_id=stripe_id,
                     idempotency_key=idempotency_key,
                     region_name=region_name,
                 )
@@ -80,7 +80,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                     slug=slug, idempotency_key=idempotency_key
                 )
                 existing.organization_id = organization_id
-                existing.stripe_id = stripe_id
+                existing.customer_id = stripe_id
                 existing.region_name = region_name
                 existing.save()
                 return self.serialize_organization_mapping(existing)
@@ -119,7 +119,7 @@ class APIBackedOrganizationMappingService(OrganizationMappingService):
             data={
                 "organization_id": organization_id,
                 "slug": slug,
-                "stripe_id": stripe_id,
+                "customer_id": stripe_id,
                 "idempotency_key": idempotency_key,
                 "region_name": region_name,
             },

@@ -24,9 +24,9 @@ class OrganizationMappingSerializer(Serializer):  # type: ignore
     ) -> OrganizationMappingSerializerResponse:
         return {
             "id": obj.id,
-            "organization_id": str(obj.organization_id),
+            "organizationId": str(obj.organization_id),
             "slug": obj.slug,
             "created": obj.created,
             "verified": obj.verified,
-            "region_name": obj.region_name,
+            "regionName": obj.region_name,
         }

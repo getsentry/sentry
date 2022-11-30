@@ -41,7 +41,7 @@ class Migration(CheckedMigration):
                 ("slug", models.SlugField(unique=True)),
                 ("name", models.CharField(max_length=64)),
                 ("created", models.DateTimeField(default=django.utils.timezone.now)),
-                ("stripe_id", models.CharField(max_length=255, db_index=True, null=True)),
+                ("customer_id", models.CharField(max_length=255, db_index=True, null=True)),
                 ("verified", models.BooleanField(default=False)),
                 ("idempotency_key", models.CharField(max_length=48)),
                 ("region_name", models.CharField(max_length=48)),
