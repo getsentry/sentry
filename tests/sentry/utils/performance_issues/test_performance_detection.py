@@ -915,7 +915,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "",
                 ),
                 call("_pi_transaction", "4e7c82a05f514c93b6101d255ca14f89"),
-                call("_pi_slow_span", "9f31e1ee4ef94970"),
+                call("_pi_slow_span", "a05754d3fde2db29"),
             ]
         )
 
