@@ -16,7 +16,7 @@ import sentry_sdk
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
-from sentry.types.issues import GroupType
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
@@ -69,11 +69,6 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
 }
 
-# TODO make title here dynamic for remaining group types
-GROUP_TYPE_TO_TITLE = {
-    GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
-}
-
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
@@ -108,7 +103,7 @@ class PerformanceProblem:
 
     @property
     def title(self) -> str:
-        return GROUP_TYPE_TO_TITLE.get(self.type, "N+1 Query")
+        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
 
     @classmethod
     def from_dict(cls, data: dict) -> PerformanceProblem:
