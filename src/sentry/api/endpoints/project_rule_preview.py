@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
 from sentry.rules.history.preview import preview
@@ -38,7 +37,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
         if not features.has(
             "organizations:issue-alert-preview", project.organization, actor=request.user
         ):
-            return ResourceDoesNotExist
+            return Response(status=404)
         serializer = RulePreviewSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
