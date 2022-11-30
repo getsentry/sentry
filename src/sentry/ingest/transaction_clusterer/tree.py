@@ -72,29 +72,22 @@ logger = logging.getLogger(__name__)
 class TreeClusterer(Clusterer):
     def __init__(self, *, merge_threshold: int) -> None:
         self._merge_threshold = merge_threshold
-        self._graph = Node()
+        self._tree = Node()
 
     def add_input(self, transaction_names: Iterable[str]) -> None:
         for tx_name in transaction_names:
             parts = tx_name.split(SEP)
-            node = self._graph
+            node = self._tree
             for part in parts:
                 node = node.setdefault(part, Node())
 
     def get_rules(self) -> List[ReplacementRule]:
         """Merge high-cardinality nodes in the graph and extract rules"""
         with sentry_sdk.start_span(op="txcluster_merge"):
-            self._graph.merge(self._merge_threshold)
-
-        if self._graph.count_leaf_nodes() == 1:
-            logger.warning("Graph collapsed into a single path, merge threshold might be too low")
-            return []
+            self._tree.merge(self._merge_threshold)
 
         # Generate exactly 1 rule for every merge
-        rule_paths = [path for path in self._graph.paths() if path[-1] is MERGED]
-
-        # TODO: Warn if top level collapse
-        # (in production, we should not allow rules that merge the top-level URL segments)
+        rule_paths = [path for path in self._tree.paths() if path[-1] is MERGED]
 
         # Sort by path length, descending (most specific rule first)
         rule_paths.sort(key=len, reverse=True)
@@ -124,16 +117,6 @@ class Node(UserDict):  # type: ignore
             path = ancestors + [name]
             yield path
             yield from child.paths(ancestors=path)
-
-    @property
-    def is_leaf(self) -> bool:
-        return not self.values()
-
-    def count_leaf_nodes(self) -> int:
-        if self.is_leaf:
-            return 1
-        else:
-            return sum(child.count_leaf_nodes() for child in self.values())
 
     def merge(self, merge_threshold: int) -> None:
         """Recursively merge children of high-cardinality nodes"""
