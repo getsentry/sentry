@@ -17,19 +17,13 @@ from sentry.testutils import TransactionTestCase
 
 
 class RecordingConsumerTestCase(TransactionTestCase):
-    @staticmethod
-    def processing_factory():
-        return RecordingProcessorStrategyFactory()
-
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
-        self.processing_strategy = self.processing_factory().create_with_partitions(
+        self.processing_strategy = RecordingProcessorStrategyFactory().create_with_partitions(
             lambda x: None, None
         )
-        self.processing_strategy.teardown()
-        self.processing_strategy.setup(always_eager=True)
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
