@@ -1,6 +1,5 @@
 import {PureComponent} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -45,6 +44,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
@@ -545,7 +546,7 @@ class MetricChart extends PureComponent<Props, State> {
   }
 }
 
-export default withRouter(MetricChart);
+export default withSentryRouter(MetricChart);
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};

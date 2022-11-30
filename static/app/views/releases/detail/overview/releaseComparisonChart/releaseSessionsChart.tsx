@@ -1,6 +1,5 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
@@ -32,6 +31,8 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {Theme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {displayCrashFreePercent, roundDuration} from 'sentry/views/releases/utils';
 
 import {
@@ -661,4 +662,4 @@ class ReleaseSessionsChart extends Component<Props> {
   }
 }
 
-export default withTheme(withRouter(ReleaseSessionsChart));
+export default withTheme(withSentryRouter(ReleaseSessionsChart));

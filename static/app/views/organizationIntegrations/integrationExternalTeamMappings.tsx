@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -18,6 +17,8 @@ import {
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type Props = AsyncComponent['props'] &
   WithRouterProps & {
@@ -206,4 +207,4 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(IntegrationExternalTeamMappings));
+export default withSentryRouter(withOrganization(IntegrationExternalTeamMappings));

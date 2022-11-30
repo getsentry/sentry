@@ -1,7 +1,6 @@
 import React, {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,6 +30,8 @@ import {
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
@@ -366,7 +367,7 @@ class WidgetCard extends Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));
+export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;

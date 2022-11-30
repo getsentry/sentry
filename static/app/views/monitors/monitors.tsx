@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -28,6 +27,8 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorIcon from './monitorIcon';
@@ -208,4 +209,4 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content max-content;
 `;
 
-export default withRouteAnalytics(withRouter(withOrganization(Monitors)));
+export default withRouteAnalytics(withSentryRouter(withOrganization(Monitors)));

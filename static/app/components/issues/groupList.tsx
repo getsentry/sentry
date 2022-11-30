@@ -1,6 +1,5 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -22,6 +21,8 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
@@ -312,4 +313,4 @@ class GroupList extends Component<Props, State> {
 
 export {GroupList};
 
-export default withApi(withRouter(GroupList));
+export default withApi(withSentryRouter(GroupList));

@@ -1,6 +1,5 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
@@ -23,6 +22,8 @@ import {defined} from 'sentry/utils';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
@@ -518,4 +519,4 @@ class ApiSource extends Component<Props, State> {
 }
 
 export {ApiSource};
-export default withLatestContext(withRouter(ApiSource));
+export default withLatestContext(withSentryRouter(ApiSource));

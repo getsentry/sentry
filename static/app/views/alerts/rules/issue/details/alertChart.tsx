@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -14,6 +13,8 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type Props = AsyncComponent['props'] &
   DateTimeObject &
@@ -155,7 +156,7 @@ class AlertChart extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(AlertChart);
+export default withSentryRouter(AlertChart);
 
 const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
