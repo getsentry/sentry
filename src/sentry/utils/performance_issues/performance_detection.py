@@ -638,7 +638,7 @@ class SlowSpanDetector(PerformanceDetector):
         if not query:
             return
 
-        query.strip()
+        query = query.strip()
         if not query.startswith("SELECT"):
             return
 
