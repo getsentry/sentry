@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
@@ -10,6 +11,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -217,7 +219,7 @@ export const WidgetInteractiveTitle = ({
   };
 
   return (
-    <CompactSelect
+    <StyledCompactSelect
       options={options}
       value={chartSetting}
       onChange={handleChange}
@@ -226,6 +228,13 @@ export const WidgetInteractiveTitle = ({
     />
   );
 };
+
+const StyledCompactSelect = styled(CompactSelect)`
+  button {
+    padding: ${space(0)};
+    font-size: ${p => p.theme.fontSizeLarge};
+  }
+`;
 
 export const WidgetContainerActions = ({
   chartSetting,
