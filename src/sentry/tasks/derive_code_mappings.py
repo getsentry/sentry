@@ -101,28 +101,26 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 
 def get_installation(organization: Organization) -> Tuple[Integration, OrganizationIntegration]:
-    integration = None
+    installation, orgintegration = None, None
     try:
+        # XXX: We need to iterate over each installation
+        # for orgs with more than one installation
         integration = Integration.objects.filter(
             organizations=organization,
             provider="github",
         )
+        if integration.exists():
+            integration = integration.first()
+            _orgintegration = OrganizationIntegration.objects.filter(
+                organization=organization, integration=integration
+            )
+            if _orgintegration.exists():
+                orgintegration = _orgintegration.first()
+                installation = integration.get_installation(organization.id)
     except Integration.DoesNotExist:
         logger.exception(f"Github integration not found for {organization.id}")
-        return None, None
 
-    if not integration.exists():
-        return None, None
-
-    integration = integration.first()
-    organization_integration = OrganizationIntegration.objects.filter(
-        organization=organization, integration=integration
-    )
-    if not organization_integration.exists():
-        return None, None
-
-    organization_integration = organization_integration.first()
-    return integration.get_installation(organization.id), organization_integration
+    return installation, orgintegration
 
 
 def set_project_codemappings(
