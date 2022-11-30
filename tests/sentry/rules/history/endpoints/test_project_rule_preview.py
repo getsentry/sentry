@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -35,10 +36,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 actionMatch="any",
                 filterMatch="all",
                 frequency=10,
-                endpoint=None,
             )
-        assert len(resp.data["data"]) == 1
-        assert resp.data["data"][0]["id"] == str(group.id)
+        assert len(resp.data) == 1
+        assert resp.data[0]["id"] == str(group.id)
 
     def test_invalid_conditions(self):
         conditions = [
@@ -55,7 +55,6 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                     actionMatch="any",
                     filterMatch="all",
                     frequency=10,
-                    endpoint=None,
                 )
                 assert resp.status_code == 400
 
@@ -72,7 +71,6 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 actionMatch="any",
                 filterMatch="all",
                 frequency=10,
-                endpoint=None,
             )
         assert resp.status_code == 400
 
@@ -92,9 +90,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                     endpoint=None,
                 )
 
-            tz = resp.data["endpoint"].tzinfo
-            endpoint = frozen_time.time_to_freeze.replace(tzinfo=tz)
-            assert resp.data["endpoint"] == endpoint
+            result = parse_datetime(resp["endpoint"])
+            endpoint = frozen_time.time_to_freeze.replace(tzinfo=result.tzinfo)
+            assert result == endpoint
             frozen_time.tick(1)
 
             with self.feature(self.features):
@@ -111,4 +109,4 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                     endpoint=endpoint,
                 )
 
-            assert resp.data["endpoint"] == endpoint
+            assert parse_datetime(resp["endpoint"]) == endpoint

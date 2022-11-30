@@ -68,8 +68,5 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
-        response.data = {
-            "data": response.data,
-            "endpoint": data["endpoint"],
-        }
+        response["Endpoint"] = data["endpoint"]
         return response
