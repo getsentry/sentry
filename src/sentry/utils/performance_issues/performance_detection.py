@@ -954,6 +954,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if status and status == "cancelled":
             return
 
+        trace_op = span.get("contexts", {}).get("trace", {}).get("op")
+        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
+            return
+
         duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
         span_duration = get_span_duration(span)
 
