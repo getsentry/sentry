@@ -664,6 +664,14 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        description = span.get("description", None)
+        if not description:
+            return
+
+        description = description.strip()
+        if description.strip()[:6].upper() != "SELECT":
+            return
+
         if span_duration >= timedelta(
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):
@@ -930,6 +938,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not description:
             return
 
+        if description.strip()[:3].upper() != "GET":
+            return
+
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
@@ -986,7 +997,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
         span_b_start: int = span_b.get("start_timestamp", 0) or 0
 
-        return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
+        return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
+            milliseconds=self.settings["concurrency_threshold"]
+        )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
