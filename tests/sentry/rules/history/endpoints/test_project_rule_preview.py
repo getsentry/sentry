@@ -69,7 +69,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
 
     def test_endpoint(self):
         with freeze_time(timezone.now()) as frozen_time:
-            resp = self.get_response(
+            resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 conditions=[
@@ -79,7 +79,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 actionMatch="any",
                 filterMatch="all",
                 frequency=10,
-                endpoint="invalid endpoint",
+                endpoint=None,
             )
 
             tz = resp.data["endpoint"].tzinfo
@@ -87,7 +87,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             assert resp.data["endpoint"] == endpoint
             frozen_time.tick(1)
 
-            resp = self.get_response(
+            resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 conditions=[
