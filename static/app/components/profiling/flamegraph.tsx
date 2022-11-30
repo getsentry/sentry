@@ -80,7 +80,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot, zoomIntoFrame} = useFlamegraphProfiles();
+  const {threadId, selectedRoot, zoomIntoFrame, highlightFrames} =
+    useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -182,6 +183,37 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         return newView;
       }
 
+      if (defined(highlightFrames)) {
+        const [firstFrame, ...frames] = flamegraph.findAllMatchingFrames(
+          highlightFrames.name,
+          highlightFrames.package
+        );
+
+        if (firstFrame) {
+          const rectParams = frames.reduce(
+            (acc, frame) => {
+              acc.x = Math.min(acc.x, frame.start);
+              acc.y = Math.min(acc.y, frame.depth);
+              acc.width = Math.max(acc.width, frame.end);
+              return acc;
+            },
+            {
+              x: firstFrame.start,
+              y: firstFrame.depth,
+              width: firstFrame.end,
+            }
+          );
+
+          const newConfigView = computeConfigViewWithStrategy(
+            'min',
+            newView.configView,
+            new Rect(rectParams.x, rectParams.y, rectParams.width, 1)
+          );
+          newView.setConfigView(newConfigView);
+          return newView;
+        }
+      }
+
       // Because we render empty flamechart while we fetch the data, we need to make sure
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
@@ -225,7 +257,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
-        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
+        new Rect(frame.start, frame.depth, frame.end, 1)
       );
 
       flamegraphView.setConfigView(newConfigView);
