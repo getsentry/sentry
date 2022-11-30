@@ -10,8 +10,24 @@ describe('IssueReplayCount', function () {
   const groupId = '3363325111';
   const {organization, routerContext} = initializeOrg();
 
-  it('does not render when a group has no replays', async function () {
+  it('does not render when a group has undefined count', async function () {
     const mockReplaysCount = {};
+
+    const {container} = render(
+      <ReplayCountContext.Provider value={mockReplaysCount}>
+        <IssueReplayCount groupId={groupId} />
+      </ReplayCountContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('does not render when a group has a count of zero', async function () {
+    const mockReplaysCount = {
+      [groupId]: 0,
+    };
 
     const {container} = render(
       <ReplayCountContext.Provider value={mockReplaysCount}>

@@ -1167,6 +1167,8 @@ describe('Results', function () {
     });
 
     it('Changes the Use as Discover button to a reset button for saved query', async () => {
+      renderMockRequests();
+
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
@@ -1185,7 +1187,7 @@ describe('Results', function () {
           environment: [],
           fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
           widths: ['-1', '-1', '-1', '-1', '-1'],
-          range: '14d',
+          range: '24h',
           orderby: '-user.display',
         },
       });
