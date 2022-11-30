@@ -27,6 +27,7 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
 
         snuba_limit = int(params.get("limit", 1000))
         merge_threshold = int(params.get("threshold", 100))
+        return_all_names = params.get("returnAllNames")
 
         transaction_names = list(
             fetch_unique_transaction_names(
@@ -42,6 +43,10 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         return Response(
             {
                 "rules": clusterer.get_rules(),
-                "meta": {"unique_transaction_names": len(transaction_names)},
+                "meta": {
+                    "unique_transaction_names": transaction_names
+                    if return_all_names
+                    else len(transaction_names)
+                },
             }
         )

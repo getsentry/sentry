@@ -39,9 +39,15 @@ class ProjectTransactionNamesClusterTest(APITestCase):
                 "statsPeriod": "1h",
                 "limit": 5,
                 "threshold": 3,
+                "returnAllNames": True,
             },
             format="json",
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {"rules": ["/a/*/**"], "meta": {"unique_transaction_names": 4}}
+        assert response.data == {
+            "rules": ["/a/*/**"],
+            "meta": {
+                "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]
+            },
+        }
