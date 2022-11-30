@@ -37,6 +37,14 @@
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "internalConsoleOptions": "openOnSessionStart",
       "args": ["--runInBand"]
+    },
+    {
+      "name": "pytest - current file",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}"],
+      "django": true
     }
   ]
 }

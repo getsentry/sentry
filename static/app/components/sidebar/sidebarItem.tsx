@@ -11,7 +11,7 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {SidebarOrientation} from './types';
 
@@ -102,7 +102,7 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
-  const {router} = useRouteContext();
+  const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
   if (isValidElement(label)) {

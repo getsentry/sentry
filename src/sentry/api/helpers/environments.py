@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from rest_framework.request import Request
 
@@ -17,7 +17,7 @@ environment_visibility_filter_options = {
 }
 
 
-def get_environments(request: Request, organization: Organization) -> Sequence[Environment]:
+def get_environments(request: Request, organization: Organization) -> list[Environment]:
     requested_environments = set(request.GET.getlist("environment"))
 
     if not requested_environments:

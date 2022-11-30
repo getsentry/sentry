@@ -1,11 +1,12 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
@@ -111,4 +112,4 @@ class FormSourceContainer extends Component<ContainerProps, ContainerState> {
     return <FormSource searchMap={this.state.searchMap} {...this.props} />;
   }
 }
-export default withRouter(FormSourceContainer);
+export default withSentryRouter(FormSourceContainer);

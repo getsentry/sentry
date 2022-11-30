@@ -9,6 +9,11 @@ from django.utils import timezone
 from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
+from sentry.rules.history.preview_strategy import (
+    GROUP_CATEGORY_TO_DATASET,
+    UPDATE_KWARGS_FOR_GROUP,
+    UPDATE_KWARGS_FOR_GROUPS,
+)
 from sentry.rules.processor import get_match_function
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import (
@@ -16,7 +21,7 @@ from sentry.types.condition_activity import (
     ConditionActivity,
     ConditionActivityType,
 )
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
@@ -33,11 +38,6 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 ]
-
-GROUP_CATEGORY_TO_DATASET = {
-    GroupCategory.ERROR: Dataset.Events,
-    GroupCategory.PERFORMANCE: Dataset.Transactions,
-}
 
 
 def preview(
@@ -211,29 +211,28 @@ def get_top_groups(
     Since frequency conditions require one snuba query per groups, we need to limit the number groups we process.
     """
     datasets = {dataset_map.get(group) for group in condition_activity.keys()}
+    group_ids = list(condition_activity.keys())
 
     # queries each dataset for top x groups and then gets top x overall
     query_params = []
     for dataset in datasets:
-        if dataset is None:
+        if dataset not in UPDATE_KWARGS_FOR_GROUPS:
             continue
-        group_ids = list(condition_activity.keys())
-        kwargs = {
-            "dataset": dataset,
-            "start": start,
-            "end": end,
-            "filter_keys": {"project_id": [project.id]},
-            "conditions": [("group_id", "IN", group_ids)],
-            "aggregations": [("count", "group_id", "groupCount")],
-            "groupby": ["group_id"],
-            "order_by": "-groupCount",
-            "selected_columns": ["group_id", "groupCount"],
-            "limit": FREQUENCY_CONDITION_GROUP_LIMIT,
-        }
-        if dataset == Dataset.Transactions:
-            kwargs["having"] = kwargs["conditions"]
-            kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
-            kwargs["aggregations"].append(("arrayJoin", ["group_ids"], "group_id"))
+
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+            group_ids,
+            {
+                "dataset": dataset,
+                "start": start,
+                "end": end,
+                "filter_keys": {"project_id": [project.id]},
+                "aggregations": [("count", "group_id", "groupCount")],
+                "groupby": ["group_id"],
+                "order_by": "-groupCount",
+                "selected_columns": ["group_id", "groupCount"],
+                "limit": FREQUENCY_CONDITION_GROUP_LIMIT,
+            },
+        )
         query_params.append(SnubaQueryParams(**kwargs))
 
     groups = []
@@ -296,26 +295,26 @@ def get_events(
     query_params = []
     # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
-        if dataset not in columns:
+        if (
+            dataset not in columns
+            or dataset not in UPDATE_KWARGS_FOR_GROUP
+            or dataset == Dataset.Transactions
+        ):
+            # transaction query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
             continue
-        kwargs = {
-            "dataset": dataset,
-            "start": start,
-            "end": end,
-            "filter_keys": {"project_id": [project.id]},
-            "conditions": [("group_id", "IN", ids)],
-            "orderby": ["group_id", "timestamp"],
-            "limitby": (1, "group_id"),
-            "selected_columns": columns[dataset] + ["group_id"],
-        }
-        if dataset.value == Dataset.Transactions.value:
-            # this query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
-            """
-            kwargs["having"] = kwargs["conditions"]
-            kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
-            kwargs["aggregations"] = [("arrayJoin", ["group_ids"], "group_id")]
-            """
-            continue
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+            ids,
+            {
+                "dataset": dataset,
+                "start": start,
+                "end": end,
+                "filter_keys": {"project_id": [project.id]},
+                "conditions": [("group_id", "IN", ids)],
+                "orderby": ["group_id", "timestamp"],
+                "limitby": (1, "group_id"),
+                "selected_columns": columns[dataset] + ["group_id"],
+            },
+        )
         query_params.append(SnubaQueryParams(**kwargs))
 
     # query events by event_id
@@ -413,25 +412,26 @@ def get_frequency_buckets(
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
-    if dataset is None:
+    if dataset not in UPDATE_KWARGS_FOR_GROUP:
         return []
+
     # TODO: support counting of other fields (# of unique users, ...)
-    kwargs = {
-        "dataset": dataset,
-        "start": start,
-        "end": end,
-        "filter_keys": {"project_id": [project.id]},
-        "conditions": [("group_id", "=", group_id)],
-        "aggregations": [
-            ("toStartOfFiveMinute", "timestamp", "roundedTime"),
-            ("count", "roundedTime", "bucketCount"),
-        ],
-        "groupby": ["roundedTime"],
-        "selected_columns": ["roundedTime", "bucketCount"],
-        "limit": PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
-    }
-    if dataset == Dataset.Transactions:
-        kwargs["conditions"] = [[["has", ["group_ids", group_id]], "=", 1]]
+    kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
+        group_id,
+        {
+            "dataset": dataset,
+            "start": start,
+            "end": end,
+            "filter_keys": {"project_id": [project.id]},
+            "aggregations": [
+                ("toStartOfFiveMinute", "timestamp", "roundedTime"),
+                ("count", "roundedTime", "bucketCount"),
+            ],
+            "groupby": ["roundedTime"],
+            "selected_columns": ["roundedTime", "bucketCount"],
+            "limit": PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
+        },
+    )
 
     bucket_counts: Sequence[Dict[str, Any]] = raw_query(**kwargs).get("data", [])
 

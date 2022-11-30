@@ -402,6 +402,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             getFrameColor={getFrameColor}
             formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}
+            canvasScheduler={scheduler}
           />
         }
       />
