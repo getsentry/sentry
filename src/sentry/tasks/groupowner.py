@@ -16,7 +16,7 @@ PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 
-logger = logging.getLogger("tasks.groupowner")
+logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(

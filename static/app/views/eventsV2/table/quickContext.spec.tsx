@@ -148,6 +148,7 @@ describe('Quick Context', function () {
     afterEach(() => {
       queryClient.clear();
       MockApiClient.clearMockResponses();
+      mockUseLocation.mockReset();
     });
 
     it('Renders child', async () => {
@@ -658,7 +659,7 @@ describe('Quick Context', function () {
         ],
       } as EventError;
 
-      mockUseLocation.mockReturnValueOnce(
+      mockUseLocation.mockReturnValue(
         TestStubs.location({
           query: {
             field: ['issue', 'transaction.duration'],
@@ -671,8 +672,11 @@ describe('Quick Context', function () {
         body: makeEvent(errorEvent),
       });
 
-      delete defaultRow.title;
-      renderQuickContextContent(defaultRow, ContextType.EVENT);
+      const dataRow = {
+        ...defaultRow,
+      };
+      delete dataRow.title;
+      renderQuickContextContent(dataRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
