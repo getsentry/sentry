@@ -72,7 +72,7 @@ class OrganizationService(InterfaceWithLifecycle):
         *,
         organization: ApiOrganization,
         users: Collection[APIUser],
-    ) -> Iterable[ApiOrganizationMember]:
+    ) -> Iterable[ApiOrganizationMemberMapping]:
         """Look up memberships of all users in the given org."""
         pass
 
@@ -194,11 +194,22 @@ class ApiOrganizationMemberFlags:
 
 
 @dataclass
-class ApiOrganizationMember:
-    id: int = -1
+class ApiOrganizationMemberMapping:
+    """Minimal representation of a user's org membership.
+
+    This corresponds to the global mapping of org memberships (across all regions)
+    that will eventually exist in the control silo's database schema.
+    """
+
     organization_id: int = -1
+
     # This can be null when the user is deleted.
     user_id: Optional[int] = None
+
+
+@dataclass
+class ApiOrganizationMember(ApiOrganizationMemberMapping):
+    id: int = -1
     member_teams: List[ApiTeamMember] = field(default_factory=list)
     role: str = ""
     has_global_access: bool = False

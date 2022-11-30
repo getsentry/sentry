@@ -32,6 +32,7 @@ from sentry.services.hybrid_cloud.organization import (
     ApiOrganizationFlags,
     ApiOrganizationMember,
     ApiOrganizationMemberFlags,
+    ApiOrganizationMemberMapping,
     ApiOrganizationSummary,
     ApiProject,
     ApiTeam,
@@ -93,6 +94,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         api_member.project_ids = list(all_project_ids)
 
         return api_member
+
+    def _serialize_member_mapping(self, member: OrganizationMember) -> ApiOrganizationMemberMapping:
+        return ApiOrganizationMemberMapping(
+            user_id=member.user.id, organization_id=member.organization.id
+        )
 
     def _serialize_flags(self, org: Organization) -> ApiOrganizationFlags:
         result = ApiOrganizationFlags()
@@ -206,11 +212,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def check_memberships_among_users(
         self, *, organization: ApiOrganization, users: Collection[APIUser]
-    ) -> Iterable[ApiOrganizationMember]:
+    ) -> Iterable[ApiOrganizationMemberMapping]:
         members: Iterable[OrganizationMember] = OrganizationMember.objects.filter(
             organization=organization, user__in=users
         )
-        return (self._serialize_member(member) for member in members)
+        return (self._serialize_member_mapping(member) for member in members)
 
     def close(self) -> None:
         pass
