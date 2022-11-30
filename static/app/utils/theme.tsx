@@ -709,7 +709,7 @@ const commonTheme = {
     maxCrumbWidth: '240px',
 
     containerWidth: '1440px',
-    headerHeight: '69px',
+    headerHeight: '61px',
     sidebarWidth: '220px',
   },
 

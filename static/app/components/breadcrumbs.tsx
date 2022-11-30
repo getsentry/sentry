@@ -139,8 +139,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
   ${p.theme.overflowEllipsis}
-  font-size: ${p.theme.fontSizeLarge};
-  color: ${p.theme.gray300};
+  color: ${p.theme.subText};
   width: auto;
 
   &:last-child {
@@ -176,7 +175,7 @@ const BreadcrumbItem = styled('span')`
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0 ${space(1)};
   flex-shrink: 0;
 `;
