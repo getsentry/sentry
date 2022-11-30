@@ -479,7 +479,6 @@ export class Client {
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
           try {
-            // responseJSON = await response.clone().json();
             responseJSON = JSON.parse(responseText);
           } catch (error) {
             if (error.name === 'AbortError') {
