@@ -23,6 +23,9 @@ class GroupCategory(Enum):
     PROFILE = 3
 
 
+GROUP_CATEGORIES_CUSTOM = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+# GroupCategories which have customized UI with things like email templates. If not included here, will fall back to a generic template.
+
 GROUP_TYPE_TO_CATEGORY = {
     GroupType.ERROR: GroupCategory.ERROR,
     GroupType.PERFORMANCE_N_PLUS_ONE: GroupCategory.PERFORMANCE,
