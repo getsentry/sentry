@@ -23,7 +23,7 @@ from sentry.models import (
     ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
-from sentry.signals import terms_accepted
+from sentry.signals import org_setup_complete, terms_accepted
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
@@ -212,6 +212,10 @@ class OrganizationIndexEndpoint(Endpoint):
                         OrganizationMemberTeam.objects.create(
                             team=team, organizationmember=om, is_active=True
                         )
+
+                    org_setup_complete.send_robust(
+                        instance=org, user=request.user, sender=self.__class__
+                    )
 
                     self.create_audit_entry(
                         request=request,
