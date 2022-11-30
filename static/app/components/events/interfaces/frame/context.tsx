@@ -17,7 +17,7 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import StacktraceLink from './stacktraceLink';
+import {StacktraceLink} from './stacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;

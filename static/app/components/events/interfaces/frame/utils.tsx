@@ -1,7 +1,15 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Frame, PlatformType} from 'sentry/types';
+import type {
+  Event,
+  Frame,
+  PlatformType,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
+import {useQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {SymbolicatorStatus} from '../types';
 
@@ -106,4 +114,25 @@ export function isExpandable({
     hasContextRegisters(registers) ||
     hasAssembly(frame, platform)
   );
+}
+
+export function useStacktraceLink(event: Event, frame: Frame, project?: Project) {
+  const organization = useOrganization();
+  const commitId = event.release?.lastCommit?.id;
+  const platform = event.platform;
+  const sdkName = event.sdk?.name;
+  const query = {
+    file: frame.filename,
+    platform,
+    commitId,
+    ...(sdkName && {sdkName}),
+    ...(frame.absPath && {absPath: frame.absPath}),
+    ...(frame.module && {module: frame.module}),
+    ...(frame.package && {package: frame.package}),
+  };
+
+  return useQuery<StacktraceLinkResult>([
+    `/projects/${organization.slug}/${project?.slug}/stacktrace-link/`,
+    {query},
+  ]);
 }
