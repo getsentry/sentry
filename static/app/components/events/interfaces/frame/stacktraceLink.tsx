@@ -30,6 +30,9 @@ import StacktraceLinkModal from './stacktraceLinkModal';
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
+  /**
+   * The line of code being linked
+   */
   line: string;
 }
 
