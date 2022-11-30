@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame} from 'sentry/types';
+import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -19,37 +19,48 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
-import {useStacktraceLink} from './utils';
 
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
   line: string;
-  lineNo: number;
 }
 
-export function StacktraceLink(props: StacktraceLinkProps) {
+export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(
-    () => projects.find(p => p.id === props.event.projectID),
-    [projects, props.event]
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
   );
   const [promptDismissed, setPromptDismissed] = useState(false);
   const prompt = usePromptsCheck('stacktrace_link', organization.id, project?.id);
 
+  const query = {
+    file: frame.filename,
+    platform: event.platform,
+    commitId: event.release?.lastCommit?.id,
+    ...(event.sdk?.name && {sdkName: event.sdk.name}),
+    ...(frame.absPath && {absPath: frame.absPath}),
+    ...(frame.module && {module: frame.module}),
+    ...(frame.package && {package: frame.package}),
+  };
   const {
     data: match,
     isLoading,
     refetch,
-  } = useStacktraceLink(props.event, props.frame, project);
+  } = useQuery<StacktraceLinkResult>([
+    `/projects/${organization.slug}/${project?.slug}/stacktrace-link/`,
+    {query},
+  ]);
 
   // Update dismissed state when prompt is loaded
   useEffect(() => {
@@ -86,11 +97,11 @@ export function StacktraceLink(props: StacktraceLinkProps) {
           : !promptDismissed
           ? 'prompt'
           : 'empty',
-      ...getAnalyicsDataForEvent(props.event),
+      ...getAnalyicsDataForEvent(event),
     });
     // excluding promptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, match, organization, project, props.event]);
+  }, [isLoading, match, organization, project, event]);
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
@@ -103,7 +114,7 @@ export function StacktraceLink(props: StacktraceLinkProps) {
     trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(props.event),
+      ...getAnalyicsDataForEvent(event),
     });
 
     setPromptDismissed(true);
@@ -118,7 +129,7 @@ export function StacktraceLink(props: StacktraceLinkProps) {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization,
-          ...getAnalyicsDataForEvent(props.event),
+          ...getAnalyicsDataForEvent(event),
         },
         {startSession: true}
       );
@@ -143,7 +154,7 @@ export function StacktraceLink(props: StacktraceLinkProps) {
       <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink
           onClick={onOpenLink}
-          href={`${match!.sourceUrl}#L${props.frame.lineNo}`}
+          href={`${match!.sourceUrl}#L${frame.lineNo}`}
           openInNewTab
         >
           <StyledIconWrapper>
@@ -157,12 +168,11 @@ export function StacktraceLink(props: StacktraceLinkProps) {
 
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
-  const hideErrors =
-    props.event.platform === 'javascript' && /(\{snip\}).*\1/.test(props.line);
+  const hideErrors = event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
 
   // No match found - Has integration but no code mappings
   if (!hideErrors && (match.error || match.integrations.length > 0)) {
-    const filename = props.frame.filename;
+    const filename = frame.filename;
     if (!project || !match.integrations.length || !filename) {
       return null;
     }
@@ -185,9 +195,9 @@ export function StacktraceLink(props: StacktraceLinkProps) {
               'integrations.stacktrace_start_setup',
               {
                 view: 'stacktrace_issue_details',
-                platform: props.event.platform,
+                platform: event.platform,
                 organization,
-                ...getAnalyicsDataForEvent(props.event),
+                ...getAnalyicsDataForEvent(event),
               },
               {startSession: true}
             );

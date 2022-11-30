@@ -36,12 +36,9 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: []},
     });
-    render(
-      <StacktraceLink frame={frame} event={event} lineNo={frame.lineNo!} line="" />,
-      {
-        context: TestStubs.routerContext(),
-      }
-    );
+    render(<StacktraceLink frame={frame} event={event} line="" />, {
+      context: TestStubs.routerContext(),
+    });
     expect(
       await screen.findByText(
         'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
@@ -66,10 +63,9 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
-      {context: TestStubs.routerContext()}
-    );
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+    });
     expect(
       await screen.findByText('Tell us where your source code is')
     ).toBeInTheDocument();
@@ -80,10 +76,9 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
-      {context: TestStubs.routerContext()}
-    );
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+    });
     expect(await screen.findByRole('link')).toHaveAttribute(
       'href',
       'https://something.io#L233'
@@ -100,10 +95,9 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
-      {context: TestStubs.routerContext()}
-    );
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+    });
     expect(
       await screen.findByRole('button', {
         name: 'Tell us where your source code is',
@@ -125,7 +119,6 @@ describe('StacktraceLink', function () {
         frame={frame}
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
-        lineNo={frame.lineNo!}
       />,
       {context: TestStubs.routerContext()}
     );

@@ -108,7 +108,6 @@ const Context = ({
                   <StacktraceLink
                     key={index}
                     line={line[1]}
-                    lineNo={line[0]}
                     frame={frame}
                     event={event}
                   />
