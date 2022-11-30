@@ -29,6 +29,11 @@ class APIUser:
     is_active: bool = False
     is_staff: bool = False
     last_active: datetime.datetime | None = None
+    is_sentry_app: bool = False
+    password_usable: bool = False
+
+    def has_usable_password(self):
+        return self.password_usable
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
@@ -126,6 +131,7 @@ class UserService(InterfaceWithLifecycle):
         args["pk"] = user.pk
         args["display_name"] = user.get_display_name()
         args["is_superuser"] = user.is_superuser
+        args["password_usable"] = user.has_usable_password()
         return APIUser(**args)
 
 

@@ -44,16 +44,19 @@ class SiloModeTest:
                 if callable(attr):
                     yield attr
 
+    def _is_acceptance_test(self, test_class: type) -> bool:
+        from sentry.testutils import AcceptanceTestCase
+
+        return issubclass(test_class, AcceptanceTestCase)
+
     def _create_mode_methods(
         self, test_class: type, test_method: TestMethod
     ) -> Iterable[Tuple[str, TestMethod]]:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
-            from sentry.testutils import AcceptanceTestCase
-
-            is_acceptance_test = issubclass(test_class, AcceptanceTestCase)
-
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-                with override_settings(SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=is_acceptance_test):
+                with override_settings(
+                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class)
+                ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:
                             with override_settings(SENTRY_REGION="north_america"):

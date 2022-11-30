@@ -13,6 +13,7 @@ from sentry import options
 from sentry.db.models import get_model_if_available
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -36,6 +37,10 @@ def handle_db_failure(func):
 
 
 def create_default_projects(app_config, verbosity=2, **kwargs):
+    # TODO: Create a solution for hybrid cloud.
+    if settings.SILO_MODE != SiloMode.MONOLITH:
+        return
+
     if app_config and app_config.name != "sentry":
         return
 

@@ -121,9 +121,9 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 class UserSerializer(Serializer):  # type: ignore
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | APIUser) -> bool:
         if isinstance(requester, User):
-            return requester == obj
+            return bool(requester == obj)
         if isinstance(requester, APIUser):
-            return requester.id == obj.id
+            return bool(requester.id == obj.id)
         return False
 
     def _get_identities(

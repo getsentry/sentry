@@ -34,7 +34,7 @@ class SiloMode(Enum):
         return cls[mode]
 
     def __str__(self) -> str:
-        return self.value
+        return str(self.value)
 
     @classmethod
     def single_process_silo_mode(cls) -> bool:

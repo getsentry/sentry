@@ -35,7 +35,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
                 if organization_member.user_id
             }
         )
-        users_by_id: Mapping[int, Any] = {
+        users_by_id: Mapping[str, Any] = {
             u["id"]: u for u in user_service.serialize_users(user_ids=users_set)
         }
         actor_ids = [u.actor_id for u in user_service.get_many(user_ids=users_set)]

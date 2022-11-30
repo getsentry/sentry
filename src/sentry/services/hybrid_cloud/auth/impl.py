@@ -171,6 +171,9 @@ class DatabaseBackedAuthService(AuthService):
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             result.user = user_service.serialize_user(fake_request.user)
+            from django.db import connections
+
+            connections.close_all()
 
         return result
 
