@@ -12,7 +12,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
+from sentry.types.issues import (
+    GROUP_CATEGORY_TO_TYPES,
+    GROUP_TYPE_TO_TEXT,
+    GroupCategory,
+    GroupType,
+)
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
@@ -350,9 +355,13 @@ class DetailedEventSerializer(EventSerializer):
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
-        result["perfProblem"] = convert_dict_key_case(
-            attrs.get("perf_problem"), snake_to_camel_case
-        )
+        perf_problem = attrs.get("perf_problem")
+        result["perfProblem"] = convert_dict_key_case(perf_problem, snake_to_camel_case)
+        issue_type = perf_problem.get("type")
+        if issue_type in [type.value for type in GroupType]:
+            result["issueType"] = GROUP_TYPE_TO_TEXT.get(GroupType(issue_type), "Issue")
+        else:
+            result["issueType"] = "Issue"
         return result
 
 
