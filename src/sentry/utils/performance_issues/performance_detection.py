@@ -980,7 +980,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
         span_b_start: int = span_b.get("start_timestamp", 0) or 0
 
-        return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
+        return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
+            milliseconds=self.settings["concurrency_threshold"]
+        )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
