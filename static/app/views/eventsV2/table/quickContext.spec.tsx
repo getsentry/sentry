@@ -232,6 +232,24 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
+    it('Renders issue context header with copy button', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
+      expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
+    });
+
     it('Renders ignored Issue status context when data is loaded', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
