@@ -1,4 +1,7 @@
+from datetime import timedelta
 from unittest.mock import patch
+
+from django.utils import timezone
 
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -137,12 +140,13 @@ class TestCommitContext(TestCase):
         # As new events come in associated with new owners, we should delete old ones.
         user_2 = self.create_user("another@user.com", is_superuser=True)
         self.create_member(teams=[self.team], user=user_2, organization=self.organization)
-        GroupOwner.objects.create(
+        owner = GroupOwner.objects.create(
             group=self.event.group,
             user=user_2,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
+            date_added=timezone.now() - timedelta(days=8),
         )
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -153,7 +157,7 @@ class TestCommitContext(TestCase):
                 group_id=self.event.group_id,
                 project_id=self.event.project_id,
             )
-
+            assert not GroupOwner.objects.filter(id=owner.id).exists()
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
 
