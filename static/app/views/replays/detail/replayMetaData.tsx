@@ -10,8 +10,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -19,10 +20,8 @@ type Props = {
 };
 
 function ReplayMetaData({replayRecord}: Props) {
-  const {
-    location: {pathname, query},
-    params: {replaySlug},
-  } = useRouteContext();
+  const {pathname, query} = useLocation();
+  const {replaySlug} = useParams();
   const {projects} = useProjects();
   const [slug] = replaySlug.split(':');
 
