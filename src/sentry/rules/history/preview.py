@@ -47,13 +47,11 @@ def preview(
     condition_match: str,
     filter_match: str,
     frequency_minutes: int,
+    end: datetime | None = None,
 ) -> BaseQuerySet | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
-    end = timezone.now()
-    start = end - PREVIEW_TIME_RANGE
-
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
 
     # must have at least one issue state condition to filter activity
@@ -64,6 +62,9 @@ def preview(
     elif len(issue_state_conditions) > 1 and condition_match == "all":
         return Group.objects.none()
 
+    if end is None:
+        end = timezone.now()
+    start = end - PREVIEW_TIME_RANGE
     try:
         group_activity = get_issue_state_activity(project, issue_state_conditions, start, end)
         filter_objects, filter_func, event_columns = get_filters(project, filters, filter_match)
