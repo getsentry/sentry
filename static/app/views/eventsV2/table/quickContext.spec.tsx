@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -429,10 +429,14 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/2/i)).toHaveLength(3);
-      expect(screen.getByText(/authors/i)).toBeInTheDocument();
+      const authorsSectionHeader = within(
+        await screen.findByTestId('quick-context-release-author-header')
+      );
+
+      expect(authorsSectionHeader.getByText(/4/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/commits by/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/2/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -449,9 +453,7 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/1/i)).toHaveLength(3);
-      expect(screen.getByText(/other/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by you and 1 other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });

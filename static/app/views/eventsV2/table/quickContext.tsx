@@ -377,7 +377,9 @@ function ReleaseContext(props: BaseContextProps) {
     return (
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+          <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
+            {getCommitAuthorTitle()}
+          </ReleaseAuthorsTitle>
           <ReleaseAuthorsBody>
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
