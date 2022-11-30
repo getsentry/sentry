@@ -16,7 +16,7 @@ import sentry_sdk
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
-from sentry.types.issues import GroupType
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
@@ -100,6 +100,10 @@ class PerformanceProblem:
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
         }
+
+    @property
+    def title(self) -> str:
+        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
 
     @classmethod
     def from_dict(cls, data: dict) -> PerformanceProblem:
@@ -1356,7 +1360,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=span.get("op"),
                     desc=span.get("description", ""),
-                    parent_span_ids=[],
+                    parent_span_ids=[span.get("parent_span_id")],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
                     cause_span_ids=[],
                     offender_span_ids=[span.get("span_id", None)],
