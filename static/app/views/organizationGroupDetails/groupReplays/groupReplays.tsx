@@ -44,7 +44,7 @@ function GroupReplays({group}: Props) {
       version: 2,
       fields: ['replayId', 'count()'],
       query: `issue.id:${group.id} !replayId:""`,
-      projects: [],
+      projects: [Number(group.project.id)],
     });
 
     try {
@@ -64,7 +64,7 @@ function GroupReplays({group}: Props) {
       Sentry.captureException(err);
       setFetchError(err);
     }
-  }, [api, cursor, organization.slug, group.id]);
+  }, [api, cursor, organization.slug, group.id, group.project.id]);
 
   const eventView = useMemo(() => {
     if (!response.replayIds) {

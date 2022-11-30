@@ -62,9 +62,9 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
         version: 2,
         fields: ['count_unique(replayId)', String(fieldName)],
         query: `!replayId:"" ${condition}`,
-        projects: [],
+        projects: [Number(project?.id)],
       }),
-    [condition, fieldName]
+    [project?.id, condition, fieldName]
   );
 
   const fetchReplayCount = useCallback(async () => {

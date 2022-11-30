@@ -21,12 +21,13 @@ type InitializeOrgProps = {
 function init({
   organizationProps = {features: ['session-replay-ui']},
 }: InitializeOrgProps) {
+  const mockProject = TestStubs.Project();
   const {router, organization, routerContext} = initializeOrg({
     organization: {
       ...organizationProps,
     },
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: mockProject,
+    projects: [mockProject],
     router: {
       routes: [
         {path: '/'},
@@ -52,12 +53,14 @@ describe('GroupReplays', () => {
   });
 
   describe('Replay Feature Disabled', () => {
+    const mockGroup = TestStubs.Group();
+
     const {router, organization, routerContext} = init({
       organizationProps: {features: []},
     });
 
     it("should show a message when the organization doesn't have access to the replay feature", () => {
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -73,6 +76,8 @@ describe('GroupReplays', () => {
     const {router, organization, routerContext} = init({});
 
     it('should query the events endpoint with the fetched replayIds', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -90,7 +95,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -101,11 +106,11 @@ describe('GroupReplays', () => {
           mockEventsUrl,
           expect.objectContaining({
             query: {
-              project: [],
               environment: [],
               field: ['replayId', 'count()'],
-              query: `issue.id:${TestStubs.Group().id} !replayId:""`,
               per_page: 50,
+              project: ['2'],
+              query: `issue.id:${mockGroup.id} !replayId:""`,
               statsPeriod: '14d',
             },
           })
@@ -115,8 +120,6 @@ describe('GroupReplays', () => {
           mockReplayUrl,
           expect.objectContaining({
             query: expect.objectContaining({
-              statsPeriod: '14d',
-              project: ['2'],
               environment: [],
               field: [
                 'activity',
@@ -129,10 +132,12 @@ describe('GroupReplays', () => {
                 'urls',
                 'user',
               ],
-              sort: '-startedAt',
               per_page: 50,
+              project: ['2'],
               query:
                 'id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780]',
+              sort: '-startedAt',
+              statsPeriod: '14d',
             }),
           })
         );
@@ -140,6 +145,8 @@ describe('GroupReplays', () => {
     });
 
     it('should show empty message when no replays are found', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -157,7 +164,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      const {container} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {container} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -172,6 +179,8 @@ describe('GroupReplays', () => {
     });
 
     it('should display error message when api call fails', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -190,7 +199,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -206,6 +215,8 @@ describe('GroupReplays', () => {
     });
 
     it('should display default error message when api call fails without a body', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -222,7 +233,7 @@ describe('GroupReplays', () => {
         body: {},
       });
 
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -240,6 +251,8 @@ describe('GroupReplays', () => {
     });
 
     it('should show loading indicator when loading replays', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -258,7 +271,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -272,6 +285,8 @@ describe('GroupReplays', () => {
     });
 
     it('should show a list of replays and have the correct values', async () => {
+      const mockGroup = TestStubs.Group();
+
       const mockEventsApi = MockApiClient.addMockResponse({
         url: mockEventsUrl,
         body: {
@@ -333,7 +348,7 @@ describe('GroupReplays', () => {
       // Mock the system date to be 2022-09-28
       jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
-      render(<GroupReplays group={TestStubs.Group()} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -407,8 +422,10 @@ describe('GroupReplays', () => {
     });
 
     it('should not call the events api again when sorting the visible rows', async () => {
+      const mockGroup = TestStubs.Group();
+
       const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {rerender} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -429,7 +446,7 @@ describe('GroupReplays', () => {
 
       // Change the sort order then tell react to re-render
       router.location.query.sort = 'duration';
-      rerender(<GroupReplays group={TestStubs.Group()} />);
+      rerender(<GroupReplays group={mockGroup} />);
 
       await waitFor(() => {
         expect(mockEventsApi).toHaveBeenCalledTimes(1);
@@ -446,8 +463,10 @@ describe('GroupReplays', () => {
     });
 
     it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
+      const mockGroup = TestStubs.Group();
+
       const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {rerender} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -467,7 +486,7 @@ describe('GroupReplays', () => {
 
       // Update the location, and re-render with the new value
       router.location.query.sort = 'startedAt';
-      rerender(<GroupReplays group={TestStubs.Group()} />);
+      rerender(<GroupReplays group={mockGroup} />);
 
       await waitFor(() => {
         expect(mockReplayApi).toHaveBeenCalledTimes(2);
@@ -483,8 +502,10 @@ describe('GroupReplays', () => {
     });
 
     it('should be able to click the `Duration` column and request data sorted by duration query', async () => {
+      const mockGroup = TestStubs.Group();
+
       const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {rerender} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -504,7 +525,7 @@ describe('GroupReplays', () => {
 
       // Update the location, and re-render with the new value
       router.location.query.sort = '-duration';
-      rerender(<GroupReplays group={TestStubs.Group()} />);
+      rerender(<GroupReplays group={mockGroup} />);
 
       await waitFor(() => {
         expect(mockReplayApi).toHaveBeenCalledTimes(2);
@@ -520,8 +541,10 @@ describe('GroupReplays', () => {
     });
 
     it('should be able to click the `Errors` column and request data sorted by countErrors query', async () => {
+      const mockGroup = TestStubs.Group();
+
       const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {rerender} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -541,7 +564,7 @@ describe('GroupReplays', () => {
 
       // Update the location, and re-render with the new value
       router.location.query.sort = '-countErrors';
-      rerender(<GroupReplays group={TestStubs.Group()} />);
+      rerender(<GroupReplays group={mockGroup} />);
 
       await waitFor(() => {
         expect(mockReplayApi).toHaveBeenCalledTimes(2);
@@ -557,8 +580,10 @@ describe('GroupReplays', () => {
     });
 
     it('should be able to click the `Activity` column and request data sorted by startedAt query', async () => {
+      const mockGroup = TestStubs.Group();
+
       const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={TestStubs.Group()} />, {
+      const {rerender} = render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -578,7 +603,7 @@ describe('GroupReplays', () => {
 
       // Update the location, and re-render with the new value
       router.location.query.sort = '-activity';
-      rerender(<GroupReplays group={TestStubs.Group()} />);
+      rerender(<GroupReplays group={mockGroup} />);
 
       await waitFor(() => {
         expect(mockReplayApi).toHaveBeenCalledTimes(2);

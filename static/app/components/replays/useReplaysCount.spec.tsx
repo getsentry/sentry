@@ -1,18 +1,27 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import type {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
 
-function getExpectedReqestParams({field, query}: {field: string[]; query: string}) {
+function getExpectedReqestParams({
+  field,
+  project,
+  query,
+}: {
+  field: string[];
+  project: Project;
+  query: string;
+}) {
   return expect.objectContaining({
     query: {
       environment: [],
       field,
       per_page: 50,
-      project: [],
+      projects: [String(project.id)],
       query,
       statsPeriod: '14d',
     },
@@ -84,6 +93,7 @@ describe('useReplaysCount', () => {
       '/organizations/org-slug/events/',
       getExpectedReqestParams({
         field: ['count_unique(replayId)', 'issue.id'],
+        project,
         query: `!replayId:"" issue.id:[${mockGroupIds.join(',')}]`,
       })
     );
@@ -144,6 +154,7 @@ describe('useReplaysCount', () => {
       '/organizations/org-slug/events/',
       getExpectedReqestParams({
         field: ['count_unique(replayId)', 'transaction'],
+        project,
         query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
           ','
         )}]`,
