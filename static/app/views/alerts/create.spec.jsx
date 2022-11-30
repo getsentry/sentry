@@ -470,6 +470,7 @@ describe('ProjectAlertsCreate', function () {
         body: groups,
         headers: {
           'X-Hits': groups.length,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -483,6 +484,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
+              endpoint: null,
             },
           })
         );
@@ -495,6 +497,20 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              endpoint: 'endpoint',
+            }),
+          })
+        );
+      });
     });
 
     it('invalid preview alert', async () => {
@@ -517,6 +533,7 @@ describe('ProjectAlertsCreate', function () {
         body: [],
         headers: {
           'X-Hits': 0,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
