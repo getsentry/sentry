@@ -921,7 +921,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not description:
             return
 
-        if description[:3].upper() != "GET":
+        if description.strip()[:3].upper() != "GET":
             return
 
         if op not in self.settings.get("allowed_span_ops", []):
