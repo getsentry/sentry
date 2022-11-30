@@ -77,14 +77,28 @@ function getHoverBody(
 }
 
 // NOTE: Will be adding switch cases as more contexts require headers.
-function getHoverHeader(dataRow: EventData, contextType: ContextType) {
+function getHoverHeader(
+  dataRow: EventData,
+  contextType: ContextType,
+  organization: Organization
+) {
   switch (contextType) {
     case ContextType.RELEASE:
       return (
         <HoverHeader
           title={t('Release')}
+          organization={organization}
           copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
           copyContent={dataRow.release}
+        />
+      );
+    case ContextType.ISSUE:
+      return (
+        <HoverHeader
+          title={t('Issue')}
+          organization={organization}
+          copyLabel={dataRow.issue}
+          copyContent={dataRow.issue}
         />
       );
     case ContextType.EVENT:
@@ -92,6 +106,7 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
         dataRow.id && (
           <HoverHeader
             title={t('Event ID')}
+            organization={organization}
             copyLabel={getShortEventId(dataRow.id)}
             copyContent={dataRow.id}
           />
@@ -127,6 +142,7 @@ const addFieldAsColumn = (
 const fiveMinutesInMs = 5 * 60 * 1000;
 
 type HoverHeaderProps = {
+  organization: Organization;
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
@@ -138,6 +154,7 @@ function HoverHeader({
   hideCopy = false,
   copyLabel,
   copyContent,
+  organization,
 }: HoverHeaderProps) {
   return (
     <HoverHeaderWrapper>
@@ -151,6 +168,12 @@ function HoverHeader({
               cursor="pointer"
               data-test-id="quick-context-hover-header-copy-icon"
               size="xs"
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('discover_v2.quick_context_header_copy', {
+                  organization,
+                  clipBoardTitle: title,
+                });
+              }}
             />
           </Clipboard>
         )}
@@ -162,6 +185,13 @@ function HoverHeader({
 function IssueContext(props: BaseContextProps) {
   const statusTitle = t('Issue Status');
   const {dataRow, organization} = props;
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.ISSUE,
+    });
+  }, [organization]);
 
   const {
     isLoading: issueLoading,
@@ -248,15 +278,7 @@ function IssueContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.ISSUE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderStatus()}
       {renderAssigneeSelector()}
       {renderSuspectCommits()}
@@ -296,6 +318,13 @@ function ReleaseContext(props: BaseContextProps) {
       retry: false,
     }
   );
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.RELEASE,
+    });
+  }, [organization]);
 
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
@@ -348,7 +377,9 @@ function ReleaseContext(props: BaseContextProps) {
     return (
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+          <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
+            {getCommitAuthorTitle()}
+          </ReleaseAuthorsTitle>
           <ReleaseAuthorsBody>
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
@@ -403,15 +434,7 @@ function ReleaseContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.RELEASE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
       {renderReleaseAuthors()}
       {renderLastCommit()}
@@ -436,6 +459,16 @@ function EventContext(props: EventContextProps) {
     }
   );
 
+  useEffect(() => {
+    if (data) {
+      trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+        organization,
+        contextType: ContextType.EVENT,
+        eventType: data.type,
+      });
+    }
+  }, [data, organization]);
+
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -445,16 +478,7 @@ function EventContext(props: EventContextProps) {
     const {start, end} = getTraceTimeRangeFromEvent(data);
     const project = projects?.find(p => p.slug === data.projectID);
     return (
-      <Wrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.RELEASE,
-            eventType: 'transaction',
-          });
-        }}
-        data-test-id="quick-context-hover-body"
-      >
+      <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
           <ContextHeader>
             <Title>
@@ -493,7 +517,7 @@ function EventContext(props: EventContextProps) {
             <ContextHeader>
               <Title>
                 {t('Status')}
-                {!('tags[http.status_code]' in dataRow) && (
+                {!('http.status_code' in dataRow) && (
                   <Tooltip
                     skipWrapper
                     title={t('Add HTTP status code as a column')}
@@ -504,7 +528,7 @@ function EventContext(props: EventContextProps) {
                       cursor="pointer"
                       onClick={() =>
                         addFieldAsColumn(
-                          'tags[http.status_code]',
+                          'http.status_code',
                           organization,
                           location,
                           eventView
@@ -568,15 +592,7 @@ function EventContext(props: EventContextProps) {
           <ErrorTitleBody>{data.title}</ErrorTitleBody>
         </ErrorTitleContainer>
       )}
-      <StackTraceWrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.EVENT,
-            eventType: 'error',
-          });
-        }}
-      >
+      <StackTraceWrapper>
         <StackTracePreviewContent event={data} stacktrace={stackTrace} />
       </StackTraceWrapper>
     </Fragment>
@@ -614,7 +630,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         showUnderline
         displayTimeout={600}
         delay={HOVER_DELAY}
-        header={getHoverHeader(dataRow, contextType)}
+        header={getHoverHeader(dataRow, contextType, organization)}
         body={getHoverBody(
           dataRow,
           contextType,

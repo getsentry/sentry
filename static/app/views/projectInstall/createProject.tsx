@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
@@ -27,6 +26,8 @@ import withRouteAnalytics, {
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
@@ -149,7 +150,9 @@ class CreateProject extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PageHeading withMargins>{t('Name your project & assign it a team')}</PageHeading>
+        <PageHeading withMargins>
+          {t('3. Name your project & assign it a team')}
+        </PageHeading>
         {createProjectForm}
       </Fragment>
     );
@@ -292,7 +295,7 @@ class CreateProject extends Component<Props, State> {
               }
             )}
           </HelpText>
-          <PageHeading withMargins>{t('Choose your platform')}</PageHeading>
+          <PageHeading withMargins>{t('1. Choose your platform')}</PageHeading>
           <PlatformPicker
             platform={platform}
             defaultCategory={this.defaultCategory}
@@ -314,7 +317,7 @@ class CreateProject extends Component<Props, State> {
 
 // TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withRouteAnalytics(
-  withApi(withRouter(withOrganization(withTeams(CreateProject))))
+  withApi(withSentryRouter(withOrganization(withTeams(CreateProject))))
 );
 export {CreateProject};
 

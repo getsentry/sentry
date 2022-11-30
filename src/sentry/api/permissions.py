@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from rest_framework import permissions
 from rest_framework.request import Request
@@ -46,7 +46,14 @@ class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
     - APIKeys specify their scope, and work as expected.
     """
 
-    scope_map = {"HEAD": (), "GET": (), "POST": (), "PUT": (), "PATCH": (), "DELETE": ()}
+    scope_map: dict[str, Sequence[str]] = {
+        "HEAD": (),
+        "GET": (),
+        "POST": (),
+        "PUT": (),
+        "PATCH": (),
+        "DELETE": (),
+    }
 
     def has_permission(self, request: Request, view: object) -> bool:
         # session-based auth has all scopes for a logged in user

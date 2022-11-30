@@ -156,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -174,7 +174,6 @@ export class Results extends Component<Props, State> {
         yAxisArray
       )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
