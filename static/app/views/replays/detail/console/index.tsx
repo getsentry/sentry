@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -13,23 +14,36 @@ import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
-  startTimestampMs: number;
+  replay: null | ReplayReader;
 }
 
-function Console({breadcrumbs, startTimestampMs = 0}: Props) {
+function Console({replay}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(containerRef);
+
+  const breadcrumbs = replay?.getConsoleCrumbs() || [];
+  const startTimestampMs = replay?.getReplay()?.startedAt?.getTime() ?? 0;
 
   const {items, logLevel, searchTerm, getOptions, setLogLevel, setSearchTerm} =
     useConsoleFilters({
       breadcrumbs,
     });
+
+  const content = replay ? (
+    <ConsoleContent
+      breadcrumbs={breadcrumbs}
+      items={items}
+      startTimestampMs={startTimestampMs}
+    />
+  ) : (
+    <Placeholder height="100%" />
+  );
 
   return (
     <ConsoleContainer>
@@ -42,21 +56,17 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
+          isDisabled={!replay}
         />
         <SearchBar
           onChange={setSearchTerm}
           placeholder={t('Search console logs...')}
           size="sm"
           query={searchTerm}
+          disabled={!replay}
         />
       </ConsoleFilters>
-      <ConsoleMessageContainer ref={containerRef}>
-        <ConsoleContent
-          breadcrumbs={breadcrumbs}
-          items={items}
-          startTimestampMs={startTimestampMs}
-        />
-      </ConsoleMessageContainer>
+      <ConsoleMessageContainer ref={containerRef}>{content}</ConsoleMessageContainer>
     </ConsoleContainer>
   );
 }

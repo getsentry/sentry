@@ -1,13 +1,12 @@
+// import {useCallback} from 'react';
+
+import {useCallback, useEffect} from 'react';
+
+import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
-import Console from 'sentry/views/replays/detail/console';
-import DomMutations from 'sentry/views/replays/detail/domMutations';
-import IssueList from 'sentry/views/replays/detail/issueList';
-import MemoryChart from 'sentry/views/replays/detail/memoryChart';
-import NetworkList from 'sentry/views/replays/detail/network';
-import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
 
@@ -17,43 +16,69 @@ function FocusArea({}: Props) {
     useReplayContext();
   const organization = useOrganization();
 
-  if (!replay) {
-    return <Placeholder height="150px" />;
-  }
+  const console = useCallback(() => import('sentry/views/replays/detail/console'), []);
+  const dom = useCallback(() => import('sentry/views/replays/detail/domMutations'), []);
+  const issues = useCallback(() => import('sentry/views/replays/detail/issueList'), []);
+  const memory = useCallback(() => import('sentry/views/replays/detail/memoryChart'), []);
+  const network = useCallback(() => import('sentry/views/replays/detail/network'), []);
+  const trace = useCallback(() => import('sentry/views/replays/detail/trace/index'), []);
 
-  const replayRecord = replay.getReplay();
-  const startTimestampMs = replayRecord.startedAt.getTime();
+  useEffect(() => {
+    if (replay) {
+      // Preload the code for these tabs shortly after we have loaded and rendered the data.
+      setTimeout(() => {
+        console();
+        dom();
+        issues();
+        memory();
+        network();
+        trace();
+      }, 100);
+    }
+  }, [replay, console, dom, issues, memory, network, trace]);
 
   switch (getActiveTab()) {
     case 'console':
-      return (
-        <Console
-          breadcrumbs={replay.getConsoleCrumbs()}
-          startTimestampMs={replayRecord.startedAt.getTime()}
-        />
-      );
+      return <LazyLoad component={console} replay={replay} />;
     case 'network':
+      return <LazyLoad component={network} replay={replay} />;
+    case 'trace':
+      if (!replay) {
+        return <Placeholder height="100%" />;
+      }
       return (
-        <NetworkList
-          replayRecord={replayRecord}
-          networkSpans={replay.getNetworkSpans()}
+        <LazyLoad
+          component={trace}
+          organization={organization}
+          replayRecord={replay?.getReplay()}
         />
       );
-    case 'trace':
-      return <Trace organization={organization} replayRecord={replayRecord} />;
     case 'issues':
-      return <IssueList replayId={replayRecord.id} projectId={replayRecord.projectId} />;
-    case 'dom':
-      return <DomMutations replay={replay} />;
-    case 'memory':
+      if (!replay) {
+        return <Placeholder height="100%" />;
+      }
       return (
-        <MemoryChart
+        <LazyLoad
+          component={issues}
+          replayId={replay?.getReplay().id}
+          projectId={replay?.getReplay().projectId}
+        />
+      );
+    case 'dom':
+      return <LazyLoad component={dom} replay={replay} />;
+    case 'memory':
+      if (!replay) {
+        return <Placeholder height="100%" />;
+      }
+      return (
+        <LazyLoad
+          component={memory}
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay.getMemorySpans()}
+          memorySpans={replay?.getMemorySpans()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMs={startTimestampMs}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime()}
         />
       );
     default:

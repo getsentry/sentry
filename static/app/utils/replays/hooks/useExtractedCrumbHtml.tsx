@@ -25,7 +25,7 @@ export type Extraction = {
 };
 
 type HookOpts = {
-  replay: ReplayReader;
+  replay: null | ReplayReader;
 };
 
 const requestIdleCallback =
@@ -47,6 +47,9 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
   useEffect(() => {
+    if (!replay) {
+      return;
+    }
     requestIdleCallback(
       () => {
         let isMounted = true;
@@ -68,7 +71,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
           .getRawCrumbs()
           .filter(crumb => crumb.data && 'nodeId' in crumb.data);
 
-        const rrwebEvents = replay.getRRWebEvents();
+        const rrwebEvents = replay.getRRWebEvents() || [];
 
         // Grab the last event, but skip the synthetic `replay-end` event that the
         // ReplayerReader added. RRWeb will skip that event when it comes time to render

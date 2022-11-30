@@ -30,7 +30,7 @@ import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/uti
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  replay: ReplayReader;
+  replay: null | ReplayReader;
 };
 
 // The cache is used to measure the height of each row
@@ -40,7 +40,7 @@ const cache = new CellMeasurerCache({
 });
 
 function DomMutations({replay}: Props) {
-  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const startTimestampMs = replay?.getReplay()?.startedAt?.getTime() || 0;
   const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   let listRef: ReactVirtualizedList | null = null;
@@ -131,18 +131,21 @@ function DomMutations({replay}: Props) {
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={filteredTypes}
+          isDisabled={!replay}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
           placeholder={t('Search DOM')}
           query={searchTerm}
+          disabled={!replay}
         />
       </MutationFilters>
-      {isLoading ? (
-        <Placeholder height="200px" />
-      ) : (
-        <MutationList>
+
+      <MutationList>
+        {isLoading ? (
+          <Placeholder height="100%" />
+        ) : (
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
@@ -170,8 +173,8 @@ function DomMutations({replay}: Props) {
               />
             )}
           </AutoSizer>
-        </MutationList>
-      )}
+        )}
+      </MutationList>
     </MutationContainer>
   );
 }
