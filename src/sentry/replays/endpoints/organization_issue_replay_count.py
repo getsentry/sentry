@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from typing import Any
+
+from rest_framework import status
+from rest_framework.response import Response
+from snuba_sdk import Column, Condition, Op, Request
+
+from sentry import features
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.models import Organization
+from sentry.replays.query import query_replays_dataset
+from sentry.search.events.builder import QueryBuilder
+from sentry.utils.snuba import Dataset, raw_snql_query
+
+
+@region_silo_endpoint
+class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
+    """
+    Get all the replay ids associated with a set of issues in discover,
+    then verify that they exist in the replays dataset, and return the count.
+    """
+
+    private = True
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:session-replay", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response({})
+
+        try:
+            replay_id_to_issue_map = _query_discover_for_replayIds(request, params)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        replay_results = query_replays_dataset(
+            project_ids=params["project_id"],
+            start=params["start"],
+            end=params["end"],
+            sorting=[],
+            where=[
+                Condition(Column("replay_id"), Op.IN, list(replay_id_to_issue_map.keys())),
+            ],
+            search_filters=[],
+            pagination=None,
+        )
+
+        issue_id_counts: dict[int, int] = defaultdict(int)
+
+        for row in replay_results["data"]:
+            issue_id = replay_id_to_issue_map[row["replay_id"]]
+            # cap count at 50
+            issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, 50)
+
+        return self.respond(issue_id_counts)
+
+
+def _query_discover_for_replayIds(request: Request, params: dict[str, Any]) -> dict[str, int]:
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=["group_array(replayId)", "issue.id"],
+        groupby_columns=["issue.id"],
+        query=request.GET.get("query"),
+        limit=25 * 100,  # 25 issues max, 100 replays per issue max
+        offset=0,
+        functions_acl=["group_array"],
+    )
+    _validate_params(builder)
+
+    snql_query = builder.get_snql_query()
+
+    discover_results = raw_snql_query(snql_query, "api.organization-issue-replay-count")
+
+    replay_id_to_issue_map = {}
+    for row in discover_results["data"]:
+        for replay_id in row["group_array_replayId"]:
+            replay_id_to_issue_map[replay_id] = row["issue.id"]
+
+    return replay_id_to_issue_map
+
+
+def _validate_params(builder: QueryBuilder) -> None:
+    issue_where_condition = next(
+        (cond for cond in builder.where if cond.lhs.name == "group_id"), None
+    )
+
+    if issue_where_condition is None:
+        raise ValueError("Must provide at least one issue id")
+    if len(issue_where_condition.rhs) > 25:
+        raise ValueError("Too many issues ids provided")

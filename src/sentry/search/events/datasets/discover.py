@@ -5,7 +5,17 @@ from typing import Callable, Mapping, Optional, Union
 import sentry_sdk
 from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk import Column, Condition, Direction, Function, Identifier, Lambda, Op, OrderBy
+from snuba_sdk import (
+    Column,
+    Condition,
+    CurriedFunction,
+    Direction,
+    Function,
+    Identifier,
+    Lambda,
+    Op,
+    OrderBy,
+)
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -255,6 +265,20 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="percentage",
+                ),
+                SnQLFunction(
+                    "group_array",
+                    required_args=[
+                        ColumnTagArg("column"),
+                    ],
+                    snql_aggregate=lambda args, alias: CurriedFunction(
+                        "groupArray",
+                        [100],  # max size of 100, doesnt need to be configurable for now
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="string",
+                    private=True,
                 ),
                 SnQLFunction(
                     "percentile",
