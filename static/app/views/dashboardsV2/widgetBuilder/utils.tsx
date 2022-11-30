@@ -193,7 +193,12 @@ export function normalizeQueries({
             widgetType: widgetType ?? WidgetType.DISCOVER,
             columns: queries[0].columns,
             aggregates: queries[0].aggregates,
-          })[0].value);
+          })[0]?.value);
+
+    if (!orderBy) {
+      query.orderby = '';
+      return query;
+    }
 
     // A widget should be descending if:
     // - There is no orderby, so we're defaulting to desc
