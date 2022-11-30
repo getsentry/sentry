@@ -12,7 +12,7 @@ from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 
-from .mail import COMMIT_EXAMPLE, MailPreview, make_event
+from .mail import COMMIT_EXAMPLE, MailPreview, make_error_event
 
 
 class DebugGenericIssueEmailView(View):
@@ -21,7 +21,7 @@ class DebugGenericIssueEmailView(View):
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
 
-        event = make_event(request, project, platform)
+        event = make_error_event(request, project, platform)
         event = event.for_group(event.groups[0])
 
         occurrence = IssueOccurrence(

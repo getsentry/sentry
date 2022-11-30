@@ -24,7 +24,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_CATEGORIES_CUSTOM, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class AlertRuleNotification(ProjectNotification):
         self.rules = notification.rules
         self.template_path = (
             f"sentry/emails/{event.group.issue_category.name.lower()}"
-            if event.group.issue_category in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]
+            if event.group.issue_category in GROUP_CATEGORIES_CUSTOM
             else "sentry/emails/generic"
         )
 
@@ -121,7 +121,7 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
-        if self.group.issue_category not in [GroupCategory.PERFORMANCE, GroupCategory.ERROR]:
+        if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM:
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:
                 context.update(
