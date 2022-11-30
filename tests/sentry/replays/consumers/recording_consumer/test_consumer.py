@@ -203,10 +203,12 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         for message in consumer_messages:
             processing_strategy.submit(
                 Message(
-                    Partition(Topic("ingest-replay-recordings"), 1),
-                    1,
-                    KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
-                    datetime.now(),
+                    BrokerValue(
+                        KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                        Partition(Topic("ingest-replay-recordings"), 1),
+                        1,
+                        datetime.now(),
+                    )
                 )
             )
         processing_strategy.poll()
