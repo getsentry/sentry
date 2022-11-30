@@ -46,7 +46,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             raise ValidationError
 
         data = serializer.validated_data
-        if data["endpoint"] is None:
+        if data.get("endpoint") is None:
             data["endpoint"] = timezone.now()
         results = preview(
             project,
