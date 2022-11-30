@@ -13,7 +13,7 @@ import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {TrendFunctionField} from '../../../trends/types';
 import {generateTrendFunctionAsString} from '../../../trends/utils';
@@ -42,7 +42,7 @@ function TrendChart({
   start: propsStart,
   end: propsEnd,
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
