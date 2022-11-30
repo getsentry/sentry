@@ -43,8 +43,7 @@ function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props
 }
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
-  font-size: 18px;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 `;
 
 export default BuilderBreadCrumbs;
