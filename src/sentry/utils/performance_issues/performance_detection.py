@@ -295,9 +295,12 @@ def get_detection_settings(project_id: Optional[str] = None):
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
+            # Duration of all consecutive spans, useful because we want to check if it worth the independent spans being in parallel
             "total_duration_threshold": 200,  # ms
+            # Duration of all the independent spans in a set of consecutive spans
             "duration_threshold": 100,  # ms
-            "span_duration_threshold": 5,  # ms
+            # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
+            "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
