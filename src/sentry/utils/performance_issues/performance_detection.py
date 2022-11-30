@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from urllib.parse import urlparse
 
 import sentry_sdk
 
@@ -942,6 +943,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        parsed_url = urlparse(span.get("data", {}).get("url") or "")
+        _filename, extension = os.path.splitext(parsed_url.path)
+        if extension and extension in [".js", ".css"]:
             return
 
         duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
