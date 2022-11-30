@@ -14,6 +14,7 @@ class OrganizationIndexTest(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test(stable=True)
 class OrganizationsListTest(OrganizationIndexTest):
     def test_membership(self):
         org = self.organization  # force creation
@@ -83,6 +84,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
+@region_silo_test
 class OrganizationsCreateTest(OrganizationIndexTest):
     method = "post"
 
@@ -215,7 +217,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIndexMemberLimitTest(APITestCase):
     endpoint = "sentry-organization-index"
 

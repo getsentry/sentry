@@ -6,9 +6,11 @@ from sentry.api.bases.external_actor import (
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Integration
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
+@region_silo_test(stable=True)
 class ExternalActorSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

@@ -13,10 +13,10 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -136,7 +136,7 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberListTest(OrganizationMemberListTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -273,8 +273,9 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         )
 
         # Two authenticators to ensure the user list is distinct
-        Authenticator.objects.create(user=member_2fa.user, type=1)
-        Authenticator.objects.create(user=member_2fa.user, type=2)
+        with exempt_from_silo_limits():
+            Authenticator.objects.create(user=member_2fa.user, type=1)
+            Authenticator.objects.create(user=member_2fa.user, type=2)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -408,7 +409,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert member.role == "admin"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
     method = "post"
 
@@ -544,7 +545,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     method = "post"
 

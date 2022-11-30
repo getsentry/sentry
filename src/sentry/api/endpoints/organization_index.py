@@ -76,7 +76,7 @@ class OrganizationIndexEndpoint(Endpoint):
             # This is used when closing an account
             queryset = queryset.filter(
                 member_set__role=roles.get_top_dog().id,
-                member_set__user=request.user,
+                member_set__user_id=request.user.id,
                 status=OrganizationStatus.VISIBLE,
             )
             org_results = []
@@ -90,7 +90,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             queryset = queryset.filter(
-                id__in=OrganizationMember.objects.filter(user=request.user).values("organization")
+                id__in=OrganizationMember.objects.filter(user_id=request.user.id).values(
+                    "organization"
+                )
             )
 
         query = request.GET.get("query")

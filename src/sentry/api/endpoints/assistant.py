@@ -61,7 +61,9 @@ class AssistantEndpoint(Endpoint):
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guide_map = deepcopy(manager.all())
         seen_ids = set(
-            AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
+            AssistantActivity.objects.filter(user_id=request.user.id).values_list(
+                "guide_id", flat=True
+            )
         )
 
         return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])

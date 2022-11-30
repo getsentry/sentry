@@ -10,6 +10,7 @@ from sentry.models import (
     User,
     actor_type_to_class,
     actor_type_to_string,
+    fetch_actors_by_actor_ids,
 )
 from sentry.types.integrations import get_provider_string
 
@@ -50,7 +51,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             klass = actor_type_to_class(type_id)
             actor_ids = actor_ids_by_type[type_str]
 
-            for model in klass.objects.filter(actor_id__in=actor_ids):
+            for model in fetch_actors_by_actor_ids(klass, actor_ids):
                 resolved_actors[model.actor_id] = {type_str: model}
 
         # create a mapping of external actor to a set of attributes. Those attributes are either {"user": User} or {"team": Team}.

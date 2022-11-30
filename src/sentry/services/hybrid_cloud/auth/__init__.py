@@ -22,6 +22,12 @@ class AuthService(InterfaceWithLifecycle):
         pass
 
     @abc.abstractmethod
+    def get_org_auth_config(
+        self, *, organization_ids: List[int]
+    ) -> List[ApiOrganizationAuthConfig]:
+        pass
+
+    @abc.abstractmethod
     def get_user_auth_state(
         self,
         *,
@@ -171,23 +177,45 @@ class AuthenticationContext:
         request.user = self.user or AnonymousUser()
         request.auth = self.auth
 
-        yield
+        try:
+            yield
+        finally:
+            if has_user:
+                request.user = old_user
+            else:
+                delattr(request, "user")
 
-        if has_user:
-            request.user = old_user
-        else:
-            delattr(request, "user")
-
-        if has_auth:
-            request.auth = old_auth
-        else:
-            delattr(request, "auth")
+            if has_auth:
+                request.auth = old_auth
+            else:
+                delattr(request, "auth")
 
 
 @dataclass
 class AuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False
+
+
+@dataclass(eq=True, frozen=True)
+class ApiAuthProviderFlags:
+    allow_unlinked: bool = False
+    scim_enabled: bool = False
+
+
+@dataclass(eq=True, frozen=True)
+class ApiAuthProvider:
+    id: int = -1
+    organization_id: int = -1
+    provider: str = ""
+    flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+@dataclass(eq=True)
+class ApiOrganizationAuthConfig:
+    organization_id: int = -1
+    auth_provider: ApiAuthProvider | None = None
+    has_api_key: bool = False
 
 
 auth_service: AuthService = silo_mode_delegation(

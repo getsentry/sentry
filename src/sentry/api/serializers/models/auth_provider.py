@@ -1,14 +1,27 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import AuthProvider, Organization, OrganizationMember
 from sentry.utils.http import absolute_uri
 
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.auth import ApiAuthProvider
+
 
 @register(AuthProvider)
 class AuthProviderSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        organization = obj.organization
+    def serialize(
+        self,
+        obj: AuthProvider | ApiAuthProvider,
+        attrs,
+        user,
+        organization: Organization | None = None,
+    ):
+        organization = organization or obj.organization
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),

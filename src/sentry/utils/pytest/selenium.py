@@ -20,6 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
+from sentry.silo import SiloMode
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -295,6 +296,8 @@ class Browser:
         """
         Capture a screenshot of the current state of the page.
         """
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            name = f"{name}-{SiloMode.get_current_mode()}"
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1":

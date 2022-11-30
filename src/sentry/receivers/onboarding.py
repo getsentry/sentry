@@ -258,14 +258,14 @@ def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        user=user,
+        user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
     )
     analytics.record(
         "member.invited",
         invited_member_id=member.id,
-        inviter_user_id=user.id,
+        inviter_user_id=user.id if user else None,
         organization_id=member.organization_id,
         referrer=kwargs.get("referrer"),
     )

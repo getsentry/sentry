@@ -121,6 +121,9 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
         else:
             request.user = AnonymousUser()
 
+    def process_exception(self, request: Request, exception: Exception):
+        pass
+
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
     return AuthenticationRequest(
