@@ -1,20 +1,25 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Frame} from 'sentry/types';
 
 import {StacktraceLink} from './stacktraceLink';
 
 describe('StacktraceLink', function () {
   const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const event = TestStubs.Event({projectID: project.id});
+  const platform = 'python';
+  const project = TestStubs.Project({});
+  const event = TestStubs.Event({
+    projectID: project.id,
+    release: TestStubs.Release({lastCommit: TestStubs.Commit()}),
+    platform,
+  });
   const integration = TestStubs.GitHubIntegration();
   const repo = TestStubs.Repository({integrationId: integration.id});
 
-  const frame = {filename: '/sentry/app.py', lineNo: 233};
-  const platform = 'python';
+  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
-  let promptActivity;
+  let promptActivity: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -29,29 +34,40 @@ describe('StacktraceLink', function () {
   it('renders ask to setup integration', async function () {
     const stacktraceLinkMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: []},
     });
-    render(<StacktraceLink frame={frame} event={event} lineNo={frame.lineNo} />, {
-      context: TestStubs.routerContext(),
-    });
+    render(
+      <StacktraceLink frame={frame} event={event} lineNo={frame.lineNo!} line="" />,
+      {
+        context: TestStubs.routerContext(),
+      }
+    );
     expect(
       await screen.findByText(
         'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
       )
     ).toBeInTheDocument();
     expect(stacktraceLinkMock).toHaveBeenCalledTimes(1);
+    expect(stacktraceLinkMock).toHaveBeenCalledWith(
+      `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      expect.objectContaining({
+        query: {
+          commitId: event.release?.lastCommit?.id,
+          file: frame.filename,
+          platform,
+        },
+      })
+    );
     expect(promptActivity).toHaveBeenCalledTimes(1);
   });
 
   it('renders setup CTA with integration but no configs', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
     render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo} />,
+      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
       {context: TestStubs.routerContext()}
     );
     expect(
@@ -62,11 +78,10 @@ describe('StacktraceLink', function () {
   it('renders source url link', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo} />,
+      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
       {context: TestStubs.routerContext()}
     );
     expect(await screen.findByRole('link')).toHaveAttribute(
@@ -79,7 +94,6 @@ describe('StacktraceLink', function () {
   it('displays fix modal on error', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
       body: {
         config,
         sourceUrl: null,
@@ -87,7 +101,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(
-      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo} />,
+      <StacktraceLink frame={frame} event={event} line="foo()" lineNo={frame.lineNo!} />,
       {context: TestStubs.routerContext()}
     );
     expect(
@@ -100,7 +114,6 @@ describe('StacktraceLink', function () {
   it('should hide stacktrace link error state on minified javascript frames', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
       body: {
         config,
         sourceUrl: null,
@@ -112,7 +125,7 @@ describe('StacktraceLink', function () {
         frame={frame}
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
-        lineNo={frame.lineNo}
+        lineNo={frame.lineNo!}
       />,
       {context: TestStubs.routerContext()}
     );
