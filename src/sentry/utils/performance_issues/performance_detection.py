@@ -946,13 +946,16 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         # Ignore anything that looks like an asset
-        parsed_url = urlparse(span.get("data", {}).get("url") or "")
+        data = span.get("data") or {}
+        parsed_url = urlparse(data.get("url") or "")
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css"]:
             return
 
         # Ignore backendy transactions
-        trace_op = span.get("contexts", {}).get("trace", {}).get("op")
+        contexts = span.get("contexts") or {}
+        trace = contexts.get("trace") or {}
+        trace_op = trace.get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return
 
