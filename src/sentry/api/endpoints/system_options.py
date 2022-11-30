@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -41,7 +42,7 @@ class SystemOptionsEndpoint(Endpoint):
         results = {}
         for k in option_list:
             disabled, disabled_reason = False, None
-            is_secret = for_admin and self.__is_secret(k.name)
+            is_secret = for_admin and self.__is_secret(k)
 
             if smtp_disabled and k.name[:5] == "mail.":
                 disabled_reason, disabled = "smtpDisabled", True
@@ -66,9 +67,11 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def __is_secret(self, name: str) -> bool:
-        keywords = ["secret", "token", "key"]
-        return any([k in name for k in keywords])
+    def __is_secret(self, k: Any) -> bool:
+        keywords = ["secret", "private", "token"]
+        return (k.flags & options.FLAG_CREDENTIAL) or any(
+            [keyword in k.name for keyword in keywords]
+        )
 
     def has_permission(self, request: Request):
         if not request.access.has_permission("options.admin"):
