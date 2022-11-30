@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
@@ -38,7 +38,7 @@ function ListLink({
   disabled = false,
   ...props
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const queryData = query ? qs.parse(query) : undefined;
   const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
   const target = normalizeUrl(targetLocation);
@@ -50,7 +50,7 @@ function ListLink({
       className={classNames({[activeClassName]: active}, className)}
       disabled={disabled}
     >
-      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : to}>
+      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
         {children}
       </RouterLink>
     </StyledLi>
