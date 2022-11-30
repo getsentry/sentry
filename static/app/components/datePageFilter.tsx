@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
@@ -30,7 +30,7 @@ type Props = Omit<
 };
 
 function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;

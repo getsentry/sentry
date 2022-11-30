@@ -6,7 +6,7 @@ import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -16,7 +16,7 @@ type Props = {
 };
 
 function MissingPerformanceButtons({organization}: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
 
   function handleTourAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
