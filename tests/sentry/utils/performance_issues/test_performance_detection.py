@@ -686,12 +686,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -705,7 +705,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "b409e78a092e642f",
