@@ -234,10 +234,12 @@ const Modal = styled(motion.div)`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;
-  padding: 80px ${space(1.5)} ${space(2)} ${space(1.5)};
+  margin-top: 64px;
+  padding: ${space(2)} ${space(1.5)} ${space(2)} ${space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 80px ${space(2)} ${space(4)} ${space(2)};
+    margin-top: 50px;
+    padding: ${space(4)} ${space(2)} ${space(4)} ${space(2)};
   }
 `;
 
