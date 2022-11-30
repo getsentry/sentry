@@ -664,6 +664,14 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        description = span.get("description", None)
+        if not description:
+            return
+
+        description = description.strip()
+        if description.strip()[:6].upper() != "SELECT":
+            return
+
         if span_duration >= timedelta(
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):

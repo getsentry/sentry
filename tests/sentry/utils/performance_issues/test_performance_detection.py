@@ -662,7 +662,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call("_pi_slow_span", "b33db57efd994615"),
                 call(
                     "_pi_sequential",
                     "b409e78a092e642f",
@@ -689,12 +689,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -708,7 +708,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "b409e78a092e642f",
@@ -724,12 +723,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -743,7 +742,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "8e554c84cdc9731e",
@@ -759,12 +757,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -778,7 +776,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "8e554c84cdc9731e",
@@ -883,15 +880,14 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(query_waterfall_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
-                call("_pi_all_issue_count", 2),
+                call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", ""),
                 call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
                 call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
                 call("_pi_consecutive_db", "abca1c35669c11f2"),
-                call("_pi_slow_span", "870ada8266466319"),
             ]
         )
 
@@ -919,7 +915,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "",
                 ),
                 call("_pi_transaction", "4e7c82a05f514c93b6101d255ca14f89"),
-                call("_pi_slow_span", "9f31e1ee4ef94970"),
+                call("_pi_slow_span", "a05754d3fde2db29"),
             ]
         )
 
