@@ -467,9 +467,10 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
-        body: {data: groups, endpoint: 'endpoint'},
+        body: groups,
         headers: {
           'X-Hits': groups.length,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -529,9 +530,10 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
-        body: {data: [], endpoint: 'endpoint'},
+        body: [],
         headers: {
           'X-Hits': 0,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
