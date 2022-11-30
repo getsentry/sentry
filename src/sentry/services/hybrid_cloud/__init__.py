@@ -33,7 +33,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     """
 
     _constructors: Mapping[SiloMode, Callable[[], ServiceInterface]]
-    _singleton: Dict[SiloMode, ServiceInterface | None] | None = None
+    _singleton: Dict[SiloMode, ServiceInterface | None]
     _lock: threading.RLock
 
     def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
@@ -72,7 +72,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         to_close: List[ServiceInterface] = []
         with self._lock:
             if mode is None:
-                to_close.extend(self._singleton.values())
+                to_close.extend(s for s in self._singleton.values() if s is not None)
                 self._singleton = dict()
             else:
                 existing = self._singleton.get(mode)

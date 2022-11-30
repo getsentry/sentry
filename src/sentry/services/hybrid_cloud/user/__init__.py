@@ -32,7 +32,7 @@ class APIUser:
     is_sentry_app: bool = False
     password_usable: bool = False
 
-    def has_usable_password(self):
+    def has_usable_password(self) -> bool:
         return self.password_usable
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
