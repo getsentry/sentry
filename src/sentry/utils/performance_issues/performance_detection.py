@@ -950,6 +950,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if extension and extension in [".js", ".css"]:
             return
 
+        status = span.get("data", {}).get("status")
+        if status and status == "cancelled":
+            return
+
         duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
         span_duration = get_span_duration(span)
 
