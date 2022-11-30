@@ -78,13 +78,13 @@ class HerokuReleaseHook(ReleaseHook):
                 )
             else:
                 release.set_refs(
-                    refs=[{"commit": release.version, "repository": repository.name}],
+                    refs=[{"commit": release.data.version, "repository": repository.name}],
                     user=values["owner"],
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint
         endpoint = (
-            f"/organizations/{self.project.organization.slug}/releases/{release.version}/deploys/"
+            f"/organizations/{self.project.organization.slug}/releases/{release.data.version}/deploys/"
         )
         client = self.get_client()
         client.post(endpoint, data={"environment": deploy_project_option}, auth=self.get_auth())
