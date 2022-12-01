@@ -8,6 +8,8 @@ from sentry.silo import SiloMode
 
 
 def _request_should_be_proxied(request: Request, view_func, view_kwargs) -> bool:
+    if SiloMode.single_process_silo_mode():
+        return False
     view_class = getattr(view_func, "view_class", None)
     current_silo_mode = SiloMode.get_current_mode()
     if current_silo_mode != SiloMode.MONOLITH and view_class is not None:

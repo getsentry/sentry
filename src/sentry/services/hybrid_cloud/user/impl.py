@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List
 
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
@@ -63,11 +63,8 @@ class DatabaseBackedUserService(UserService):
             return []
         return self.get_many(project.member_set.values_list("user_id", flat=True))
 
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        try:
-            return UserService.serialize_user(User.objects.get(actor_id=actor_id))
-        except User.DoesNotExist:
-            return None
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
+        return [UserService.serialize_user(u) for u in User.objects.filter(actor_id__in=actor_ids)]
 
     def close(self) -> None:
         pass
