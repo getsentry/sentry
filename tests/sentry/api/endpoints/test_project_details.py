@@ -1267,6 +1267,12 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
 
 @region_silo_test
 class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSamplingBase):
+    """
+    TODO (@andrii): Remove this class right after we remove feature flag
+    for now we just test that we can't update/delete `dynamicSampling` so user will get 403
+    only readOnly get will work.
+    """
+
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
@@ -1284,41 +1290,6 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
         self.get_error_response(
             self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
         )
-
-    def test_setting_dynamic_sampling_rules(self):
-        """
-        Test that we can set sampling rules
-        """
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.get_success_response(
-                self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
-            )
-        original_config = _dyn_sampling_data()
-        saved_config = self.project.get_option("sentry:dynamic_sampling")
-        # test that we have unique ids
-        ids = set()
-        for rule in saved_config["rules"]:
-            rid = rule["id"]
-            assert rid not in ids
-            ids.add(rid)
-        next_id = saved_config["next_id"]
-        assert next_id not in ids
-        # short of ids and next_id the saved config should be the same as the original one
-        _remove_ids_from_dynamic_rules(saved_config)
-        _remove_ids_from_dynamic_rules(original_config)
-        assert original_config == saved_config
-        assert AuditLogEntry.objects.filter(
-            organization=self.project.organization,
-            event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
-        ).exists()
-
-        # Make sure that the early return logic worked, as only the above audit log was triggered
-        with pytest.raises(AuditLogEntry.DoesNotExist):
-            AuditLogEntry.objects.get(
-                organization=self.organization,
-                target_object=self.project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-            )
 
     def test_dynamic_sampling_uniform_rule_deletion_fail(self):
         """
@@ -1399,7 +1370,7 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
                 url, format="json", HTTP_AUTHORIZATION=authorization, data=data
             )
 
-            assert response.status_code == 200, response.content
+            assert response.status_code == 403, response.content
 
     def test_dynamic_sampling_rule_deletion(self):
         """
@@ -1431,9 +1402,10 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
         }
 
         with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            assert resp.status_code == 403
 
-            assert AuditLogEntry.objects.filter(
+            assert not AuditLogEntry.objects.filter(
                 organization=self.project.organization,
                 event=audit_log.get_event_id("SAMPLING_RULE_REMOVE"),
             ).exists()
@@ -1487,9 +1459,10 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
         }
 
         with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            assert resp.status_code == 403
 
-            assert AuditLogEntry.objects.filter(
+            assert not AuditLogEntry.objects.filter(
                 organization=self.project.organization,
                 event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE"),
             ).exists()
@@ -1536,9 +1509,10 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
         }
 
         with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            assert resp.status_code == 403
 
-            assert AuditLogEntry.objects.filter(
+            assert not AuditLogEntry.objects.filter(
                 organization=self.project.organization,
                 event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE"),
             ).exists()
@@ -1551,7 +1525,7 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_dynamic_smapling_rule_edition(self):
+    def test_dynamic_sampling_rule_edition(self):
         """
         Tests that when sending a request updating a dynamic sampling rule,
         the rule will be successfully edited and that the audit log 'SAMPLING_RULE_EDIT' will be triggered
@@ -1585,9 +1559,10 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
         }
 
         with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            assert resp.status_code == 403
 
-            assert AuditLogEntry.objects.filter(
+            assert not AuditLogEntry.objects.filter(
                 organization=self.project.organization,
                 event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
             ).exists()
@@ -1600,188 +1575,14 @@ class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSampl
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_request_with_dynamic_sampling_and_other_property(self):
-        """
-        Tests that when sending a request to update the dynamic sampling property
-        alongside another project's property, everything will be successfully updated and
-        the audit logs 'SAMPLING_RULE_*' and 'PROJECT_EDIT' will be triggered
-
-        """
-
-        dynamic_sampling = _dyn_sampling_data()
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [dynamic_sampling["rules"][len(dynamic_sampling["rules"]) - 1]],
-            },
-            "platform": "rust",
-            "relayPiiConfig": "",
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-
-            # Audit Log shall be triggered twice
-            assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
-            ).exists()
-
-            assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-            ).exists()
-
     def test_setting_dynamic_sampling_rules_roundtrip(self):
         """
         Tests that we get the same dynamic sampling rules that previously set
         """
         data = _dyn_sampling_data()
         with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
-            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
-        saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
-        original_data = _remove_ids_from_dynamic_rules(data)
-        assert saved_config == original_data
-
-    def test_dynamic_sampling_rule_id_handling(self):
-        """
-        Tests the assignment of rule ids.
-
-        New rules (having no id or id==0) will be assigned new unique ids.
-        Old rules (rules that have ids present in the currently saved config) that have
-        not been modified should keep their id.
-        Old rules that have been modified (anything changed) should get new ids.
-        Once an id is assigned to a rule it should never be reused.
-        """
-        config = {
-            "rules": [
-                {
-                    "sampleRate": 0.7,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [
-                            {"op": "eq", "name": "field1", "value": ["val"]},
-                        ],
-                    },
-                    "id": -1,
-                },
-                {
-                    "sampleRate": 0.8,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [
-                            {"op": "eq", "name": "field1", "value": ["val"]},
-                        ],
-                    },
-                    "id": -1,
-                },
-                {
-                    "sampleRate": 0.9,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [],
-                    },
-                    "id": -1,
-                },
-            ]
-        }
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
-            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
-            saved_config = response.data["dynamicSampling"]
-            next_id = saved_config["next_id"]
-            id1 = saved_config["rules"][0]["id"]
-            id2 = saved_config["rules"][1]["id"]
-            id3 = saved_config["rules"][2]["id"]
-            assert id1 != 0 and id2 != 0 and id3 != 0
-            assert next_id != 0
-            assert id1 != id2 and id2 != id3 and id1 != id3
-            assert next_id > id1 and next_id > id2 and next_id > id3
-            assert response.status_code == 200
-            # set it again and see how it handles the id reallocation
-            # change first rule
-            saved_config["rules"][0]["sampleRate"] = 0.1
-            # do not touch the second rule
-            # remove third rule (the id should NEVER be reused)
-            del saved_config["rules"][2]
-            # insert a new element at position 0
-            new_rule_1 = {
-                "sampleRate": 0.22,
-                "type": "trace",
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                    ],
-                },
-                "id": -1,
-            }
-
-            saved_config["rules"].insert(0, new_rule_1)
-            # insert a new element at the end
-            new_rule_2 = {
-                "sampleRate": 0.33,
-                "type": "trace",
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": -1,
-            }
-
-            saved_config["rules"].append(new_rule_2)
-
-            # turn it back from ordered dict to dict (both main obj and rules)
-            saved_config = dict(saved_config)
-            saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
-            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=saved_config)
-            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
-            saved_config = response.data["dynamicSampling"]
-            new_ids = [rule["id"] for rule in saved_config["rules"]]
-            # first rule is new, second rule got a new id because it is changed,
-            # third rule (used to be second) keeps the id, fourth rule is new
-            assert new_ids == [4, 5, 2, 6]
-            new_next_id = saved_config["next_id"]
-            assert new_next_id == 7
-
-    def test_dynamic_sampling_rules_have_active_flag(self):
-        """
-        Tests that the active flag is set for all rules
-        """
-        data = _dyn_sampling_data()
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
-            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
-        saved_config = response.data["dynamicSampling"]
-        assert all([rule["active"] for rule in saved_config["rules"]])
-        assert AuditLogEntry.objects.filter(
-            organization=self.project.organization,
-            target_object=self.project.id,
-            event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
-        ).exists()
-
-        # Make sure that the early return logic worked, as only the above audit log was triggered
-        with pytest.raises(AuditLogEntry.DoesNotExist):
-            AuditLogEntry.objects.get(
-                organization=self.organization,
-                target_object=self.project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+            self.get_error_response(
+                self.org_slug, self.proj_slug, dynamicSampling=data, status_code=403
             )
 
     def test_dynamic_sampling_rules_should_contain_single_uniform_rule(self):
