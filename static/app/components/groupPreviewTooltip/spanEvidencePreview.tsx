@@ -87,6 +87,7 @@ const SpanEvidencePreviewBody = ({
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
         <SpanEvidenceKeyValueList
+          issueType={data.issueType}
           transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
           offendingSpan={spanInfo.offendingSpan}

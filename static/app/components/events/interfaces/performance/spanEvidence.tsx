@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {EventTransaction, Organization} from 'sentry/types';
+import {EventTransaction, IssueType, Organization} from 'sentry/types';
 
 import {DataSection} from '../../eventTagsAndScreenshot/dataSection';
 import TraceView from '../spans/traceView';
@@ -13,6 +13,7 @@ import {getSpanInfoFromTransactionEvent} from './utils';
 
 interface Props {
   event: EventTransaction;
+  issueType: IssueType;
   organization: Organization;
 }
 
@@ -20,8 +21,8 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-function getEvidenceDescription(event: EventTransaction) {
-  if (event.perfProblem?.type === 1008) {
+function getEvidenceDescription(issueType: IssueType) {
+  if (issueType === IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD) {
     return t('Span Evidence identifies the span where the file IO occurred.');
   }
   return t(
@@ -29,7 +30,7 @@ function getEvidenceDescription(event: EventTransaction) {
   );
 }
 
-export function SpanEvidenceSection({event, organization}: Props) {
+export function SpanEvidenceSection({event, issueType, organization}: Props) {
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   if (!spanInfo) {
@@ -39,8 +40,12 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const {parentSpan, offendingSpan, affectedSpanIds} = spanInfo;
 
   return (
-    <DataSection title={t('Span Evidence')} description={getEvidenceDescription(event)}>
+    <DataSection
+      title={t('Span Evidence')}
+      description={getEvidenceDescription(issueType)}
+    >
       <SpanEvidenceKeyValueList
+        issueType={issueType}
         transactionName={event.title}
         parentSpan={parentSpan}
         offendingSpan={offendingSpan}

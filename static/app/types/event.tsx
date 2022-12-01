@@ -1,6 +1,7 @@
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -522,7 +523,6 @@ export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
-  type: number;
 };
 
 interface EventBase {
@@ -561,6 +561,7 @@ interface EventBase {
     id: string;
   };
   issueCategory?: IssueCategory;
+  issueType?: IssueType;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
   nextEventID?: string | null;

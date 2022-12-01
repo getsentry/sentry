@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {KeyValueListData} from 'sentry/types';
+import {IssueType, KeyValueListData} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
@@ -7,12 +7,14 @@ import {RawSpanType} from '../spans/types';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
+  issueType: IssueType | undefined;
   offendingSpan: RawSpanType | TraceContextSpanProxy | null;
   parentSpan: RawSpanType | TraceContextSpanProxy | null;
   transactionName: string;
 };
 
 export function SpanEvidenceKeyValueList({
+  issueType,
   transactionName,
   parentSpan,
   offendingSpan,
@@ -30,7 +32,10 @@ export function SpanEvidenceKeyValueList({
     },
     {
       key: '2',
-      subject: t('Offending Span'),
+      subject:
+        issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+          ? t('Repeating Span')
+          : t('Offending Span'),
       value: getSpanEvidenceValue(offendingSpan),
     },
   ];
