@@ -2031,7 +2031,7 @@ describe('WidgetBuilder', function () {
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
-        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       expect(await screen.findByText('Line Chart')).toBeInTheDocument();
@@ -2064,7 +2064,7 @@ describe('WidgetBuilder', function () {
         const defaultTableColumns = ['title', 'count_unique(user)'];
 
         renderTestComponent({
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
             defaultWidgetQuery: urlEncode(defaultWidgetQuery),

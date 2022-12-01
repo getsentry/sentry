@@ -643,7 +643,7 @@ describe('Dashboards > WidgetCard', function () {
   describe('using events endpoint', () => {
     const organizationWithFlag = {
       ...organization,
-      features: [...organization.features, 'discover-frontend-use-events-endpoint'],
+      features: [...organization.features],
     };
 
     it('calls eventsV2 with a limit of 20 items', async function () {

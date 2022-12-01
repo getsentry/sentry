@@ -104,10 +104,7 @@ describe('Modals -> WidgetViewerModal', function () {
       ...initialData,
       organization: {
         ...initialData.organization,
-        features: [
-          ...initialData.organization.features,
-          'discover-frontend-use-events-endpoint',
-        ],
+        features: [...initialData.organization.features],
       },
     };
 

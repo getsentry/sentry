@@ -876,7 +876,7 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         params: {
           widgetIndex: '0',
@@ -900,7 +900,7 @@ describe('WidgetBuilder', function () {
 
     it('hides Custom Equation input and resets orderby when switching to table', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
