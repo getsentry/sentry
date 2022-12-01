@@ -4,8 +4,8 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.ingest.transaction_clusterer.datasource.redis import (
-    _get_transaction_names,
     _store_transaction_name,
+    get_transaction_names,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
@@ -51,17 +51,17 @@ def test_collection():
             _store_transaction_name(project, f"tx-{project.name}-{i}")
             _store_transaction_name(project, f"tx-{project.name}-{i}")
 
-    set_entries1 = _get_transaction_names(project1)
-    assert set(set_entries1) == {"tx-p1-0", "tx-p1-1"}
+    set_entries1 = set(get_transaction_names(project1))
+    assert set_entries1 == {"tx-p1-0", "tx-p1-1"}
 
-    set_entries2 = _get_transaction_names(project2)
-    assert len(set_entries2) == 5
+    set_entries2 = set(get_transaction_names(project2))
+    assert len(set_entries2) == 5, set_entries2
     # We don't know which entries made it into the final set:
     for name in set_entries2:
         assert name.startswith("tx-project2-")
 
     project3 = Project(id=103, name="project3", organization_id=1)
-    assert set() == _get_transaction_names(project3)
+    assert set() == set(get_transaction_names(project3))
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")

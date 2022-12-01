@@ -1,5 +1,5 @@
 """ Write transactions into redis sets """
-from typing import Any, Set
+from typing import Any, Iterable
 
 import sentry_sdk
 from django.conf import settings
@@ -39,12 +39,12 @@ def _store_transaction_name(project: Project, transaction_name: str) -> None:
         add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
-def _get_transaction_names(project: Project) -> Set[str]:
+def get_transaction_names(project: Project) -> Iterable[str]:
+    """Return all transaction names stored for the given project"""
     client = _get_redis_client()
     redis_key = _get_redis_key(project)
 
-    # TODO: Not sure if this works for large sets in production
-    return client.smembers(redis_key)  # type: ignore
+    return client.sscan_iter(redis_key)  # type: ignore
 
 
 def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
