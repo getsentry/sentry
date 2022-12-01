@@ -432,9 +432,15 @@ def get_ingest_consumer(
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
     topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
-    if settings.KAFKA_INGEST_OCCURRENCES in topic_names:
-        return create_ingest_occurences_consumer(settings.KAFKA_INGEST_OCCURRENCES)
 
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )
+
+
+def get_occurrences_ingest_consumer(
+    consumer_type,
+):
+    topic_name = ConsumerType.get_topic_name(consumer_type)
+
+    return create_ingest_occurences_consumer(topic_name)

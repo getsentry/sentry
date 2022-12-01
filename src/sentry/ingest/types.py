@@ -14,7 +14,7 @@ class ConsumerType:
             ConsumerType.Events,
             ConsumerType.Attachments,
             ConsumerType.Transactions,
-            ConsumerType.Occurrences,
+            # ConsumerType.Occurrences,
         )
 
     @staticmethod
