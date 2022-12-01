@@ -213,3 +213,70 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+
+@region_silo_test
+class ProjectStacktraceLinkTestAndroid(APITestCase):
+    endpoint = "sentry-api-0-project-stacktrace-link"
+
+    def setUp(self):
+        self.integration = Integration.objects.create(provider="example", name="Example")
+        self.integration.add_organization(self.organization, self.user)
+        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
+        self.repo.integration_id = self.integration.id
+        self.repo.provider = "example"
+        self.repo.save()
+
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="usr/src/getsentry/",
+        )
+
+        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+        self.login_as(self.user)
+
+    def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
+        return {
+            "defaultBranch": "master",
+            "id": str(code_mapping.id),
+            "integrationId": str(self.integration.id),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "provider": serialized_provider(),
+            "repoId": str(self.repo.id),
+            "repoName": self.repo.name,
+            "sourceRoot": code_mapping.source_root,
+            "stackRoot": code_mapping.stack_root,
+        }
+
+    def test_file_not_found_munge_frame_fallback_success_android(self):
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value="https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java",
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={
+                    "file": "file.java",
+                    "absPath": "any",
+                    "module": "usr.src.getsentry.file",
+                    "package": "any",
+                    "platform": "java",
+                },
+            )
+            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert (
+                response.data["sourceUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
+            )
+            assert response.data["integrations"] == [serialized_integration(self.integration)]
