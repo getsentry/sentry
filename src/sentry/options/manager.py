@@ -32,6 +32,8 @@ FLAG_REQUIRED = 1 << 4
 FLAG_PRIORITIZE_DISK = 1 << 5
 # If the value is allowed to be empty to be considered valid
 FLAG_ALLOW_EMPTY = 1 << 6
+# Values that are credentials should not show up in web UI.
+FLAG_CREDENTIAL = 1 << 7
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10

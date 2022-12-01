@@ -7,6 +7,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
+from sentry.options.manager import FLAG_CREDENTIAL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -21,7 +22,7 @@ register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register("system.rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.event-retention-days", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.secret-key", flags=FLAG_NOSTORE)
+register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -97,7 +98,9 @@ register(
 
 # SMS
 register("sms.twilio-account", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("sms.twilio-token", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "sms.twilio-token", default="", flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
 register("sms.twilio-number", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
     "sms.disallow-new-enrollment",
@@ -187,26 +190,26 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
-register("cloudflare.secret-key", default="")
+register("cloudflare.secret-key", default="", flags=FLAG_CREDENTIAL)
 
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
-register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
-register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
 register("github-app.name", default="")
-register("github-app.webhook-secret", default="")
-register("github-app.private-key", default="")
+register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
+register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
-register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.client-secret", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register(
     "github-login.require-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK
 )
@@ -217,27 +220,27 @@ register("github-login.organization", flags=FLAG_PRIORITIZE_DISK)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # VSTS Integration - with limited scopes
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vsts-limited.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="")
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vercel.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry")
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
-register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
 register("aws-lambda.account-number", default="943013980633")
 register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")

@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -48,7 +49,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name),
+                "value": options.get(k.name) if not self.__is_secret(k) else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -60,6 +61,12 @@ class SystemOptionsEndpoint(Endpoint):
             }
 
         return Response(results)
+
+    def __is_secret(self, k: Any) -> bool:
+        keywords = ["secret", "private", "token"]
+        return (k.flags & options.FLAG_CREDENTIAL) or any(
+            [keyword in k.name for keyword in keywords]
+        )
 
     def has_permission(self, request: Request):
         if not request.access.has_permission("options.admin"):

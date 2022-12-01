@@ -20,6 +20,12 @@ class SystemOptionsTest(APITestCase):
         assert "system.url-prefix" in response.data
         assert "system.admin-email" in response.data
 
+    def test_redacted_secret(self):
+        self.login_as(user=self.user, superuser=True)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data["github-login.client-secret"]["value"] == "[redacted]"
+
     def test_bad_query(self):
         self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.url, {"query": "nonsense"})
