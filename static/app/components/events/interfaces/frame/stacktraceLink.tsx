@@ -3,7 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {promptsUpdate, usePromptsCheck} from 'sentry/actionCreators/prompts';
+import {
+  makePromptsCheckQueryKey,
+  PromptResponse,
+  promptsUpdate,
+  usePromptsCheck,
+} from 'sentry/actionCreators/prompts';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -25,7 +30,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -42,6 +47,7 @@ interface StacktraceLinkSetupProps {
 function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
   const api = useApi();
   const [promptDismissed, setPromptDismissed] = useState(false);
+  const queryClient = useQueryClient();
 
   if (promptDismissed) {
     return null;
@@ -54,6 +60,22 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       feature: 'stacktrace_link',
       status: 'dismissed',
     });
+
+    // Update cached query data
+    queryClient.setQueryData<PromptResponse>(
+      makePromptsCheckQueryKey({
+        feature: 'stacktrace_link',
+        organizationId: organization.id,
+        projectId: project?.id,
+      }),
+      () => {
+        const dimissedTs = new Date().getTime() / 1000;
+        return {
+          data: {dismissed_ts: dimissedTs},
+          features: {stacktrace_link: {dismissed_ts: dimissedTs}},
+        };
+      }
+    );
 
     trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',

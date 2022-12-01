@@ -88,6 +88,16 @@ export async function promptsCheck(
   return null;
 }
 
+export const makePromptsCheckQueryKey = ({
+  feature,
+  organizationId,
+  projectId,
+}: {
+  feature: string;
+  organizationId: string;
+  projectId?: string;
+}) => ['/prompts-activity', {feature, organizationId, projectId}];
+
 /**
  * @param organizationId org numerical id, not the slug
  */
