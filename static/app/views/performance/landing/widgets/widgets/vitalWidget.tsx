@@ -31,6 +31,7 @@ import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
+import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -206,73 +207,82 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
-  return (
-    <GenericPerformanceWidget<DataType>
-      {...props}
-      InteractiveTitle={
-        InteractiveTitle
-          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
-          : null
-      }
-      location={location}
-      Subtitle={provided => {
-        const listItem = provided.widgetData.list?.data[selectedListIndex];
+  const visualizations = organization.features.includes('performance-new-widget-designs')
+    ? [
+        {
+          component: provided => (
+            <Accordion
+              selectedIndex={selectedListIndex}
+              setSelectedIndex={setSelectListIndex}
+              items={provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
+                const transaction = (listItem?.transaction as string | undefined) ?? '';
+                const _eventView = eventView.clone();
 
-        if (!listItem) {
-          return <Subtitle />;
-        }
+                const initialConditions = new MutableSearch(_eventView.query);
+                initialConditions.addFilterValues('transaction', [transaction]);
 
-        const vital = settingToVital[props.chartSetting];
+                const vital = settingToVital[props.chartSetting];
+                _eventView.query = initialConditions.formatString();
 
-        const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
-            listItem,
-            vital,
-            false
-          ),
-        };
+                const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+                const target = isUnparameterizedRow
+                  ? createUnnamedTransactionsDiscoverTarget({
+                      organization,
+                      location,
+                    })
+                  : vitalDetailRouteWithQuery({
+                      orgSlug: organization.slug,
+                      query: _eventView.generateQueryStringObject(),
+                      vitalName: vital,
+                      projectID: decodeList(location.query.project),
+                    });
 
-        return (
-          <Subtitle>
-            <VitalBar
-              isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
-              data={data}
-              showBar={false}
-              showDurationDetail={false}
-              showDetail
+                const data = {
+                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+                    listItem,
+                    vital,
+                    false
+                  ),
+                };
+
+                return (
+                  <Fragment>
+                    <GrowLink to={target}>
+                      <Truncate value={transaction} maxLength={40} />
+                    </GrowLink>
+                    <VitalBarCell>
+                      <VitalBar
+                        isLoading={provided.widgetData.list?.isLoading}
+                        vital={settingToVital[props.chartSetting]}
+                        data={data}
+                        showBar
+                        showDurationDetail={false}
+                        showDetail={false}
+                        showTooltip
+                        barHeight={20}
+                      />
+                    </VitalBarCell>
+                  </Fragment>
+                );
+              })}
+              content={
+                <_VitalChart
+                  {...provided.widgetData.chart}
+                  {...provided}
+                  field={field}
+                  vitalFields={vitalFields}
+                  grid={provided.grid}
+                />
+              }
             />
-          </Subtitle>
-        );
-      }}
-      EmptyComponent={WidgetEmptyStateWarning}
-      HeaderActions={provided => {
-        const vital = settingToVital[props.chartSetting];
-        const target = vitalDetailRouteWithQuery({
-          orgSlug: organization.slug,
-          query: eventView.generateQueryStringObject(),
-          vitalName: vital,
-          projectID: decodeList(location.query.project),
-        });
-
-        return (
-          <Fragment>
-            <div>
-              <Button
-                onClick={handleViewAllClick}
-                to={target}
-                size="sm"
-                data-test-id="view-all-button"
-              >
-                {t('View All')}
-              </Button>
-            </div>
-            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
-          </Fragment>
-        );
-      }}
-      Queries={Queries}
-      Visualizations={[
+          ),
+          // TODO double check this height is fine
+          // looks like it affects the loading sreen height
+          height: props.chartHeight,
+          noPadding: true,
+        },
+      ]
+    : [
         {
           component: provided => (
             <_VitalChart
@@ -355,10 +365,78 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               })}
             />
           ),
-          height: 124,
+          height: 30,
           noPadding: true,
         },
-      ]}
+      ];
+
+  return (
+    <GenericPerformanceWidget<DataType>
+      {...props}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
+      location={location}
+      Subtitle={provided => {
+        const listItem = provided.widgetData.list?.data[selectedListIndex];
+
+        if (!listItem) {
+          return <Subtitle />;
+        }
+
+        const vital = settingToVital[props.chartSetting];
+
+        const data = {
+          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+            listItem,
+            vital,
+            false
+          ),
+        };
+
+        return (
+          <Subtitle>
+            <VitalBar
+              isLoading={provided.widgetData.list?.isLoading}
+              vital={settingToVital[props.chartSetting]}
+              data={data}
+              showBar={false}
+              showDurationDetail={false}
+              showDetail
+            />
+          </Subtitle>
+        );
+      }}
+      EmptyComponent={WidgetEmptyStateWarning}
+      HeaderActions={provided => {
+        const vital = settingToVital[props.chartSetting];
+        const target = vitalDetailRouteWithQuery({
+          orgSlug: organization.slug,
+          query: eventView.generateQueryStringObject(),
+          vitalName: vital,
+          projectID: decodeList(location.query.project),
+        });
+
+        return (
+          <Fragment>
+            <div>
+              <Button
+                onClick={handleViewAllClick}
+                to={target}
+                size="sm"
+                data-test-id="view-all-button"
+              >
+                {t('View All')}
+              </Button>
+            </div>
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
+          </Fragment>
+        );
+      }}
+      Queries={Queries}
+      Visualizations={visualizations}
     />
   );
 }
