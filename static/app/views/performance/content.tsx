@@ -25,6 +25,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
+import {getLandingDisplayFromParam} from './landing/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
 import {
@@ -97,6 +98,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   useRouteAnalyticsParams({
     project_platforms: getSelectedProjectPlatforms(location, projects),
     show_onboarding: onboardingProject !== undefined,
+    tab: getLandingDisplayFromParam(location)?.field,
   });
 
   useEffect(() => {
