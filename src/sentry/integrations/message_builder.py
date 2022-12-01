@@ -46,6 +46,8 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
         group = getattr(obj, "group", obj)
         if group.issue_category == GroupCategory.PERFORMANCE:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        elif group.occurrence:
+            title = group.occurrence.issue_title
         else:
             title = obj.title
 
@@ -85,7 +87,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
-    if event and event.occurrence.evidence_display is not None:
+    if event and event.occurrence and event.occurrence.evidence_display is not None:
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
