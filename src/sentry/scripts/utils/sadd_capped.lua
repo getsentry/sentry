@@ -1,10 +1,11 @@
 -- Remove elements from a set until it is < max_size, then add an element.
 assert(#KEYS == 1, "provide exactly one set key")
-assert(#ARGV == 2, "provide a value and a max_size")
+assert(#ARGV == 3, "provide a value, max_size and a TTL")
 
 local key = KEYS[1]
 local value = ARGV[1]
 local max_size = tonumber(ARGV[2])
+local ttl = ARGV[3]
 
 print(key)
 print(value)
@@ -22,4 +23,4 @@ if inserted then
     return current_size
 end
 
-return nil
+redis.call("EXPIRE", key, ttl)

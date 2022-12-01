@@ -15,6 +15,10 @@ from sentry.utils.safe import safe_execute
 #: to store in redis.
 MAX_SET_SIZE = 1000
 
+#: Retention of a set.
+#: Remove the set if it has not received any updates for 24 hours.
+SET_TTL = 24 * 60 * 60
+
 
 add_to_set = redis.load_script("utils/sadd_capped.lua")
 
@@ -31,7 +35,7 @@ def _get_redis_client() -> Any:
 def _store_transaction_name(project: Project, transaction_name: str) -> None:
     client = _get_redis_client()
     redis_key = _get_redis_key(project)
-    add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE])
+    add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
 def _get_transaction_names(project: Project) -> Set[str]:
