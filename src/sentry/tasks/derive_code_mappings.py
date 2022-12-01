@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, List, Mapping, Tuple, Union
+from typing import Any, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
@@ -33,7 +33,7 @@ def derive_code_mappings(
     project_id: int,
     data: NodeData,
     dry_run=False,
-) -> Union[List[RepositoryProjectPathConfig], None]:
+) -> None:
     """
     Derive code mappings for a project given data from a recent event.
 
@@ -52,24 +52,24 @@ def derive_code_mappings(
     ) or features.has("organizations:derive-code-mappings-dry-run", organization)
     if not (dry_run or should_continue):
         logger.info(f"Event from {organization.slug} org should not be processed.")
-        return None
+        return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
-        return None
+        return
 
     installation, organization_integration = get_installation(organization)
     if not installation:
-        return None
+        return
 
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
         report_project_codemappings(code_mappings, stacktrace_paths, project)
-        return None
+        return
 
-    return set_project_codemappings(code_mappings, organization_integration, project)
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
@@ -133,12 +133,11 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-) -> List[RepositoryProjectPathConfig]:
+) -> None:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
-    stored_code_mappings = []
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
         repository, _ = Repository.objects.get_or_create(
@@ -172,9 +171,6 @@ def set_project_codemappings(
                     "existing_code_mapping": cm,
                 },
             )
-        else:
-            stored_code_mappings.append(cm)
-    return stored_code_mappings
 
 
 def report_project_codemappings(

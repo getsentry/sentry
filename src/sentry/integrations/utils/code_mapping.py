@@ -296,6 +296,11 @@ class CodeMappingTreesHelper:
     def _potential_match_with_transformation(
         self, src_file: str, frame_filename: FrameFilename
     ) -> bool:
+        """Determine if the frame filename represents a source code file.
+
+        Languages like Python include the package name at the front of the frame_filename, thus, we need
+        to drop it before we try to match it.
+        """
         match = False
         # For instance:
         #  src_file: "src/sentry/integrations/slack/client.py"

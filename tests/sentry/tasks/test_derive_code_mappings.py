@@ -68,9 +68,8 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
                     Repo(repo_name, "master"), ["static/app/utils/handleXhrErrorResponse.tsx"]
                 )
             }
-            code_mappings = derive_code_mappings(self.project.id, self.event_data)
-            assert code_mappings is not None
-            code_mapping = code_mappings[0]
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "./app/"
             assert code_mapping.source_root == "static/app"
             assert code_mapping.repository.name == repo_name
