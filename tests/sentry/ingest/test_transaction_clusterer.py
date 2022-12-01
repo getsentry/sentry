@@ -55,5 +55,5 @@ def test_collection():
     for name in set_entries2:
         assert name.startswith("tx-project2-")
 
-    # TODO: Test project without redis key
-    # TODO: clean up redis
+    project3 = Project(id=103, name="project3", organization_id=1)
+    assert set() == get_transaction_names(project3)

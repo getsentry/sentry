@@ -38,4 +38,4 @@ def get_transaction_names(project: Project) -> Set[str]:
     redis_key = get_redis_key(project)
 
     # TODO: Not sure if this works for large sets in production
-    return set(client.smembers(redis_key))
+    return client.smembers(redis_key)
