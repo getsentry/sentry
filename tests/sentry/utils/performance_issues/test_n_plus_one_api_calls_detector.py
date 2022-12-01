@@ -85,7 +85,7 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         },
     ],
 )
-def test_accepts_valid_spans(span):
+def test_allows_eligible_spans(span):
     assert NPlusOneAPICallsDetector.is_span_eligible(span)
 
 
@@ -109,7 +109,7 @@ def test_accepts_valid_spans(span):
         },
     ],
 )
-def test_rejects_invalid_spans(span):
+def test_rejects_ineligible_spans(span):
     assert not NPlusOneAPICallsDetector.is_span_eligible(span)
 
 
