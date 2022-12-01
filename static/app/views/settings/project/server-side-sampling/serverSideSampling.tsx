@@ -83,7 +83,7 @@ export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
-  const hasAccess = organization.access.includes('project:write');
+  const hasAccess = false;
   const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
@@ -660,11 +660,6 @@ export function ServerSideSampling({project}: Props) {
                 >
                   <AddRuleButton
                     disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t("You don't have permission to add a rule")
-                        : undefined
-                    }
                     priority="primary"
                     onClick={() => navigate(`${samplingProjectSettingsPath}rules/new/`)}
                     icon={<IconAdd isCircled />}

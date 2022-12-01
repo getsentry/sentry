@@ -25,12 +25,7 @@ export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
         )}
       </Paragraph>
       <ButtonList gap={1}>
-        <Button
-          priority="primary"
-          onClick={onGetStarted}
-          disabled={!hasAccess}
-          title={hasAccess ? undefined : t('You do not have permission to set up rules')}
-        >
+        <Button priority="primary" onClick={onGetStarted} disabled={!hasAccess}>
           {t('Start Setup')}
         </Button>
         <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={onReadDocs} external>
