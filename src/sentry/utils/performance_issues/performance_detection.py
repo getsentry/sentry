@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from urllib.parse import urlparse
 
 import sentry_sdk
 
@@ -928,20 +929,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        span_id = span.get("span_id", None)
+        if not NPlusOneAPICallsDetector.is_span_valid(span):
+            return
+
         op = span.get("op", None)
-        hash = span.get("hash", None)
-
-        if not span_id or not op or not hash:
-            return
-
-        description = span.get("description")
-        if not description:
-            return
-
-        if description.strip()[:3].upper() != "GET":
-            return
-
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
@@ -962,6 +953,31 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         else:
             self._maybe_store_problem()
             self.spans = [span]
+
+    @classmethod
+    def is_span_valid(cls, span: Span) -> bool:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        hash = span.get("hash", None)
+
+        if not span_id or not op or not hash:
+            return False
+
+        description = span.get("description")
+        if not description:
+            return False
+
+        if description.strip()[:3].upper() != "GET":
+            return False
+
+        # Ignore anything that looks like an asset
+        data = span.get("data") or {}
+        parsed_url = urlparse(data.get("url") or "")
+        _pathname, extension = os.path.splitext(parsed_url.path)
+        if extension and extension in [".js", ".css"]:
+            return False
+
+        return True
 
     def on_complete(self):
         self._maybe_store_problem()
