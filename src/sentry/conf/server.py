@@ -1040,6 +1040,8 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Normalize transaction names during ingestion.
     "organizations:transaction-name-normalize": False,
+    # Try to derive normalization rules by clustering transaction names.
+    "organizations:transaction-name-clusterer": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
