@@ -35,6 +35,7 @@ def format_actor_option(actor: Team | APIUser) -> Mapping[str, str]:
 def build_attachment_title(obj: Group | GroupEvent) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
+    title = obj.title
 
     if ev_type == "error" and "type" in ev_metadata:
         title = ev_metadata["type"]
@@ -48,6 +49,12 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
         else:
             title = obj.title
+        elif hasattr(group, "occurrence"):
+            title = group.occurrence.issue_title
+        elif not hasattr(obj, "occurrence"):
+            event = obj.get_latest_event()
+            if event.occurrence is not None:
+                title = event.occurrence.issue_title
 
     # Explicitly typing to satisfy mypy.
     title_str: str = title
@@ -85,7 +92,12 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
-    if ev_type == "error":
+    if event and hasattr(event, "occurrence"):
+        if event.occurrence.evidence_display is not None:
+            important = event.occurrence.important_evidence_display
+            if important:
+                return important.value
+    elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
         if not event:

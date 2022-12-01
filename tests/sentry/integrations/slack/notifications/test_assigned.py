@@ -1,14 +1,19 @@
+import uuid
+from datetime import datetime
 from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
 
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
+from sentry.utils.dates import ensure_aware
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -141,6 +146,58 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == self.group.title
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_assignment_generic_issue(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when a generic issue type is assigned
+        """
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Attention", "Very important information!!!", True),
+                IssueEvidence("Evidence 2", "Not important", False),
+                IssueEvidence("Evidence 3", "Nobody cares about this", False),
+            ],
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save()
+        event.occurrence = occurrence
+
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        group = event.group
+
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+        attachment, text = get_attachment()
+        assert text == f"Issue assigned to {self.name} by themselves"
+        assert attachment["title"] == "Blocked Thread"
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
