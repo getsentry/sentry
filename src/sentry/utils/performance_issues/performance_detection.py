@@ -976,13 +976,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if extension and extension in [".js", ".css"]:
             return False
 
-        # Ignore backendy transactions
-        contexts = span.get("contexts") or {}
-        trace = contexts.get("trace") or {}
-        trace_op = trace.get("op")
-        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
-            return False
-
         return True
 
     def on_complete(self):
