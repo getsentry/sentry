@@ -36,7 +36,7 @@ from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
-from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.kafka import create_batching_kafka_consumer, create_ingest_occurences_consumer
 from sentry.utils.sdk import mark_scope_as_unsafe
 
 logger = logging.getLogger(__name__)
@@ -432,6 +432,9 @@ def get_ingest_consumer(
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
     topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
+    if settings.KAFKA_INGEST_OCCURRENCES in topic_names:
+        return create_ingest_occurences_consumer(settings.KAFKA_INGEST_OCCURRENCES)
+
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )

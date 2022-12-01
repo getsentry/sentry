@@ -1,10 +1,17 @@
 import logging
 import signal
 
+from arroyo import Topic
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
+from sentry.eventstream.kafka.consumer_strategy import OccurrenceStrategyFactory
 from sentry.utils import metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +57,23 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
     signal.signal(signal.SIGTERM, handler)
 
     return consumer
+
+
+def create_ingest_occurences_consumer(topic_name, **options):
+
+    consumer = KafkaConsumer(
+        build_kafka_consumer_configuration(
+            get_kafka_consumer_cluster_options(settings.KAFKA_TOPICS[topic_name]["cluster"]),
+            auto_offset_reset="latest",
+            group_id="test-group",
+        )
+    )
+
+    strategy_factory = OccurrenceStrategyFactory()
+
+    return StreamProcessor(
+        consumer,
+        Topic(topic_name),
+        strategy_factory,
+        ONCE_PER_SECOND,
+    )

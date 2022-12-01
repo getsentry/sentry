@@ -391,6 +391,39 @@ def post_process_forwarder(**options):
         return
 
 
+@click.option(
+    "--occurences-ingestion",
+    type=click.Choice(["errors", "transactions"]),
+    help="The type of entity to process (errors, transactions).",
+)
+@log_options()
+@configuration
+def occurrences_consumer(**options):
+    from sentry import eventstream
+    from sentry.eventstream.base import ForwarderNotRequired
+
+    try:
+        eventstream.run_post_process_forwarder(
+            entity=options["entity"],
+            consumer_group=options["consumer_group"],
+            topic=options["topic"],
+            commit_log_topic=options["commit_log_topic"],
+            synchronize_commit_group=options["synchronize_commit_group"],
+            commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
+            concurrency=options["concurrency"],
+            initial_offset_reset=options["initial_offset_reset"],
+            strict_offset_reset=not options["no_strict_offset_reset"],
+            use_streaming_consumer=bool(options["use_streaming_consumer"]),
+        )
+    except ForwarderNotRequired:
+        sys.stdout.write(
+            "The configured event stream backend does not need a forwarder "
+            "process to enqueue post-process tasks. Exiting...\n"
+        )
+        return
+
+
 @run.command("query-subscription-consumer")
 @click.option(
     "--group",

@@ -6,10 +6,16 @@ class ConsumerType:
     Events = "events"  # consumes simple events ( from the Events topic)
     Attachments = "attachments"  # consumes events with attachments ( from the Attachments topic)
     Transactions = "transactions"  # consumes transaction events ( from the Transactions topic)
+    Occurrences = "occurrences"  # consumes issue occurrences ( from the Occurrences topic)
 
     @staticmethod
     def all():
-        return (ConsumerType.Events, ConsumerType.Attachments, ConsumerType.Transactions)
+        return (
+            ConsumerType.Events,
+            ConsumerType.Attachments,
+            ConsumerType.Transactions,
+            ConsumerType.Occurrences,
+        )
 
     @staticmethod
     def get_topic_name(consumer_type):
@@ -21,4 +27,6 @@ class ConsumerType:
             return settings.KAFKA_INGEST_ATTACHMENTS
         elif consumer_type == ConsumerType.Transactions:
             return settings.KAFKA_INGEST_TRANSACTIONS
+        elif consumer_type == ConsumerType.Occurrences:
+            return settings.KAFKA_INGEST_OCCURRENCES
         raise ValueError("Invalid consumer type", consumer_type)
