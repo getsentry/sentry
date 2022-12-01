@@ -460,9 +460,8 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         release_ids.append(release.id)
 
     # We mark the first release (1.0) as expired.
-    boosted_releases = [
-        [release_ids[0], ts - Platform(default_project.platform).time_to_adoption * 2]
-    ]
+    time_to_adoption = Platform(default_project.platform).time_to_adoption
+    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
     for release_id in release_ids[1:]:
         boosted_releases.append([release_id, ts])
 

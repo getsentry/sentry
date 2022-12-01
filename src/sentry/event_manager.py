@@ -913,11 +913,11 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                                     trigger="dynamic_sampling:boost_release",
                                 )
 
-                            # fmt: off
-                            LatestReleaseBias(latest_release_params=latest_release_params)\
-                                .observe_release()\
-                                .boost_if_not_observed(on_boosted_release_added=on_release_boosted)
-                            # fmt: on
+                            LatestReleaseBias(
+                                latest_release_params=latest_release_params
+                            ).observe_release().boost_if_not_observed(
+                                on_boosted_release_added=on_release_boosted
+                            )
                         except Exception:
                             sentry_sdk.capture_exception()
 

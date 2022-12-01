@@ -2911,10 +2911,10 @@ class DSLatestReleaseBoostTest(TestCase):
                 project=project, version="1.0", date_added=datetime.now()
             )
             release_2 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.now() + timedelta(hours=1)
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
             )
             release_3 = Release.get_or_create(
-                project=project, version="1.0", date_added=datetime.now() + timedelta(hours=2)
+                project=project, version="3.0", date_added=datetime.now() + timedelta(hours=2)
             )
 
             for release, environment in (

@@ -8,7 +8,6 @@ from pytz import UTC
 
 from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.models import Project, Release
-from sentry.search.utils import get_latest_release
 from sentry.utils import redis
 
 ENVIRONMENT_SEPARATOR = ":e:"
@@ -35,7 +34,7 @@ def _get_project_platform(project_id: int) -> Platform:
         return Platform()
 
 
-def _is_release_active(current_timestamp: float, expiration_timestamp: float) -> bool:
+def _is_active(current_timestamp: float, expiration_timestamp: float) -> bool:
     return current_timestamp <= expiration_timestamp
 
 
@@ -73,9 +72,7 @@ class ExtendedBoostedRelease(BoostedRelease):
     platform: Platform
 
     def is_active(self, current_timestamp: float) -> bool:
-        return _is_release_active(
-            current_timestamp, self.timestamp + self.platform.time_to_adoption
-        )
+        return _is_active(current_timestamp, self.timestamp + self.platform.time_to_adoption)
 
 
 @dataclass
@@ -217,9 +214,7 @@ class ProjectBoostedReleases:
 
             # For efficiency reasons we don't parse the release and extend it with information, therefore we have to
             # check timestamps in the following way.
-            if _is_release_active(
-                current_timestamp, timestamp + self.project_platform.time_to_adoption
-            ):
+            if _is_active(current_timestamp, timestamp + self.project_platform.time_to_adoption):
                 # With this logic we want to find the boosted release with the lowest timestamp, if multiple releases
                 # have the same timestamp we are going to take the first one in the hash.
                 #
@@ -316,22 +311,41 @@ class LatestReleaseBias:
         return bool(release_observed == self.OBSERVED_VALUE)
 
     def _is_latest_release(self) -> bool:
-        # This function orders releases by date_released if present, otherwise date_added. Thus, those fields are
-        # what defines the total order relation between all releases.
-        try:
-            latest_release = get_latest_release(
-                projects=[self.latest_release_params.project.id],
-                environments=None,
-                organization_id=self.latest_release_params.project.organization.id,
-            )
+        incoming_release_date = self._get_release_date_from_incoming_release()
+        latest_release_date = self._get_release_date_from_latest_release()
 
-            # We only want to handle the case in which we have a single latest release.
-            if len(latest_release) == 1:
-                return bool(latest_release[0] == self.latest_release_params.release.version)
+        if incoming_release_date is not None:
+            # We also accept release with the same timestamp because that covers the case in which we have the same
+            # release with a different environment.
+            #
+            # In theory we could add a check that verifies whether the incoming release is already being boosted and
+            # only has a different environment and in this case use only the > but it adds complexity for no big benefit.
+            if latest_release_date is None or incoming_release_date >= latest_release_date:
+                self._update_latest_release_date(timestamp=incoming_release_date)
+                return True
 
-            return False
-        except Release.DoesNotExist():
-            return False
+        return False
+
+    def _update_latest_release_date(self, timestamp: float):
+        cache_key = self._generate_cache_key_for_project_latest_release()
+
+        return self.redis_client.set(cache_key, timestamp)
+
+    def _get_release_date_from_incoming_release(self) -> Optional[float]:
+        release = self.latest_release_params.release
+
+        if release.date_released:
+            return release.date_released.timestamp()
+        elif release.date_added:
+            return release.date_added.timestamp()
+
+    def _get_release_date_from_latest_release(self) -> Optional[float]:
+        cache_key = self._generate_cache_key_for_project_latest_release()
+        timestamp = self.redis_client.get(name=cache_key)
+        return float(timestamp) if timestamp else None
+
+    def _generate_cache_key_for_project_latest_release(self):
+        return f"ds::p:{self.latest_release_params.project.id}:latest_release"
 
     def _generate_cache_key_for_observed_release(self) -> str:
         return (
