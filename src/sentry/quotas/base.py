@@ -5,8 +5,9 @@ from typing import Optional
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -177,6 +178,18 @@ def _limit_from_settings(x):
     return int(x or 0) or None
 
 
+def index_data_category(event_type: Optional[str], organization: Organization) -> DataCategory:
+    if event_type == "transaction" and features.has(
+        "organizations:transaction-metrics-extraction", organization
+    ):
+        # TODO: This logic should move into sentry-relay, once the consequences
+        # of making `from_event_type` return `TRANSACTION_INDEXED` are clear.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
+
+
 class Quota(Service):
     """
     Quotas handle tracking a project's usage and respond whether or not a
@@ -316,7 +329,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quotas(self, org):
+    def get_project_abuse_quotas(self, org: Organization):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
@@ -337,7 +350,7 @@ class Quota(Service):
                     "getsentry.rate-limit.project-transactions",
                 ),
                 "pati",  # project abuse transaction indexed limit
-                (DataCategory.TRANSACTION_INDEXED,),
+                (index_data_category("transaction", org),),
             ),
             (
                 "project-abuse-quota.attachment-limit",
