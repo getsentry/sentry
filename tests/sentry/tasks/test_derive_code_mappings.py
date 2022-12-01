@@ -1,7 +1,9 @@
 from copy import deepcopy
 from unittest.mock import patch
 
-from sentry.integrations.utils.code_mapping import CodeMapping, Repo
+import responses
+
+from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
@@ -12,15 +14,71 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestIdentfiyStacktracePaths(TestCase):
+class BaseDeriveCodeMappings(TestCase):
     def setUp(self):
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
         )
-        self.project = self.create_project(
+        self.project = self.create_project(organization=self.organization)
+
+
+class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.test_data = {
+            "platform": "javascript",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "module": "@sentry/browser/node_modules/@sentry/core/esm/hub",
+                        "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
+                        "abs_path": "webpack:///../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
+                        "in_app": False,
+                    },
+                    {
+                        "module": "app/utils/handleXhrErrorResponse",
+                        "filename": "./app/utils/handleXhrErrorResponse.tsx",
+                        "abs_path": "webpack:///./app/utils/handleXhrErrorResponse.tsx",
+                        "in_app": True,
+                    },
+                ]
+            },
+        }
+        self.event_data = self.store_event(data=self.test_data, project_id=self.project.id).data
+
+    def test_find_stacktrace_paths_single_project(self):
+        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        assert stacktrace_paths == ["./app/utils/handleXhrErrorResponse.tsx"]
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings(self):
+        repo_name = "foo/bar"
+        self.create_integration(
             organization=self.organization,
-            platform="python",
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
         )
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(
+                    Repo(repo_name, "master"), ["static/app/utils/handleXhrErrorResponse.tsx"]
+                )
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            # ./app/foo.tsx -> foo.tsx -> static/app/foo.tsx
+            assert code_mapping.stack_root == "./app/"
+            assert code_mapping.source_root == "static/app/"
+            assert code_mapping.repository.name == repo_name
+
+
+class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
         self.test_data = {
             "message": "Kaboom!",
             "platform": "python",
@@ -51,8 +109,7 @@ class TestIdentfiyStacktracePaths(TestCase):
     def test_finds_stacktrace_paths_single_project(self):
         event = self.store_event(data=self.test_data, project_id=self.project.id)
 
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
@@ -60,11 +117,10 @@ class TestIdentfiyStacktracePaths(TestCase):
 
     def test_skips_nonpython_projects(self):
         new_data = deepcopy(self.test_data)
-        new_data["platform"] = "javascript"
+        new_data["platform"] = "elixir"
         event = self.store_event(data=new_data, project_id=self.project.id)
 
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
 
         assert sorted(stacktrace_paths) == []
 
@@ -73,8 +129,7 @@ class TestIdentfiyStacktracePaths(TestCase):
         data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])
         event = self.store_event(data=data, project_id=self.project.id)
 
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
