@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -35,6 +36,16 @@ interface StacktraceLinkProps {
    */
   line: string;
 }
+
+const supportedStacktracePlatforms: PlatformKey[] = [
+  'go',
+  'javascript',
+  'node',
+  'php',
+  'python',
+  'ruby',
+  'elixir',
+];
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const api = useApi();
@@ -170,7 +181,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
-  const hideErrors = event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+  const isMinifiedJsError =
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+  const hideErrors =
+    isMinifiedJsError ||
+    !supportedStacktracePlatforms.includes(event.platform as PlatformKey);
 
   // No match found - Has integration but no code mappings
   if (!hideErrors && (match.error || match.integrations.length > 0)) {

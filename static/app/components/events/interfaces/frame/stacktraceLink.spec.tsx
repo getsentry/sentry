@@ -126,4 +126,22 @@ describe('StacktraceLink', function () {
       expect(container).toBeEmptyDOMElement();
     });
   });
+
+  it('should hide stacktrace link error state on unsupported platforms', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />,
+      {context: TestStubs.routerContext()}
+    );
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
 });
