@@ -44,10 +44,8 @@ const defaultBreadcrumbs = [
 ];
 
 export function ReplayReaderParams({
+  attachments = [...defaultRRWebEvents, ...defaultBreadcrumbs],
   replayRecord = {},
-  rrwebEvents = defaultRRWebEvents,
-  breadcrumbs = defaultBreadcrumbs,
-  spans = [],
   errors = [],
 } = {}) {
   return {
@@ -99,9 +97,7 @@ export function ReplayReaderParams({
       countUrls: 1,
       ...replayRecord,
     },
-    rrwebEvents,
-    breadcrumbs,
-    spans,
+    attachments,
     errors,
   };
 }
