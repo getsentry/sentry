@@ -190,17 +190,22 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].reason_code == "project_abuse_limit"
 
     def test_legacy_transaction_quota(self):
+        # These legacy options need to be set, otherwise we'll run into
+        # AssertionError: reject-all quotas cannot be tracked
+        self.get_project_quota.return_value = (100, 10)
+        self.get_organization_quota.return_value = (1000, 10)
+
         self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         with self.feature({"organizations:transaction-metrics-extraction": False}):
             quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[1].id == "pati"
-        assert quotas[1].scope == QuotaScope.PROJECT
-        assert quotas[1].scope_id is None
-        assert quotas[1].categories == {DataCategory.TRANSACTION}
-        assert quotas[1].limit == 6000
-        assert quotas[1].window == 10
-        assert quotas[1].reason_code == "project_abuse_limit"
+        assert quotas[0].id == "pati"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {DataCategory.TRANSACTION}
+        assert quotas[0].limit == 6000
+        assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
 
     @patcher.object(RedisQuota, "get_project_quota")
     def get_project_quota(self):

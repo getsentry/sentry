@@ -7,7 +7,6 @@ from django.core.cache import cache
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.models.organization import Organization
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -178,7 +177,7 @@ def _limit_from_settings(x):
     return int(x or 0) or None
 
 
-def index_data_category(event_type: Optional[str], organization: Organization) -> DataCategory:
+def index_data_category(event_type: Optional[str], organization) -> DataCategory:
     if event_type == "transaction" and features.has(
         "organizations:transaction-metrics-extraction", organization
     ):
@@ -329,7 +328,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quotas(self, org: Organization):
+    def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
