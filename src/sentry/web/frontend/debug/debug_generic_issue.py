@@ -37,11 +37,12 @@ class DebugGenericIssueEmailView(View):
                 IssueEvidence("Name 2", "Value 2", False),
                 IssueEvidence("Name 3", "Value 3", False),
             ],
-            GroupType.ERROR,
+            GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
         occurrence.save()
         event.occurrence = occurrence
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
         group = event.group
 

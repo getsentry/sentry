@@ -51,7 +51,7 @@ GROUP_TYPE_TO_TEXT = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Calls",
-    GroupType.PROFILE_BLOCKED_THREAD: "Issue",
+    GroupType.PROFILE_BLOCKED_THREAD: "Blocked Thread",
 }
 
 
