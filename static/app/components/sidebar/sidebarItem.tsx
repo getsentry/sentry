@@ -12,6 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
 
@@ -115,7 +116,7 @@ const SidebarItem = ({
     (!hasPanel &&
       router &&
       toPathWithoutReferrer &&
-      location.pathname.startsWith(toPathWithoutReferrer)) ||
+      location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer))) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||
