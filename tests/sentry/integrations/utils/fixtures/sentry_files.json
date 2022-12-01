@@ -2576,6 +2576,7 @@
     "src/sudo/signals.py",
     "src/sudo/utils.py",
     "src/sudo/views.py",
+    "static/app/utils/handleXhrErrorResponse.tsx",
     "static/app/views/eventsV2/resultsHeader.tsx",
     "static/app/views/organizationRoot.spec.jsx",
     "tools/__init__.py",

@@ -102,7 +102,13 @@ const mockedReleaseWithHealth = TestStubs.Release({
   authors: [mockedUser1, mockedUser2],
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
