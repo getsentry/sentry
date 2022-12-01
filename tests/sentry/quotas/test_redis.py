@@ -222,29 +222,18 @@ class RedisQuotaTest(TestCase):
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
-
         quotas = self.quota.get_quotas(self.project)
 
-        # get_quotas now includes project abuse quotas
-        # although... not sure where these values are coming from
-        # options.get("getsentry.rate-limit.project-errors") = 1
-        # options.get("project-abuse-quota.window") = 20
-        assert quotas[0].id == "pae"
+        assert quotas[0].id == "p"
         assert quotas[0].scope == QuotaScope.PROJECT
-        assert quotas[0].scope_id is None
-        assert quotas[0].limit == 20
-        assert quotas[0].window == 20
-
-        assert quotas[1].id == "p"
-        assert quotas[1].scope == QuotaScope.PROJECT
-        assert quotas[1].scope_id == str(self.project.id)
-        assert quotas[1].limit == 200
+        assert quotas[0].scope_id == str(self.project.id)
+        assert quotas[0].limit == 200
+        assert quotas[0].window == 60
+        assert quotas[1].id == "o"
+        assert quotas[1].scope == QuotaScope.ORGANIZATION
+        assert quotas[1].scope_id == str(self.organization.id)
+        assert quotas[1].limit == 300
         assert quotas[1].window == 60
-        assert quotas[2].id == "o"
-        assert quotas[2].scope == QuotaScope.ORGANIZATION
-        assert quotas[2].scope_id == str(self.organization.id)
-        assert quotas[2].limit == 300
-        assert quotas[2].window == 60
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
