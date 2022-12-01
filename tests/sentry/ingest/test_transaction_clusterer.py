@@ -1,8 +1,8 @@
 from unittest import mock
 
 from sentry.ingest.transaction_clusterer.collect.redis import (
-    get_transaction_names,
-    store_transaction_name,
+    _get_transaction_names,
+    _store_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
@@ -43,17 +43,17 @@ def test_collection():
 
     for project in (project1, project2):
         for i in range(len(project.name)):
-            store_transaction_name(project, f"tx-{project.name}-{i}")
-            store_transaction_name(project, f"tx-{project.name}-{i}")
+            _store_transaction_name(project, f"tx-{project.name}-{i}")
+            _store_transaction_name(project, f"tx-{project.name}-{i}")
 
-    set_entries1 = get_transaction_names(project1)
+    set_entries1 = _get_transaction_names(project1)
     assert set(set_entries1) == {"tx-p1-0", "tx-p1-1"}
 
-    set_entries2 = get_transaction_names(project2)
+    set_entries2 = _get_transaction_names(project2)
     assert len(set_entries2) == 5
     # We don't know which entries made it into the final set:
     for name in set_entries2:
         assert name.startswith("tx-project2-")
 
     project3 = Project(id=103, name="project3", organization_id=1)
-    assert set() == get_transaction_names(project3)
+    assert set() == _get_transaction_names(project3)
