@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, call, patch
 
+import pytest
+
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
@@ -60,6 +62,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     ]
 
 
+@pytest.mark.django_db
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -326,7 +329,9 @@ class PerformanceDetectionTest(unittest.TestCase):
         )
 
     def test_calls_partial_span_op_allowed(self):
-        span_event = create_event([create_span("http.client", 2001.0, "http://example.com")] * 1)
+        span_event = create_event(
+            [create_span("db.query", 2001.0, "SELECT something FROM something_else")] * 1
+        )
 
         sdk_span_mock = Mock()
 
@@ -657,7 +662,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call("_pi_slow_span", "b33db57efd994615"),
                 call(
                     "_pi_sequential",
                     "b409e78a092e642f",
@@ -684,12 +689,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -703,7 +708,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "b409e78a092e642f",
@@ -719,12 +723,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -738,7 +742,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "8e554c84cdc9731e",
@@ -754,12 +757,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -773,7 +776,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "86d2ede57bbf48d4",
                 ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
                     "8e554c84cdc9731e",
@@ -878,29 +880,14 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(query_waterfall_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
-                call("_pi_all_issue_count", 2),
+                call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", ""),
                 call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
                 call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
-                call(
-                    "_pi_consecutive_db",
-                    {
-                        "timestamp": 1662056814.453033,
-                        "start_timestamp": 1662056814.22666,
-                        "exclusive_time": 226.372957,
-                        "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 1",
-                        "op": "db",
-                        "span_id": "abca1c35669c11f2",
-                        "parent_span_id": "a296dfaaab5a030d",
-                        "trace_id": "d64d5433cff94af4894f6305f9f6d4ea",
-                        "hash": "418e23c9bc52ee11",
-                        "same_process_as_parent": True,
-                    },
-                ),
-                call("_pi_slow_span", "870ada8266466319"),
+                call("_pi_consecutive_db", "abca1c35669c11f2"),
             ]
         )
 
@@ -928,13 +915,91 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "",
                 ),
                 call("_pi_transaction", "4e7c82a05f514c93b6101d255ca14f89"),
-                call("_pi_slow_span", "9f31e1ee4ef94970"),
+                call("_pi_slow_span", "a05754d3fde2db29"),
             ]
         )
 
+    def test_does_not_detect_consecutive_db_spans_with_fast_spans(self):
+        span_duration = 1
+        spans = [
+            create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
+            create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
+            create_span("db", span_duration, "SELECT `product`.`id` FROM `products`"),
+        ]
+        spans = list(
+            map(
+                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
+            )  # ensures spans don't overlap
+        )
+        consecutive_db_event = create_event(
+            spans,
+            "a" * 16,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+    def test_does_not_detect_consecutive_db_spans_with_where(self):
+        span_duration = 5
+        spans = [
+            create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `books_author`.`id` = %s",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `product`.`id` FROM `products` WHERE `product`.`name` = %s",
+            ),
+        ]
+        spans = list(
+            map(
+                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
+            )  # ensures spans don't overlap
+        )
+        consecutive_db_event = create_event(
+            spans,
+            "a" * 16,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+    def test_does_not_detect_consecutive_db_spans_with_truncated_query(self):
+        span_duration = 10
+        spans = [
+            create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `order`.`name` = %s",
+            ),
+            create_span("db", span_duration, "SELECT `product`.`id` FROM `products` ..."),
+        ]
+        spans = list(
+            map(
+                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
+            )  # ensures spans don't overlap
+        )
+        consecutive_db_event = create_event(
+            spans,
+            "a" * 16,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
     def test_detects_consecutive_db_spans(self):
         SECOND = 1000
-        span_duration = 5 * SECOND
+        span_duration = 1 * SECOND
         spans = [
             create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
             create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
@@ -959,26 +1024,38 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_sdk_name", "sentry.python"),
                 call("_pi_transaction", "aaaaaaaaaaaaaaaa"),
                 call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
-                call(
-                    "_pi_consecutive_db",
-                    {
-                        "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                        "parent_span_id": "aaaaaaaaaaaaaaaa",
-                        "span_id": "bbbbbbbbbbbbbbbb",
-                        "start_timestamp": 0.0,
-                        "timestamp": 5.0,
-                        "same_process_as_parent": True,
-                        "op": "db",
-                        "description": "SELECT `customer`.`id` FROM `customers`",
-                        "fingerprint": None,
-                        "tags": None,
-                        "data": None,
-                        "hash": "",
-                    },
-                ),
-                call("_pi_slow_span", "bbbbbbbbbbbbbbbb"),
+                call("_pi_consecutive_db", "bbbbbbbbbbbbbbbb"),
             ]
         )
+
+    def test_detects_file_io_main_thread(self):
+        file_io_event = EVENTS["file-io-on-main-thread"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(file_io_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call("_pi_all_issue_count", 1),
+                call("_pi_sdk_name", "sentry.java.android.timber"),
+                call("_pi_transaction", "c119e45a9d724b1891df4651ebf9e6db"),
+                call(
+                    "_pi_file_io_main_thread_fp",
+                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
+                ),
+                call("_pi_file_io_main_thread", "054ba3a374d543eb"),
+            ]
+        )
+
+    def test_does_not_detect_file_io_main_thread(self):
+        file_io_event = EVENTS["file-io-on-main-thread"]
+        file_io_event["spans"][0]["data"]["blocked_ui_thread"] = False
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(file_io_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
 
 class PrepareProblemForGroupingTest(unittest.TestCase):

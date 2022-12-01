@@ -233,10 +233,7 @@ def test_project_config_uses_filters_and_sampling_feature(
     cfg = cfg.to_dict()
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
 
-    if has_dyn_sampling:
-        assert dynamic_sampling == dyn_sampling_data()
-    else:
-        assert dynamic_sampling is None
+    assert dynamic_sampling is None
 
 
 @pytest.mark.django_db
@@ -260,10 +257,7 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     cfg = cfg.to_dict()
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
 
-    if active:
-        assert dynamic_sampling == dyn_sampling_data(active)
-    else:
-        assert dynamic_sampling == {"mode": "total", "rules": []}
+    assert dynamic_sampling is None
 
 
 @pytest.mark.django_db
@@ -317,10 +311,6 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
     }
 
     default_project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
-    release = Factories.create_release(
-        project=default_project,
-        version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
-    )
     with Feature(
         {
             "organizations:server-side-sampling": True,
@@ -331,10 +321,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
 
     cfg = cfg.to_dict()
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-    assert dynamic_sampling["rules"][0]["condition"]["inner"] == [
-        {"op": "glob", "name": "trace.release", "value": [release.version]}
-    ]
-    assert dynamic_sampling["rules"][1]["condition"]["inner"] == []
+    assert dynamic_sampling is None
 
 
 @pytest.mark.django_db
@@ -394,7 +381,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             True,
             False,
             {"rules": []},
-            {"mode": "total", "rules": []},
+            None,
         ),
         (
             True,
@@ -529,11 +516,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["3.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -550,11 +537,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["4.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -571,11 +558,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["5.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -592,11 +579,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["6.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },
@@ -613,11 +600,11 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["7.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
                         {
-                            "op": "glob",
+                            "op": "eq",
                             "name": "trace.environment",
-                            "value": ["prod"],
+                            "value": "prod",
                         },
                     ],
                 },

@@ -12,6 +12,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -25,7 +26,8 @@ import {
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
@@ -148,7 +150,10 @@ export class OrganizationStats extends Component<Props> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    return this.hasProjectStats ? this.props.selection.projects : [];
+    const selection_projects = this.props.selection.projects.length
+      ? this.props.selection.projects
+      : [ALL_ACCESS_PROJECTS];
+    return this.hasProjectStats ? selection_projects : [ALL_ACCESS_PROJECTS];
   }
 
   /**
@@ -336,8 +341,13 @@ export class OrganizationStats extends Component<Props> {
                     <PageHeading>{t('Organization Usage Stats')}</PageHeading>
                   </PageHeader>
                   <p>
-                    {t(
-                      'We collect usage metrics on three categories: errors, transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                    {tct(
+                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
+                        ),
+                      }
                     )}
                   </p>
                 </Fragment>

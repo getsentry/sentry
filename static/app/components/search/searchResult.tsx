@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
@@ -10,10 +8,11 @@ import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
+import {useParams} from 'sentry/utils/useParams';
 
 import {Result} from './sources/types';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   highlighted: boolean;
   item: Result['item'];
   matches: Result['matches'];
@@ -38,7 +37,9 @@ function renderResultType({resultType, model}: Result['item']) {
   }
 }
 
-function SearchResult({item, matches, params, highlighted}: Props) {
+function SearchResult({item, matches, highlighted}: Props) {
+  const params = useParams<{orgId: string}>();
+
   const {sourceType, model, extra} = item;
 
   function renderContent() {
@@ -97,7 +98,7 @@ function SearchResult({item, matches, params, highlighted}: Props) {
   );
 }
 
-export default withRouter(SearchResult);
+export default SearchResult;
 
 const SearchDetail = styled('div')`
   font-size: 0.8em;

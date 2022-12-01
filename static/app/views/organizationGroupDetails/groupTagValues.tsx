@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
+import {RouteComponentProps, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -26,6 +25,8 @@ import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type RouteParams = {
   groupId: string;
@@ -292,7 +293,7 @@ class GroupTagValues extends AsyncComponent<
   }
 }
 
-export default withRouter(GroupTagValues);
+export default withSentryRouter(GroupTagValues);
 
 function ReplayButton({project, routes, orgId, tagValue}) {
   const replaySlug = `${project?.slug}:${tagValue.value}`;

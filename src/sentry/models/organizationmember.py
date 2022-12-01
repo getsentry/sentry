@@ -125,6 +125,8 @@ class OrganizationMember(Model):
             ("sso:linked", "sso:linked"),
             ("sso:invalid", "sso:invalid"),
             ("member-limit:restricted", "member-limit:restricted"),
+            ("idp:provisioned", "idp:provisioned"),
+            ("idp:role-restricted", "idp:role-restricted"),
         ),
         default=0,
     )

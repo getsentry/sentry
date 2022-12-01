@@ -12,7 +12,7 @@ from sentry.rules.history.preview import (
     preview,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -29,7 +29,14 @@ def get_hours(time: timedelta) -> int:
 
 @freeze_time()
 @region_silo_test
-class ProjectRulePreviewTest(TestCase):
+class ProjectRulePreviewTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.transaction_data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+
     def _set_up_first_seen(self):
         hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
@@ -328,10 +335,7 @@ class ProjectRulePreviewTest(TestCase):
 
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        ).copy()
+        event = self.transaction_data.copy()
         event.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
@@ -404,10 +408,7 @@ class ProjectRulePreviewTest(TestCase):
         issue = error.group
         issue.update(first_seen=prev_hour)
 
-        event = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        ).copy()
+        event = self.transaction_data.copy()
         event.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
@@ -445,19 +446,28 @@ class ProjectRulePreviewTest(TestCase):
 
 @freeze_time()
 @region_silo_test
-class FrequencyConditionTest(TestCase):
+class FrequencyConditionTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.transaction_data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+
     def test_top_groups(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         activity = {i: [] for i in range(FREQUENCY_CONDITION_GROUP_LIMIT + 1)}
+        dataset_map = {}
         for i in range(FREQUENCY_CONDITION_GROUP_LIMIT):
             for j in range(2):
-                self.store_event(
+                event = self.store_event(
                     project_id=self.project.id,
                     data={
                         "fingerprint": ["group-" + str(i)],
                         "timestamp": iso_format(prev_hour),
                     },
                 )
+                dataset_map[event.group_id] = Dataset.Events
         event = self.store_event(
             project_id=self.project.id,
             data={
@@ -465,9 +475,14 @@ class FrequencyConditionTest(TestCase):
                 "timestamp": iso_format(prev_hour),
             },
         )
+        dataset_map[event.group_id] = Dataset.Events
 
         activity = get_top_groups(
-            self.project, timezone.now() - timedelta(hours=2), timezone.now(), activity
+            self.project,
+            timezone.now() - timedelta(hours=2),
+            timezone.now(),
+            activity,
+            dataset_map,
         )
         assert event.group_id not in activity
 
@@ -506,10 +521,60 @@ class FrequencyConditionTest(TestCase):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group in result
 
+    def test_transaction(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        event = self.transaction_data.copy()
+        event.update(
+            {
+                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "timestamp": iso_format(prev_hour),
+                "tags": {"foo": "bar"},
+            }
+        )
+        transaction = self.store_event(project_id=self.project.id, data=event)
+        group = transaction.groups[0]
+
+        Activity.objects.create(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=prev_hour,
+            data={"event_id": transaction.event_id},
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group in result
+
+        conditions[1]["value"] = 1
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group not in result
+
+    def test_no_activity_event_filter(self):
+        conditions = [
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert not result
+
 
 @freeze_time()
 @region_silo_test
-class GetEventsTest(TestCase):
+class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         two_hours = timezone.now() - timedelta(hours=2)

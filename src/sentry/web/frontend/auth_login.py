@@ -1,3 +1,4 @@
+from random import randint
 from typing import Optional
 
 from django.conf import settings
@@ -262,7 +263,8 @@ class AuthLoginView(BaseView):
             "register_form": register_form,
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
-            "show_session_replay_banner": settings.SHOW_SESSION_REPLAY_BANNER,
+            "show_login_banner": settings.SHOW_LOGIN_BANNER,
+            "banner_choice": randint(0, 2),  # 3 possible banners
         }
 
         context.update(additional_context.run_callbacks(request))

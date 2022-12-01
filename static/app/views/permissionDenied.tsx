@@ -1,6 +1,4 @@
-import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -10,20 +8,21 @@ import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
 
 const ERROR_NAME = 'Permission Denied';
 
-type Props = WithRouterProps & {
+type Props = {
   organization: Organization;
   project?: Project;
 };
 
-class PermissionDenied extends Component<Props> {
-  componentDidMount() {
-    const {organization, project, routes} = this.props;
-
+function PermissionDenied(props: Props) {
+  const {organization, project} = props;
+  const routes = useRoutes();
+  useEffect(() => {
     const route = getRouteStringFromRoutes(routes);
     Sentry.withScope(scope => {
       scope.setFingerprint([ERROR_NAME, route]);
@@ -33,27 +32,26 @@ class PermissionDenied extends Component<Props> {
       scope.setExtra('projectFeatures', (project && project.features) || []);
       Sentry.captureException(new Error(`${ERROR_NAME}${route ? ` : ${route}` : ''}`));
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  render() {
-    return (
-      <SentryDocumentTitle title={t('Permission Denied')}>
-        <PageContent>
-          <LoadingError
-            message={tct(
-              `Your role does not have the necessary permissions to access this
-               resource, please read more about [link:organizational roles]`,
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
-                ),
-              }
-            )}
-          />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
+  return (
+    <SentryDocumentTitle title={t('Permission Denied')}>
+      <PageContent>
+        <LoadingError
+          message={tct(
+            `Your role does not have the necessary permissions to access this
+             resource, please read more about [link:organizational roles]`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
+              ),
+            }
+          )}
+        />
+      </PageContent>
+    </SentryDocumentTitle>
+  );
 }
 
-export default withRouter(withOrganization(withProject(PermissionDenied)));
+export default withOrganization(withProject(PermissionDenied));

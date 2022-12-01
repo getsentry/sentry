@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -7,6 +11,7 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass(frozen=True, eq=True)
@@ -22,6 +27,13 @@ class APIUser:
     is_authenticated: bool = False
     is_anonymous: bool = False
     is_active: bool = False
+    is_staff: bool = False
+    last_active: datetime.datetime | None = None
+    is_sentry_app: bool = False
+    password_usable: bool = False
+
+    def has_usable_password(self) -> bool:
+        return self.password_usable
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
@@ -36,6 +48,12 @@ class APIUser:
         return "User"
 
 
+class UserSerializeType(IntEnum):
+    SIMPLE = 0
+    DETAILED = 1
+    SELF_DETAILED = 2
+
+
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
     def get_many_by_email(self, email: str) -> List[APIUser]:
@@ -48,12 +66,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_from_group(self, group: "Group") -> List[APIUser]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_from_project(self, project_id: int) -> List["Group"]:
+    def get_from_project(self, project_id: int) -> List[Group]:
         """Get all users associated with a project identifier"""
         pass
 
@@ -68,13 +86,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        """
-        This method returns a User object given an actor ID
-        :param actor_id:
-        An actor ID to fetch
-        :return:
-        """
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 
     def get_user(self, user_id: int) -> Optional[APIUser]:
@@ -94,7 +106,13 @@ class UserService(InterfaceWithLifecycle):
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
     # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
     @abstractmethod
-    def serialize_users(self, user_ids: List[int]) -> List[Any]:
+    def serialize_users(
+        self,
+        user_ids: List[int],
+        *,
+        detailed: UserSerializeType = UserSerializeType.SIMPLE,
+        auth_context: AuthenticationContext | None = None,
+    ) -> List[Any]:
         """
         It is crucial that the returned order matches the user_ids passed in so that no introspection is required
         to match the serialized user and the original user_id.
@@ -104,7 +122,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @classmethod
-    def serialize_user(cls, user: "User") -> APIUser:
+    def serialize_user(cls, user: User) -> APIUser:
         args = {
             field.name: getattr(user, field.name)
             for field in fields(APIUser)
@@ -113,6 +131,7 @@ class UserService(InterfaceWithLifecycle):
         args["pk"] = user.pk
         args["display_name"] = user.get_display_name()
         args["is_superuser"] = user.is_superuser
+        args["password_usable"] = user.has_usable_password()
         return APIUser(**args)
 
 

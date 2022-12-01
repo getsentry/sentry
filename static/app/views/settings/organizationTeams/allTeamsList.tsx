@@ -15,19 +15,11 @@ type Props = {
   openMembership: boolean;
   organization: Organization;
   teamList: Array<Team>;
-  urlPrefix: string;
 };
 
-function AllTeamsList({
-  organization,
-  urlPrefix,
-  openMembership,
-  teamList,
-  access,
-}: Props) {
+function AllTeamsList({organization, openMembership, teamList, access}: Props) {
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
-      urlPrefix={urlPrefix}
       team={team}
       organization={organization}
       openMembership={openMembership}

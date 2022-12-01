@@ -1038,6 +1038,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Normalize transaction names during ingestion.
+    "organizations:transaction-name-normalize": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1095,8 +1097,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
-    # Enable widget viewer modal in dashboards
-    "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1140,6 +1140,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-post-process-group": False,
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
+    # Enable updated landing page widget designs
+    "organizations:performance-new-widget-designs": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -2639,11 +2641,11 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
 # Block symbolicate_event for this many seconds to wait for a initial response
 # from symbolicator after the task submission.
-SYMBOLICATOR_POLL_TIMEOUT = 10
+SYMBOLICATOR_POLL_TIMEOUT = 5
 
 # When retrying symbolication requests or querying for the result this set the
 # max number of second to wait between subsequent attempts.
-SYMBOLICATOR_MAX_RETRY_AFTER = 5
+SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
@@ -2719,37 +2721,15 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the event counter.
+    # Length of the sliding symbolicate_event budgeting window, in seconds.
+    #
+    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
+    # defined below.
+    "budget_time_window": 2 * 60,
+    # The bucket size of the project budget metric.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "counter_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event rates per project.
-    #
-    # symbolicate_event tasks report the rates of events per project to redis
-    # so that projects that exceed a reasonable rate can be sent to the low
-    # priority queue. This setting determines how long we keep these rates
-    # around.
-    #
-    # The LPQ selection is computed using the rate of the most recent events covered by this
-    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
-    # exact implementation.
-    "counter_time_window": 10 * 60,
-    # The bucket size of the processing duration histogram.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "duration_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event durations per project.
-    #
-    # symbolicate_event tasks report the processing durations of events per project to redis
-    # so that projects that exceed a reasonable duration can be sent to the low
-    # priority queue. This setting determines how long we keep these duration values
-    # around.
-    #
-    # The LPQ selection is computed using the durations of the most recent events covered by
-    # this time window.  See
-    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
-    # implementation.
-    "duration_time_window": 3 * 60,
+    "budget_bucket_size": 10,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #
@@ -2759,38 +2739,29 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 }
 
 # Tunable knobs for automatic LPQ eligibility.
-# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
-# This sampling rate needs to be considered when tuning any of the cutoff rates.
 #
-# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
-# event processing times.
+# LPQ eligibility is based on the average spent budget in a sliding time window
+# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
 #
-# A project is eligible for the LPQ based on event rate if
-# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
-# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
-# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+# The `project_budget` option is defined as the average per-second
+# "symbolication time budget" a project can spend.
+# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
+# this works.
+# The "regular interval" at which symbolication time is submitted is defined by
+# a combination of `SYMBOLICATOR_POLL_TIMEOUT` and `SYMBOLICATOR_MAX_RETRY_AFTER`.
 #
-# A project is eligible for the LPQ based on processing duration if it averages more than
-# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
-# of event processing durations in that window exceeds `min_p75_duration` seconds. See
-# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+# This value is already adjusted according to the
+# `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # The period that is considered for "recent events".
-    # Has to be a multiple of `counter_bucket_size` above.
-    "recent_event_period": 60,
-    # The minimum rate of events *per second* a project needs to have
-    # in the `recent_event_period` to be eligible for the LPQ.
-    "min_recent_event_rate": 5,
-    # The ratio of recent event rate over average event rate above which a project is eligible
-    # for the LPQ.
-    "recent_event_multiple": 4,
-    # The minimum rate of events *per minute* a project needs to have
-    # in the `duration_time_window` to be eligible for the LPQ.
-    "min_events_per_minute": 15,
-    # A project is considered for the LPQ if the p75 event processing time
-    # exceeds configured value.
-    # This considers events that *finished* during the last `duration_time_window`.
-    "min_p75_duration": 30,
+    # This is the per-project budget in per-second "symbolication time budget".
+    #
+    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
+    # -  1x 5-second event per second, or
+    # -  5x 1-second events per second, or
+    # - 10x 0.5-second events per second
+    #
+    # Cost increases quadratically with symbolication time.
+    "project_budget": 5.0
 }
 
 # XXX(meredith): Temporary metrics indexer
@@ -2926,8 +2897,8 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Show session replay banner on login page
-SHOW_SESSION_REPLAY_BANNER = False
+# Show banners on the login page that are defined in layout.html
+SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
@@ -2952,3 +2923,7 @@ SHOW_SESSION_REPLAY_BANNER = False
 #   },
 # }
 SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+
+# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
+# decorator.
+SINGLE_SERVER_SILO_MODE = False

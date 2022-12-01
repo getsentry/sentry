@@ -1,10 +1,11 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 
 describe('Breadcrumb', function () {
   it('renders the profiling link', function () {
-    const organization = TestStubs.Organization();
+    const {organization, routerContext} = initializeOrg();
     render(
       <Breadcrumb
         organization={organization}
@@ -21,12 +22,13 @@ describe('Breadcrumb', function () {
             },
           },
         ]}
-      />
+      />,
+      {context: routerContext}
     );
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/profiling/`
+      `/organizations/${organization.slug}/profiling/?`
     );
     expect(screen.getByText('foo')).toBeInTheDocument();
   });

@@ -27,7 +27,9 @@ function renderComponent(organization, eventView) {
 }
 
 function renderSimpleComponent(organization, extraProps) {
-  return render(<CreateAlertButton organization={organization} {...extraProps} />);
+  return render(<CreateAlertButton organization={organization} {...extraProps} />, {
+    context: TestStubs.routerContext(),
+  });
 }
 
 describe('CreateAlertFromViewButton', () => {
@@ -92,7 +94,11 @@ describe('CreateAlertFromViewButton', () => {
     userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/wizard/?`,
-      undefined
+      expect.objectContaining({
+        params: {
+          orgId: 'org-slug',
+        },
+      })
     );
   });
 
