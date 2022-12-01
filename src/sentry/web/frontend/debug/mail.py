@@ -15,7 +15,6 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
@@ -157,6 +156,71 @@ def make_group_generator(random, project):
             group.data = make_group_metadata(random, group)
 
         yield group
+
+
+def make_error_event(request, project, platform):
+    group = next(make_group_generator(get_random(request), project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data.pop("logentry", None)
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    group.message = event.search_message
+    event_type = get_event_type(event.data)
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    return event
+
+
+def make_performance_event(project):
+    with override_options(
+        {
+            "performance.issues.all.problem-creation": 1.0,
+            "performance.issues.all.problem-detection": 1.0,
+            "performance.issues.n_plus_one_db.problem-creation": 1.0,
+        }
+    ):
+        perf_data = dict(
+            load_data(
+                "transaction-n-plus-one",
+                timestamp=datetime(2022, 11, 11, 21, 39, 23, 30723),
+            )
+        )
+        perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+        perf_event_manager = EventManager(perf_data)
+        perf_event_manager.normalize()
+        perf_data = perf_event_manager.get_data()
+        perf_event = perf_event_manager.save(project.id)
+
+    perf_event = perf_event.for_group(perf_event.groups[0])
+    return perf_event
+
+
+def get_shared_context(rule, org, project, group, event):
+    return {
+        "rule": rule,
+        "rules": get_rules([rule], org, project),
+        "group": group,
+        "event": event,
+        "timezone": pytz.timezone("Europe/Vienna"),
+        # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+        #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+        "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+        "tags": event.tags,
+    }
 
 
 def add_unsubscribe_link(context):
@@ -314,38 +378,15 @@ class ActivityMailDebugView(View):
 
 @login_required
 def alert(request):
+    random = get_random(request)
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
 
-    random = get_random(request)
-    group = next(make_group_generator(random, project))
-
-    data = dict(load_data(platform))
-    data["message"] = group.message
-    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-    data.pop("logentry", None)
-    data["environment"] = "prod"
-    data["tags"] = [
-        ("logger", "javascript"),
-        ("environment", "prod"),
-        ("level", "error"),
-        ("device", "Other"),
-    ]
-
-    event_manager = EventManager(data)
-    event_manager.normalize()
-    data = event_manager.get_data()
-    event = event_manager.save(project.id)
-    # Prevent CI screenshot from constantly changing
-    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = get_event_type(event.data)
-
-    group.message = event.search_message
-    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    event = make_error_event(request, project, platform)
+    group = event.group
 
     rule = Rule(id=1, label="An example rule")
-    interface_list = get_interface_list(event)
     notification_reason = (
         random.randint(0, 1) > 0
         and f"We notified all members in the {project.get_full_name()} project of this issue"
@@ -356,20 +397,12 @@ def alert(request):
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
         context={
-            "rule": rule,
-            "rules": get_rules([rule], org, project),
-            "group": group,
-            "event": event,
-            "timezone": pytz.timezone("Europe/Vienna"),
-            "environment": random.randint(0, 1) > 0 and "prod" or None,
-            "notification_reason": notification_reason,
-            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
-            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
-            "interfaces": interface_list,
-            "tags": event.tags,
+            **get_shared_context(rule, org, project, group, event),
+            "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
+            "environment": random.randint(0, 1) > 0 and "prod" or None,
+            "notification_reason": notification_reason,
         },
     ).render(request)
 
@@ -380,49 +413,12 @@ def release_alert(request):
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
 
-    random = get_random(request)
-    group = next(make_group_generator(random, project))
-
-    data = dict(load_data(platform))
-    data["message"] = group.message
-    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-    data.pop("logentry", None)
-    data["environment"] = "prod"
-    data["tags"] = [
-        ("logger", "javascript"),
-        ("environment", "prod"),
-        ("level", "error"),
-        ("device", "Other"),
-    ]
-
-    event_manager = EventManager(data)
-    event_manager.normalize()
-    data = event_manager.get_data()
-    event = event_manager.save(project.id)
-    # Prevent CI screenshot from constantly changing
-    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = get_event_type(event.data)
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = random.randint(0, 100 * 1000)
-
-    group.message = event.search_message
-    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+    event = make_error_event(request, project, platform)
+    group = event.group
 
     rule = Rule(id=1, label="An example rule")
-
-    # XXX: this interface_list code needs to be the same as in
-    #      src/sentry/mail/adapter.py
-    interfaces = {}
-    for interface in event.interfaces.values():
-        body = interface.to_email_html(event)
-        if not body:
-            continue
-        text_body = interface.to_string(event)
-        interfaces[interface.get_title()] = {
-            "label": interface.get_title(),
-            "html": mark_safe(body),
-            "body": text_body,
-        }
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = get_random(request).randint(0, 100 * 1000)
 
     contexts = event.data["contexts"].items() if "contexts" in event.data else None
     event_user = event.data["event_user"] if "event_user" in event.data else None
@@ -431,14 +427,9 @@ def release_alert(request):
         html_template="sentry/emails/release_alert.html",
         text_template="sentry/emails/release_alert.txt",
         context={
-            "rules": get_rules([rule], org, project),
-            "group": group,
-            "event": event,
+            **get_shared_context(rule, org, project, group, event),
+            "interfaces": get_interface_list(event),
             "event_user": event_user,
-            "timezone": pytz.timezone("Europe/Vienna"),
-            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
-            "interfaces": interfaces,
-            "tags": event.tags,
             "contexts": contexts,
             "users_seen": users_seen,
             "project": project,
@@ -515,28 +506,9 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ):
-            perf_data = dict(
-                load_data(
-                    "transaction-n-plus-one",
-                )
-            )
-            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-            perf_event_manager = EventManager(perf_data)
-            perf_event_manager.normalize()
-            perf_data = perf_event_manager.get_data()
-            perf_event = perf_event_manager.save(project.id)
-
-        perf_event = perf_event.for_group(perf_event.groups[0])
+        perf_event = make_performance_event(project)
         # don't clobber error issue ids
         perf_event.group.id = i + 100
-
         perf_group = perf_event.group
 
         records.append(

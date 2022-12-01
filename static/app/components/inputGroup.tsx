@@ -44,7 +44,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
+export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -63,7 +63,9 @@ export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
 
   return (
     <InputGroupContext.Provider value={contextValue}>
-      <InputGroupWrap disabled={inputProps.disabled}>{children}</InputGroupWrap>
+      <InputGroupWrap disabled={inputProps.disabled} {...props}>
+        {children}
+      </InputGroupWrap>
     </InputGroupContext.Provider>
   );
 }
@@ -112,8 +114,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   }
 );
 
-interface InputItemsProps {
-  children?: React.ReactNode;
+interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Whether to disable pointer events on the leading/trailing item wrap. This
    * should be set to true when none of the items inside the wrap are
@@ -131,7 +132,11 @@ interface InputItemsProps {
  *     <Input />
  *   </InputGroup>
  */
-export function InputLeadingItems({children, disablePointerEvents}: InputItemsProps) {
+export function InputLeadingItems({
+  children,
+  disablePointerEvents,
+  ...props
+}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -151,6 +156,7 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
       data-test-id="input-leading-items"
+      {...props}
     >
       {children}
     </InputLeadingItemsWrap>
@@ -165,7 +171,11 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputTrailingItems({children, disablePointerEvents}: InputItemsProps) {
+export function InputTrailingItems({
+  children,
+  disablePointerEvents,
+  ...props
+}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -185,6 +195,7 @@ export function InputTrailingItems({children, disablePointerEvents}: InputItemsP
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
       data-test-id="input-trailing-items"
+      {...props}
     >
       {children}
     </InputTrailingItemsWrap>

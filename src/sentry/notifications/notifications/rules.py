@@ -155,6 +155,7 @@ class AlertRuleNotification(ProjectNotification):
                 "target_identifier": self.target_identifier,
                 "group": self.group.id,
                 "project_id": self.project.id,
+                "organization": self.organization.id,
             },
         )
 

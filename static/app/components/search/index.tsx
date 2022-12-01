@@ -15,7 +15,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {Result} from './sources/types';
 import List from './list';
@@ -82,7 +82,7 @@ function Search({
   searchOptions,
   sources,
 }: SearchProps): React.ReactElement {
-  const {router} = useRouteContext();
+  const router = useRouter();
 
   const params = useParams<{orgId: string}>();
   useEffect(() => {

@@ -42,7 +42,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -83,15 +83,14 @@ export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
-  const hasAccess = organization.access.includes('project:write');
+  const hasAccess = false;
   const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
   const params = useParams();
-  const routeContext = useRouteContext();
-  const router = routeContext.router;
+  const router = useRouter();
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
 
@@ -661,11 +660,6 @@ export function ServerSideSampling({project}: Props) {
                 >
                   <AddRuleButton
                     disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t("You don't have permission to add a rule")
-                        : undefined
-                    }
                     priority="primary"
                     onClick={() => navigate(`${samplingProjectSettingsPath}rules/new/`)}
                     icon={<IconAdd isCircled />}

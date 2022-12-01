@@ -43,17 +43,23 @@ export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
   const {timespan, cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return (
-    <Gridlines cols={cols} lineStyle="solid" remaining={remaining}>
+    <FullHeightGridLines cols={cols} lineStyle="solid" remaining={remaining}>
       {i => <Label>{formatTime((i + 1) * timespan)}</Label>}
-    </Gridlines>
+    </FullHeightGridLines>
   );
 }
 
 export function MinorGridlines({durationMs, minWidth = 20, width}: Props) {
   const {cols, remaining} = countColumns(durationMs, width, minWidth);
 
-  return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
+  return <FullHeightGridLines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
+
+const FullHeightGridLines = styled(Gridlines)`
+  height: 100%;
+  width: 100%;
+  place-items: stretch;
+`;
 
 const Label = styled('small')`
   font-variant-numeric: tabular-nums;
