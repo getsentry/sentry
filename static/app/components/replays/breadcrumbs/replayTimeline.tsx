@@ -53,7 +53,7 @@ function ReplayTimeline({}: Props) {
                   startTimestampMs={startTimestampMs}
                 />
               </UnderTimestamp>
-              <UnderTimestamp paddingTop="0">
+              <UnderTimestamp paddingTop="26px">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   durationMs={durationMs}
