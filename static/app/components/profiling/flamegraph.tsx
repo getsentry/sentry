@@ -33,7 +33,7 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {
-  computeConfigViewWithStategy,
+  computeConfigViewWithStrategy,
   formatColorForFrame,
   Rect,
   watchForResize,
@@ -80,7 +80,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot, zoomIntoFrame} = useFlamegraphProfiles();
+  const {threadId, selectedRoot, zoomIntoFrame, highlightFrames} =
+    useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -168,7 +169,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         // was specified, this should be used as the initial view.
         defined(zoomIntoFrame)
       ) {
-        const newConfigView = computeConfigViewWithStategy(
+        const newConfigView = computeConfigViewWithStrategy(
           'min',
           newView.configView,
           new Rect(
@@ -180,6 +181,37 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         );
         newView.setConfigView(newConfigView);
         return newView;
+      }
+
+      if (defined(highlightFrames)) {
+        const [firstFrame, ...frames] = flamegraph.findAllMatchingFrames(
+          highlightFrames.name,
+          highlightFrames.package
+        );
+
+        if (firstFrame) {
+          const rectParams = frames.reduce(
+            (acc, frame) => {
+              acc.x = Math.min(acc.x, frame.start);
+              acc.y = Math.min(acc.y, frame.depth);
+              acc.width = Math.max(acc.width, frame.end);
+              return acc;
+            },
+            {
+              x: firstFrame.start,
+              y: firstFrame.depth,
+              width: firstFrame.end,
+            }
+          );
+
+          const newConfigView = computeConfigViewWithStrategy(
+            'min',
+            newView.configView,
+            new Rect(rectParams.x, rectParams.y, rectParams.width, 1)
+          );
+          newView.setConfigView(newConfigView);
+          return newView;
+        }
       }
 
       // Because we render empty flamechart while we fetch the data, we need to make sure
@@ -222,10 +254,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     };
 
     const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
-      const newConfigView = computeConfigViewWithStategy(
+      const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
-        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
+        new Rect(frame.start, frame.depth, frame.end, 1)
       );
 
       flamegraphView.setConfigView(newConfigView);

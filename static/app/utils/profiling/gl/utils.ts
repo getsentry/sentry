@@ -636,7 +636,7 @@ export function computeHighlightedBounds(
 // we will only move the viewport to the right until the frame is in view. Exact strategy
 // means we will zoom into the frame by moving the viewport to the exact location of the frame
 // and setting the width of the view to that of the frame.
-export function computeConfigViewWithStategy(
+export function computeConfigViewWithStrategy(
   strategy: 'min' | 'exact',
   view: Rect,
   frame: Rect

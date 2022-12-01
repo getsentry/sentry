@@ -2,7 +2,7 @@ import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
-  computeConfigViewWithStategy,
+  computeConfigViewWithStrategy,
   computeHighlightedBounds,
   createProgram,
   createShader,
@@ -480,13 +480,13 @@ describe('computeHighlightedBounds', () => {
   });
 });
 
-describe('computeConfigViewWithStategy', () => {
+describe('computeConfigViewWithStrategy', () => {
   it('exact (preserves view height)', () => {
     const view = new Rect(0, 0, 1, 1);
     const frame = new Rect(0, 0, 0.5, 0.5);
 
     expect(
-      computeConfigViewWithStategy('exact', view, frame).equals(new Rect(0, 0, 0.5, 1))
+      computeConfigViewWithStrategy('exact', view, frame).equals(new Rect(0, 0, 0.5, 1))
     ).toBe(true);
   });
 
@@ -495,7 +495,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(2, 2, 5, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(2, 2, 5, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(2, 2, 5, 1))
     ).toBe(true);
   });
 
@@ -504,7 +504,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(1, 0, 1, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(1, 0, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(1, 0, 10, 1))
     ).toBe(true);
   });
 
@@ -513,7 +513,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(4, 0, 2, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
     ).toBe(true);
   });
 
@@ -522,7 +522,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(9, 0, 5, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
     ).toBe(true);
   });
 
@@ -531,7 +531,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(12, 0, 5, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(7, 0, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(7, 0, 10, 1))
     ).toBe(true);
   });
 
@@ -540,7 +540,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(0, 0, 10, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
     ).toBe(true);
   });
 
@@ -549,7 +549,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(0, 2, 10, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
+      computeConfigViewWithStrategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
     ).toBe(true);
   });
 });
