@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from urllib.parse import urlparse
 
 import sentry_sdk
 
@@ -22,10 +23,6 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
-
-Span = Dict[str, Any]
-TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -189,6 +186,11 @@ class EventPerformanceProblem:
         ]
 
 
+Span = Dict[str, Any]
+TransactionSpans = List[Span]
+PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
+
+
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
@@ -210,7 +212,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None):
+def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -389,6 +391,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 
 def run_detector_on_data(detector, data):
+    if not detector.is_event_eligible(data):
+        return
+
     spans = data.get("spans", [])
     for span in spans:
         detector.visit_span(span)
@@ -498,7 +503,7 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    def __init__(self, settings: Dict[str, Any], event: Event):
+    def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
@@ -545,6 +550,10 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
+
+    @classmethod
+    def is_event_eligible(cls, event):
+        return True
 
 
 class DuplicateSpanDetector(PerformanceDetector):
@@ -662,6 +671,14 @@ class SlowSpanDetector(PerformanceDetector):
         fingerprint = fingerprint_span(span)
 
         if not fingerprint:
+            return
+
+        description = span.get("description", None)
+        if not description:
+            return
+
+        description = description.strip()
+        if description.strip()[:6].upper() != "SELECT":
             return
 
         if span_duration >= timedelta(
@@ -919,17 +936,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        span_id = span.get("span_id", None)
+        if not NPlusOneAPICallsDetector.is_span_eligible(span):
+            return
+
         op = span.get("op", None)
-        hash = span.get("hash", None)
-
-        if not span_id or not op or not hash:
-            return
-
-        description = span.get("description")
-        if not description:
-            return
-
         if op not in self.settings.get("allowed_span_ops", []):
             return
 
@@ -950,6 +960,44 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         else:
             self._maybe_store_problem()
             self.spans = [span]
+
+    @classmethod
+    def is_event_eligible(cls, event):
+        trace_op = event.get("contexts", {}).get("trace", {}).get("op")
+        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
+            return False
+
+        return True
+
+    @classmethod
+    def is_span_eligible(cls, span: Span) -> bool:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        hash = span.get("hash", None)
+
+        if not span_id or not op or not hash:
+            return False
+
+        description = span.get("description")
+        if not description:
+            return False
+
+        if description.strip()[:3].upper() != "GET":
+            return False
+
+        # Ignore anything that looks like an asset
+        data = span.get("data") or {}
+        url = data.get("url") or ""
+        if type(url) is dict:
+            url = url.get("pathname") or ""
+
+        parsed_url = urlparse(str(url))
+
+        _pathname, extension = os.path.splitext(parsed_url.path)
+        if extension and extension in [".js", ".css"]:
+            return False
+
+        return True
 
     def on_complete(self):
         self._maybe_store_problem()
@@ -986,7 +1034,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
         span_b_start: int = span_b.get("start_timestamp", 0) or 0
 
-        return abs(span_a_start - span_b_start) < self.settings["concurrency_threshold"]
+        return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
+            milliseconds=self.settings["concurrency_threshold"]
+        )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
