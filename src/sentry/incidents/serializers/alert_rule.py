@@ -194,15 +194,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
             )
 
-        dataset = data["dataset"]
-        # If metric based crash rate alerts are enabled, coerce sessions over
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            data["dataset"] = Dataset.Metrics
-
         if query_type == SnubaQuery.Type.CRASH_RATE:
             data["event_types"] = []
         event_types = data.get("event_types")
@@ -239,6 +230,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
+        # If metric based crash rate alerts are enabled, coerce sessions over
+        if dataset == Dataset.Sessions and features.has(
+            "organizations:alert-crash-free-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            dataset = data["dataset"] = Dataset.Metrics
+
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
         valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
