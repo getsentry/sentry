@@ -326,25 +326,26 @@ class LatestReleaseBias:
 
         return False
 
-    def _update_latest_release_date(self, timestamp: float):
+    def _update_latest_release_date(self, timestamp: float) -> None:
         cache_key = self._generate_cache_key_for_project_latest_release()
-
-        return self.redis_client.set(cache_key, timestamp)
+        self.redis_client.set(cache_key, timestamp)
 
     def _get_release_date_from_incoming_release(self) -> Optional[float]:
         release = self.latest_release_params.release
 
         if release.date_released:
-            return release.date_released.timestamp()
+            return float(release.date_released.timestamp())
         elif release.date_added:
-            return release.date_added.timestamp()
+            return float(release.date_added.timestamp())
+
+        return None
 
     def _get_release_date_from_latest_release(self) -> Optional[float]:
         cache_key = self._generate_cache_key_for_project_latest_release()
         timestamp = self.redis_client.get(name=cache_key)
         return float(timestamp) if timestamp else None
 
-    def _generate_cache_key_for_project_latest_release(self):
+    def _generate_cache_key_for_project_latest_release(self) -> str:
         return f"ds::p:{self.latest_release_params.project.id}:latest_release"
 
     def _generate_cache_key_for_observed_release(self) -> str:
