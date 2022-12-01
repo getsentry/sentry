@@ -96,10 +96,6 @@ class OrganizationService(InterfaceWithLifecycle):
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
     @abstractmethod
-    def get_teams(self, team_ids: Iterable[int]) -> List[ApiTeam]:
-        pass
-
-    @abstractmethod
     def add_organization_member(
         self,
         *,

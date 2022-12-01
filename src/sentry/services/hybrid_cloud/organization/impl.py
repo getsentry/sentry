@@ -265,10 +265,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return [r.organization for r in results]
 
-    def get_teams(self, team_ids: Iterable[int]) -> List[ApiTeam]:
-        teams: Iterable[Team] = Team.objects.filter(id__in=list(team_ids))
-        return [self._serialize_team(team) for team in teams]
-
     @staticmethod
     def _deserialize_member_flags(flags: ApiOrganizationMemberFlags) -> int:
         return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
@@ -304,12 +300,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         from sentry.services.hybrid_cloud.user import user_service
 
         user = user_service.get_user(user_id=organization_member.user_id)
-        teams = self.get_teams(mt.team_id for mt in organization_member.member_teams)
+        team_ids = [mt.team_id for mt in organization_member.member_teams]
+        team_slugs = list(Team.objects.filter(id__in=team_ids).values_list("slug", flat=True))
         return {
             "email": user.email,
             "user": None,  # TODO,
-            "teams": [t.id for t in teams],
-            "teams_slugs": [t.slug for t in teams],
+            "teams": team_ids,
+            "teams_slugs": team_slugs,
             "has_global_access": organization_member.has_global_access,
             "role": organization_member.role,
             "invite_status": None,  # TODO
