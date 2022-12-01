@@ -19,6 +19,9 @@ type Props = {
   // Disables font styles in the title. Allows for more custom titles.
   noTitleStyles?: boolean;
 
+  // Colored Subtitle used for Promotions
+  promoSubtitle?: ReactNode;
+
   subtitle?: ReactNode;
 
   tabs?: ReactNode;
@@ -28,6 +31,7 @@ function UnstyledSettingsPageHeader({
   icon,
   title,
   subtitle,
+  promoSubtitle,
   action,
   body,
   tabs,
@@ -48,6 +52,7 @@ function UnstyledSettingsPageHeader({
             <Title tabs={tabs} styled={noTitleStyles}>
               <HeaderTitle>{title}</HeaderTitle>
               {subtitle && <Subtitle>{subtitle}</Subtitle>}
+              {promoSubtitle && <PromoSubtitle>{promoSubtitle}</PromoSubtitle>}
             </Title>
           )}
         </TitleWrapper>
@@ -82,6 +87,10 @@ const Subtitle = styled('div')`
   font-weight: 400;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: ${space(1.5)} 0 0;
+`;
+
+const PromoSubtitle = styled(Subtitle)`
+  color: ${p => p.theme.purple400};
 `;
 
 const Icon = styled('div')`
