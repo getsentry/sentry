@@ -23,10 +23,6 @@ from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
-Span = Dict[str, Any]
-TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
-
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
     "django",
@@ -189,6 +185,11 @@ class EventPerformanceProblem:
         ]
 
 
+Span = Dict[str, Any]
+TransactionSpans = List[Span]
+PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
+
+
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
@@ -210,7 +211,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None):
+def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -498,7 +499,7 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    def __init__(self, settings: Dict[str, Any], event: Event):
+    def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
