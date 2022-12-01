@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
     RELEASE_HEALTH_PG_NAMESPACE,
@@ -66,10 +66,12 @@ def test_basic(request):
     )
 
     message = Message(
-        Partition(Topic("topic"), 0),
-        0,
-        KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-        datetime.now(),
+        BrokerValue(
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            0,
+            datetime.now(),
+        ),
     )
 
     # Just assert that the strategy does not crash. Further assertions, such as

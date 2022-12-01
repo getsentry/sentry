@@ -7,7 +7,7 @@ from typing import Any, Deque, Mapping, Optional, Tuple
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import Commit, Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -74,7 +74,8 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
     if not task_kwargs:
         return None
 
-    _record_metrics(message.partition.index, task_kwargs)
+    for partition in message.committable:
+        _record_metrics(partition.index, task_kwargs)
     dispatch_post_process_group_task(**task_kwargs)
 
 
@@ -106,7 +107,7 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
         while self.__futures and self.__futures[0][1].done():
             message, _ = self.__futures.popleft()
 
-            self.__commit({message.partition: Position(message.next_offset, message.timestamp)})
+            self.__commit(message.committable)
 
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()
@@ -124,9 +125,7 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
 
             future.result(remaining)
 
-            self.__commit(
-                {message.partition: Position(message.next_offset, message.timestamp)}, force=True
-            )
+            self.__commit(message.committable, force=True)
 
         self.__executor.shutdown()
 

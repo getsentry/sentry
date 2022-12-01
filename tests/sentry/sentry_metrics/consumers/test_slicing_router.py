@@ -1,8 +1,8 @@
 from datetime import datetime
 
 import pytest
-from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.conf.server import (
     KAFKA_CLUSTERS,
@@ -23,17 +23,19 @@ from sentry.sentry_metrics.consumers.indexer.slicing_router import (
 @pytest.fixture
 def metrics_message(org_id: int) -> Message[RoutingPayload]:
     return Message(
-        partition=Partition(Topic("source_topic"), 0),
-        payload=RoutingPayload(
-            routing_header={"org_id": org_id},
-            routing_message=KafkaPayload(
-                key=b"",
-                value=b"{}",
-                headers=[],
+        BrokerValue(
+            payload=RoutingPayload(
+                routing_header={"org_id": org_id},
+                routing_message=KafkaPayload(
+                    key=b"",
+                    value=b"{}",
+                    headers=[],
+                ),
             ),
-        ),
-        offset=0,
-        timestamp=datetime.now(),
+            partition=Partition(Topic("source_topic"), 0),
+            offset=0,
+            timestamp=datetime.now(),
+        )
     )
 
 
@@ -88,17 +90,19 @@ def test_with_no_org_in_routing_header(setup_slicing) -> None:
     based on the org_id header.
     """
     message = Message(
-        partition=Partition(Topic("source_topic"), 0),
-        payload=RoutingPayload(
-            routing_header={},
-            routing_message=KafkaPayload(
-                key=b"",
-                value=b"{}",
-                headers=[],
+        BrokerValue(
+            payload=RoutingPayload(
+                routing_header={},
+                routing_message=KafkaPayload(
+                    key=b"",
+                    value=b"{}",
+                    headers=[],
+                ),
             ),
-        ),
-        offset=0,
-        timestamp=datetime.now(),
+            partition=Partition(Topic("source_topic"), 0),
+            offset=0,
+            timestamp=datetime.now(),
+        )
     )
     assert message.payload.routing_header.get("org_id") is None
     router = SlicingRouter("sliceable")

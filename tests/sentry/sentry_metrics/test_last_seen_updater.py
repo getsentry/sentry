@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
-from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
@@ -68,10 +68,12 @@ def headerless_kafka_payload(payload_bytes):
 
 def kafka_message(kafka_payload):
     return Message(
-        partition=Partition(Topic("fake-topic"), 1),
-        offset=1,
-        payload=kafka_payload,
-        timestamp=datetime.now(),
+        BrokerValue(
+            payload=kafka_payload,
+            partition=Partition(Topic("fake-topic"), 1),
+            offset=1,
+            timestamp=datetime.now(),
+        )
     )
 
 
@@ -168,7 +170,9 @@ class TestFilterMethod:
 
     def empty_message_with_headers(self, headers):
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
-        return Message(partition=Mock(), offset=0, payload=payload, timestamp=datetime.utcnow())
+        return Message(
+            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=datetime.utcnow())
+        )
 
     def test_message_filter_no_header(self, message_filter):
         message = self.empty_message_with_headers([])

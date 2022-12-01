@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
@@ -74,10 +74,12 @@ def _construct_messages(payloads):
     for i, (payload, headers) in enumerate(payloads):
         message_batch.append(
             Message(
-                Partition(Topic("topic"), 0),
-                i,
-                KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
-                datetime.now(),
+                BrokerValue(
+                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
+                    Partition(Topic("topic"), 0),
+                    i,
+                    datetime.now(),
+                )
             )
         )
 
@@ -89,7 +91,7 @@ def _construct_outer_message(payloads):
 
     # the outer message uses the last message's partition, offset, and timestamp
     last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+    outer_message = Message(Value(message_batch, last.committable))
     return outer_message
 
 

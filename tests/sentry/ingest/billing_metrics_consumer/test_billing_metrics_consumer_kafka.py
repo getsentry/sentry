@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
@@ -82,10 +82,12 @@ def test_outcomes_consumed(track_outcome):
         encoded = json.dumps(bucket).encode()
         payload = KafkaPayload(key=None, value=encoded, headers=[])
         message = Message(
-            Partition(topic, index=0),
-            generate_kafka_message.counter,
-            payload,
-            datetime.now(timezone.utc),
+            BrokerValue(
+                payload,
+                Partition(topic, index=0),
+                generate_kafka_message.counter,
+                datetime.now(timezone.utc),
+            )
         )
         generate_kafka_message.counter += 1
         return message
