@@ -213,6 +213,19 @@ def test_loose_normalized_db_span_in_condition_strategy(
             "SELECT count() FROM table WHERE id IN (?, ?, ?)",
             ["SELECT count() FROM table WHERE id IN (%s)"],
         ),
+        # supports SAVEPOINTS with unquoted, backtick-quoted (MySQL), or
+        # double-quoted (PostgreSQL) identifiers
+        ("SAVEPOINT unquoted_identifier", ["SAVEPOINT %s"]),
+        ("SAVEPOINT unquoted_identifier;", ["SAVEPOINT %s;"]),
+        ("savepoint unquoted_identifier", ["SAVEPOINT %s"]),
+        (
+            'SAVEPOINT "pg_quoted_identifier"',
+            ["SAVEPOINT %s"],
+        ),
+        (
+            "SAVEPOINT `mysql_quoted_identifier`",
+            ["SAVEPOINT %s"],
+        ),
     ],
 )
 def test_parametrize_db_span_strategy(query: str, fingerprint: Optional[List[str]]) -> None:
