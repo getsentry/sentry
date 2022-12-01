@@ -24,7 +24,6 @@ const optionsAvailable = [
   'performance.issues.all.post-process-group-early-adopter-rollout',
   'performance.issues.all.post-process-group-ga-rollout',
   'performance.issues.n_plus_one_db.problem-creation',
-  'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
   'performance.issues.n_plus_one_db.duration_threshold',
 ];
@@ -112,7 +111,6 @@ export default class AdminSettings extends AsyncView<{}, State> {
             <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
-              {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>
