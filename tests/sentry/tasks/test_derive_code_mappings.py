@@ -70,8 +70,9 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            # ./app/foo.tsx -> foo.tsx -> static/app/foo.tsx
             assert code_mapping.stack_root == "./app/"
-            assert code_mapping.source_root == "static/app"
+            assert code_mapping.source_root == "static/app/"
             assert code_mapping.repository.name == repo_name
 
 

@@ -232,7 +232,7 @@ class CodeMappingTreesHelper:
         return file_matches
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
-        """Generate the source code root for a code mapping"""
+        """Generate the source code root for a code mapping. It always includes a last backslash"""
         source_code_root = None
         if frame_filename.frame_type() == "packaged":
             if frame_filename.dir_path != "":
@@ -248,10 +248,10 @@ class CodeMappingTreesHelper:
         else:
             # static/app/foo.tsx (./app/foo.tsx) -> static/app/
             # static/app/foo.tsx (app/foo.tsx) -> static/app/
-            source_code_root = src_file.replace(
-                frame_filename.file_and_dir_path, frame_filename.root.replace("./", "")
-            )
+            source_code_root = f'{src_file.replace(frame_filename.file_and_dir_path, frame_filename.root.replace("./", ""))}/'
 
+        if source_code_root:
+            assert source_code_root.endswith("/")
         return source_code_root
 
     def _generate_code_mapping_from_tree(
