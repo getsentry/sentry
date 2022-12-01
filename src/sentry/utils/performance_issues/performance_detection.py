@@ -987,7 +987,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         # Ignore anything that looks like an asset
         data = span.get("data") or {}
-        parsed_url = urlparse(data.get("url") or "")
+        url = data.get("url") or ""
+        if type(url) is dict:
+            url = url.get("pathname") or ""
+
+        parsed_url = urlparse(str(url))
+
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css"]:
             return False

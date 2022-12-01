@@ -83,6 +83,26 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
             "hash": "b",
             "description": "GET http://service.io/resource",
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",
+            "hash": "a",
+            "data": {
+                "url": "/resource",
+            },
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",
+            "hash": "a",
+            "data": {
+                "url": {
+                    "pathname": "/resource",
+                }
+            },
+        },
     ],
 )
 def test_allows_eligible_spans(span):
