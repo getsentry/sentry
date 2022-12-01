@@ -87,7 +87,7 @@ class RedisQuotaTest(TestCase):
         }
         assert quotas[0].limit == 0
         assert quotas[0].window is None
-        assert quotas[0].reason_code == "project_abuse_limit"
+        assert quotas[0].reason_code == "disabled"
 
         self.organization.update_option("project-abuse-quota.error-limit", 42)
         quotas = self.quota.get_quotas(self.project)

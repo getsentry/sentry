@@ -386,23 +386,27 @@ class Quota(Service):
                 # Unlimited.
                 continue
 
-            # Negative limits mean a reject-all quota,
-            # which isn't currently supported.
-            # For now we just treat this as unlimited.
+            # Negative limits in config mean a reject-all quota.
             if limit < 0:
-                continue
+                yield QuotaConfig(
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    limit=0,
+                    reason_code="disabled",
+                )
 
-            yield QuotaConfig(
-                id=id,
-                limit=limit * abuse_window,
-                scope=QuotaScope.PROJECT,
-                categories=categories,
-                window=abuse_window,
-                # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                #      from getsentry. Don't change it here.
-                #      If it's changed in getsentry, it needs to be synced here.
-                reason_code="project_abuse_limit",
-            )
+            else:
+                yield QuotaConfig(
+                    id=id,
+                    limit=limit * abuse_window,
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    window=abuse_window,
+                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                    #      from getsentry. Don't change it here.
+                    #      If it's changed in getsentry, it needs to be synced here.
+                    reason_code="project_abuse_limit",
+                )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
