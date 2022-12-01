@@ -416,6 +416,7 @@ class DetailedEventSerializerTest(TestCase):
             ],
             "op": "db",
             "parentSpanIds": ["8dd7a5869a4f4583"],
+            "issueType": "N+1 Query",
             "type": 1006,
         }
 
