@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -31,12 +30,9 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
-  const {router} = initializeOrg();
 
   beforeEach(() => {
     props = {
-      route: {},
-      router,
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
       isShare: false,
