@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -30,7 +28,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
     enforce_rate_limit = True
     rate_limits = RELAY_AUTH_RATE_LIMITS
 
-    def post(self, request: Request, organization_slug: Optional[str]) -> Response:
+    def post(self, request: Request, organization_slug: str = None) -> Response:
         """
         Requests to Register a Relay
         ````````````````````````````
