@@ -98,11 +98,17 @@ class TestDerivedCodeMappings(TestCase):
         assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
 
     def test_buckets_logic(self):
-        stacktraces = ["app://foo.js", "getsentry/billing/tax/manager.py", "ssl.py"]
+        stacktraces = [
+            "app://foo.js",
+            "./app/utils/handleXhrErrorResponse.tsx",
+            "getsentry/billing/tax/manager.py",
+            "ssl.py",
+        ]
         buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
         assert buckets == {
             "NO_TOP_DIR": [FrameFilename("ssl.py")],
             "app:": [FrameFilename("app://foo.js")],
+            "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
             "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
         }
 
