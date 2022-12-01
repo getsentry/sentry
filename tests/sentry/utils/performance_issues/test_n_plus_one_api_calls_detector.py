@@ -111,3 +111,21 @@ def test_accepts_valid_spans(span):
 )
 def test_rejects_invalid_spans(span):
     assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+
+
+@pytest.mark.parametrize(
+    "event",
+    [EVENTS["n-plus-one-api-calls/not-n-plus-one-api-calls"]],
+)
+def test_allows_eligible_events(event):
+    assert NPlusOneAPICallsDetector.is_event_eligible(event)
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"contexts": {"trace": {"op": "task"}}},
+    ],
+)
+def test_rejects_ineligible_events(event):
+    assert not NPlusOneAPICallsDetector.is_event_eligible(event)

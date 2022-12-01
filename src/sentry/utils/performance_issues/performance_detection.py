@@ -962,6 +962,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     @classmethod
+    def is_event_eligible(cls, event):
+        trace_op = event.get("contexts", {}).get("trace", {}).get("op")
+        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
+            return False
+
+        return True
+
+    @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
