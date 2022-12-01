@@ -63,8 +63,10 @@ const ACTIONS: Action[] = [
       openHelpSearchModal();
     },
   },
+];
 
-  {
+process.env.NODE_ENV !== 'production' &&
+  ACTIONS.push({
     title: t('Open in Production'),
     description: t('Open the current page in sentry.io'),
     requiresSuperuser: false,
@@ -74,8 +76,7 @@ const ACTIONS: Action[] = [
       url.port = '';
       window.open(url.toString(), '_blank');
     },
-  },
-];
+  });
 
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
