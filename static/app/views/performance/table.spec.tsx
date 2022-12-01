@@ -233,12 +233,9 @@ describe('Performance > Table', function () {
     });
 
     it('hides cell actions when withStaticFilters is true', function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
 
       render(
         <WrappedComponent
@@ -309,12 +306,9 @@ describe('Performance > Table', function () {
 
   describe('with events', function () {
     it('renders correct cell actions without feature', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
 
       ProjectsStore.loadInitialData(data.organization.projects);
 
@@ -366,12 +360,9 @@ describe('Performance > Table', function () {
     });
 
     it('hides cell actions when withStaticFilters is true', function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
 
       render(
         <WrappedComponent
@@ -393,7 +384,7 @@ describe('Performance > Table', function () {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics', 'performance-frontend-use-events-endpoint']
+        ['performance-use-metrics']
       );
 
       render(
