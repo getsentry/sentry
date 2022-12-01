@@ -42,10 +42,10 @@ def _get_transaction_names(project: Project) -> Set[str]:
     redis_key = _get_redis_key(project)
 
     # TODO: Not sure if this works for large sets in production
-    return client.smembers(redis_key)
+    return client.smembers(redis_key)  # type: ignore
 
 
-def record_transaction_name(project: Project, event: Event, **kwargs):
+def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
     source = (event.data.get("transaction_info") or {}).get("source")
     if (
         source == TRANSACTION_SOURCE
