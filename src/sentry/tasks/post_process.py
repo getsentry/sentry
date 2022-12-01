@@ -355,7 +355,6 @@ def post_process_group(
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
         is_transaction_event = event.get_event_type() == "transaction"
-
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.

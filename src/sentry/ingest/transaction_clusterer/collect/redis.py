@@ -7,7 +7,6 @@ from sentry import features
 from sentry.eventstore.models import Event
 from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE
 from sentry.models import Project
-from sentry.signals import transaction_processed
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 
@@ -54,6 +53,3 @@ def record_transaction_name(project: Project, event: Event, **kwargs):
         and features.has("organizations:transaction-name-clusterer", project.organization)
     ):
         safe_execute(_store_transaction_name, project, event.transaction)
-
-
-transaction_processed.connect(record_transaction_name, weak=False)

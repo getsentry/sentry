@@ -11,5 +11,6 @@ from .rules import *  # noqa: F401,F403
 from .sentry_apps import *  # noqa: F401,F403
 from .stats import *  # noqa: F401,F403
 from .superuser import *  # noqa: F401,F403
+from .transactions import *  # noqa: F401,F403
 from .useremail import *  # noqa: F401,F403
 from .users import *  # noqa: F401,F403
