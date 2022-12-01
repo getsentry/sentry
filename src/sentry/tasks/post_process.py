@@ -600,11 +600,15 @@ def process_rules(job: PostProcessJob) -> None:
     return
 
 
+@instrumented_task(name="sentry.tasks.post_process.process_code_mappings")
 def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
     from sentry.tasks.derive_code_mappings import derive_code_mappings
+
+    # This allows speeding up searches in GCP with `labels.name="sentry.tasks.derive_code_mappings"`
+    pcm_logger = logging.getLogger("sentry.tasks.derive_code_mappings")
 
     try:
         event = job["event"]
@@ -622,25 +626,30 @@ def process_code_mappings(job: PostProcessJob) -> None:
         if project_queued:
             return
 
-        org_slug = project.organization.slug
+        extra_ctx = {
+            "event.group_id": event.group_id,
+            "project.slug": project.slug,
+            "organization.slug": project.organization.slug,
+        }
+
         next_time = timezone.now() + timedelta(hours=1)
         if features.has("organizations:derive-code-mappings", event.project.organization):
-            logger.info(
-                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
-                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            pcm_logger.info(
+                f"Queued code mapping derivation. Next derivation after {next_time}",
+                extra=extra_ctx,
             )
             derive_code_mappings.delay(project.id, event.data, dry_run=False)
 
         # Derive code mappings with dry_run=True to validate the generated mappings.
         elif features.has("organizations:derive-code-mappings-dry-run", event.project.organization):
-            logger.info(
-                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
-                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+            pcm_logger.info(
+                f"Queuing dry run code mapping derivation. Next derivation after {next_time}",
+                extra=extra_ctx,
             )
             derive_code_mappings.delay(project.id, event.data, dry_run=True)
 
     except Exception:
-        logger.exception("derive_code_mappings: Failed to process code mappings")
+        pcm_logger.exception("Failed to process code mappings")
 
 
 def process_commits(job: PostProcessJob) -> None:
