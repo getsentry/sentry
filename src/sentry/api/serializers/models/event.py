@@ -348,20 +348,26 @@ class DetailedEventSerializer(EventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def serialize(self, obj, attrs, user):
+    def _get_perf_problem(self, attrs):
         from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
+        perf_problem = attrs.get("perf_problem")
+        if perf_problem is None:
+            return None
+        converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
+        issue_type = perf_problem.get("type")
+        if issue_type in [type.value for type in GroupType]:
+            converted_problem["issueType"] = GROUP_TYPE_TO_TEXT.get(GroupType(issue_type), "Issue")
+        else:
+            converted_problem["issueType"] = "Issue"
+        return converted_problem
+
+    def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
-        perf_problem = attrs.get("perf_problem")
-        result["perfProblem"] = convert_dict_key_case(perf_problem, snake_to_camel_case)
-        issue_type = perf_problem.get("type")
-        if issue_type in [type.value for type in GroupType]:
-            result["issueType"] = GROUP_TYPE_TO_TEXT.get(GroupType(issue_type), "Issue")
-        else:
-            result["issueType"] = "Issue"
+        result["perfProblem"] = self._get_perf_problem(attrs)
         return result
 
 
