@@ -3,7 +3,6 @@ from unittest import mock
 
 from exam import fixture, patcher
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
@@ -136,8 +135,8 @@ class RedisQuotaTest(TestCase):
 
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.
-        options.set("project-abuse-quota.error-limit", 3)
-        quotas = self.quota.get_quotas(self.project)
+        with self.options({"project-abuse-quota.error-limit": 3}):
+            quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].limit == 420
@@ -146,7 +145,8 @@ class RedisQuotaTest(TestCase):
         # Let's make the org override unlimited.
         # The global option should kick in.
         self.organization.update_option("project-abuse-quota.error-limit", 0)
-        quotas = self.quota.get_quotas(self.project)
+        with self.options({"project-abuse-quota.error-limit": 3}):
+            quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].limit == 30
@@ -156,8 +156,8 @@ class RedisQuotaTest(TestCase):
 
         # Let's update the deprecated global setting.
         # It should take precedence over both the new global option and its org override.
-        options.set("getsentry.rate-limit.project-errors", 1)
-        quotas = self.quota.get_quotas(self.project)
+        with self.options({"getsentry.rate-limit.project-errors": 1}):
+            quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -174,8 +174,8 @@ class RedisQuotaTest(TestCase):
         # Let's set the deprecated override for that.
         self.organization.update_option("sentry:project-error-limit", 2)
         # Also, let's change the global abuse window.
-        options.set("project-abuse-quota.window", 20)
-        quotas = self.quota.get_quotas(self.project)
+        with self.options({"project-abuse-quota.window": 20}):
+            quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
