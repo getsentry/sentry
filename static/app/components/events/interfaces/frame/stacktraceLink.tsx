@@ -11,7 +11,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, Project, StacktraceLinkResult} from 'sentry/types';
+import type {
+  Event,
+  Frame,
+  Organization,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -29,12 +35,12 @@ import StacktraceLinkModal from './stacktraceLinkModal';
 
 interface StacktraceLinkSetupProps {
   event: Event;
+  organization: Organization;
   project?: Project;
 }
 
-function StacktraceLinkSetup({project, event}: StacktraceLinkSetupProps) {
+function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
   const api = useApi();
-  const organization = useOrganization();
   const [promptDismissed, setPromptDismissed] = useState(false);
 
   if (promptDismissed) {
@@ -247,7 +253,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   }
 
   // No integrations
-  return <StacktraceLinkSetup event={event} project={project} />;
+  return (
+    <StacktraceLinkSetup event={event} project={project} organization={organization} />
+  );
 }
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
