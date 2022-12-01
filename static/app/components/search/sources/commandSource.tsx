@@ -63,6 +63,18 @@ const ACTIONS: Action[] = [
       openHelpSearchModal();
     },
   },
+
+  {
+    title: t('Open in Production'),
+    description: t('Open the current page in sentry.io'),
+    requiresSuperuser: false,
+    action: () => {
+      const url = new URL(window.location.toString());
+      url.host = 'sentry.io';
+      url.port = '';
+      window.open(url.toString(), '_blank');
+    },
+  },
 ];
 
 type Props = {
