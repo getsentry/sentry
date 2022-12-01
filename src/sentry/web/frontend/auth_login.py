@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -248,7 +249,12 @@ class AuthLoginView(BaseView):
                     )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect
-
+                    if features.has(
+                        "organizations:customer-domains",
+                        self.active_organization.organization,
+                        actor=user,
+                    ):
+                        setattr(request, "subdomain", self.active_organization.organization.slug)
                 return self.redirect(get_login_redirect(request))
             else:
                 metrics.incr(

@@ -135,7 +135,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "invoices",
         "jobs",
         "legal",
-        "legal",
         "login",
         "logout",
         "mail",
