@@ -28,7 +28,7 @@ function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
 
   if (!replay) {
-    return <Placeholder height="48px" bottomGutter={2} />;
+    return <Placeholder height="54px" bottomGutter={2} />;
   }
 
   const durationMs = replay.getDurationMs();
@@ -53,7 +53,7 @@ function ReplayTimeline({}: Props) {
                   startTimestampMs={startTimestampMs}
                 />
               </UnderTimestamp>
-              <UnderTimestamp paddingTop="0">
+              <UnderTimestamp paddingTop="26px">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   durationMs={durationMs}

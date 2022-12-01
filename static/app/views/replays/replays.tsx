@@ -21,11 +21,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -59,7 +59,7 @@ function useShouldShowOnboardingPanel() {
 }
 
 function useReplayOnboardingSidebarPanel() {
-  const {location} = useRouteContext();
+  const location = useLocation();
   const enabled = useShouldShowOnboardingPanel();
 
   useEffect(() => {

@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import xor from 'lodash/xor';
@@ -15,6 +14,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -236,7 +237,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(GroupEventAttachments);
+export default withSentryRouter(GroupEventAttachments);
 
 const ScreenshotGrid = styled('div')`
   display: grid;

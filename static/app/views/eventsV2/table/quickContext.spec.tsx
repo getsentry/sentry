@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -100,7 +100,13 @@ const mockedReleaseWithHealth = TestStubs.Release({
   authors: [mockedUser1, mockedUser2],
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
@@ -148,6 +154,7 @@ describe('Quick Context', function () {
     afterEach(() => {
       queryClient.clear();
       MockApiClient.clearMockResponses();
+      mockUseLocation.mockReset();
     });
 
     it('Renders child', async () => {
@@ -229,6 +236,24 @@ describe('Quick Context', function () {
     afterEach(function () {
       queryClient.clear();
       MockApiClient.clearMockResponses();
+    });
+
+    it('Renders issue context header with copy button', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
+      expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
     });
 
     it('Renders ignored Issue status context when data is loaded', async () => {
@@ -410,10 +435,14 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/2/i)).toHaveLength(3);
-      expect(screen.getByText(/authors/i)).toBeInTheDocument();
+      const authorsSectionHeader = within(
+        await screen.findByTestId('quick-context-release-author-header')
+      );
+
+      expect(authorsSectionHeader.getByText(/4/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/commits by/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/2/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -430,9 +459,7 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/1/i)).toHaveLength(3);
-      expect(screen.getByText(/other/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by you and 1 other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -527,7 +554,7 @@ describe('Quick Context', function () {
         expect.objectContaining({
           pathname: '/mock-pathname/',
           query: expect.objectContaining({
-            field: ['title', 'tags[http.status_code]'],
+            field: ['title', 'http.status_code'],
           }),
         })
       );
@@ -658,7 +685,7 @@ describe('Quick Context', function () {
         ],
       } as EventError;
 
-      mockUseLocation.mockReturnValueOnce(
+      mockUseLocation.mockReturnValue(
         TestStubs.location({
           query: {
             field: ['issue', 'transaction.duration'],
@@ -671,8 +698,11 @@ describe('Quick Context', function () {
         body: makeEvent(errorEvent),
       });
 
-      delete defaultRow.title;
-      renderQuickContextContent(defaultRow, ContextType.EVENT);
+      const dataRow = {
+        ...defaultRow,
+      };
+      delete dataRow.title;
+      renderQuickContextContent(dataRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
