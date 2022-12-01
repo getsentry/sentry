@@ -59,7 +59,9 @@ def get_allowed_org_roles(
 
     if member is None:
         try:
-            member = OrganizationMember.objects.get(user=request.user, organization=organization)
+            member = OrganizationMember.objects.get(
+                user_id=request.user.id, organization=organization
+            )
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration
             # token whose proxy user does not have an OrganizationMember object.

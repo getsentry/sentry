@@ -12,9 +12,10 @@ import {
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {PageContent} from 'sentry/styles/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
@@ -57,7 +58,8 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     desyncedAlertMessage,
     hideDesyncRevertButton,
   } = props;
-  const {location, router} = useRouteContext();
+  const router = useRouter();
+  const location = useLocation();
 
   const {isReady} = usePageFilters();
 

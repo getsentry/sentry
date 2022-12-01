@@ -57,10 +57,12 @@ class SCIMMemberIndexTests(SCIMTestCase):
         ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
+        assert member.flags["idp:provisioned"]
+        assert not member.flags["idp:role-restricted"]
 
     def test_post_users_already_exists(self):
         # test that response 409s if member already exists (by email)
-        self.create_member(
+        member = self.create_member(
             user=self.create_user(), organization=self.organization, email="test.user@okta.local"
         )
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
@@ -70,6 +72,8 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "detail": "User already exists in the database.",
         }
+        assert not member.flags["idp:provisioned"]
+        assert not member.flags["idp:role-restricted"]
 
     def test_post_users_with_role_valid(self):
         with self.feature({"organizations:scim-orgmember-roles": True}):
@@ -92,6 +96,8 @@ class SCIMMemberIndexTests(SCIMTestCase):
             }
             assert correct_post_data == resp.data
             assert member.role == "manager"
+            assert member.flags["idp:provisioned"]
+            assert member.flags["idp:role-restricted"]
             member.delete()
 
             # check role is case insensitive
@@ -103,6 +109,8 @@ class SCIMMemberIndexTests(SCIMTestCase):
                 organization=self.organization, email="test.user@okta.local"
             )
             assert member.role == "manager"
+            assert member.flags["idp:provisioned"]
+            assert member.flags["idp:role-restricted"]
             member.delete()
 
             # Empty org role -> default
@@ -114,6 +122,8 @@ class SCIMMemberIndexTests(SCIMTestCase):
                 organization=self.organization, email="test.user@okta.local"
             )
             assert member.role == self.organization.default_role
+            assert member.flags["idp:provisioned"]
+            assert not member.flags["idp:role-restricted"]
             member.delete()
 
             # no sentry org role -> default

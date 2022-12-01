@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 PROFILING_FEATURES = {"organizations:profiling": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProfilingFiltersTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-filters"
 
