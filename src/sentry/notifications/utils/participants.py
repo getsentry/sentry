@@ -187,6 +187,39 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
     return recipients
 
 
+def get_owner_reason(
+    project: Project,
+    target_type: ActionTargetType,
+    target_identifier: int | None = None,
+    event: Event | None = None,
+    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+) -> str | None:
+    """
+    Provide a human readable reason for why a user is receiving a notification.
+    Currently only used to explain "issue owners" w/ fallthrough to everyone
+    """
+    if not features.has("organizations:issue-alert-fallback-targeting", project.organization):
+        return None
+
+    # Sent to a specific user or team
+    if target_identifier:
+        return None
+
+    # Not an issue alert
+    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+        return None
+
+    # Describe why an issue owner was notified
+    if target_type == ActionTargetType.ISSUE_OWNERS:
+        # TODO(workflow): We'll stop looking at ProjectOwnership once we move fallthrough to the alert rule action
+        owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        # Issue owners are not configured and the default is to notify everyone
+        if owners == ProjectOwnership.Everyone:
+            return f"We notified all members in the {project.get_full_name()} project of this issue"
+
+    return None
+
+
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
