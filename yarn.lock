@@ -2420,12 +2420,11 @@
   dependencies:
     "@react-types/shared" "^3.16.0"
 
-"@sentry-internal/global-search@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.3.0.tgz#f0fda5ae9b19cf96a979dddbd0573dc894950c63"
-  integrity sha512-lu2yTNhGsCx5gJ3JS8wWY3m4Yz8ng/Lrd6qI+AKsCYpamESv+5xZgRVPpG56IfcGa/k92T3ukZCQMCzGz8X5+w==
+"@sentry-internal/global-search@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.4.1.tgz#807be09697d35ede0d08a05107cd23621f4b3f25"
+  integrity sha512-gwtTphouVNhmCOZeM3HaHbJnvcIQ4JiDmA9bJMZW42EAb0S5Hn0AVrf8gORCDiGKQd8MmYzvYPZ3FC04ZySvdQ==
   dependencies:
-    "@types/dompurify" "^2.0.4"
     "@types/react" ">=16"
     "@types/react-dom" ">=16"
     algoliasearch "^4.13.1"
@@ -3802,7 +3801,7 @@
   resolved "https://registry.yarnpkg.com/@types/diff/-/diff-5.0.2.tgz#dd565e0086ccf8bc6522c6ebafd8a3125c91c12b"
   integrity sha512-uw8eYMIReOwstQ0QKF0sICefSy8cNO/v7gOTiIy9SbwuHyEecJUm7qlgueOO5S1udZ5I/irVydHVwMchgzbKTg==
 
-"@types/dompurify@^2.0.4", "@types/dompurify@^2.3.3":
+"@types/dompurify@^2.3.3":
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/@types/dompurify/-/dompurify-2.3.3.tgz#c24c92f698f77ed9cc9d9fa7888f90cf2bfaa23f"
   integrity sha512-nnVQSgRVuZ/843oAfhA25eRSNzUFcBPk/LOiw5gm8mD9/X7CNcbRkQu/OsjCewO8+VIYfPxUnXvPEVGenw14+w==
