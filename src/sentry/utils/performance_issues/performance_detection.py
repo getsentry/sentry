@@ -24,6 +24,11 @@ from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
+
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
+
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
     "django",
@@ -32,7 +37,17 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+CONTAINS_PARAMETER_REGEX = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"\b(?:true|false)\b",  # booleans
+            r"\?|\$1",  # existing parameters
+        ]
+    )
+)
 
 
 class DetectorType(Enum):
@@ -1069,6 +1084,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _validate_and_store_performance_problem(self):
         independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
+        if not len(independent_db_spans):
+            return
+
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
@@ -1121,8 +1139,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         for span in spans[1:]:
             query: str = span.get("description", None)
             if (
-                query and contains_complete_query(span) and "WHERE" not in query.upper()
-            ):  # TODO - use better regex
+                query
+                and contains_complete_query(span)
+                and "WHERE" not in query.upper()
+                and not CONTAINS_PARAMETER_REGEX.search(query)
+            ):
                 independent_spans.append(span)
         return independent_spans
 
