@@ -89,8 +89,7 @@ function FlamegraphZoomViewMinimap({
 
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
-        flamegraphMiniMapView.fromConfigSpace(flamegraphMiniMapCanvas.physicalSpace),
-        new Map()
+        flamegraphMiniMapView.fromConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
       );
     };
 

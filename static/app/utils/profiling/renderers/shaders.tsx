@@ -4,13 +4,15 @@ export const vertex = () => `
 attribute vec2 a_position;
 attribute vec4 a_color;
 attribute vec4 a_bounds;
+attribute float a_is_search_result;
 
 uniform mat3 u_model;
 uniform mat3 u_projection;
 
-varying lowp vec4 v_color;
+varying vec4 v_color;
 varying vec2 v_pos;
 varying vec4 v_bounds;
+varying float v_is_search_result;
 
 void main() {
   vec2 scaled = (u_model * vec3(a_position.xy, 1)).xy;
@@ -21,21 +23,20 @@ void main() {
   v_color = a_color;
   v_pos = a_position.xy;
   v_bounds = a_bounds;
+  v_is_search_result = a_is_search_result;
 }
 `;
 
 export const fragment = (theme: FlamegraphTheme) => `
-// fragment shaders don't have a default precision so we need
-// to pick one. mediump is a good default
 precision mediump float;
 
-uniform bool u_is_search_result;
 uniform vec2 u_border_width;
 uniform bool u_draw_border;
 
-varying lowp vec4 v_color;
+varying vec4 v_color;
 varying vec4 v_bounds;
 varying vec2 v_pos;
+varying float v_is_search_result;
 
 void main() {
   float minX = v_bounds.x + u_border_width.x;
@@ -46,7 +47,7 @@ void main() {
 
   float width = maxX - minX;
 
-  if (u_is_search_result) {
+  if (v_is_search_result == 1.0) {
     gl_FragColor = ${theme.COLORS.SEARCH_RESULT_FRAME_COLOR};
   } else if (u_draw_border) {
     if(width <= u_border_width.x) {

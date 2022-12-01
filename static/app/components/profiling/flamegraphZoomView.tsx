@@ -241,14 +241,17 @@ function FlamegraphZoomView({
   }, [dispatch, lastInteraction, previousInteraction, flamegraphView]);
 
   useEffect(() => {
+    flamegraphRenderer?.setSearchResults(flamegraphSearch.results);
+  }, [flamegraphRenderer, flamegraphSearch.results]);
+
+  useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
       flamegraphRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphState.search.results
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
       );
     };
 
@@ -258,13 +261,7 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [
-    flamegraphCanvas,
-    flamegraphRenderer,
-    flamegraphState.search.results,
-    scheduler,
-    flamegraphView,
-  ]);
+  }, [flamegraphCanvas, flamegraphRenderer, scheduler, flamegraphView]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !textRenderer || !gridRenderer) {

@@ -3,7 +3,9 @@ import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
 
-function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
+function countFrameOccurences(
+  frames: ReadonlyArray<FlamegraphFrame>
+): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const frame of frames) {
