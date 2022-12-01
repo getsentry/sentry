@@ -140,7 +140,7 @@ class EventAttributeCondition(EventCondition):
                 contexts = event.data["contexts"]
                 response = contexts.get("response")
                 if response is None:
-                    response = []
+                    response = {}
                 return [response.get(path[1])]
 
             return []
