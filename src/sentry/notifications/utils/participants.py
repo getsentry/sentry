@@ -215,8 +215,7 @@ def get_owner_reason(
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
         # Issue owners are not configured and the default is to notify everyone
         if owners == ProjectOwnership.Everyone:
-            notified_members = "all members"
-            return f"We notified {notified_members} in the {project.get_full_name()} project of this issue"
+            return f"We notified all members in the {project.get_full_name()} project of this issue"
 
     return None
 
