@@ -3,8 +3,13 @@ from typing import Any, Set
 
 from django.conf import settings
 
+from sentry import features
+from sentry.eventstore.models import Event
+from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE
 from sentry.models import Project
+from sentry.signals import transaction_processed
 from sentry.utils import redis
+from sentry.utils.safe import safe_execute
 
 __all__ = ["store_transaction_name", "get_transaction_names"]
 
@@ -27,7 +32,6 @@ def get_redis_client() -> Any:
 
 
 def store_transaction_name(project: Project, transaction_name: str) -> None:
-    # TODO: the caller of the func should check source==url, feature flags, etc.
     client = get_redis_client()
     redis_key = get_redis_key(project)
     add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE])
@@ -39,3 +43,16 @@ def get_transaction_names(project: Project) -> Set[str]:
 
     # TODO: Not sure if this works for large sets in production
     return client.smembers(redis_key)
+
+
+def record_transaction_name(project: Project, event: Event, **kwargs):
+    source = (event.data.get("transaction_info") or {}).get("source")
+    if (
+        source == TRANSACTION_SOURCE
+        and event.transaction
+        and features.has("organizations:transaction-name-clusterer", project.organization)
+    ):
+        safe_execute(store_transaction_name, project, event.transaction)
+
+
+transaction_processed.connect(record_transaction_name, weak=False)
