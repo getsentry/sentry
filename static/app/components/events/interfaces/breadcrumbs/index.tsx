@@ -29,7 +29,7 @@ type FilterOptions = NonNullable<
 
 type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
 
-type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
+type Props = {
   data: {
     values: Array<RawCrumb>;
   };
@@ -49,15 +49,7 @@ type State = {
   searchTerm: string;
   relativeTime?: string;
 };
-function BreadcrumbsContainer({
-  data,
-  event,
-  organization,
-  projectSlug,
-  isShare,
-  route,
-  router,
-}: Props) {
+function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -358,8 +350,6 @@ function BreadcrumbsContainer({
       <ErrorBoundary>
         <GuideAnchor target="breadcrumbs" position="bottom">
           <Breadcrumbs
-            router={router}
-            route={route}
             emptyMessage={getEmptyMessage()}
             breadcrumbs={filteredBySearch}
             event={event}
