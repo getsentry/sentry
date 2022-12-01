@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
+import type {Event, Frame, Project, StacktraceLinkResult} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -27,6 +27,52 @@ import useProjects from 'sentry/utils/useProjects';
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
+interface StacktraceLinkSetupProps {
+  event: Event;
+  project?: Project;
+}
+
+function StacktraceLinkSetup({project, event}: StacktraceLinkSetupProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const [promptDismissed, setPromptDismissed] = useState(false);
+
+  if (promptDismissed) {
+    return null;
+  }
+
+  const dismissPrompt = () => {
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      projectId: project?.id,
+      feature: 'stacktrace_link',
+      status: 'dismissed',
+    });
+
+    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+      view: 'stacktrace_issue_details',
+      organization,
+      ...getAnalyicsDataForEvent(event),
+    });
+
+    setPromptDismissed(true);
+  };
+
+  return (
+    <CodeMappingButtonContainer columnQuantity={2}>
+      <StyledLink to={`/settings/${organization.slug}/integrations/`}>
+        <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+        {t(
+          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        )}
+      </StyledLink>
+      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
+        <IconClose size="xs" aria-label={t('Close')} />
+      </CloseButton>
+    </CodeMappingButtonContainer>
+  );
+}
+
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
@@ -37,23 +83,20 @@ interface StacktraceLinkProps {
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
-  const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
-  const [promptDismissed, setPromptDismissed] = useState(false);
   const prompt = usePromptsCheck('stacktrace_link', organization.id, project?.id);
   const isPromptDismissed =
-    promptDismissed ||
-    (prompt.isSuccess && prompt.data.data
+    prompt.isSuccess && prompt.data.data
       ? promptIsDismissed({
           dismissedTime: prompt.data.data.dismissed_ts,
           snoozedTime: prompt.data.data.snoozed_ts,
         })
-      : false);
+      : false;
 
   const query = {
     file: frame.filename,
@@ -98,23 +141,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, prompt.isLoading, match, organization, project, event]);
-
-  const dismissPrompt = () => {
-    promptsUpdate(api, {
-      organizationId: organization.id,
-      projectId: project?.id,
-      feature: 'stacktrace_link',
-      status: 'dismissed',
-    });
-
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
-      view: 'stacktrace_issue_details',
-      organization,
-      ...getAnalyicsDataForEvent(event),
-    });
-
-    setPromptDismissed(true);
-  };
 
   const onOpenLink = () => {
     const provider = match!.config?.provider;
@@ -221,19 +247,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   }
 
   // No integrations
-  return (
-    <CodeMappingButtonContainer columnQuantity={2}>
-      <StyledLink to={`/settings/${organization.slug}/integrations/`}>
-        <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-        {t(
-          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
-        )}
-      </StyledLink>
-      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
-        <IconClose size="xs" aria-label={t('Close')} />
-      </CloseButton>
-    </CodeMappingButtonContainer>
-  );
+  return <StacktraceLinkSetup event={event} project={project} />;
 }
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
