@@ -149,6 +149,8 @@ DB_PARAMETRIZATION_PATTERN = re.compile(
     )
 )
 
+DB_SAVEPOINT_PATTERN = re.compile(r'SAVEPOINT (?:(?:"[^"]+")|(?:`[^`]+`)|(?:[a-z]\w+))', re.I)
+
 
 @span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
 def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
@@ -163,8 +165,9 @@ def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
     well, because PG uses double-quoted strings for identifiers."""
     query = span.get("description") or ""
     query, in_count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", query)
+    query, savepoint_count = DB_SAVEPOINT_PATTERN.subn("SAVEPOINT %s", query)
     query, param_count = DB_PARAMETRIZATION_PATTERN.subn("%s", query)
-    if param_count + in_count == 0:
+    if param_count + savepoint_count + in_count == 0:
         return None
     return [query.strip()]
 
