@@ -16,7 +16,7 @@ function ProjectDetailContainer(
     project
       ? {
           project_id: project.id,
-          project_platforms: project.platform,
+          project_platform: project.platform,
         }
       : {}
   );
