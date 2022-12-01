@@ -7,10 +7,6 @@ local value = ARGV[1]
 local max_size = tonumber(ARGV[2])
 local ttl = ARGV[3]
 
-print(key)
-print(value)
-print(max_size)
-
 local inserted = redis.call("SADD", key, value)
 if inserted then
     local current_size = redis.call("SCARD", key)
