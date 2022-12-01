@@ -389,6 +389,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 
 def run_detector_on_data(detector, data):
+    if not detector.is_event_eligible(data):
+        return
+
     spans = data.get("spans", [])
     for span in spans:
         detector.visit_span(span)
@@ -545,6 +548,10 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
+
+    @classmethod
+    def is_event_eligible(cls, event):
+        return True
 
 
 class DuplicateSpanDetector(PerformanceDetector):
