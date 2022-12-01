@@ -523,6 +523,7 @@ export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
+  issueType?: IssueType;
 };
 
 interface EventBase {
@@ -561,7 +562,6 @@ interface EventBase {
     id: string;
   };
   issueCategory?: IssueCategory;
-  issueType?: IssueType;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
   nextEventID?: string | null;
