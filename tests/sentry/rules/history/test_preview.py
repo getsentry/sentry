@@ -12,7 +12,7 @@ from sentry.rules.history.preview import (
     preview,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -29,8 +29,9 @@ def get_hours(time: timedelta) -> int:
 
 @freeze_time()
 @region_silo_test
-class ProjectRulePreviewTest(TestCase):
+class ProjectRulePreviewTest(TestCase, SnubaTestCase):
     def setUp(self):
+        super().setUp()
         self.transaction_data = load_data(
             "transaction",
             fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
@@ -445,8 +446,9 @@ class ProjectRulePreviewTest(TestCase):
 
 @freeze_time()
 @region_silo_test
-class FrequencyConditionTest(TestCase):
+class FrequencyConditionTest(TestCase, SnubaTestCase):
     def setUp(self):
+        super().setUp()
         self.transaction_data = load_data(
             "transaction",
             fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
@@ -572,7 +574,7 @@ class FrequencyConditionTest(TestCase):
 
 @freeze_time()
 @region_silo_test
-class GetEventsTest(TestCase):
+class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         two_hours = timezone.now() - timedelta(hours=2)

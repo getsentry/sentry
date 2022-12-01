@@ -521,10 +521,21 @@ function getEventsRequest(
   }
 
   // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
-  return doDiscoverQuery<TableData | EventsTableData>(api, url, {
-    ...eventView.generateQueryStringObject(),
-    ...params,
-  });
+  return doDiscoverQuery<TableData | EventsTableData>(
+    api,
+    url,
+    {
+      ...eventView.generateQueryStringObject(),
+      ...params,
+    },
+    // Tries events request up to 3 times on rate limit
+    {
+      retry: {
+        statusCodes: [429],
+        tries: 3,
+      },
+    }
+  );
 }
 
 function getEventsSeriesRequest(
