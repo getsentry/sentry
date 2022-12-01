@@ -190,7 +190,7 @@ def test_relays_dyamic_sampling(
             "config",
             "dynamicSampling",
         )
-        assert dynamic_sampling == dyn_sampling_data()
+        assert dynamic_sampling is None
 
 
 @pytest.mark.django_db
