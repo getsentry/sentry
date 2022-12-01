@@ -234,13 +234,7 @@ class CodeMappingTreesHelper:
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
         """Generate the source code root for a code mapping"""
         source_code_root = None
-        if frame_filename.frame_type() == "straight_path":
-            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
-            # static/app/foo.tsx (app/foo.tsx) -> static/app/
-            source_code_root = src_file.replace(
-                frame_filename.file_and_dir_path, frame_filename.root.replace("./", "")
-            )
-        else:
+        if frame_filename.frame_type() == "packaged":
             if frame_filename.dir_path != "":
                 # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
                 source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
@@ -251,7 +245,13 @@ class CodeMappingTreesHelper:
             else:
                 # ssl.py -> raise NotImplementedError
                 raise NotImplementedError("We do not support top level files.")
-        # XXX: Check we have a test to guarantee it ends with a backslash
+        else:
+            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
+            # static/app/foo.tsx (app/foo.tsx) -> static/app/
+            source_code_root = src_file.replace(
+                frame_filename.file_and_dir_path, frame_filename.root.replace("./", "")
+            )
+
         return source_code_root
 
     def _generate_code_mapping_from_tree(
