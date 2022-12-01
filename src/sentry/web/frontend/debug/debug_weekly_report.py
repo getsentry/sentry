@@ -108,8 +108,8 @@ class DebugWeeklyReportView(MailPreviewView):
 
     @property
     def html_template(self):
-        return "sentry/emails/reports/new.html"
+        return "sentry/emails/reports/body.html"
 
     @property
     def text_template(self):
-        return "sentry/emails/reports/new.txt"
+        return "sentry/emails/reports/body.txt"

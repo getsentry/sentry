@@ -656,7 +656,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
         )
         # Calculate total
         (
@@ -853,8 +853,8 @@ def send_email(ctx, user, dry_run=False, email_override=None):
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/new.txt",
-        html_template="sentry/emails/reports/new.html",
+        template="sentry/emails/reports/body.txt",
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context=template_ctx,
         headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},

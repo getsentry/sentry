@@ -205,8 +205,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         message_params = message_builder.call_args.kwargs
         context = message_params["context"]
 
-        assert message_params["template"] == "sentry/emails/reports/new.txt"
-        assert message_params["html_template"] == "sentry/emails/reports/new.html"
+        assert message_params["template"] == "sentry/emails/reports/body.txt"
+        assert message_params["html_template"] == "sentry/emails/reports/body.html"
 
         assert context["organization"] == self.organization
         assert context["issue_summary"] == {
