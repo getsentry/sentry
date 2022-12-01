@@ -2,18 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Set,
-    cast,
-)
+from typing import TYPE_CHECKING, Collection, Iterable, List, MutableMapping, Optional, Set, cast
 
 from sentry.models import (
     Organization,
@@ -293,21 +282,3 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
         project_ids = ()  # TODO?
         return self._serialize_team_member(omt, project_ids)
-
-    def get_audit_log_data(
-        self, *, organization_member: ApiOrganizationMember
-    ) -> Mapping[str, Any]:
-        from sentry.services.hybrid_cloud.user import user_service
-
-        user = user_service.get_user(user_id=organization_member.user_id)
-        team_ids = [mt.team_id for mt in organization_member.member_teams]
-        team_slugs = list(Team.objects.filter(id__in=team_ids).values_list("slug", flat=True))
-        return {
-            "email": user.email,
-            "user": None,  # TODO,
-            "teams": team_ids,
-            "teams_slugs": team_slugs,
-            "has_global_access": organization_member.has_global_access,
-            "role": organization_member.role,
-            "invite_status": None,  # TODO
-        }

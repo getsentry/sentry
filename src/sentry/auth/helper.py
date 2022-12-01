@@ -31,16 +31,10 @@ from sentry.auth.idpmigration import (
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import (
-    AuditLogEntry,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    User,
-)
+from sentry.models import AuthIdentity, AuthProvider, Organization, OrganizationMember, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
+from sentry.services.hybrid_cloud.audit import AuditLogMetadata, audit_log_service
 from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, email_service
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
@@ -267,14 +261,16 @@ class AuthIdentityHandler:
         for team in default_teams:
             organization_service.add_team_member(team=team, organization_member=om)
 
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=user,
-            ip_address=self.request.META["REMOTE_ADDR"],
-            target_object=om.id,
-            target_user=om.user_id,
-            event=audit_log.get_event_id("MEMBER_ADD"),
-            data=organization_service.get_audit_log_data(organization_member=om),
+        audit_log_service.log_organization_membership(
+            metadata=AuditLogMetadata(
+                organization=self.organization,
+                actor=user,
+                ip_address=self.request.META["REMOTE_ADDR"],
+                target_object=om.id,
+                target_user=om.user_id,
+                event=audit_log.get_event_id("MEMBER_ADD"),
+            ),
+            organization_member=om,
         )
 
         return om
@@ -346,13 +342,15 @@ class AuthIdentityHandler:
         self._set_linked_flag(member)
 
         if auth_is_new:
-            AuditLogEntry.objects.create(
-                organization=self.organization,
-                actor=self.user,
-                ip_address=self.request.META["REMOTE_ADDR"],
-                target_object=auth_identity.id,
-                event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
-                data=auth_identity.get_audit_log_data(),
+            audit_log_service.log_auth_identity(
+                metadata=AuditLogMetadata(
+                    organization=self.organization,
+                    actor=self.user,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object=auth_identity.id,
+                    event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
+                ),
+                auth_identity=auth_identity,
             )
 
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
@@ -860,13 +858,15 @@ class AuthHelper(Pipeline):
             sender=self.__class__,
         )
 
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=request.user,
-            ip_address=request.META["REMOTE_ADDR"],
-            target_object=self.provider_model.id,
-            event=audit_log.get_event_id("SSO_ENABLE"),
-            data=self.provider_model.get_audit_log_data(),
+        audit_log_service.log_auth_provider(
+            metadata=AuditLogMetadata(
+                organization=self.organization,
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                target_object=self.provider_model.id,
+                event=audit_log.get_event_id("SSO_ENABLE"),
+            ),
+            provider=self.provider_model,
         )
 
         email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Collection, Iterable, List, Mapping, Optional
+from typing import TYPE_CHECKING, Collection, Iterable, List, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -110,12 +110,6 @@ class OrganizationService(InterfaceWithLifecycle):
     def add_team_member(
         self, *, team: ApiTeam, organization_member: ApiOrganizationMember
     ) -> ApiTeamMember:
-        pass
-
-    @abstractmethod
-    def get_audit_log_data(
-        self, *, organization_member: ApiOrganizationMember
-    ) -> Mapping[str, Any]:
         pass
 
 
