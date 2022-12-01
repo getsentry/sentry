@@ -19,6 +19,7 @@ import {
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
+import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -95,41 +96,65 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     chart,
   };
 
-  return (
-    <GenericPerformanceWidget<DataType>
-      {...rest}
-      InteractiveTitle={
-        InteractiveTitle
-          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
-          : null
-      }
-      location={location}
-      Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
-      HeaderActions={provided => {
-        return (
-          <Fragment>
-            <div>
-              <Button
-                onClick={() =>
-                  handleTrendsClick({
-                    location,
-                    organization,
-                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
-                  })
-                }
-                size="sm"
-                data-test-id="view-all-button"
-              >
-                {t('View All')}
-              </Button>
-            </div>
-            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
-          </Fragment>
-        );
-      }}
-      EmptyComponent={WidgetEmptyStateWarning}
-      Queries={Queries}
-      Visualizations={[
+  const Visualizations = organization.features.includes('performance-new-widget-designs')
+    ? [
+        {
+          component: provided => (
+            <Accordion
+              selectedIndex={selectedListIndex}
+              setSelectedIndex={setSelectListIndex}
+              items={provided.widgetData.chart.transactionsList.map(listItem => () => {
+                const initialConditions = new MutableSearch([]);
+                initialConditions.addFilterValues('transaction', [listItem.transaction]);
+
+                const trendsTarget = trendsTargetRoute({
+                  organization: props.organization,
+                  location,
+                  initialConditions,
+                  additionalQuery: {
+                    trendFunction: trendFunctionField,
+                    statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+                  },
+                });
+                return (
+                  <Fragment>
+                    <GrowLink to={trendsTarget}>
+                      <Truncate value={listItem.transaction} maxLength={40} />
+                    </GrowLink>
+                    <RightAlignedCell>
+                      <CompareDurations transaction={listItem} />
+                    </RightAlignedCell>
+                  </Fragment>
+                );
+              })}
+              content={
+                <TrendsChart
+                  {...provided}
+                  {...rest}
+                  isLoading={provided.widgetData.chart.isLoading}
+                  statsData={provided.widgetData.chart.statsData}
+                  query={eventView.query}
+                  project={eventView.project}
+                  environment={eventView.environment}
+                  start={eventView.start}
+                  end={eventView.end}
+                  statsPeriod={eventView.statsPeriod}
+                  transaction={
+                    provided.widgetData.chart.transactionsList[selectedListIndex]
+                  }
+                  trendChangeType={trendChangeType}
+                  trendFunctionField={trendFunctionField}
+                  disableXAxis
+                  disableLegend
+                />
+              }
+            />
+          ),
+          height: props.chartHeight,
+          noPadding: true,
+        },
+      ]
+    : [
         {
           component: provided => (
             <TrendsChart
@@ -198,7 +223,43 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           height: 124,
           noPadding: true,
         },
-      ]}
+      ];
+
+  return (
+    <GenericPerformanceWidget<DataType>
+      {...rest}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
+      location={location}
+      Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
+      HeaderActions={provided => {
+        return (
+          <Fragment>
+            <div>
+              <Button
+                onClick={() =>
+                  handleTrendsClick({
+                    location,
+                    organization,
+                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                  })
+                }
+                size="sm"
+                data-test-id="view-all-button"
+              >
+                {t('View All')}
+              </Button>
+            </div>
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
+          </Fragment>
+        );
+      }}
+      EmptyComponent={WidgetEmptyStateWarning}
+      Queries={Queries}
+      Visualizations={Visualizations}
     />
   );
 }
