@@ -1,6 +1,7 @@
 """ Write transactions into redis sets """
 from typing import Any, Set
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry import features
@@ -32,9 +33,10 @@ def _get_redis_client() -> Any:
 
 
 def _store_transaction_name(project: Project, transaction_name: str) -> None:
-    client = _get_redis_client()
-    redis_key = _get_redis_key(project)
-    add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
+    with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
+        client = _get_redis_client()
+        redis_key = _get_redis_key(project)
+        add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
 def _get_transaction_names(project: Project) -> Set[str]:
@@ -52,4 +54,4 @@ def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> No
         and event.transaction
         and features.has("organizations:transaction-name-clusterer", project.organization)
     ):
-        safe_execute(_store_transaction_name, project, event.transaction)
+        safe_execute(_store_transaction_name, project, event.transaction, _with_transaction=False)
