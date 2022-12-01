@@ -928,35 +928,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        span_id = span.get("span_id", None)
+        if not NPlusOneAPICallsDetector.is_span_valid(span):
+            return
+
         op = span.get("op", None)
-        hash = span.get("hash", None)
-
-        if not span_id or not op or not hash:
-            return
-
-        description = span.get("description")
-        if not description:
-            return
-
-        if description.strip()[:3].upper() != "GET":
-            return
-
         if op not in self.settings.get("allowed_span_ops", []):
-            return
-
-        # Ignore anything that looks like an asset
-        data = span.get("data") or {}
-        parsed_url = urlparse(data.get("url") or "")
-        _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css"]:
-            return
-
-        # Ignore backendy transactions
-        contexts = span.get("contexts") or {}
-        trace = contexts.get("trace") or {}
-        trace_op = trace.get("op")
-        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return
 
         duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
@@ -976,6 +952,38 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         else:
             self._maybe_store_problem()
             self.spans = [span]
+
+    @classmethod
+    def is_span_valid(cls, span: Span) -> bool:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        hash = span.get("hash", None)
+
+        if not span_id or not op or not hash:
+            return False
+
+        description = span.get("description")
+        if not description:
+            return False
+
+        if description.strip()[:3].upper() != "GET":
+            return False
+
+        # Ignore anything that looks like an asset
+        data = span.get("data") or {}
+        parsed_url = urlparse(data.get("url") or "")
+        _pathname, extension = os.path.splitext(parsed_url.path)
+        if extension and extension in [".js", ".css"]:
+            return False
+
+        # Ignore backendy transactions
+        contexts = span.get("contexts") or {}
+        trace = contexts.get("trace") or {}
+        trace_op = trace.get("op")
+        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
+            return False
+
+        return True
 
     def on_complete(self):
         self._maybe_store_problem()

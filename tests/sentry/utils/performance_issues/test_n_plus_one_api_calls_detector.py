@@ -72,3 +72,42 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         run_detector_on_data(detector, event)
         problems = list(detector.stored_problems.values())
         assert problems == []
+
+
+@pytest.mark.parametrize(
+    "span",
+    [
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "b",
+            "description": "GET http://service.io/resource",
+        },
+    ],
+)
+def test_accepts_valid_spans(span):
+    assert NPlusOneAPICallsDetector.is_span_valid(span)
+
+
+@pytest.mark.parametrize(
+    "span",
+    [
+        {"span_id": "a", "op": None},
+        {"op": "http.client"},
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "a",
+            "description": "POST http://service.io/resource",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",
+            "hash": "a",
+            "data": {"url": "/resource.js"},
+        },
+    ],
+)
+def test_rejects_invalid_spans(span):
+    assert not NPlusOneAPICallsDetector.is_span_valid(span)
