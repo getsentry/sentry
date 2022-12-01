@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from datetime import timedelta
+from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -150,6 +151,41 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             group_id=event.group_id,
         )
         assert event_processing_store.get(cache_key) is None
+
+
+@apply_feature_flag_on_cls("organizations:derive-code-mappings")
+@apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
+class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
+    def _call_post_process_group(self, data: Dict[str, str]) -> None:
+        event = self.store_event(data=data, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_invalid_platform(self, mock_derive_code_mappings):
+        self._call_post_process_group({"platform": "elixir"})
+        assert mock_derive_code_mappings.delay.call_count == 0
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_python(self, mock_derive_code_mappings):
+        data = {"platform": "python"}
+        self._call_post_process_group(data)
+        assert mock_derive_code_mappings.delay.call_count == 1
+        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, False)
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_js(self, mock_derive_code_mappings):
+        data = {"platform": "javascript"}
+        self._call_post_process_group(data)
+        assert mock_derive_code_mappings.delay.call_count == 1
+        # Because we only run on dry run mode even if the official flag is set
+        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, True)
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
@@ -1075,6 +1111,7 @@ class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
     CorePostProcessGroupTestMixin,
+    DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     RuleProcessorTestMixin,
