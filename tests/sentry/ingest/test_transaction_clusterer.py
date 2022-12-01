@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.ingest.transaction_clusterer.collect.redis import (
+from sentry.ingest.transaction_clusterer.datasource.redis import (
     _get_transaction_names,
     _store_transaction_name,
     record_transaction_name,
@@ -41,7 +41,7 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
-@mock.patch("sentry.ingest.transaction_clusterer.collect.redis.MAX_SET_SIZE", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
     project1 = Project(id=101, name="p1", organization_id=1)
     project2 = Project(id=102, name="project2", organization_id=1)
@@ -64,7 +64,7 @@ def test_collection():
     assert set() == _get_transaction_names(project3)
 
 
-@mock.patch("sentry.ingest.transaction_clusterer.collect.redis._store_transaction_name")
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "source,txname,feature,expected",
