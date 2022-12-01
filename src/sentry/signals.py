@@ -100,6 +100,8 @@ class BetterSignal(Signal):
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
+# When the organization and initial member have been created
+org_setup_complete = BetterSignal(providing_args=["organization", "user"])
 
 # This signal should eventually be removed as we should not send
 # transactions through post processing

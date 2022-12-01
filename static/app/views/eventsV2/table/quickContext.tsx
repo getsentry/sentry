@@ -3,12 +3,13 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Clipboard from 'sentry/components/clipboard';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import AssignedTo from 'sentry/components/group/assignedTo';
+import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -17,13 +18,20 @@ import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {IconWrapper} from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {IconAdd, IconCheckmark, IconCopy, IconMute, IconNot} from 'sentry/icons';
+import {
+  IconAdd,
+  IconCheckmark,
+  IconCopy,
+  IconMute,
+  IconNot,
+  IconUser,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {Event, Group, Organization, Project, ReleaseWithHealth, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -90,6 +98,15 @@ function getHoverHeader(
           organization={organization}
           copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
           copyContent={dataRow.release}
+        />
+      );
+    case ContextType.ISSUE:
+      return (
+        <HoverHeader
+          title={t('Issue')}
+          organization={organization}
+          copyLabel={dataRow.issue}
+          copyContent={dataRow.issue}
         />
       );
     case ContextType.EVENT:
@@ -177,6 +194,13 @@ function IssueContext(props: BaseContextProps) {
   const statusTitle = t('Issue Status');
   const {dataRow, organization} = props;
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.ISSUE,
+    });
+  }, [organization]);
+
   const {
     isLoading: issueLoading,
     isError: issueError,
@@ -192,11 +216,7 @@ function IssueContext(props: BaseContextProps) {
       },
     ],
     {
-      onSuccess: group => {
-        GroupStore.add([group]);
-      },
       staleTime: fiveMinutesInMs,
-      retry: false,
     }
   );
 
@@ -235,11 +255,26 @@ function IssueContext(props: BaseContextProps) {
       </IssueContextContainer>
     );
 
-  const renderAssigneeSelector = () =>
+  const renderAssignee = () =>
     issue && (
-      <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo disableDropdown group={issue} projectId={issue.project.id} />
-      </IssueContextContainer>
+      <AssignedToContainer data-test-id="quick-context-assigned-to-container">
+        <ContextHeader>{t('Assigned To')}</ContextHeader>
+        <AssignedToBody>
+          {issue.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={issue.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
+          )}
+          {getAssignedToDisplayName(issue, issue.assignedTo)}
+        </AssignedToBody>
+      </AssignedToContainer>
     );
 
   const renderSuspectCommits = () =>
@@ -262,17 +297,9 @@ function IssueContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.ISSUE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderStatus()}
-      {renderAssigneeSelector()}
+      {renderAssignee()}
       {renderSuspectCommits()}
     </Wrapper>
   );
@@ -310,6 +337,13 @@ function ReleaseContext(props: BaseContextProps) {
       retry: false,
     }
   );
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.RELEASE,
+    });
+  }, [organization]);
 
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
@@ -362,7 +396,9 @@ function ReleaseContext(props: BaseContextProps) {
     return (
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+          <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
+            {getCommitAuthorTitle()}
+          </ReleaseAuthorsTitle>
           <ReleaseAuthorsBody>
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
@@ -417,15 +453,7 @@ function ReleaseContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.RELEASE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
       {renderReleaseAuthors()}
       {renderLastCommit()}
@@ -450,6 +478,16 @@ function EventContext(props: EventContextProps) {
     }
   );
 
+  useEffect(() => {
+    if (data) {
+      trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+        organization,
+        contextType: ContextType.EVENT,
+        eventType: data.type,
+      });
+    }
+  }, [data, organization]);
+
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -459,16 +497,7 @@ function EventContext(props: EventContextProps) {
     const {start, end} = getTraceTimeRangeFromEvent(data);
     const project = projects?.find(p => p.slug === data.projectID);
     return (
-      <Wrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.RELEASE,
-            eventType: 'transaction',
-          });
-        }}
-        data-test-id="quick-context-hover-body"
-      >
+      <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
           <ContextHeader>
             <Title>
@@ -582,15 +611,7 @@ function EventContext(props: EventContextProps) {
           <ErrorTitleBody>{data.title}</ErrorTitleBody>
         </ErrorTitleContainer>
       )}
-      <StackTraceWrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.EVENT,
-            eventType: 'error',
-          });
-        }}
-      >
+      <StackTraceWrapper>
         <StackTracePreviewContent event={data} stacktrace={stackTrace} />
       </StackTraceWrapper>
     </Fragment>
@@ -617,7 +638,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
-      GroupStore.reset();
       queryClient.clear();
     };
   }, [queryClient]);
@@ -676,7 +696,7 @@ const IssueContextContainer = styled(ContextContainer)`
     padding: 0;
   }
 
-  ${CauseHeader}, ${SidebarSection.Title} {
+  ${CauseHeader} {
     margin-top: ${space(2)};
   }
 
@@ -694,6 +714,10 @@ const ContextHeader = styled('h6')`
   justify-content: space-between;
   align-items: center;
   margin: 0;
+`;
+
+const AssignedToContainer = styled(IssueContextContainer)`
+  margin-top: ${space(2)};
 `;
 
 const ContextBody = styled('div')`
@@ -730,6 +754,10 @@ const EventContextBody = styled(ContextBody)`
 const StatusText = styled('span')`
   margin-left: ${space(1)};
   text-transform: capitalize;
+`;
+
+const AssignedToBody = styled(ContextBody)`
+  gap: ${space(1)};
 `;
 
 const Wrapper = styled('div')`
