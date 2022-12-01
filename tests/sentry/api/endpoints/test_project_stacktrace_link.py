@@ -111,17 +111,22 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_file_not_found_error(self):
         """File matches code mapping but it cannot be found in the source repository."""
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-        )
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert not response.data["sourceUrl"]
-        assert response.data["error"] == "file_not_found"
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
-        assert (
-            response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
-        )
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value=None,
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
+            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert not response.data["sourceUrl"]
+            assert response.data["error"] == "file_not_found"
+            assert response.data["integrations"] == [serialized_integration(self.integration)]
+            assert (
+                response.data["attemptedUrl"]
+                == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+            )
 
     def test_stack_root_mismatch_error(self):
         """Looking for a stacktrace file path that will not match any code mappings"""
