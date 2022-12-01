@@ -111,22 +111,17 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_file_not_found_error(self):
         """File matches code mapping but it cannot be found in the source repository."""
-        with mock.patch.object(
-            ExampleIntegration,
-            "get_stacktrace_link",
-            return_value=None,
-        ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-            )
-            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-            assert not response.data["sourceUrl"]
-            assert response.data["error"] == "file_not_found"
-            assert response.data["integrations"] == [serialized_integration(self.integration)]
-            assert (
-                response.data["attemptedUrl"]
-                == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
-            )
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+        )
+        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "file_not_found"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
+        assert (
+            response.data["attemptedUrl"]
+            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+        )
 
     def test_stack_root_mismatch_error(self):
         """Looking for a stacktrace file path that will not match any code mappings"""
@@ -242,10 +237,9 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
             project=self.project,
             repo=self.repo,
             stack_root="",
-            source_root="usr/src/getsentry/",
+            source_root="",
         )
 
-        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         self.login_as(self.user)
 
     def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
@@ -268,9 +262,7 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
             self.project.slug,
             qs_params={
                 "file": "file.java",
-                "absPath": "any",
                 "module": "usr.src.getsentry.file",
-                "package": "any",
                 "platform": "java",
             },
         )

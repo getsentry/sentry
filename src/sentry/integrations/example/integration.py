@@ -158,7 +158,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_stacktrace_link(
         self, repo: Repository, filepath: str, default: str, version: str
     ) -> str | None:
-        return self.format_source_url(repo, filepath, default)
+        pass
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
