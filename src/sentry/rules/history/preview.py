@@ -237,7 +237,7 @@ def get_top_groups(
         query_params.append(SnubaQueryParams(**kwargs))
 
     groups = []
-    for result in bulk_raw_query(query_params):
+    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
         groups.extend(result.get("data", []))
 
     sorted_groups = sorted(groups, key=lambda x: int(x["groupCount"]), reverse=True)
@@ -334,7 +334,7 @@ def get_events(
         )
 
     group_map = {}
-    for result in bulk_raw_query(query_params):
+    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_events"):
         event_data = result.get("data", [])
         events.extend(event_data)
         for event in event_data:
@@ -434,7 +434,9 @@ def get_frequency_buckets(
         },
     )
 
-    bucket_counts: Sequence[Dict[str, Any]] = raw_query(**kwargs).get("data", [])
+    bucket_counts: Sequence[Dict[str, Any]] = raw_query(
+        **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
+    ).get("data", [])
 
     for bucket in bucket_counts:
         bucket["roundedTime"] = parse_snuba_datetime(bucket["roundedTime"])
