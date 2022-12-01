@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any, Mapping
 
@@ -15,12 +16,13 @@ from sentry.integrations.slack.message_builder.issues import (
     SlackReleaseIssuesMessageBuilder,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import ensure_aware, to_timestamp
 from sentry.utils.http import absolute_uri
 
 
@@ -178,6 +180,43 @@ class BuildGroupAttachmentTest(TestCase):
             attachments = SlackIssuesMessageBuilder(perf_group).build()
 
         assert attachments["color"] == "#2788CE"  # blue for info level
+
+    def test_build_generic_group_attachment_issue_alert(self):
+        """Test that a generic issue shows the appropriate attachment content"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Attention", "Very important information!!!", True),
+                IssueEvidence("Evidence 2", "Not important", False),
+                IssueEvidence("Evidence 3", "Nobody cares about this", False),
+            ],
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save()
+        event.occurrence = occurrence
+
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        group = event.group
+
+        attachments = SlackIssuesMessageBuilder(group, event).build()
+
+        assert (
+            attachments["title_link"]
+            == f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
+        )
+        assert attachments["title"] == "Hello world"
+        assert attachments["text"] == "Attention - Very important information!!!"
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
