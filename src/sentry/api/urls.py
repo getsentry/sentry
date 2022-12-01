@@ -4,6 +4,9 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
 )
@@ -12,6 +15,7 @@ from sentry.api.endpoints.organization_sentry_function_details import (
     OrganizationSentryFunctionDetailsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.api.endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -936,6 +940,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
                     OrganizationCodeMappingsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mappings",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/derive-code-mappings/$",
+                    OrganizationDeriveCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-derive-code-mappings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
@@ -2195,6 +2204,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$",
                     ProjectPluginDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-plugin-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/cluster-transaction-names/$",
+                    ProjectTransactionNamesCluster.as_view(),
+                    name="sentry-api-0-organization-project-cluster-transaction-names",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/",

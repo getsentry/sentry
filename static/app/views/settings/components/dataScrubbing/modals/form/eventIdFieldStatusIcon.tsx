@@ -27,7 +27,7 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
     case EventIdStatus.LOADING:
       return <ControlState isSaving />;
     case EventIdStatus.LOADED:
-      return <IconCheckmark color="green300" />;
+      return <IconCheckmark color="successText" />;
     default:
       return null;
   }

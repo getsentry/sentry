@@ -11,13 +11,15 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
@@ -276,7 +278,19 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <StyledTitle>{t('Dashboards')}</StyledTitle>
+                  <StyledTitle>
+                    {t('Dashboards')}
+                    <PageHeadingQuestionTooltip
+                      title={tct(
+                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects. [link: Read the docs].',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/product/dashboards/" />
+                          ),
+                        }
+                      )}
+                    />
+                  </StyledTitle>
                   <ButtonBar gap={1.5}>
                     <TemplateSwitch>
                       {t('Show Templates')}

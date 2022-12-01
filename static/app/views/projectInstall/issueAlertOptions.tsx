@@ -283,7 +283,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         <PageHeadingWithTopMargins withMargins>
-          {t('Set your default alert settings')}
+          {t('2. Set your alert frequency')}
         </PageHeadingWithTopMargins>
         <Content>
           <RadioGroupWithPadding

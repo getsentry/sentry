@@ -222,6 +222,14 @@ def record_first_transaction(project, event, **kwargs):
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
+    analytics.record(
+        "first_profile.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
 
 @first_replay_received.connect(weak=False)
 def record_first_replay(project, **kwargs):
@@ -250,14 +258,14 @@ def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        user=user,
+        user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
     )
     analytics.record(
         "member.invited",
         invited_member_id=member.id,
-        inviter_user_id=user.id,
+        inviter_user_id=user.id if user else None,
         organization_id=member.organization_id,
         referrer=kwargs.get("referrer"),
     )

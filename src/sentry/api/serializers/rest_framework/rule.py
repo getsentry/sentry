@@ -119,6 +119,10 @@ class RuleSetSerializer(serializers.Serializer):
         return attrs
 
 
+class RulePreviewSerializer(RuleSetSerializer):
+    endpoint = serializers.DateTimeField(required=False, allow_null=True)
+
+
 class RuleActionSerializer(serializers.Serializer):
     actions = ListField(child=RuleNodeField(type="action/event"), required=False)
 

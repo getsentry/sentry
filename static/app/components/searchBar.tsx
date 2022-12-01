@@ -19,6 +19,7 @@ interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   onChange?: (query: string) => void;
   onSearch?: (query: string) => void;
   query?: string;
+  trailing?: React.ReactNode;
   width?: string;
 }
 
@@ -30,6 +31,7 @@ function SearchBar({
   width,
   size,
   className,
+  trailing,
   ...inputProps
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,8 +88,9 @@ function SearchBar({
           size={size}
         />
         <InputTrailingItems>
+          {trailing}
           {!!query && (
-            <SearchClearButton
+            <SearchBarTrailingButton
               type="button"
               size="zero"
               borderless
@@ -111,7 +114,7 @@ const StyledInput = styled(Input)`
   ${p => p.width && `width: ${p.width};`}
 `;
 
-const SearchClearButton = styled(Button)`
+export const SearchBarTrailingButton = styled(Button)`
   color: ${p => p.theme.subText};
   padding: ${space(0.5)};
 `;

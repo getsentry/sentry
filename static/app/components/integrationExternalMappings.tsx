@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -25,6 +24,8 @@ import {
   Organization,
 } from 'sentry/types';
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {
@@ -264,7 +265,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(IntegrationExternalMappings);
+export default withSentryRouter(IntegrationExternalMappings);
 
 const AddButton = styled(Button)`
   text-transform: capitalize;
@@ -333,5 +334,5 @@ const ButtonColumn = styled(Column)`
 `;
 
 const RedText = styled('span')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;

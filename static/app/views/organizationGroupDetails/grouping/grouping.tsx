@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -20,6 +20,8 @@ import space from 'sentry/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import toArray from 'sentry/utils/toArray';
+import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import withApi from 'sentry/utils/withApi';
 
 import ErrorMessage from './errorMessage';
@@ -72,46 +74,22 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   const [pagination, setPagination] = useState('');
 
+  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor', 'level']});
   useEffect(() => {
     fetchGroupingLevels();
-    return browserHistory.listen(handleRouteLeave);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setSecondGrouping();
-  }, [groupingLevels]);
+  }, [groupingLevels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateUrlWithNewLevel();
-  }, [activeGroupingLevel]);
+  }, [activeGroupingLevel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchGroupingLevelDetails();
-  }, [activeGroupingLevel, cursor]);
-
-  function handleRouteLeave(newLocation: Location<{cursor?: string; level?: number}>) {
-    if (
-      newLocation.pathname === location.pathname ||
-      (newLocation.pathname !== location.pathname &&
-        newLocation.query.cursor === undefined &&
-        newLocation.query.level === undefined)
-    ) {
-      return true;
-    }
-
-    // Removes cursor and level from the URL on route leave
-    // so that the parameters will not interfere with other pages
-    browserHistory.replace({
-      pathname: newLocation.pathname,
-      query: {
-        ...newLocation.query,
-        cursor: undefined,
-        level: undefined,
-      },
-    });
-
-    return false;
-  }
+  }, [activeGroupingLevel, cursor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -153,7 +131,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
       const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
+      setActiveGroupingLevelDetails(toArray(data));
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);

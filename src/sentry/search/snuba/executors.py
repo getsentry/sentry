@@ -10,6 +10,7 @@ from hashlib import md5
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
 
 import sentry_sdk
+from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk import (
     Column,
@@ -45,7 +46,7 @@ from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -198,6 +199,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         organization_id: int,
         project_ids: Sequence[int],
         environments: Optional[Sequence[str]],
+        group_ids: Optional[Sequence[int]],
+        filters: Mapping[str, Sequence[int]],
         search_filters: Sequence[SearchFilter],
         sort_field: str,
         start: datetime,
@@ -243,7 +246,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             SearchQueryPartial,
             functools.partial(
                 query_partial,
-                selected_columns=selected_columns,
                 groupby=["group_id"],
                 having=having,
                 orderby=orderby,
@@ -252,10 +254,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         return SEARCH_STRATEGIES[group_category](
             pinned_query_partial,
+            selected_columns,
             aggregations,
             organization_id,
             project_ids,
             environments,
+            group_ids,
+            filters,
             conditions,
         )
 
@@ -291,9 +296,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 ).values_list("name", flat=True)
             )
 
-        if group_ids:
-            filters["group_id"] = sorted(group_ids)
-
         referrer = "search_sample" if get_sample else "search"
 
         snuba_search_filters = [
@@ -313,7 +315,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 limit=limit,
                 offset=offset,
                 referrer=referrer,
-                filter_keys=filters,
                 totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
                 turbo=get_sample,  # Turn off FINAL when in sampling mode
                 sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
@@ -328,6 +329,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 organization_id,
                 project_ids,
                 environments,
+                group_ids,
+                filters,
                 snuba_search_filters,
                 sort_field,
                 start,
@@ -492,6 +495,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if not features.has("organizations:performance-issues", projects[0].organization):
                 # Make sure we only see error issues if the performance issue feature is disabled
                 group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
+            else:
+                for sf in search_filters or ():
+                    # general search query:
+                    if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
+                        group_queryset = group_queryset.filter(
+                            Q(type=GroupType.ERROR.value)
+                            | Q(
+                                type__in=(
+                                    GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                                    GroupType.PERFORMANCE_SLOW_SPAN.value,
+                                    GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
+                                    GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
+                                    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
+                                    GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
+                                    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                                ),
+                                message__icontains=sf.value.raw_value,
+                            )
+                        )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")

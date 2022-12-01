@@ -66,8 +66,8 @@ describe('EditSavedSearchModal', function () {
     userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
     userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
 
-    userEvent.clear(screen.getByTestId('smart-search-input'));
-    userEvent.type(screen.getByTestId('smart-search-input'), 'test');
+    userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
+    userEvent.type(screen.getByRole('textbox', {name: /filter issues/i}), 'test');
 
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
 

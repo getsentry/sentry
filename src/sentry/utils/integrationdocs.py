@@ -35,7 +35,8 @@ class Platform(TypedDict):
     integrations: list[dict[str, str]]
 
 
-BASE_URL = "https://docs.sentry.io/_platforms/{}"
+INTEGRATION_DOCS_URL = os.environ.get("INTEGRATION_DOCS_URL", "https://docs.sentry.io/_platforms/")
+BASE_URL = INTEGRATION_DOCS_URL + "{}"
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
 DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(

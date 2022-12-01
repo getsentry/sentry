@@ -104,7 +104,12 @@ function StacktraceLinkModal({
       closeModal();
       onSubmit();
     } catch (err) {
-      setError(err?.responseJSON?.sourceUrl?.[0] ?? t('Unable to save configuration'));
+      const errorJson = err?.responseJSON || {};
+      setError(
+        errorJson.sourceUrl?.[0] ??
+          errorJson.nonFieldErrors?.[0] ??
+          t('Unable to save configuration')
+      );
     }
   };
 
@@ -127,7 +132,7 @@ function StacktraceLinkModal({
                           onClick={onManualSetup}
                           to={
                             hasOneSourceCodeIntegration
-                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.name}/${sourceCodeProviders[0].id}/`
+                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.key}/${sourceCodeProviders[0].id}/`
                               : `/settings/${organization.slug}/integrations/`
                           }
                         />

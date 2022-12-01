@@ -15,11 +15,10 @@ from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, roles
+from sentry import audit_log, features, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
-from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import (
@@ -39,9 +38,15 @@ from sentry.signals import member_invited
 from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import SCIM_400_INVALID_PATCH, SCIM_409_USER_EXISTS, SCIM_API_ERROR, MemberPatchOps
+from .constants import (
+    SCIM_400_INVALID_ORGROLE,
+    SCIM_400_INVALID_PATCH,
+    SCIM_409_USER_EXISTS,
+    MemberPatchOps,
+)
 from .utils import (
     OrganizationSCIMMemberPermission,
+    SCIMApiError,
     SCIMEndpoint,
     SCIMQueryParamSerializer,
     scim_response_envelope,
@@ -209,9 +214,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         serializer = SCIMPatchRequestSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(
-                {"schemas": SCIM_API_ERROR, "detail": json.dumps(serializer.errors)}, status=400
-            )
+            raise SCIMApiError(detail=json.dumps(serializer.errors))
 
         result = serializer.validated_data
 
@@ -221,7 +224,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 self._delete_member(request, organization, member)
                 return Response(status=204)
             else:
-                return Response(SCIM_400_INVALID_PATCH, status=400)
+                raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
 
         context = serialize(
             member,
@@ -372,14 +375,33 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         - The API also does not support setting secondary emails.
         """
 
+        if (
+            features.has("organizations:scim-orgmember-roles", organization, actor=None)
+            and "sentryOrgRole" in request.data
+            and request.data["sentryOrgRole"]
+        ):
+            role = request.data["sentryOrgRole"].lower()
+            idp_role_restricted = True
+        else:
+            role = organization.default_role
+            idp_role_restricted = False
+
+        # Allow any role as long as it doesn't have `org:admin` permissions
+        allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
+
+        # Check for roles not found
+        # TODO: move this to the serializer verification
+        if role not in {role.id for role in allowed_roles}:
+            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),
-                "role": roles.get(organization.default_role).id,
+                "role": roles.get(role).id,
             },
             context={
                 "organization": organization,
-                "allowed_roles": [roles.get(organization.default_role)],
+                "allowed_roles": allowed_roles,
                 "allow_existing_invite_request": True,
             },
         )
@@ -390,8 +412,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             ):
                 # we include conflict logic in the serializer, check to see if that was
                 # our error and if so, return a 409 so the scim IDP knows how to handle
-                raise ConflictError(detail=SCIM_409_USER_EXISTS)
-            return Response(serializer.errors, status=400)
+                raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+            if "role" in serializer.errors:
+                # TODO: Change this to an error pointing to a doc showing the workaround if they
+                # tried to provision an org admin
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+            raise SCIMApiError(detail=json.dumps(serializer.errors))
 
         result = serializer.validated_data
         with transaction.atomic():
@@ -413,6 +439,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 )
 
                 # TODO: are invite tokens needed for SAML orgs?
+                member.flags["idp:provisioned"] = True
+                member.flags["idp:role-restricted"] = idp_role_restricted
                 if settings.SENTRY_ENABLE_INVITES:
                     member.token = member.generate_token()
                 member.save()

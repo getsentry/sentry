@@ -31,7 +31,7 @@ def build_unlinking_url(
     )
 
 
-class SlackUnlinkIdentityView(BaseView):  # type: ignore
+class SlackUnlinkIdentityView(BaseView):
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:

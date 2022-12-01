@@ -40,6 +40,8 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
+
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
@@ -342,15 +344,12 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {profiling}
                 {releases}
+                {replays}
+                {monitors}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-              </SidebarSection>
-
-              <SidebarSection>
-                {replays}
-                {monitors}
               </SidebarSection>
 
               <SidebarSection>
@@ -373,6 +372,12 @@ function Sidebar({location, organization}: Props) {
             {...sidebarItemProps}
           />
           <ReplaysOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <ProfilingOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
             hidePanel={hidePanel}

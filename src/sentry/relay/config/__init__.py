@@ -44,7 +44,11 @@ from sentry.utils.options import sample_modulo
 from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
-EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
+EXPOSABLE_FEATURES = [
+    "organizations:transaction-name-normalize",
+    "organizations:profiling",
+    "organizations:session-replay",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +182,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
                         )
                     active_rules.append(rule)
 
-            return {"rules": active_rules}
+            return {"rules": active_rules, "mode": "total"}
 
     return None
 
@@ -501,9 +505,8 @@ class TransactionMetricsSettings(TypedDict):
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return (
-        sample_modulo("relay.transaction-metrics-org-sample-rate", project.organization_id)
-        or features.has("organizations:transaction-metrics-extraction", project.organization)
+    return features.has(
+        "organizations:transaction-metrics-extraction", project.organization
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )

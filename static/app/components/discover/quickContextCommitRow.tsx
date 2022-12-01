@@ -10,22 +10,26 @@ import space from 'sentry/styles/space';
 
 import {CommitRowProps, formatCommitMessage} from '../commitRow';
 import ExternalLink from '../links/externalLink';
+import Tooltip from '../tooltip';
 
 function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
   const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
+  const commitMessage = formatCommitMessage(commit.message);
 
   return (
     <StyledPanelItem key={commit.id} data-test-id="quick-context-commit-row">
       <UserAvatar size={24} user={commit.author} />
       <CommitLinks>
         {hasPullRequestURL && commit.message && (
-          <LinkToPullRequest data-test-id="quick-context-commit-row-pr-link">
-            <ExternalLink href={commit.pullRequest?.externalUrl}>
-              {formatCommitMessage(commit.message)}
-            </ExternalLink>
-          </LinkToPullRequest>
+          <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={commitMessage}>
+            <LinkToPullRequest data-test-id="quick-context-commit-row-pr-link">
+              <ExternalLink href={commit.pullRequest?.externalUrl}>
+                {commitMessage}
+              </ExternalLink>
+            </LinkToPullRequest>
+          </Tooltip>
         )}
         <LinkToCommit
           hasPrTitle={hasPullRequestURL && commit.message}

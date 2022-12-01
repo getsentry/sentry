@@ -470,6 +470,7 @@ describe('ProjectAlertsCreate', function () {
         body: groups,
         headers: {
           'X-Hits': groups.length,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -483,6 +484,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
+              endpoint: null,
             },
           })
         );
@@ -495,6 +497,20 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              endpoint: 'endpoint',
+            }),
+          })
+        );
+      });
     });
 
     it('invalid preview alert', async () => {
@@ -517,6 +533,7 @@ describe('ProjectAlertsCreate', function () {
         body: [],
         headers: {
           'X-Hits': 0,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -534,7 +551,7 @@ describe('ProjectAlertsCreate', function () {
       features: ['issue-alert-incompatible-rules'],
     });
     const errorText =
-      'This condition conflicts with other condition(s) above. Please select a different condition.';
+      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
     it('shows error for incompatible conditions', async () => {
       createWrapper({organization});
@@ -568,6 +585,7 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue has happened at least {x} times (Note: this is approximate)',
@@ -576,7 +594,8 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
       userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.paste(screen.getByDisplayValue('10'), '-');
+      userEvent.clear(screen.getByDisplayValue('10'));
+      userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });

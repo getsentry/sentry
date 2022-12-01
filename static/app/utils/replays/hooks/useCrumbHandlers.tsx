@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Crumb} from 'sentry/types/breadcrumbs';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
   const {
@@ -12,6 +13,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     setCurrentHoverTime,
     setCurrentTime,
   } = useReplayContext();
+  const {setActiveTab} = useActiveReplayTab();
 
   const handleMouseEnter = useCallback(
     (item: Crumb) => {
@@ -42,11 +44,25 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
 
   const handleClick = useCallback(
     (crumb: Crumb) => {
-      crumb.timestamp !== undefined && startTimestampMs !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
-        : null;
+      if (crumb.timestamp !== undefined) {
+        setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
+      }
+
+      switch (crumb.type) {
+        case 'navigation':
+        case 'debug':
+          setActiveTab('network');
+          break;
+        case 'ui':
+          setActiveTab('dom');
+          break;
+        case 'error':
+        default:
+          setActiveTab('console');
+          break;
+      }
     },
-    [setCurrentTime, startTimestampMs]
+    [setCurrentTime, startTimestampMs, setActiveTab]
   );
 
   return {

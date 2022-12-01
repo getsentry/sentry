@@ -4,6 +4,7 @@ import Tag from 'sentry/components/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
+  const routerContext = TestStubs.routerContext();
   it('basic', () => {
     render(<Tag>Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
@@ -52,7 +53,8 @@ describe('Tag', () => {
     render(
       <Tag type="highlight" to={to}>
         Internal link
-      </Tag>
+      </Tag>,
+      {context: routerContext}
     );
     expect(screen.getByText('Internal link')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();
