@@ -81,7 +81,7 @@ function BreadcrumbsContainer({
     }
 
     return transformCrumbs(crumbs);
-  }, [data.values, event]);
+  }, [data, event]);
 
   const relativeTime = useMemo(() => {
     return initialBreadcrumbs[initialBreadcrumbs.length - 1]?.timestamp ?? '';
