@@ -1,6 +1,6 @@
 import os
 
-from sentry import eventstore, models, nodestore
+from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -73,7 +73,6 @@ class EventDataDeletionTask(BaseDeletionTask):
             referrer="deletions.group",
             orderby=["-timestamp", "-event_id"],
         )
-
         if not events:
             return False
 
@@ -82,6 +81,10 @@ class EventDataDeletionTask(BaseDeletionTask):
         # Remove from nodestore
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
+
+        # Remove from eventstore
+        eventstream_state = eventstream.start_delete_groups(self.project_id, [self.group_id])
+        eventstream.end_delete_groups(eventstream_state)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
