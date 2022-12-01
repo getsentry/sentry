@@ -46,6 +46,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   );
   const [promptDismissed, setPromptDismissed] = useState(false);
   const prompt = usePromptsCheck('stacktrace_link', organization.id, project?.id);
+  const isPromptDismissed =
+    promptDismissed ||
+    (prompt.isSuccess && prompt.data.data
+      ? promptIsDismissed({
+          dismissedTime: prompt.data.data.dismissed_ts,
+          snoozedTime: prompt.data.data.snoozed_ts,
+        })
+      : false);
 
   const query = {
     file: frame.filename,
@@ -65,23 +73,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     {query},
   ]);
 
-  // Update dismissed state when prompt is loaded
-  useEffect(() => {
-    if (prompt.isLoading || !prompt.data?.data) {
-      return;
-    }
-
-    setPromptDismissed(
-      promptIsDismissed({
-        dismissedTime: prompt.data.data.dismissed_ts,
-        snoozedTime: prompt.data.data.snoozed_ts,
-      })
-    );
-  }, [prompt.isLoading, prompt.data]);
-
   // Track stacktrace analytics after loaded
   useEffect(() => {
-    if (isLoading || !match) {
+    if (isLoading || prompt.isLoading || !match) {
       return;
     }
 
@@ -96,14 +90,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           ? 'match'
           : match.error || match.integrations.length > 0
           ? 'no_match'
-          : !promptDismissed
+          : !isPromptDismissed
           ? 'prompt'
           : 'empty',
       ...getAnalyicsDataForEvent(event),
     });
-    // excluding promptDismissed because we want this only to record once
+    // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, match, organization, project, event]);
+  }, [isLoading, prompt.isLoading, match, organization, project, event]);
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
@@ -222,7 +216,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   }
 
   // No integrations, but prompt is dismissed or hidden
-  if (hideErrors || promptDismissed) {
+  if (hideErrors || isPromptDismissed) {
     return null;
   }
 

@@ -1,7 +1,8 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types';
+import * as analytics from 'sentry/utils/integrationUtil';
 
 import {StacktraceLink} from './stacktraceLink';
 
@@ -20,8 +21,10 @@ describe('StacktraceLink', function () {
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
+  const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
 
   beforeEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     promptActivity = MockApiClient.addMockResponse({
       method: 'GET',
@@ -56,6 +59,42 @@ describe('StacktraceLink', function () {
       })
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
+    expect(analyticsSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('can dismiss stacktrace link CTA', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {config: null, sourceUrl: null, integrations: []},
+    });
+    const dismissPrompt = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/prompts-activity/`,
+      body: {},
+    });
+    const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
+      context: TestStubs.routerContext(),
+    });
+    expect(
+      await screen.findByText(
+        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+      )
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button'));
+    expect(container).toBeEmptyDOMElement();
+
+    expect(dismissPrompt).toHaveBeenCalledWith(
+      `/prompts-activity/`,
+      expect.objectContaining({
+        data: {
+          feature: 'stacktrace_link',
+          status: 'dismissed',
+          organization_id: org.id,
+          project_id: project.id,
+        },
+      })
+    );
   });
 
   it('renders setup CTA with integration but no configs', async function () {
