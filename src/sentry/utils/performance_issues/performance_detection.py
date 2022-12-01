@@ -936,7 +936,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsDetector.is_span_valid(span):
+        if not NPlusOneAPICallsDetector.is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -962,7 +962,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     @classmethod
-    def is_span_valid(cls, span: Span) -> bool:
+    def is_span_eligible(cls, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
