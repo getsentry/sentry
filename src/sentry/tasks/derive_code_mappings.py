@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, List, Mapping, Tuple
+from typing import Any, List, Mapping, Tuple, Union
 
 from sentry_sdk import set_tag, set_user
 
@@ -33,7 +33,7 @@ def derive_code_mappings(
     project_id: int,
     data: NodeData,
     dry_run=False,
-) -> List[RepositoryProjectPathConfig]:
+) -> Union[List[RepositoryProjectPathConfig], None]:
     """
     Derive code mappings for a project given data from a recent event.
 
@@ -52,22 +52,22 @@ def derive_code_mappings(
     ) or features.has("organizations:derive-code-mappings-dry-run", organization)
     if not (dry_run or should_continue):
         logger.info(f"Event from {organization.slug} org should not be processed.")
-        return
+        return None
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
-        return
+        return None
 
     installation, organization_integration = get_installation(organization)
     if not installation:
-        return
+        return None
 
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
         report_project_codemappings(code_mappings, stacktrace_paths, project)
-        return
+        return None
 
     return set_project_codemappings(code_mappings, organization_integration, project)
 

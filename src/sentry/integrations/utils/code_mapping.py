@@ -72,14 +72,23 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
-    def __init__(self, stacktrace_frame_file_path: str) -> None:
-        # XXX: Write few more test cases in utils/code_mappings
-        # XXX: Perhaps split up FrameFilename into more than one class
-        # e.g. ./app/utils/handleXhrErrorResponse.tsx
-        self.full_path = stacktrace_frame_file_path.replace("./", "")
-        if self.full_path.find("/") > -1:
-            # XXX: This code assumes that all stack trace frames are part of a module
-            self.root, self.file_and_dir_path = self.full_path.split("/", 1)
+    def __init__(self, frame_file_path: str) -> None:
+        self.full_path = frame_file_path
+        self.extension = get_extension(frame_file_path)
+        if self.frame_type() == "packaged":
+            self._packaged_logic(frame_file_path)
+        else:
+            self._straight_path_logic(frame_file_path)
+
+    def frame_type(self) -> str:
+        type = "packaged"
+        if self.extension not in ["py"]:
+            type = "straight_path"
+        return type
+
+    def _packaged_logic(self, frame_file_path: str) -> None:
+        if frame_file_path.find("/") > -1:
+            self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
 
             # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
@@ -91,8 +100,18 @@ class FrameFilename:
         else:
             self.root = ""
             self.dir_path = ""
-            self.file_and_dir_path = self.full_path
-            self.file_name = self.full_path
+            self.file_and_dir_path = frame_file_path
+            self.file_name = frame_file_path
+
+    def _straight_path_logic(self, frame_file_path: str) -> None:
+        # XXX: Write unit tests for these
+        # Cases: some/path/foo.tsx or ./some/path/foo.tsx
+        start_at_index = 2 if frame_file_path.startswith("./") else 0
+        backslash_index = frame_file_path.find("/", start_at_index)
+        self.root = frame_file_path[0:backslash_index]  # some or .some
+        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
+        self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
+        self.file_and_dir_path = frame_file_path.replace("./", "")  # some/path/foo.tsx (both)
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -213,18 +232,27 @@ class CodeMappingTreesHelper:
         return file_matches
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
-        """Generate the source path of a code mapping
-        e.g. src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry
-        e.g. src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry
-        e.g. ssl.py -> raise NotImplementedError
-        """
-        if frame_filename.dir_path != "":
-            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
-            return f"{source_path}/"
-        elif frame_filename.root != "":
-            return src_file.rsplit(frame_filename.file_name)[0]
+        """Generate the source code root for a code mapping"""
+        source_code_root = None
+        if frame_filename.frame_type() == "straight_path":
+            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
+            # static/app/foo.tsx (app/foo.tsx) -> static/app/
+            source_code_root = src_file.replace(
+                frame_filename.file_and_dir_path, frame_filename.root.replace("./", "")
+            )
         else:
-            raise NotImplementedError("We do not support top level files.")
+            if frame_filename.dir_path != "":
+                # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
+                source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+                source_code_root = f"{source_path}/"
+            elif frame_filename.root != "":
+                # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
+                source_code_root = src_file.rsplit(frame_filename.file_name)[0]
+            else:
+                # ssl.py -> raise NotImplementedError
+                raise NotImplementedError("We do not support top level files.")
+        # XXX: Check we have a test to guarantee it ends with a backslash
+        return source_code_root
 
     def _generate_code_mapping_from_tree(
         self,
@@ -288,8 +316,10 @@ class CodeMappingTreesHelper:
     def _potential_match_no_transformation(
         self, src_file: str, frame_filename: FrameFilename
     ) -> bool:
-        # static/app/utils/handleXhrErrorResponse.tsx && app/utils/handleXhrErrorResponse.tsx
-        return src_file.rfind(frame_filename.full_path) > -1
+        # src_file: static/app/utils/handleXhrErrorResponse.tsx
+        # full_name: ./app/utils/handleXhrErrorResponse.tsx
+        # file_and_dir_path: app/utils/handleXhrErrorResponse.tsx
+        return src_file.rfind(frame_filename.file_and_dir_path) > -1
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
