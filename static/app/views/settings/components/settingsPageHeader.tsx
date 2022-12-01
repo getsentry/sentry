@@ -13,14 +13,14 @@ type Props = {
   body?: ReactNode;
 
   className?: string;
+  // Use a purple color for the Subtitle
+  colorSubtitle?: boolean;
+
   // Icon left of title
   icon?: ReactNode;
 
   // Disables font styles in the title. Allows for more custom titles.
   noTitleStyles?: boolean;
-
-  // Colored Subtitle used for Promotions
-  promoSubtitle?: ReactNode;
 
   subtitle?: ReactNode;
 
@@ -31,7 +31,7 @@ function UnstyledSettingsPageHeader({
   icon,
   title,
   subtitle,
-  promoSubtitle,
+  colorSubtitle,
   action,
   body,
   tabs,
@@ -51,8 +51,7 @@ function UnstyledSettingsPageHeader({
           {title && (
             <Title tabs={tabs} styled={noTitleStyles}>
               <HeaderTitle>{title}</HeaderTitle>
-              {subtitle && <Subtitle>{subtitle}</Subtitle>}
-              {promoSubtitle && <PromoSubtitle>{promoSubtitle}</PromoSubtitle>}
+              {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
             </Title>
           )}
         </TitleWrapper>
@@ -82,15 +81,11 @@ const Title = styled('div')<TitleProps>`
   ${p => !p.styled && `font-size: 20px; font-weight: 600;`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
-const Subtitle = styled('div')`
-  color: ${p => p.theme.gray400};
+const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
+  color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
   font-weight: 400;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: ${space(1.5)} 0 0;
-`;
-
-const PromoSubtitle = styled(Subtitle)`
-  color: ${p => p.theme.purple400};
 `;
 
 const Icon = styled('div')`

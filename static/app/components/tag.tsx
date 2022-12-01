@@ -25,10 +25,6 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
    */
   icon?: React.ReactNode;
   /**
-   * Is tag used for a Promotion
-   */
-  isPromo?: boolean;
-  /**
    * Triggered when the item is clicked
    */
   onClick?: (eventKey: any) => void;
@@ -65,7 +61,6 @@ function Tag({
   onDismiss,
   children,
   textMaxWidth = 150,
-  isPromo,
   ...props
 }: Props) {
   const iconsProps = {
@@ -75,7 +70,7 @@ function Tag({
 
   const tag = (
     <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
-      <Background type={type} isPromo={isPromo}>
+      <Background type={type}>
         {tagIcon()}
 
         <Text type={type} maxWidth={textMaxWidth}>
@@ -154,14 +149,13 @@ const TagWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const Background = styled('div')<{type: keyof Theme['tag']; isPromo?: boolean}>`
+export const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
-  background-color: ${p =>
-    p.isPromo ? p.theme.pink100 : p.theme.tag[p.type].background};
-  border: solid 1px ${p => (p.isPromo ? p.theme.pink200 : p.theme.tag[p.type].border)};
+  background-color: ${p => p.theme.tag[p.type].background};
+  border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 
