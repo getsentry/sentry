@@ -17,7 +17,6 @@ from . import RelayIdSerializer
 
 class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
-    organization_slug = serializers.CharField(required=False)
 
 
 @region_silo_endpoint
