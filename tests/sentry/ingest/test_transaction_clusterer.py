@@ -1,11 +1,16 @@
 from unittest import mock
 
+import pytest
+
+from sentry.eventstore.models import Event
 from sentry.ingest.transaction_clusterer.collect.redis import (
     _get_transaction_names,
     _store_transaction_name,
+    record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
+from sentry.testutils.helpers import Feature
 
 
 def test_multi_fanout():
@@ -57,3 +62,33 @@ def test_collection():
 
     project3 = Project(id=103, name="project3", organization_id=1)
     assert set() == _get_transaction_names(project3)
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.collect.redis._store_transaction_name")
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "source,txname,feature,expected",
+    [
+        ("url", "/a/b/c", True, 1),
+        ("route", "/", True, 0),
+        ("url", None, True, 0),
+        ("url", "/", False, 0),
+        ("route", None, False, 0),
+    ],
+)
+def test_record_transactions(
+    mocked_record, default_organization, source, txname, feature, expected
+):
+    with Feature({"organizations:transaction-name-clusterer": feature}):
+        project = Project(id=111, name="project", organization_id=default_organization.id)
+        event = Event(
+            project.id,
+            "02552061b47b467cb38d1d2dd26eed21",
+            data={
+                "tags": [["transaction", txname]],
+                "transaction": txname,
+                "transaction_info": {"source": source},
+            },
+        )
+        record_transaction_name(project, event)
+        assert len(mocked_record.mock_calls) == expected
