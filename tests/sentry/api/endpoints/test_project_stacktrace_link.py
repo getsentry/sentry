@@ -257,18 +257,23 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
         }
 
     def test_file_not_found_munge_frame_fallback_success_android(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": "file.java",
-                "module": "usr.src.getsentry.file",
-                "platform": "java",
-            },
-        )
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert (
-            response.data["sourceUrl"]
-            == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
-        )
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value="https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java",
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={
+                    "file": "file.java",
+                    "module": "usr.src.getsentry.file",
+                    "platform": "java",
+                },
+            )
+            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert (
+                response.data["sourceUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
+            )
+            assert response.data["integrations"] == [serialized_integration(self.integration)]
