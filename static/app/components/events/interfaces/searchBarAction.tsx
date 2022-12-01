@@ -76,11 +76,11 @@ const Wrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 400px;
+    width: 350px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    width: 600px;
+    width: 500px;
   }
 `;
 
