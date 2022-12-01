@@ -2,7 +2,7 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, Deque, Mapping, Optional, Tuple
+from typing import Any, Deque, Mapping, Optional, Tuple
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
@@ -153,54 +153,3 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return DispatchTask(self.__concurrency, self.__max_pending_futures, commit)
-
-
-class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
-    """
-    The strategy implements the streaming interface.
-    The runtime submits work to the strategy via the `submit`
-    method. Which is supposed to not be blocking.
-    Periodically the runtime invokes `poll` which is where the
-    work is supposed to be done.
-    """
-
-    def __init__(
-        self,
-        committer: Callable[[Mapping[Partition, Position]], None],
-        partitions: Mapping[Partition, int],
-    ):
-        logger.info(f"Partitions assigned {partitions}")
-
-    def poll(self) -> None:
-        pass
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
-        logger.info(f"OCCURRENCE RECEIVED: {message.payload}")
-
-    def close(self) -> None:
-        pass
-
-    def terminate(self) -> None:
-        logger.info("Terminating")
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        pass
-
-
-class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    """
-    The factory manages the lifecycle of the `ProcessingStrategy`.
-    A strategy is created every time new partitions are assigned to the
-    consumer, while it is destroyed when partitions are revoked or the
-    consumer is closed
-    """
-
-    def __init__(self):
-        pass
-
-    def create_with_partitions(
-        self,
-        commit: Callable[[Mapping[Partition, Position]], None],
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return OccurrenceStrategy(commit, partitions)

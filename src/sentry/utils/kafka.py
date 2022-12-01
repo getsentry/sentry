@@ -1,14 +1,16 @@
 import logging
 import signal
+from typing import Callable, Mapping, Optional
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
-from sentry.eventstream.kafka.consumer_strategy import OccurrenceStrategyFactory
 from sentry.utils import metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -77,3 +79,39 @@ def create_ingest_occurences_consumer(topic_name, **options):
         strategy_factory,
         ONCE_PER_SECOND,
     )
+
+
+class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
+    def __init__(
+        self,
+        committer: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ):
+        pass
+
+    def poll(self) -> None:
+        pass
+
+    def submit(self, message: Message[KafkaPayload]) -> None:
+        logger.info(f"OCCURRENCE RECEIVED: {message.payload}")
+
+    def close(self) -> None:
+        pass
+
+    def terminate(self) -> None:
+        pass
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        pass
+
+
+class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self):
+        pass
+
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return OccurrenceStrategy(commit, partitions)
