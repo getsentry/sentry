@@ -216,7 +216,7 @@ class BuildGroupAttachmentTest(TestCase):
             == f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
         )
         assert attachments["title"] == "Hello world"
-        assert attachments["text"] == "Attention - Very important information!!!"
+        assert attachments["text"] == "Very important information!!!"
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
