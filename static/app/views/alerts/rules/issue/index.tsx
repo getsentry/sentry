@@ -155,7 +155,7 @@ type State = AsyncView['state'] & {
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
   previewEndpoint: null | string;
-  previewError: boolean;
+  previewError: null | string;
   previewGroups: string[] | null;
   previewPage: number;
   project: Project;
@@ -245,7 +245,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       project,
       previewGroups: null,
       previewCursor: null,
-      previewError: false,
+      previewError: null,
       issueCount: 0,
       previewPage: 0,
       loadingPreview: false,
@@ -405,7 +405,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
           previewGroups: data.map(g => g.id),
-          previewError: false,
+          previewError: null,
           pageLinks: pageLinks ?? '',
           issueCount,
           loadingPreview: false,
@@ -413,8 +413,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         });
       })
       .catch(_ => {
+        let errorMessage;
+        if (rule?.conditions.length || rule?.filters.length) {
+          errorMessage = t('Preview is not supported for these conditions');
+        } else {
+          errorMessage = t('Select a condition to generate a preview');
+        }
         this.setState({
-          previewError: true,
+          previewError: errorMessage,
           loadingPreview: false,
         });
       });
