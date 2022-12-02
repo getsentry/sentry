@@ -378,12 +378,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path="/graphql",
             data={"query": query},
         )
-        sentry_sdk.add_breadcrumb(
-            category="sentry.integrations.client.github",
-            message="get_blame_for_file query results",
-            level="info",
-            data=contents,
-        )
+
         try:
             results: Sequence[Mapping[str, Any]] = (
                 contents.get("data", {})
@@ -395,7 +390,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             )
             return results
         except AttributeError as e:
+            if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
+                raise ApiError("Repository does not exist in GitHub.")
+
             sentry_sdk.capture_exception(e)
+
             return []
 
 

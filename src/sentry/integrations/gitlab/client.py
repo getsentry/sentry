@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
-import sentry_sdk
 from django.urls import reverse
 
 from sentry.integrations.client import ApiClient
@@ -329,10 +328,5 @@ class GitLabApiClient(ApiClient):
         contents = self.get(
             request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
         )
-        sentry_sdk.add_breadcrumb(
-            category="sentry.integrations.client.gitlab",
-            message="get_blame_for_file query results",
-            level="info",
-            data=contents,
-        )
+
         return contents

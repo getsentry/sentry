@@ -193,7 +193,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+        try:
+            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+        except ApiError as e:
+            raise e
 
         try:
             commit = max(
