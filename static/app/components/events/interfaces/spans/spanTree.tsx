@@ -350,9 +350,8 @@ class SpanTree extends Component<PropType> {
         }
 
         acc.spanTree.push(
-          <CustomerProfiler id="SpanBar">
+          <CustomerProfiler id="SpanBar" key={key}>
             <SpanBar
-              key={key}
               organization={organization}
               event={waterfallModel.event}
               spanBarColor={spanBarColor}
