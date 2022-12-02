@@ -294,7 +294,6 @@ const Instruction = styled('div')`
 export const modalCss = css`
   width: 100%;
   max-width: 650px;
-  margin: 70px auto;
 `;
 
 export default withApi(withProjects(TransactionThresholdModal));
