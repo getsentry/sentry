@@ -342,7 +342,7 @@ urlpatterns += [
     url(r"^api/$", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(
         r"^api/applications/$",
-        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False),
+        RedirectView.as_view(pattern_name="sentry-account-api-applications", permanent=False),
     ),
     url(
         r"^api/new-token/$",
@@ -401,7 +401,7 @@ urlpatterns += [
                 url(
                     r"^account/api/applications/$",
                     generic_react_page_view,
-                    name="sentry-api-applications",
+                    name="sentry-account-api-applications",
                 ),
                 url(
                     r"^account/api/auth-tokens/new-token/$",
