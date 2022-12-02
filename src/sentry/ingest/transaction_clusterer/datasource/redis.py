@@ -19,17 +19,30 @@ MAX_SET_SIZE = 1000
 #: Remove the set if it has not received any updates for 24 hours.
 SET_TTL = 24 * 60 * 60
 
+REDIS_KEY_PREFIX = "txnames:"
 
 add_to_set = redis.load_script("utils/sadd_capped.lua")
 
 
 def _get_redis_key(project: Project) -> str:
-    return f"txnames:{project.organization_id}:{project.id}"
+    return f"{REDIS_KEY_PREFIX}{project.organization_id}:{project.id}"
 
 
 def _get_redis_client() -> Any:
     cluster_key = getattr(settings, "SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
+
+
+def _get_all_keys() -> Iterable[str]:
+    client = _get_redis_client()
+    return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")
+
+
+def get_active_projects() -> Iterable[Project]:
+    """Scan redis for projects and fetch their db models"""
+    for key in _get_all_keys():
+        project_id = int(key.split(":")[-1])
+        yield Project.objects.get_from_cache(id=project_id)
 
 
 def _store_transaction_name(project: Project, transaction_name: str) -> None:

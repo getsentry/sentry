@@ -604,6 +604,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
+    "sentry.ingest.transaction_clusterer.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -684,6 +685,7 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
+    Queue("txcluster", routing_key="txcluster"),  # TODO: add workers
 ]
 
 for queue in CELERY_QUEUES:
@@ -811,6 +813,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "transaction-name-clusterer": {
+        "task": "sentry.ingest.transaction_clusterer.tasks.run_clusterer",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
     },
 }
 
