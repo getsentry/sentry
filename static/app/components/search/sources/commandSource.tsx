@@ -69,7 +69,7 @@ const ACTIONS: Action[] = [
 const hostname = new URL(
   usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
     ? window.__initialData.customerDomain.organizationUrl
-    : window.__initialData.links.sentryUrl
+    : window.__initialData?.links?.sentryUrl
 ).host;
 
 window?.__initialData?.isOnPremise === false &&
