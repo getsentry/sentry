@@ -16,7 +16,7 @@ from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.web.helpers import render_to_response
 
 # url names that should only be accessible from a non-customer domain hostname.
-NON_CUSTOMER_DOMAIN_URL_NAMES = ["sentry-organization-create"]
+NON_CUSTOMER_DOMAIN_URL_NAMES = ["sentry-organization-create", "sentry-admin-overview"]
 
 
 def resolve_redirect_url(request, org_slug, user_id=None):
