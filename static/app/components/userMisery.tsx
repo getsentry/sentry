@@ -1,8 +1,8 @@
 import ScoreBar from 'sentry/components/scoreBar';
 import Tooltip from 'sentry/components/tooltip';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   barHeight: number;
@@ -21,7 +21,7 @@ function UserMisery(props: Props) {
   // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
+  const palette = new Array(bars).fill(theme.red300);
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
@@ -44,7 +44,7 @@ function UserMisery(props: Props) {
     );
   } else if (defined(miserableUsers) && defined(totalUsers)) {
     title = tct(
-      'User Misery score is [userMisery], because [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
+      'User Misery score is [userMisery], meaning [miserableUsers] out of [totalUsers] unique users had a miserable experience',
       {
         miserableUsers,
         totalUsers,
