@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 from django import forms
 from django.core.cache import cache
@@ -131,7 +131,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Sequence[Dict[str, Any]]
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
@@ -216,7 +216,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         return sums[event.group_id]
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Sequence[Dict[str, Any]]
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -230,7 +230,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
         end = round_to_five_minute(activity.timestamp)
         start = round_to_five_minute(end - interval_delta)
-        count = buckets[end] - buckets.get(start, 0)
+        count = buckets.get(end, 0) - buckets.get(start, 0)
 
         return count > value
 

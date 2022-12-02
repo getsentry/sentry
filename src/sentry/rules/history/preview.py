@@ -467,12 +467,12 @@ def get_frequency_buckets(
     end: datetime,
     group_id: int,
     dataset: Dataset,
-) -> Sequence[Dict[str, Any]]:
+) -> Dict[datetime, int]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
     if dataset not in UPDATE_KWARGS_FOR_GROUP:
-        return []
+        return {}
 
     # TODO: support counting of other fields (# of unique users, ...)
     kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
@@ -492,7 +492,7 @@ def get_frequency_buckets(
             "limit": PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
         },
     )
-    bucket_counts: Sequence[Dict[str, Any]] = raw_query(
+    bucket_counts = raw_query(
         **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
     ).get("data", [])
 
