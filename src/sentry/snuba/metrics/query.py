@@ -143,11 +143,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     org_id: int
     project_ids: Sequence[int]
     select: Sequence[MetricField]
-    start: datetime
-    end: datetime
     granularity: Granularity
     # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
     #  instances of MetricConditionField
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
@@ -367,7 +367,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         return totals_limit
 
     def validate_end(self) -> None:
-        if self.start >= self.end:
+        if self.start and self.end and self.start >= self.end:
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
@@ -401,11 +401,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
-        if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
-            raise InvalidParams(
-                "Your interval and date range would create too many results. "
-                "Use a larger interval, or a smaller date range."
-            )
+        if self.start and self.end:
+            if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
+                raise InvalidParams(
+                    "Your interval and date range would create too many results. "
+                    "Use a larger interval, or a smaller date range."
+                )
 
     def validate_interval(self) -> None:
         if self.interval is not None:

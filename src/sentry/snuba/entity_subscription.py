@@ -334,6 +334,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
 
+        use_metrics_layer = self.dataset == Dataset.PerformanceMetrics
+
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
@@ -343,7 +345,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
-            use_metrics_layer=True,
+            # If the dataset is the performance metrics we will switch to generating snql via the metrics layer.
+            use_metrics_layer=use_metrics_layer,
+            generate_snql_via_metrics_layer=use_metrics_layer,
         )
         extra_conditions = self.get_snql_extra_conditions()
         if environment:

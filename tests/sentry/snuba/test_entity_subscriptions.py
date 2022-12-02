@@ -325,26 +325,20 @@ class EntitySubscriptionTestCase(TestCase):
 
         assert snql_query.query.select == [
             Function(
-                function="arrayElement",
+                function="quantilesIf(0.95)",
                 parameters=[
+                    Column(name="value"),
                     Function(
-                        function="quantilesIf(0.95)",
-                        parameters=[
-                            Column(name="value"),
-                            Function(
-                                function="equals",
-                                parameters=[Column(name="metric_id"), metric_id],
-                            ),
-                        ],
+                        function="equals",
+                        parameters=[Column(name="metric_id"), metric_id],
                     ),
-                    1,
                 ],
                 alias="percentile_transaction_duration__95",
             )
         ]
         assert snql_query.query.where == [
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
 

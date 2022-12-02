@@ -620,9 +620,13 @@ class SnubaQueryBuilder:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
-            Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
+
+        if self._metrics_query.start:
+            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
+        if self._metrics_query.end:
+            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+
         if not self._metrics_query.where:
             return where
 

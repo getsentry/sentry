@@ -53,6 +53,7 @@ class MetricsQueryBuilder(QueryBuilder):
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
+        generate_snql_via_metrics_layer: False,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -64,6 +65,9 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        # Flag to specify whether we want to use the metrics layer's SnubaQueryBuilder to generate alternative snql
+        # for the query.
+        self.generate_snql_via_metrics_layer = generate_snql_via_metrics_layer
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -429,7 +433,7 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
-    def _get_snql_query_through_metrics_layer(self, snql_query: Query) -> Query:
+    def through_metrics_layer(self, snuba_request: Request) -> Request:
         # We use directly the query builder which is not a good practice, considering that the metrics layer
         # should hide snql generation.
         from sentry.snuba.metrics import SnubaQueryBuilder
@@ -437,7 +441,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         snuba_queries, _ = SnubaQueryBuilder(
             projects=self.params.projects,
-            metrics_query=transform_mqb_query_to_metrics_query(snql_query),
+            metrics_query=transform_mqb_query_to_metrics_query(snuba_request.query),
             use_case_id=UseCaseKey.PERFORMANCE
             if self.is_performance
             else UseCaseKey.RELEASE_HEALTH,
@@ -449,39 +453,45 @@ class MetricsQueryBuilder(QueryBuilder):
             )
 
         # We take only the first query, supposing a single query is generated.
-        return snuba_queries[0]
+        snuba_request.query = snuba_queries["generic_metrics_distributions"]["totals"]
+        return snuba_request
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
+
         if self.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-            snql_query = Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                limitby=self.limitby,
-            )
-
-            return Request(
+            request = Request(
                 dataset=self.dataset.value,
                 app_id="default",
-                query=self._get_snql_query_through_metrics_layer(snql_query=snql_query),
+                query=Query(
+                    match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                    # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                    select=self.aggregates
+                    + [
+                        # Team key transaction is a special case sigh
+                        col
+                        for col in self.columns
+                        if isinstance(col, Function) and col.function == "team_key_transaction"
+                    ],
+                    array_join=self.array_join,
+                    where=self.where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=self.orderby,
+                    limit=self.limit,
+                    offset=self.offset,
+                    limitby=self.limitby,
+                ),
                 flags=Flags(turbo=self.turbo),
             )
+
+            if self.generate_snql_via_metrics_layer:
+                request = self.through_metrics_layer(snuba_request=request)
+
+            return request
+
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
         primary_framework = query_framework.pop(primary)

@@ -278,7 +278,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     "uniq",
                     snql_metric_layer=lambda args, alias: Function(
                         "uniq",
-                        [Column(TransactionMRI.DURATION.value)],
+                        [Column(self.resolve_metric(args["column"]))],
                         alias,
                     ),
                 ),
@@ -297,7 +297,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: Function(
                         "uniqIf",
                         [
-                            Column(TransactionMRI.DURATION.value),
+                            Column(self.resolve_metric(args["column"])),
                             Function("equals", [args["if_col"], args["resolved_val"]]),
                         ],
                         alias,
