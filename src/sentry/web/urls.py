@@ -414,7 +414,7 @@ urlpatterns += [
                     generic_react_page_view,
                     name="sentry-account-close-account",
                 ),
-                url(r"^account/", generic_react_page_view),
+                url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
                 url(
                     r"^organization/",
                     react_page_view,
