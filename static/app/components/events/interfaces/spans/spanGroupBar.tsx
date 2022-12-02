@@ -24,6 +24,7 @@ import {
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -221,7 +222,10 @@ export function SpanGroupBar(props: Props) {
                         width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                         paddingTop: 0,
                       }}
-                      onClick={() => props.toggleSpanGroup()}
+                      onClick={() => {
+                        PerformanceInteraction.startInteraction('SpanTreeToggle');
+                        props.toggleSpanGroup();
+                      }}
                       ref={spanTitleRef}
                     >
                       <RowTitleContainer ref={generateContentSpanBarRef()}>

@@ -52,6 +52,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
+import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import {
@@ -461,6 +462,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
+            PerformanceInteraction.startInteraction('SpanTreeToggle');
             this.props.toggleSpanTree();
           }}
         >
