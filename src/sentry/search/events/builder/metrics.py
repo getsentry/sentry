@@ -36,7 +36,9 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import SnubaQueryBuilder
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_query
 
@@ -429,34 +431,54 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
+    def _get_snql_query_through_metrics_layer(self, snql_query: Query) -> Query:
+        # We use directly the query builder which is not a good practice, considering that the metrics layer
+        # should hide snql generation.
+        snuba_queries, _ = SnubaQueryBuilder(
+            projects=self.params.projects,
+            metrics_query=transform_mqb_query_to_metrics_query(snql_query),
+            use_case_id=UseCaseKey.PERFORMANCE
+            if self.is_performance
+            else UseCaseKey.RELEASE_HEALTH,
+        ).get_snuba_queries()
+
+        if len(snuba_queries) == 0 or len(snuba_queries) > 1:
+            raise NotImplementedError(
+                "get_snql_query cannot be implemented for MetricsQueryBuilder"
+            )
+
+        # We take only the first query, supposing a single query is generated.
+        return snuba_queries[0]
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
         if self.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+            snql_query = Query(
+                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                select=self.aggregates
+                + [
+                    # Team key transaction is a special case sigh
+                    col
+                    for col in self.columns
+                    if isinstance(col, Function) and col.function == "team_key_transaction"
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            )
 
             return Request(
                 dataset=self.dataset.value,
                 app_id="default",
-                query=Query(
-                    match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                    # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                    select=self.aggregates
-                    + [
-                        # Team key transaction is a special case sigh
-                        col
-                        for col in self.columns
-                        if isinstance(col, Function) and col.function == "team_key_transaction"
-                    ],
-                    array_join=self.array_join,
-                    where=self.where,
-                    having=self.having,
-                    groupby=self.groupby,
-                    orderby=self.orderby,
-                    limit=self.limit,
-                    offset=self.offset,
-                    limitby=self.limitby,
-                ),
+                query=self._get_snql_query_through_metrics_layer(snql_query=snql_query),
                 flags=Flags(turbo=self.turbo),
             )
         # Need to split orderby between the 3 possible tables
@@ -598,9 +620,6 @@ class MetricsQueryBuilder(QueryBuilder):
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
-                transform_mqb_query_to_metrics_query,
-            )
 
             snuba_query = self.get_snql_query().query
             try:

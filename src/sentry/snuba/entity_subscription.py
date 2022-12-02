@@ -343,6 +343,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
+            use_metrics_layer=True,
         )
         extra_conditions = self.get_snql_extra_conditions()
         if environment:
