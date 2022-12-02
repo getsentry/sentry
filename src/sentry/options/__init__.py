@@ -1,6 +1,7 @@
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
     FLAG_ALLOW_EMPTY,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
