@@ -1,7 +1,9 @@
-from django.urls import reverse
+from fnmatch import fnmatch
+
+from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.testutils import TestCase
-from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES
+from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 
 class ReactPageViewTest(TestCase):
@@ -158,16 +160,37 @@ class ReactPageViewTest(TestCase):
         org = self.create_organization(owner=user)
         self.login_as(user)
 
-        for url_name in NON_CUSTOMER_DOMAIN_URL_NAMES:
-            path = reverse(url_name)
-            # Does not redirect a non-customer domain URL
-            response = self.client.get(path)
+        def extract_url_names(urlpatterns, parents):
+            for pattern in urlpatterns:
+                path = parents[:] + [pattern]
+                if isinstance(pattern, URLResolver):
+                    yield from extract_url_names(pattern.url_patterns, path)
+                else:
+                    url_pattern = path[-1]
+                    url_name = url_pattern.name
+                    if (
+                        url_name
+                        and url_pattern.callback
+                        and hasattr(url_pattern.callback, "view_class")
+                        and issubclass(url_pattern.callback.view_class, ReactMixin)
+                    ):
+                        yield url_name
 
-            self.assertTemplateUsed(response, "sentry/base-react.html")
-            assert response.status_code == 200
+        url_names = list(extract_url_names(get_resolver().url_patterns, []))
+        for url_name in url_names:
+            for url_name_pattern in NON_CUSTOMER_DOMAIN_URL_NAMES:
+                if not fnmatch(url_name, url_name_pattern):
+                    continue
 
-            # Redirects for a customer domain URL
-            response = self.client.get(path, HTTP_HOST=f"{org.slug}.testserver")
+                path = reverse(url_name)
+                # Does not redirect a non-customer domain URL
+                response = self.client.get(path)
 
-            assert response.status_code == 302
-            assert response["Location"] == f"http://testserver{path}"
+                self.assertTemplateUsed(response, "sentry/base-react.html")
+                assert response.status_code == 200
+
+                # Redirects for a customer domain URL
+                response = self.client.get(path, HTTP_HOST=f"{org.slug}.testserver")
+
+                assert response.status_code == 302
+                assert response["Location"] == f"http://testserver{path}"
