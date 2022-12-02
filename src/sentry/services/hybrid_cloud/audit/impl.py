@@ -10,10 +10,14 @@ from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 class DatabaseBackedAuditLogService(AuditLogService):
     @staticmethod
-    def _resolve_user(user: APIUser | None) -> User | None:
+    def _resolve_user(user: APIUser | int | None) -> User | None:
         if user is None:
             return None
-        return User.objects.get(id=user.id)
+        if isinstance(user, int):
+            user_id = user
+        else:
+            user_id = user.id
+        return User.objects.get(id=user_id)
 
     def write_audit_log(self, *, metadata: AuditLogMetadata, data: Mapping[str, Any]) -> None:
         AuditLogEntry.objects.create(

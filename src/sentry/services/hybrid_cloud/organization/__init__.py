@@ -112,6 +112,10 @@ class OrganizationService(InterfaceWithLifecycle):
     ) -> ApiTeamMember:
         pass
 
+    @abstractmethod
+    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        pass
+
 
 def impl_with_db() -> OrganizationService:
     from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService

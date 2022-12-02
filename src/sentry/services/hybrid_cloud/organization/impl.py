@@ -282,3 +282,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
         project_ids = ()  # TODO?
         return self._serialize_team_member(omt, project_ids)
+
+    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        model = OrganizationMember.objects.get(id=organization_member.id)
+        model.flags = self._deserialize_member_flags(organization_member.flags)
+        model.save()

@@ -164,7 +164,7 @@ class AuthIdentityHandler:
             member.flags.sso__invalid = False
             member.flags.sso__linked = True
 
-            member.save()  # TODO: Service-ify
+            organization_service.update_membership_flags(organization_member=member)
 
     def handle_existing_identity(
         self,
@@ -375,9 +375,9 @@ class AuthIdentityHandler:
         )
         if other_member is None:
             return
-        other_member.flags["sso:invalid"] = True
-        other_member.flags["sso:linked"] = False
-        other_member.save()
+        other_member.flags.sso__invalid = True
+        other_member.flags.sso__linked = False
+        organization_service.update_membership_flags(organization_member=other_member)
 
         return deletion_result
 
