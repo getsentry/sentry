@@ -36,9 +36,7 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import SnubaQueryBuilder
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_query
 
@@ -434,6 +432,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def _get_snql_query_through_metrics_layer(self, snql_query: Query) -> Query:
         # We use directly the query builder which is not a good practice, considering that the metrics layer
         # should hide snql generation.
+        from sentry.snuba.metrics import SnubaQueryBuilder
+        from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
+
         snuba_queries, _ = SnubaQueryBuilder(
             projects=self.params.projects,
             metrics_query=transform_mqb_query_to_metrics_query(snql_query),
@@ -620,6 +621,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                transform_mqb_query_to_metrics_query,
+            )
 
             snuba_query = self.get_snql_query().query
             try:
