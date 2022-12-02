@@ -1196,9 +1196,9 @@ SENTRY_FEATURES = {
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
+    "organizations:mobile-screenshots": True,
     # Enable the mobile screenshot gallery in the attachments tab
-    "organizations:mobile-screenshot-gallery": False,
+    "organizations:mobile-screenshot-gallery": True,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
