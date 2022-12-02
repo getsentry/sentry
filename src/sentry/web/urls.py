@@ -579,7 +579,11 @@ urlpatterns += [
         r"^organizations/",
         include(
             [
-                url(r"^new/$", generic_react_page_view),
+                url(
+                    r"^new/$",
+                    generic_react_page_view,
+                    name="sentry-organization-create",
+                ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
