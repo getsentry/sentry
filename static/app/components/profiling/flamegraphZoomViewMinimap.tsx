@@ -8,7 +8,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect, RectCursorUtil} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -58,13 +58,6 @@ function FlamegraphZoomViewMinimap({
       flamegraphMiniMapView.toConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
     ).width;
   }, [flamegraphMiniMapView, flamegraphMiniMapCanvas?.physicalSpace]);
-
-  const miniMapCursorUtil = useMemo(() => {
-    return new RectCursorUtil(
-      flamegraphMiniMapView?.configView ?? Rect.Empty(),
-      miniMapConfigSpaceBorderSize
-    );
-  }, [flamegraphMiniMapView?.configView, miniMapConfigSpaceBorderSize]);
 
   const flamegraphMiniMapRenderer = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {
@@ -265,11 +258,12 @@ function FlamegraphZoomViewMinimap({
 
       if (evt.buttons === 1 && lastInteraction === 'resize') {
         const configView = flamegraphMiniMapView.configView;
-        const resizePosition =
-          miniMapCursorUtil.getRelativeCursorPositionX(configSpaceMouse);
+
+        const configViewCenter = configView.width / 2 + configView.x;
+        const mouseX = configSpaceMouse[0];
         const dragDelta = configSpaceMouse[0] - prevConfigSpaceCursor.current[0];
-        const x = resizePosition === 'left' ? configSpaceMouse[0] : configView.left;
-        const dragDirection = resizePosition === 'left' ? -1 : 1;
+        const x = mouseX < configViewCenter ? configSpaceMouse[0] : configView.left;
+        const dragDirection = mouseX < configViewCenter ? -1 : 1;
 
         const rect = new Rect(
           x,
@@ -308,7 +302,6 @@ function FlamegraphZoomViewMinimap({
       onMouseDrag,
       startDragVector,
       lastInteraction,
-      miniMapCursorUtil,
     ]
   );
 
@@ -399,13 +392,18 @@ function FlamegraphZoomViewMinimap({
         logicalMousePos,
         window.devicePixelRatio
       );
-
-      if (miniMapCursorUtil.isRectBorderHovered(configSpaceCursor)) {
+      if (
+        miniMapConfigSpaceBorderSize >=
+        Math.min(
+          Math.abs(flamegraphMiniMapView.configView.left - configSpaceCursor[0]),
+          Math.abs(flamegraphMiniMapView.configView.right - configSpaceCursor[0])
+        )
+      ) {
         setLastInteraction('resize');
         return;
       }
 
-      if (miniMapCursorUtil.isRectBodyHovered(configSpaceCursor)) {
+      if (flamegraphMiniMapView.configView.contains(configSpaceCursor)) {
         setLastDragVector(physicalMousePos);
       } else {
         const startConfigSpaceCursor = flamegraphMiniMapView.getConfigSpaceCursor(
@@ -421,7 +419,7 @@ function FlamegraphZoomViewMinimap({
       flamegraphMiniMapCanvas,
       flamegraphMiniMapView,
       canvasPoolManager,
-      miniMapCursorUtil,
+      miniMapConfigSpaceBorderSize,
     ]
   );
 
@@ -482,17 +480,40 @@ function FlamegraphZoomViewMinimap({
         onMouseDown={onMinimapCanvasMouseDown}
         onMouseMove={onMinimapCanvasMouseMove}
         onMouseLeave={onMinimapCanvasMouseUp}
-        cursor={
-          miniMapCursorUtil.isRectBorderHovered(configSpaceCursor)
-            ? 'ew-resize'
-            : miniMapCursorUtil.isRectBodyHovered(configSpaceCursor)
-            ? 'grab'
-            : 'col-resize'
-        }
+        cursor={getCanvasCursor(
+          flamegraphMiniMapView?.configView,
+          configSpaceCursor,
+          miniMapConfigSpaceBorderSize
+        )}
       />
       <OverlayCanvas ref={c => setFlamegraphMiniMapOverlayCanvasRef(c)} />
     </Fragment>
   );
+}
+
+function getCanvasCursor(
+  configView: Rect | undefined,
+  configSpaceCursor: vec2 | null,
+  borderSize: number
+) {
+  if (!configView || !configSpaceCursor) {
+    return 'col-resize';
+  }
+
+  const nearestEdge = Math.min(
+    Math.abs(configView.left - configSpaceCursor[0]),
+    Math.abs(configView.right - configSpaceCursor[0])
+  );
+  const isWithinBorderSize = nearestEdge <= borderSize;
+  if (isWithinBorderSize) {
+    return 'ew-resize';
+  }
+
+  if (configView.contains(configSpaceCursor)) {
+    return 'grab';
+  }
+
+  return 'col-resize';
 }
 
 const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
