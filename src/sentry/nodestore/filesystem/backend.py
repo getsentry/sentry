@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from sentry.nodestore.base import NodeStorage
 
@@ -12,11 +13,14 @@ class FileSystemNodeStorage(NodeStorage):
     debugging and development!
     """
 
-    def _get_bytes(self, id):
+    def bootstrap(self):
+        os.mkdir(self.path())
+
+    def _get_bytes(self, id: str):
         with open(self.path(id), "rb") as file:
             return file.read()
 
-    def _set_bytes(self, id, data, ttl=0):
+    def _set_bytes(self, id: str, data: bytes, ttl=0):
         with open(self.path(id), "wb") as file:
             file.write(data)
 
@@ -24,5 +28,9 @@ class FileSystemNodeStorage(NodeStorage):
         os.remove(self.path(id))
 
     @staticmethod
-    def path(id):
-        return os.path.join(dirname, STORAGE_PATH, f"{id}.json")
+    def path(id: Optional[str] = None):
+        if id:
+            return os.path.join(dirname, STORAGE_PATH, f"{id}.json")
+        else:
+
+            return os.path.join(dirname, STORAGE_PATH)
