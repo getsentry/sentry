@@ -1,10 +1,6 @@
 import os
-from typing import Optional
 
 from sentry.nodestore.base import NodeStorage
-
-dirname = os.path.dirname(__file__)
-STORAGE_PATH = "nodes"
 
 
 class FileSystemNodeStorage(NodeStorage):
@@ -13,27 +9,28 @@ class FileSystemNodeStorage(NodeStorage):
     debugging and development!
     """
 
+    def __init__(self, path=None):
+        if path:
+            self.path = os.path.abspath(os.path.expanduser(path))
+        else:
+            self.path = os.path.abspath(os.path.join(os.path.dirname(__file__), "./nodes"))
+
     def _get_bytes(self, id: str):
-        with open(self.path(id), "rb") as file:
+        with open(self.node_path(id), "rb") as file:
             return file.read()
 
     def _set_bytes(self, id: str, data: bytes, ttl=0):
-        with open(self.path(id), "wb") as file:
+        with open(self.node_path(id), "wb") as file:
             file.write(data)
 
     def delete(self, id):
-        os.remove(self.path(id))
+        os.remove(self.node_path(id))
 
     def bootstrap(self):
         try:
-            os.mkdir(self.path())
+            os.mkdir(self.path)
         except FileExistsError:
             pass
 
-    @staticmethod
-    def path(id: Optional[str] = None):
-        if id:
-            return os.path.join(dirname, STORAGE_PATH, f"{id}.json")
-        else:
-
-            return os.path.join(dirname, STORAGE_PATH)
+    def node_path(self, id: str):
+        return os.path.join(self.path, f"{id}.json")
