@@ -3,6 +3,7 @@ import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
+import {usingCustomerDomain} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
@@ -65,14 +66,20 @@ const ACTIONS: Action[] = [
   },
 ];
 
-process.env.NODE_ENV !== 'production' &&
+const hostname = usingCustomerDomain
+  ? window?.__initialData?.customerDomain?.organizationUrl
+  : window?.__initialData.links.sentryUrl;
+
+window?.__initialData?.isOnPremise === false &&
+  process?.env?.NODE_ENV &&
+  process.env.NODE_ENV !== 'production' &&
   ACTIONS.push({
     title: t('Open in Production'),
     description: t('Open the current page in sentry.io'),
     requiresSuperuser: false,
     action: () => {
       const url = new URL(window.location.toString());
-      url.host = 'sentry.io';
+      url.host = new URL(hostname ?? window?.__initialData.links.sentryUrl).host;
       url.port = '';
       window.open(url.toString(), '_blank');
     },
