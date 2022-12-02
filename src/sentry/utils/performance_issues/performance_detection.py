@@ -1581,7 +1581,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     Uses a small state machine internally.
     """
 
-    __slots__ = "stored_problems"
+    __slots__ = ("stored_problems", "state")
 
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
