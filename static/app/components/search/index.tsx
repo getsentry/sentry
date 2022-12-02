@@ -161,6 +161,7 @@ function Search({
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
       closeOnSelect={closeOnSelect ?? true}
+      isOpen
     >
       {({getInputProps, isOpen, inputValue, ...autocompleteProps}) => {
         const searchQuery = inputValue.toLowerCase().trim();
