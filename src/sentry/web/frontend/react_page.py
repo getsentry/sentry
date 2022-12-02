@@ -1,3 +1,5 @@
+from fnmatch import fnmatch
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponseRedirect
@@ -16,7 +18,11 @@ from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.web.helpers import render_to_response
 
 # url names that should only be accessible from a non-customer domain hostname.
-NON_CUSTOMER_DOMAIN_URL_NAMES = ["sentry-organization-create", "sentry-admin-overview"]
+NON_CUSTOMER_DOMAIN_URL_NAMES = [
+    "sentry-organization-create",
+    "sentry-admin-overview",
+    "sentry-account-*",
+]
 
 
 def resolve_redirect_url(request, org_slug, user_id=None):
@@ -53,7 +59,9 @@ class ReactMixin:
         url_name = request.resolver_match.url_name
         # If a customer domain is being used, and if a non-customer domain url_name is encountered, we redirect the user
         # to sentryUrl.
-        if is_using_customer_domain(request) and url_name in NON_CUSTOMER_DOMAIN_URL_NAMES:
+        if is_using_customer_domain(request) and any(
+            fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
+        ):
             redirect_url = options.get("system.url-prefix")
             qs = query_string(request)
             redirect_url = f"{redirect_url}{request.path}{qs}"
