@@ -1,6 +1,7 @@
 from typing import Any, Mapping
 from unittest import mock
 
+from sentry.api.endpoints.project_stacktrace_link import try_path_munging
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
@@ -216,7 +217,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
 
 @region_silo_test
-class ProjectStacktraceLinkTestAndroid(APITestCase):
+class ProjectStacktraceLinkTestMobile(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
     def setUp(self):
@@ -237,10 +238,9 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
             project=self.project,
             repo=self.repo,
             stack_root="",
-            source_root="usr/src/getsentry/",
+            source_root="",
         )
 
-        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         self.login_as(self.user)
 
     def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
@@ -258,6 +258,19 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
         }
 
     def test_file_not_found_munge_frame_fallback_success_android(self):
+        ctx = {
+            "file": "file.java",
+            "filename": "file.java",
+            "commit_id": None,
+            "platform": "java",
+            "sdk_name": None,
+            "abs_path": None,
+            "module": "usr.src.getsentry.file",
+            "package": None,
+        }
+
+        munged_url = try_path_munging(self.code_mapping1, "file.java", ctx)
+
         with mock.patch.object(
             ExampleIntegration,
             "get_stacktrace_link",
@@ -268,9 +281,7 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
                 self.project.slug,
                 qs_params={
                     "file": "file.java",
-                    "absPath": "any",
                     "module": "usr.src.getsentry.file",
-                    "package": "any",
                     "platform": "java",
                 },
             )
@@ -280,3 +291,86 @@ class ProjectStacktraceLinkTestAndroid(APITestCase):
                 == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
             )
             assert response.data["integrations"] == [serialized_integration(self.integration)]
+            assert (
+                munged_url["attemptedUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
+            )
+
+    def test_file_not_found_munge_frame_fallback_success_cocoa(self):
+        ctx = {
+            "file": "AppDelegate.swift",
+            "filename": "AppDelegate.swift",
+            "commit_id": None,
+            "platform": "cocoa",
+            "sdk_name": None,
+            "abs_path": "/Users/gszeto/code/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
+            "module": None,
+            "package": "SampleProject",
+        }
+
+        munged_url = try_path_munging(self.code_mapping1, "AppDelegate.swift", ctx)
+
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value="https://example.com/getsentry/sentry/blob/master/SampleProject/Classes/App Delegate/AppDelegate.swift",
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={
+                    "file": "AppDelegate.swift",
+                    "absPath": "/Users/gszeto/code/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
+                    "package": "SampleProject",
+                    "platform": "cocoa",
+                },
+            )
+            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert (
+                response.data["sourceUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/SampleProject/Classes/App Delegate/AppDelegate.swift"
+            )
+            assert response.data["integrations"] == [serialized_integration(self.integration)]
+            assert (
+                munged_url["attemptedUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/SampleProject/Classes/App Delegate/AppDelegate.swift"
+            )
+
+    def test_file_not_found_munge_frame_fallback_success_flutter(self):
+        ctx = {
+            "file": "main.dart",
+            "filename": "main.dart",
+            "commit_id": None,
+            "platform": "other",
+            "sdk_name": "sentry.dart.flutter",
+            "abs_path": "package:sentry_flutter_example/a/main.dart",
+            "package": "sentry_flutter_example",
+        }
+
+        munged_url = try_path_munging(self.code_mapping1, "main.dart", ctx)
+
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value="https://example.com/getsentry/sentry/blob/master/a/main.dart",
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={
+                    "file": "main.dart",
+                    "absPath": "package:sentry_flutter_example/a/main.dart",
+                    "package": "sentry_flutter_example",
+                    "platform": "other",
+                },
+            )
+            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert (
+                response.data["sourceUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/a/main.dart"
+            )
+            assert response.data["integrations"] == [serialized_integration(self.integration)]
+            assert (
+                munged_url["attemptedUrl"]
+                == "https://example.com/getsentry/sentry/blob/master/a/main.dart"
+            )
