@@ -975,7 +975,7 @@ SENTRY_FEATURES = {
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
-    "organizations:discover-query-builder-as-landing-page": False,
+    "organizations:discover-query-builder-as-landing-page": True,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
