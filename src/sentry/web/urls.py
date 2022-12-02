@@ -317,7 +317,9 @@ urlpatterns += [
                 ),
                 url(
                     r"^remove/$",
-                    RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
+                    RedirectView.as_view(
+                        pattern_name="sentry-account-close-account", permanent=False
+                    ),
                 ),
                 url(r"^settings/social/", include("social_auth.urls")),
                 url(r"^", generic_react_page_view),
@@ -417,7 +419,7 @@ urlpatterns += [
                 url(
                     r"^account/close-account/$",
                     generic_react_page_view,
-                    name="sentry-remove-account",
+                    name="sentry-account-close-account",
                 ),
                 url(r"^account/", generic_react_page_view),
                 url(
