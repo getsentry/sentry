@@ -231,7 +231,7 @@ function IssueContext(props: BaseContextProps) {
     staleTime: fiveMinutesInMs,
   });
 
-  const renderStatus = () =>
+  const renderStatusAndCounts = () =>
     issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
         <ContextRow>
@@ -315,7 +315,7 @@ function IssueContext(props: BaseContextProps) {
 
   return (
     <Wrapper data-test-id="quick-context-hover-body">
-      {renderStatus()}
+      {renderStatusAndCounts()}
       {renderAssignee()}
       {renderSuspectCommits()}
     </Wrapper>

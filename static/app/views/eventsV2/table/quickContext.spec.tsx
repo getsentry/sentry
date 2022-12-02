@@ -307,7 +307,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
     });
 
-    it('Renders assigned To context when data is loaded', async () => {
+    it('Renders event and user counts', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -323,7 +323,7 @@ describe('Quick Context', function () {
       expect(screen.getByText(/64k/i)).toBeInTheDocument();
     });
 
-    it('Renders event and user counts', async () => {
+    it('Renders assigned to context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
