@@ -413,12 +413,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         });
       })
       .catch(_ => {
-        let errorMessage;
-        if (rule?.conditions.length || rule?.filters.length) {
-          errorMessage = t('Preview is not supported for these conditions');
-        } else {
-          errorMessage = t('Select a condition to generate a preview');
-        }
+        const errorMessage = (rule?.conditions.length || rule?.filters.length)
+        	? t('Preview is not supported for these conditions')
+        	: t('Select a condition to generate a preview');
         this.setState({
           previewError: errorMessage,
           loadingPreview: false,
