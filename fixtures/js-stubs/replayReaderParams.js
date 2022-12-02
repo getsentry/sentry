@@ -25,20 +25,32 @@ const defaultRRWebEvents = [
 
 const defaultBreadcrumbs = [
   {
-    timestamp: 1663865920.851,
-    type: 'default',
-    level: 'info',
-    category: 'ui.focus',
+    timestamp: 1663865920851,
+    type: 5,
+    data: {
+      payload: {
+        timestamp: 1663865920.851,
+        type: 'default',
+        level: 'info',
+        category: 'ui.focus',
+      },
+    },
   },
   {
-    timestamp: 1663865922.024,
-    type: 'default',
-    level: 'info',
-    category: 'ui.click',
-    message:
-      'input.form-control[type="text"][name="url"][title="Fully qualified URL prefixed with http or https"]',
+    timestamp: 1663865922024,
+    type: 5,
     data: {
-      nodeId: 37,
+      payload: {
+        timestamp: 1663865922.024,
+        type: 'default',
+        level: 'info',
+        category: 'ui.click',
+        message:
+          'input.form-control[type="text"][name="url"][title="Fully qualified URL prefixed with http or https"]',
+        data: {
+          nodeId: 37,
+        },
+      },
     },
   },
 ];
