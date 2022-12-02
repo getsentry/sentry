@@ -74,6 +74,9 @@ class EventDataDeletionTask(BaseDeletionTask):
             orderby=["-timestamp", "-event_id"],
         )
         if not events:
+            # Remove all group events now that their node data has been removed.
+            eventstream_state = eventstream.start_delete_groups(self.project_id, [self.group_id])
+            eventstream.end_delete_groups(eventstream_state)
             return False
 
         self.last_event = events[-1]
@@ -81,10 +84,6 @@ class EventDataDeletionTask(BaseDeletionTask):
         # Remove from nodestore
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
-
-        # Remove from eventstore
-        eventstream_state = eventstream.start_delete_groups(self.project_id, [self.group_id])
-        eventstream.end_delete_groups(eventstream_state)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
