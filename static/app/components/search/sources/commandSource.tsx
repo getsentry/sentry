@@ -66,26 +66,30 @@ const ACTIONS: Action[] = [
   },
 ];
 
-const hostname = new URL(
-  usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
-    ? window.__initialData.customerDomain.organizationUrl
-    : window.__initialData?.links?.sentryUrl
-).host;
+// Add a command palette option for opening in production when using dev-ui
+if (process?.env?.NODE_ENV !== 'test' || !process?.env.TEST_SUITE) {
+  const customerUrl = new URL(
+    usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
+      ? window.__initialData.customerDomain.organizationUrl
+      : window.__initialData?.links?.sentryUrl
+  );
 
-window?.__initialData?.isOnPremise === false &&
-  process?.env?.NODE_ENV &&
-  process.env.NODE_ENV !== 'production' &&
-  ACTIONS.push({
-    title: t('Open in Production'),
-    description: t('Open the current page in sentry.io'),
-    requiresSuperuser: false,
-    action: () => {
-      const url = new URL(window.location.toString());
-      url.host = hostname;
-      url.port = '';
-      window.open(url.toString(), '_blank');
-    },
-  });
+  window?.__initialData?.isOnPremise === false &&
+    process?.env?.NODE_ENV &&
+    process.env.NODE_ENV !== 'production' &&
+    ACTIONS.push({
+      title: t('Open in Production'),
+      description: t('Open the current page in sentry.io'),
+      requiresSuperuser: false,
+      action: () => {
+        const url = new URL(window.location.toString());
+        url.host = customerUrl.host;
+        url.protocol = customerUrl.protocol;
+        url.port = '';
+        window.open(url.toString(), '_blank');
+      },
+    });
+}
 
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
