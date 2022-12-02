@@ -13,9 +13,6 @@ class FileSystemNodeStorage(NodeStorage):
     debugging and development!
     """
 
-    def bootstrap(self):
-        os.mkdir(self.path())
-
     def _get_bytes(self, id: str):
         with open(self.path(id), "rb") as file:
             return file.read()
@@ -26,6 +23,12 @@ class FileSystemNodeStorage(NodeStorage):
 
     def delete(self, id):
         os.remove(self.path(id))
+
+    def bootstrap(self):
+        try:
+            os.mkdir(self.path())
+        except FileExistsError:
+            pass
 
     @staticmethod
     def path(id: Optional[str] = None):
