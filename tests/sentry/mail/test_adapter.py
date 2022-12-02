@@ -318,7 +318,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - Blocked Thread"
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
         checked_values = [
             "Issue Data",
             "Evidence 1",
@@ -365,7 +365,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - Blocked Thread"
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "Issue Data" not in msg.alternatives[0][0]
 
     def test_simple_notification_perf(self):
