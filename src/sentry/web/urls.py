@@ -250,9 +250,7 @@ urlpatterns += [
                 ),
                 url(
                     r"^settings/appearance/$",
-                    RedirectView.as_view(
-                        pattern_name="sentry-account-settings-appearance", permanent=False
-                    ),
+                    RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
                 url(
                     r"^settings/identities/$",
@@ -365,11 +363,6 @@ urlpatterns += [
         include(
             [
                 url(r"^account/$", generic_react_page_view, name="sentry-account-settings"),
-                url(
-                    r"^account/$",
-                    generic_react_page_view,
-                    name="sentry-account-settings-appearance",
-                ),
                 url(
                     r"^account/authorizations/$",
                     generic_react_page_view,
