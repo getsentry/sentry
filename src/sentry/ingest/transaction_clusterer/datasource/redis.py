@@ -39,7 +39,7 @@ def get_redis_client() -> Any:
 
 def _get_all_keys() -> Iterable[str]:
     client = get_redis_client()
-    return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")
+    return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")  # type: ignore
 
 
 def get_active_projects() -> Iterable[Project]:

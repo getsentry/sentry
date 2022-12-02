@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry import features
 from sentry.tasks.base import instrumented_task
 
@@ -13,8 +15,8 @@ MERGE_THRESHOLD = 100
     queue="txcluster",
     soft_timeout=60 * 60,
     # TODO: set appropriate soft_timeout
-)
-def run_clusterer(**kwargs):
+)  # type: ignore
+def run_clusterer(**kwargs: Any) -> None:
     # TODO: Avoid scanning redis when no organization has the feature flag enabled
     for project in redis.get_active_projects():
         if features.has("organizations:transaction-name-clusterer", project.organization):
