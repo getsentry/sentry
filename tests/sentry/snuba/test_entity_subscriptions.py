@@ -174,6 +174,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert sorted(snql_query.query.select, key=key) == sorted(
             [
                 Function("uniq", parameters=[Column("value")], alias="count"),
+                # TODO: implement this operator in the metrics layer.
                 Function(
                     "uniqIf",
                     parameters=[

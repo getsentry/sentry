@@ -453,7 +453,10 @@ class MetricsQueryBuilder(QueryBuilder):
             )
 
         # We take only the first query, supposing a single query is generated.
-        snuba_request.query = snuba_queries["generic_metrics_distributions"]["totals"]
+        entity = list(snuba_queries.keys())[0]
+        if entity in {"generic_metrics_distributions", "generic_metrics_sets"}:
+            snuba_request.query = snuba_queries[entity]["totals"]
+
         return snuba_request
 
     def get_snql_query(self) -> Request:

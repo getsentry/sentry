@@ -334,7 +334,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
 
-        use_metrics_layer = self.dataset == Dataset.PerformanceMetrics
+        use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
 
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
