@@ -87,7 +87,7 @@ describe('TransactionsList', function () {
         '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/eventsv2/`,
+        url: `/organizations/${organization.slug}/events/`,
         headers: {Link: pageLinks},
         body: {
           meta: {transaction: 'string', count: 'number'},
@@ -99,7 +99,7 @@ describe('TransactionsList', function () {
         match: [MockApiClient.matchQuery({sort: 'transaction'})],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/eventsv2/`,
+        url: `/organizations/${organization.slug}/events/`,
         headers: {Link: pageLinks},
         body: {
           meta: {transaction: 'string', count: 'number'},
@@ -380,19 +380,14 @@ describe('TransactionsList', function () {
 
       const links = screen.getAllByRole('link');
       expect(links).toHaveLength(2);
-      if (isOnEventsFeatureSide) {
-        expect(links[0]).toHaveAttribute(
-          'href',
-          '/org-slug?count%28%29=100&transaction=%2Fa'
-        );
-        expect(links[1]).toHaveAttribute(
-          'href',
-          '/org-slug?count%28%29=1000&transaction=%2Fb'
-        );
-      } else {
-        expect(links[0]).toHaveAttribute('href', '/org-slug?count=100&transaction=%2Fa');
-        expect(links[1]).toHaveAttribute('href', '/org-slug?count=1000&transaction=%2Fb');
-      }
+      expect(links[0]).toHaveAttribute(
+        'href',
+        '/org-slug?count%28%29=100&transaction=%2Fa'
+      );
+      expect(links[1]).toHaveAttribute(
+        'href',
+        '/org-slug?count%28%29=1000&transaction=%2Fb'
+      );
     });
 
     it('handles forceLoading correctly', async function () {
