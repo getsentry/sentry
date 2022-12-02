@@ -1,6 +1,7 @@
 from sentry import features
 from sentry.tasks.base import instrumented_task
 
+from . import rules
 from .datasource import redis
 from .tree import TreeClusterer
 
@@ -19,5 +20,5 @@ def run_clusterer(**kwargs):
         if features.has("organizations:transaction-name-clusterer", project.organization):
             clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
             clusterer.add_input(redis.get_transaction_names(project))
-            rules = clusterer.get_rules()
-            project.update_option("txrules", rules)
+            new_rules = clusterer.get_rules()
+            rules.update(project, new_rules)

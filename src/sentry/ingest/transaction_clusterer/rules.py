@@ -1,44 +1,42 @@
-from datetime import datetime, timedelta
-from typing import List, Mapping
+from datetime import datetime, timezone
+from typing import MutableMapping, Sequence
 
+from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
 
 from .base import ReplacementRule
 
-RULE_RETENTION = timedelta(days=90)
-OPTION_NAME = "sentry:transaction_clustering_rules"
+#: Retention of a rule derived by the clusterer
+RULE_TTL = 90 * 24 * 60 * 60
+
+REDIS_KEY_PREFIX_RULES = "txrules:"
 
 
-def save_rules(project: Project, new_rules: List[ReplacementRule]):
-    now = datetime.now()
+def _get_rules_key(project: Project) -> str:
+    return f"{REDIS_KEY_PREFIX_RULES}{project.organization_id}:{project.id}"
 
-    # Load existing rules and remove expired ones:
-    now_timestamp = int(now.timestamp())
-    new_expiry = int((now + RULE_RETENTION).timestamp())
-    rules: dict = project.get_option(OPTION_NAME).get("rules", {})
 
-    # TODO: Skip projects that never had any URL transactions.
+def _now():
+    return int(datetime.now(timezone.utc).timestamp())
 
-    # Update existing rules with new rules, bumping expiry dates by
-    # overwriting existing entries:
-    # FIXME: This won't work, we have to bump the expiry date when we see
-    # a sanitized transaction because that means the rule is still in place.
-    rules_by_glob.update(
-        **{
-            rule: {
-                "source": TRANSACTION_SOURCE,
-                "type": "glob",
-                "value": rule,
-                "expires": new_expiry,
-            }
-            for rule in new_rules
-        }
-    )
 
-    rules: List[RuleSpec] = list(rules_by_glob.values())
+def update_rule_expiry(project: Project, rule_id: str) -> None:
+    client = get_redis_client()
+    key = _get_rules_key(project)
+    client.hset(key, rule_id, _now() + RULE_TTL)
 
-    # We're mixing old and new rules, so sort again
-    rules.sort(key=lambda rule: rule["value"].count("/"), reverse=True)
 
-    # TODO: Integration test
-    project.update_option(OPTION_NAME, {"rules": rules})
+def get(project: Project) -> MutableMapping[str, int]:
+    client = get_redis_client()
+    key = _get_rules_key(project)
+    return client.hgetall(key)
+
+
+def update(project: Project, new_rules: Sequence[ReplacementRule]):
+    new_expiry = _now() + RULE_TTL
+
+    client = get_redis_client()
+    key = _get_rules_key(project)
+
+    # Update rules, overwrite existing entries to update their expiry dates
+    client.hmset(key, {rule: new_expiry for rule in new_rules})

@@ -6,7 +6,10 @@ from django.conf import settings
 
 from sentry import features
 from sentry.eventstore.models import Event
-from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE
+from sentry.ingest.transaction_clusterer.datasource import (
+    TRANSACTION_SOURCE_SANITIZED,
+    TRANSACTION_SOURCE_URL,
+)
 from sentry.models import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
@@ -19,6 +22,7 @@ MAX_SET_SIZE = 1000
 #: Remove the set if it has not received any updates for 24 hours.
 SET_TTL = 24 * 60 * 60
 
+
 REDIS_KEY_PREFIX = "txnames:"
 
 add_to_set = redis.load_script("utils/sadd_capped.lua")
@@ -28,13 +32,13 @@ def _get_redis_key(project: Project) -> str:
     return f"{REDIS_KEY_PREFIX}{project.organization_id}:{project.id}"
 
 
-def _get_redis_client() -> Any:
+def get_redis_client() -> Any:
     cluster_key = getattr(settings, "SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
 
 
 def _get_all_keys() -> Iterable[str]:
-    client = _get_redis_client()
+    client = get_redis_client()
     return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")
 
 
@@ -47,24 +51,35 @@ def get_active_projects() -> Iterable[Project]:
 
 def _store_transaction_name(project: Project, transaction_name: str) -> None:
     with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
-        client = _get_redis_client()
+        client = get_redis_client()
         redis_key = _get_redis_key(project)
         add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
 def get_transaction_names(project: Project) -> Iterable[str]:
     """Return all transaction names stored for the given project"""
-    client = _get_redis_client()
+    client = get_redis_client()
     redis_key = _get_redis_key(project)
 
     return client.sscan_iter(redis_key)  # type: ignore
 
 
 def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
-    source = (event.data.get("transaction_info") or {}).get("source")
-    if (
-        source == TRANSACTION_SOURCE
-        and event.transaction
-        and features.has("organizations:transaction-name-clusterer", project.organization)
+    # TODO: revisit file structure to prevent circular import
+    from sentry.ingest.transaction_clusterer.rules import update_rule_expiry
+
+    transaction_info = event.data.get("transaction_info") or {}
+    transaction_name = event.transaction
+    source = transaction_info.get("source")
+    if transaction_name and features.has(
+        "organizations:transaction-name-clusterer", project.organization
     ):
-        safe_execute(_store_transaction_name, project, event.transaction, _with_transaction=False)
+        if source == TRANSACTION_SOURCE_URL:
+            safe_execute(
+                _store_transaction_name, project, transaction_name, _with_transaction=False
+            )
+        elif source == TRANSACTION_SOURCE_SANITIZED:
+            # Bump lifetime of rule
+            # TODO: add this rule ID in relay when sanitizing
+            if rule_id := transaction_info.get("applied_rule_id"):
+                safe_execute(update_rule_expiry, project, rule_id)

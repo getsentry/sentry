@@ -1,8 +1,11 @@
 from unittest import mock
 
 import pytest
+from freezegun import freeze_time
 
 from sentry.eventstore.models import Event
+from sentry.ingest.transaction_clusterer import rules
+from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
     get_transaction_names,
@@ -71,7 +74,7 @@ def test_distribution():
     for i in range(1000):
         _store_transaction_name(project, str(i))
 
-    freshness = sum(map(int, _get_transaction_names(project))) / 100
+    freshness = sum(map(int, get_transaction_names(project))) / 100
 
     # The average is usually around ~900, check for > 800 to be on the safe side
     assert freshness > 800, freshness
@@ -105,3 +108,20 @@ def test_record_transactions(
         )
         record_transaction_name(project, event)
         assert len(mocked_record.mock_calls) == expected
+
+
+def test_save_rules():
+    project = Project(id=111, name="project", organization_id=1)
+
+    project_rules = rules.get(project)
+    assert project_rules == {}
+
+    with freeze_time("2012-01-14 12:00:01"):
+        rules.update(project, [ReplacementRule("foo"), ReplacementRule("bar")])
+    project_rules = rules.get(project)
+    assert project_rules == {"foo": "1334318401", "bar": "1334318401"}
+
+    with freeze_time("2012-01-14 12:00:02"):
+        rules.update(project, [ReplacementRule("bar"), ReplacementRule("zap")])
+    project_rules = rules.get(project)
+    assert {"bar": "1334318402", "foo": "1334318401", "zap": "1334318402"}
