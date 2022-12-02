@@ -3095,6 +3095,14 @@
     core-js "^3.8.2"
     global "^4.4.0"
 
+"@storybook/client-logger@6.5.14":
+  version "6.5.14"
+  resolved "https://registry.yarnpkg.com/@storybook/client-logger/-/client-logger-6.5.14.tgz#ec178f31e70969ae22399ce4207c05e4f1d480a8"
+  integrity sha512-r1pY69DGKzX9/GngkudthaaPxPlka16zjG7Y58psunwcoUuH3riAP1cjqhXt5+S8FKCNI/MGb82PLlCPX2Liuw==
+  dependencies:
+    core-js "^3.8.2"
+    global "^4.4.0"
+
 "@storybook/components@6.5.12":
   version "6.5.12"
   resolved "https://registry.yarnpkg.com/@storybook/components/-/components-6.5.12.tgz#e137f0683ea92e22de116bfa62cfd65ce4efe01d"
@@ -3493,6 +3501,17 @@
   integrity sha512-xHubde9YnBbpkDY5+zGO4Pr6VPxP8H9J2v4OTF3H82uaxCIKR0PKG0utS9pFKIsEiP3aM62Hb9qB8nU+v1nj3w==
   dependencies:
     "@storybook/client-logger" "6.5.12"
+    core-js "^3.8.2"
+    memoizerific "^1.11.3"
+    qs "^6.10.0"
+    regenerator-runtime "^0.13.7"
+
+"@storybook/router@6.5.14":
+  version "6.5.14"
+  resolved "https://registry.yarnpkg.com/@storybook/router/-/router-6.5.14.tgz#8cb959c8cfece2a948cd6a4e14ac0fa1cece3095"
+  integrity sha512-AvHbpRUAHnzm5pmwFPjDR09uPjQITD6kA0QNa2pe+7/Q/b4k40z5dHvHZJ/YhWhwVwGqGBG20KdDOl30wLXAZw==
+  dependencies:
+    "@storybook/client-logger" "6.5.14"
     core-js "^3.8.2"
     memoizerific "^1.11.3"
     qs "^6.10.0"
