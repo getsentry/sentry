@@ -66,9 +66,11 @@ const ACTIONS: Action[] = [
   },
 ];
 
-const hostname = usingCustomerDomain
-  ? window?.__initialData?.customerDomain?.organizationUrl
-  : window?.__initialData.links.sentryUrl;
+const hostname = new URL(
+  usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
+    ? window.__initialData.customerDomain.organizationUrl
+    : window.__initialData.links.sentryUrl
+).host;
 
 window?.__initialData?.isOnPremise === false &&
   process?.env?.NODE_ENV &&
@@ -79,7 +81,7 @@ window?.__initialData?.isOnPremise === false &&
     requiresSuperuser: false,
     action: () => {
       const url = new URL(window.location.toString());
-      url.host = new URL(hostname ?? window?.__initialData.links.sentryUrl).host;
+      url.host = hostname;
       url.port = '';
       window.open(url.toString(), '_blank');
     },
