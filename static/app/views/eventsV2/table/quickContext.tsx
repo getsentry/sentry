@@ -6,6 +6,7 @@ import {Location} from 'history';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Clipboard from 'sentry/components/clipboard';
+import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
@@ -230,28 +231,44 @@ function IssueContext(props: BaseContextProps) {
     staleTime: fiveMinutesInMs,
   });
 
-  const renderStatus = () =>
+  const renderStatusAndCounts = () =>
     issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextHeader>{statusTitle}</ContextHeader>
-        <ContextBody>
-          {issue.status === 'ignored' ? (
-            <IconMute
-              data-test-id="quick-context-ignored-icon"
-              color="gray500"
-              size="sm"
-            />
-          ) : issue.status === 'resolved' ? (
-            <IconCheckmark color="gray500" size="sm" />
-          ) : (
-            <IconNot
-              data-test-id="quick-context-unresolved-icon"
-              color="gray500"
-              size="sm"
-            />
-          )}
-          <StatusText>{issue.status}</StatusText>
-        </ContextBody>
+        <ContextRow>
+          <div>
+            <ContextHeader>{t('Events')}</ContextHeader>
+            <ContextBody>
+              <Count className="count" value={issue.count} />
+            </ContextBody>
+          </div>
+          <div>
+            <ContextHeader>{t('Users')}</ContextHeader>
+            <ContextBody>
+              <Count className="count" value={issue.userCount} />
+            </ContextBody>
+          </div>
+          <div>
+            <ContextHeader>{statusTitle}</ContextHeader>
+            <ContextBody>
+              {issue.status === 'ignored' ? (
+                <IconMute
+                  data-test-id="quick-context-ignored-icon"
+                  color="gray500"
+                  size="xs"
+                />
+              ) : issue.status === 'resolved' ? (
+                <IconCheckmark color="gray500" size="xs" />
+              ) : (
+                <IconNot
+                  data-test-id="quick-context-unresolved-icon"
+                  color="gray500"
+                  size="xs"
+                />
+              )}
+              <StatusText>{issue.status}</StatusText>
+            </ContextBody>
+          </div>
+        </ContextRow>
       </IssueContextContainer>
     );
 
@@ -298,7 +315,7 @@ function IssueContext(props: BaseContextProps) {
 
   return (
     <Wrapper data-test-id="quick-context-hover-body">
-      {renderStatus()}
+      {renderStatusAndCounts()}
       {renderAssignee()}
       {renderSuspectCommits()}
     </Wrapper>
@@ -752,7 +769,7 @@ const EventContextBody = styled(ContextBody)`
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${space(0.5)};
   text-transform: capitalize;
 `;
 
