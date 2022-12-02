@@ -406,7 +406,7 @@ urlpatterns += [
                 url(
                     r"^account/api/auth-tokens/new-token/$",
                     generic_react_page_view,
-                    name="sentry-api-new-auth-token",
+                    name="sentry-account-api-new-auth-token",
                 ),
                 url(r"^account/api/", generic_react_page_view, name="sentry-api"),
                 url(
