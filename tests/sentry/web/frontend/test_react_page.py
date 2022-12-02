@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils import TestCase
+from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES
 
 
 class ReactPageViewTest(TestCase):
@@ -151,3 +152,22 @@ class ReactPageViewTest(TestCase):
             )
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+
+    def test_non_customer_domain_url_names(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        for url_name in NON_CUSTOMER_DOMAIN_URL_NAMES:
+            path = reverse(url_name)
+            # Does not redirect a non-customer domain URL
+            response = self.client.get(path)
+
+            self.assertTemplateUsed(response, "sentry/base-react.html")
+            assert response.status_code == 200
+
+            # Redirects for a customer domain URL
+            response = self.client.get(path, HTTP_HOST=f"{org.slug}.testserver")
+
+            assert response.status_code == 302
+            assert response["Location"] == f"http://testserver{path}"
