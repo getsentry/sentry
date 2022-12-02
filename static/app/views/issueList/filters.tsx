@@ -58,8 +58,9 @@ function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Pr
 
 const SearchContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
   flex-wrap: wrap;
+  column-gap: ${space(2)};
+  row-gap: ${space(1)};
   width: 100%;
   margin-bottom: ${space(2)};
 `;
@@ -76,7 +77,7 @@ const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   min-width: 20rem;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 25rem;
+    min-width: 30rem;
   }
 `;
 
