@@ -2103,6 +2103,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
             test_query(f"{key}:{val}")
 
+    def test_message_negation(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        results = self.make_query(search_filter_query="!message:else")
+
+        with self.feature("organizations:performance-issues"):
+            results2 = self.make_query(search_filter_query="!message:else")
+
+        assert list(results) == list(results2)
+
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
     @property
@@ -2356,6 +2374,39 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             }
 
         assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
+
+    def test_compound_message_negation(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "level": "info",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "event_id": "e" * 32,
+                "timestamp": iso_format(self.base_datetime),
+                "start_timestamp": iso_format(self.base_datetime),
+                "type": "transaction",
+                "transaction": "something",
+            },
+            project_id=self.project.id,
+        )
+
+        error_issues_only = self.make_query(search_filter_query="!message:else")
+
+        with self.feature("organizations:performance-issues"):
+            error_and_perf_issues = self.make_query(search_filter_query="!message:else")
+
+        assert set(error_and_perf_issues) > set(error_issues_only)
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
