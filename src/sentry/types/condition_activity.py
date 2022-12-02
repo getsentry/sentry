@@ -12,6 +12,8 @@ class ConditionActivityType(Enum):
     CREATE_ISSUE = 0
     REGRESSION = 1
     REAPPEARED = 2
+    # condition activity created from frequency condition buckets
+    FREQUENCY_CONDITION = 3
 
 
 @dataclass
