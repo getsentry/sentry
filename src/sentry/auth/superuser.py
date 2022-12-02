@@ -413,9 +413,6 @@ class Superuser:
     def on_response(self, response, current_datetime=None):
         request = self.request
 
-        if current_datetime is None:
-            current_datetime = timezone.now()
-
         # always re-bind the cookie to update the idle expiration window
         if self.is_active:
             response.set_signed_cookie(
