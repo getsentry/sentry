@@ -125,7 +125,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
-                "Failed to process replay recording message", extra={"offset": message.offset}
+                "Failed to process replay recording message",
+                extra={"committable": message.committable},
             )
             current_transaction.finish()
 
@@ -155,11 +156,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
             try:
                 future.result(remaining)
-                self.__commit({message.partition: Position(message.offset, message.timestamp)})
+                self.__commit(message.committable)
             except Exception:
                 logger.exception(
                     "Async future failed in replays recording-segment consumer.",
-                    extra={"offset": message.offset},
+                    extra={"committable": message.committable},
                 )
 
     def poll(self) -> None:
@@ -172,11 +173,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 logger.error(
                     "Async future failed in replays recording-segment consumer.",
                     exc_info=future.exception(),
-                    extra={"offset": message.offset},
+                    extra={"committable": message.committable},
                 )
 
             self.__futures.popleft()
-            self.__commit_data[message.partition] = Position(message.next_offset, message.timestamp)
+            self.__commit_data.update(message.committable)
 
         self.__throttled_commit()
 

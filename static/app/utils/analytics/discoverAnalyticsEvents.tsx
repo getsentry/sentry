@@ -1,3 +1,4 @@
+import {EventOrGroupType} from 'sentry/types';
 import {ContextType} from 'sentry/views/eventsV2/table/quickContext';
 
 export type DiscoverEventParameters = {
@@ -11,7 +12,7 @@ export type DiscoverEventParameters = {
   'discover_v2.quick_context_header_copy': {clipBoardTitle: string};
   'discover_v2.quick_context_hover_contexts': {
     contextType: ContextType;
-    eventType?: 'error' | 'transaction';
+    eventType?: EventOrGroupType;
   };
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.saved_query_click': {};
