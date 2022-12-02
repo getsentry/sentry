@@ -164,7 +164,7 @@
     "u2f-api": "1.0.10",
     "webpack": "5.73.0",
     "webpack-cli": "4.10.0",
-    "webpack-remove-empty-scripts": "^0.8.1",
+    "webpack-remove-empty-scripts": "^1.0.1",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
