@@ -64,6 +64,19 @@ def test_collection():
     assert set() == _get_transaction_names(project3)
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
+def test_distribution():
+    """Make sure that the redis set prefers newer entries"""
+    project = Project(id=103, name="", organization_id=1)
+    for i in range(1000):
+        _store_transaction_name(project, str(i))
+
+    freshness = sum(map(int, _get_transaction_names(project))) / 100
+
+    # The average is usually around ~900, check for > 800 to be on the safe side
+    assert freshness > 800, freshness
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
