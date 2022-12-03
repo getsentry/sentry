@@ -1,6 +1,5 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {
   Result as SearchResult,
   SentryGlobalSearch,
@@ -12,6 +11,8 @@ import debounce from 'lodash/debounce';
 import {Organization, Project} from 'sentry/types';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {ChildProps, Result, ResultItem} from './types';
 
@@ -138,4 +139,4 @@ function mapSearchResults(results: SearchResult[]) {
 }
 
 export {HelpSource};
-export default withLatestContext(withRouter(HelpSource));
+export default withLatestContext(withSentryRouter(HelpSource));

@@ -17,6 +17,7 @@ from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
@@ -689,10 +690,12 @@ class GroupEvent(BaseEvent):
         group: Group,
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
+        occurrence: IssueOccurrence | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
+        self._occurrence = occurrence
 
     def __eq__(self, other):
         if not isinstance(other, GroupEvent):
@@ -730,6 +733,14 @@ class GroupEvent(BaseEvent):
         if hasattr(event, "_project_cache"):
             group_event.project = event.project
         return group_event
+
+    @property
+    def occurrence(self) -> IssueOccurrence:
+        return self._occurrence
+
+    @occurrence.setter
+    def occurrence(self, value: IssueOccurrence) -> None:
+        self._occurrence = value
 
 
 class EventSubjectTemplate(string.Template):

@@ -13,7 +13,7 @@ import {Frame} from './frame';
 // keeping an intermediary stack so as to resemble the execution of the program.
 export class Flamegraph {
   profile: Profile;
-  frames: FlamegraphFrame[] = [];
+  frames: ReadonlyArray<FlamegraphFrame> = [];
   profileIndex: number;
 
   inverted?: boolean = false;

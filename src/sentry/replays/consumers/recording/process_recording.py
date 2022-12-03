@@ -19,10 +19,12 @@ from sentry_sdk.tracing import Transaction
 
 from sentry.replays.cache import RecordingSegmentParts
 from sentry.replays.usecases.ingest import (
+    RecordingMessage,
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
     ingest_chunk,
-    ingest_chunked_recording,
+    ingest_recording_chunked,
+    ingest_recording_not_chunked,
 )
 from sentry.utils import metrics
 
@@ -59,15 +61,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
-    def _store(
-        self,
-        message_dict: RecordingSegmentMessage,
-        parts: RecordingSegmentParts,
-        current_transaction: Transaction,
-    ) -> None:
-        ingest_chunked_recording(message_dict, parts, current_transaction)
-
-    def _process_recording(
+    def _process_chunked_recording(
         self,
         message_dict: RecordingSegmentMessage,
         message: Message[KafkaPayload],
@@ -87,10 +81,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             ReplayRecordingMessageFuture(
                 message,
                 self.__threadpool.submit(
-                    self._store,
+                    ingest_recording_chunked,
                     message_dict=message_dict,
                     parts=parts,
-                    current_transaction=current_transaction,
+                    transaction=current_transaction,
                 ),
             )
         )
@@ -119,15 +113,20 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
                 ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), current_transaction)
             elif message_dict["type"] == "replay_recording":
-                self._process_recording(
+                self._process_chunked_recording(
                     cast(RecordingSegmentMessage, message_dict),
                     message,
                     current_transaction,
                 )
+            elif message_dict["type"] == "replay_recording_not_chunked":
+                ingest_recording_not_chunked(
+                    cast(RecordingMessage, message_dict), current_transaction
+                )
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
-                "Failed to process replay recording message", extra={"offset": message.offset}
+                "Failed to process replay recording message",
+                extra={"committable": message.committable},
             )
             current_transaction.finish()
 
@@ -157,11 +156,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
             try:
                 future.result(remaining)
-                self.__commit({message.partition: Position(message.offset, message.timestamp)})
+                self.__commit(message.committable)
             except Exception:
                 logger.exception(
                     "Async future failed in replays recording-segment consumer.",
-                    extra={"offset": message.offset},
+                    extra={"committable": message.committable},
                 )
 
     def poll(self) -> None:
@@ -174,11 +173,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 logger.error(
                     "Async future failed in replays recording-segment consumer.",
                     exc_info=future.exception(),
-                    extra={"offset": message.offset},
+                    extra={"committable": message.committable},
                 )
 
             self.__futures.popleft()
-            self.__commit_data[message.partition] = Position(message.next_offset, message.timestamp)
+            self.__commit_data.update(message.committable)
 
         self.__throttled_commit()
 

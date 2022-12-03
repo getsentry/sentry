@@ -1,6 +1,4 @@
 import {useCallback, useEffect, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -16,6 +14,8 @@ import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 
 import {Result} from './sources/types';
 import List from './list';
@@ -26,7 +26,7 @@ type ListProps = React.ComponentProps<typeof List>;
 
 interface InputProps extends Pick<AutoCompleteOpts, 'getInputProps'> {}
 
-interface SearchProps extends WithRouterProps<{orgId: string}> {
+interface SearchProps {
   /**
    * For analytics
    */
@@ -81,9 +81,10 @@ function Search({
   resultFooter,
   searchOptions,
   sources,
-  router,
-  params,
 }: SearchProps): React.ReactElement {
+  const router = useRouter();
+
+  const params = useParams<{orgId: string}>();
   useEffect(() => {
     trackAdvancedAnalyticsEvent(`${entryPoint}.open`, {
       organization: null,
@@ -160,6 +161,7 @@ function Search({
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
       closeOnSelect={closeOnSelect ?? true}
+      isOpen
     >
       {({getInputProps, isOpen, inputValue, ...autocompleteProps}) => {
         const searchQuery = inputValue.toLowerCase().trim();
@@ -209,8 +211,7 @@ function Search({
   );
 }
 
-const WithRouterSearch = withRouter(Search);
-export {WithRouterSearch as Search, SearchProps};
+export {Search, SearchProps};
 
 const SearchWrapper = styled('div')`
   position: relative;

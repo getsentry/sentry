@@ -1,45 +1,44 @@
-// eslint-disable-next-line no-restricted-imports
-import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
+import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
 
-type Props = WithRouterProps &
-  LinkProps & {
-    /**
-     * Link target. We don't want to expose the ToLocationFunction on this component.
-     */
-    to: LocationDescriptor;
-    /**
-     * The class to apply when the link is 'active'
-     */
-    activeClassName?: string;
-    disabled?: boolean;
-    index?: boolean;
-    /**
-     * Should be should be supplied by the parent component
-     */
-    isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
-    query?: string;
-  };
+type Props = LinkProps & {
+  /**
+   * Link target. We don't want to expose the ToLocationFunction on this component.
+   */
+  to: LocationDescriptor;
+  /**
+   * The class to apply when the link is 'active'
+   */
+  activeClassName?: string;
+  disabled?: boolean;
+  index?: boolean;
+  /**
+   * Should be should be supplied by the parent component
+   */
+  isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
+  query?: string;
+};
 
 function ListLink({
   children,
   className,
   isActive,
   query,
-  router,
   to,
   activeClassName = 'active',
   index = false,
   disabled = false,
   ...props
 }: Props) {
+  const router = useRouter();
   const queryData = query ? qs.parse(query) : undefined;
   const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
   const target = normalizeUrl(targetLocation);
@@ -51,14 +50,14 @@ function ListLink({
       className={classNames({[activeClassName]: active}, className)}
       disabled={disabled}
     >
-      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : to}>
+      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
         {children}
       </RouterLink>
     </StyledLi>
   );
 }
 
-export default withRouter(ListLink);
+export default ListLink;
 
 const StyledLi = styled('li', {
   shouldForwardProp: prop => prop !== 'disabled',

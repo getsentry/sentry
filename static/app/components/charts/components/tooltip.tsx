@@ -260,11 +260,21 @@ function getFormatter({
       }
     );
 
+    if (subLabels.length > 0) {
+      return [
+        `<div class="tooltip-series">${series.join('')}</div>`,
+        '<div class="tooltip-footer">',
+        `<div><strong>${t('Date')}:</strong> ${date}</div>`,
+        `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    }
+
     return [
       `<div class="tooltip-series">${series.join('')}</div>`,
-      '<div class="tooltip-footer">',
-      `<div><strong>${t('Date')}:</strong> ${date}</div>`,
-      `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
+      '<div class="tooltip-footer tooltip-footer-centered">',
+      date,
       '</div>',
       '<div class="tooltip-arrow"></div>',
     ].join('');

@@ -19,11 +19,10 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
@@ -42,7 +41,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -69,7 +68,7 @@ import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAle
 import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+import {isUniformRule} from './utils';
 
 const LimitedAvailabilityProgramEndingAlert = HookOrDefault({
   hookName: 'component:dynamic-sampling-limited-availability-program-ending',
@@ -83,15 +82,14 @@ export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
-  const hasAccess = organization.access.includes('project:write');
+  const hasAccess = false;
   const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
   const params = useParams();
-  const routeContext = useRouteContext();
-  const router = routeContext.router;
+  const router = useRouter();
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
 
@@ -502,14 +500,8 @@ export function ServerSideSampling({project}: Props) {
           action={<SamplingFeedback />}
         />
         <TextBlock>
-          {tct(
-            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, without having to re-deploy your app.',
-            {
-              performanceMetrics: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/dsla-metrics/#metrics-and-sampling" />
-              ),
-              targetTransactions: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
-            }
+          {t(
+            'Improve the accuracy of your performance metrics and target those transactions which are most valuable for your organization. Server-side rules are applied immediately, without having to re-deploy your app.'
           )}
         </TextBlock>
         <PermissionAlert
@@ -648,24 +640,12 @@ export function ServerSideSampling({project}: Props) {
             />
             <RulesPanelFooter>
               <ButtonBar gap={1}>
-                <Button
-                  href={SERVER_SIDE_SAMPLING_DOC_LINK}
-                  onClick={handleReadDocs}
-                  external
-                >
-                  {t('Read Docs')}
-                </Button>
                 <GuideAnchor
                   target="add_conditional_rule"
                   disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
                 >
                   <AddRuleButton
                     disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t("You don't have permission to add a rule")
-                        : undefined
-                    }
                     priority="primary"
                     onClick={() => navigate(`${samplingProjectSettingsPath}rules/new/`)}
                     icon={<IconAdd isCircled />}

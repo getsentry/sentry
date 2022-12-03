@@ -1,29 +1,26 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
-import * as PropTypes from 'prop-types';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
+  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+    organization: Organization;
+  };
 
 type State = AsyncView['state'] & {
   monitor: Monitor | null;
 };
 
-export default class EditMonitor extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
+class EditMonitor extends AsyncView<Props, State> {
   get orgSlug() {
-    return this.context.organization.slug;
+    return this.props.organization.slug;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -67,3 +64,5 @@ export default class EditMonitor extends AsyncView<Props, State> {
     );
   }
 }
+
+export default withOrganization(EditMonitor);
