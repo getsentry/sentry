@@ -271,7 +271,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(isCompact && {
           paddingTop: isSearchable
             ? 0
-            : menuTitle
+            : // If the menu title is present, then add 1px to the top padding to ensure
+            // even padding (the menu title element has a box-shadow border that takes up
+            // zero height)
+            menuTitle
             ? `calc(${space(0.5)} + 1px)`
             : space(0.5),
           paddingBottom: space(0.5),
