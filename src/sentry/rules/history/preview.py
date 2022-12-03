@@ -21,6 +21,7 @@ from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
     ConditionActivityType,
+    round_to_five_minute,
 )
 from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
@@ -405,11 +406,11 @@ def apply_frequency_conditions(
                 # If there are no issue state change conditions, then we won't have any initial activities to base our
                 # frequency condition queries off of. Instead, we take the first frequency condition and create the
                 # initial activities from that
-                for bucket in buckets:
+                for bucket_time in buckets.keys():
                     activity = ConditionActivity(
                         group,
                         ConditionActivityType.FREQUENCY_CONDITION,
-                        bucket["roundedTime"] + FREQUENCY_CONDITION_BUCKET_SIZE,
+                        bucket_time,
                     )
                     try:
                         if conditions[0].passes_activity_frequency(activity, buckets):
@@ -437,11 +438,11 @@ def apply_frequency_conditions(
                 project, start, end, group, dataset_map.get(group, None)
             )
             for condition in conditions:
-                for bucket in buckets:
+                for bucket_time in buckets.keys():
                     activity = ConditionActivity(
                         group,
                         ConditionActivityType.FREQUENCY_CONDITION,
-                        bucket["roundedTime"] + FREQUENCY_CONDITION_BUCKET_SIZE,
+                        bucket_time,
                     )
                     try:
                         if condition.passes_activity_frequency(activity, buckets):
@@ -466,12 +467,12 @@ def get_frequency_buckets(
     end: datetime,
     group_id: int,
     dataset: Dataset,
-) -> Sequence[Dict[str, Any]]:
+) -> Dict[datetime, int]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
     if dataset not in UPDATE_KWARGS_FOR_GROUP:
-        return []
+        return {}
 
     # TODO: support counting of other fields (# of unique users, ...)
     kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
@@ -485,20 +486,32 @@ def get_frequency_buckets(
                 ("toStartOfFiveMinute", "timestamp", "roundedTime"),
                 ("count", "roundedTime", "bucketCount"),
             ],
-            "orderby": ["roundedTime"],
+            "orderby": ["-roundedTime"],
             "groupby": ["roundedTime"],
             "selected_columns": ["roundedTime", "bucketCount"],
             "limit": PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
         },
     )
-
-    bucket_counts: Sequence[Dict[str, Any]] = raw_query(
+    bucket_counts = raw_query(
         **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
     ).get("data", [])
 
     for bucket in bucket_counts:
         bucket["roundedTime"] = parse_snuba_datetime(bucket["roundedTime"])
-    return bucket_counts
+
+    rounded_time = round_to_five_minute(start)
+    rounded_end = round_to_five_minute(end)
+    cumulative_sum = 0
+    buckets = {}
+    # the query result only contains buckets that have a positive count
+    # here we fill in the empty buckets and accumulate the sum
+    while rounded_time <= rounded_end:
+        if bucket_counts and bucket_counts[-1]["roundedTime"] == rounded_time:
+            cumulative_sum += bucket_counts.pop()["bucketCount"]
+        buckets[rounded_time] = cumulative_sum
+        rounded_time += FREQUENCY_CONDITION_BUCKET_SIZE
+
+    return buckets
 
 
 class PreviewException(Exception):
