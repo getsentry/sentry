@@ -108,7 +108,7 @@ class Serializer:
 
     def _serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> Optional[MutableMapping[str, JSONData]]:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
         except Exception as e:
