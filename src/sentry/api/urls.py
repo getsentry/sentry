@@ -15,6 +15,7 @@ from sentry.api.endpoints.organization_sentry_function_details import (
     OrganizationSentryFunctionDetailsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.api.endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -2211,6 +2212,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$",
                     ProjectPluginDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-plugin-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/cluster-transaction-names/$",
+                    ProjectTransactionNamesCluster.as_view(),
+                    name="sentry-api-0-organization-project-cluster-transaction-names",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/",

@@ -156,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -166,16 +166,14 @@ export class Results extends Component<Props, State> {
     const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
-      prevQuery.field.length !== 0 &&
-      (!isAPIPayloadSimilar(currentQuery, prevQuery) ||
-        this.hasChartParametersChanged(
-          prevState.eventView,
-          eventView,
-          prevYAxisArray,
-          yAxisArray
-        ))
+      !isAPIPayloadSimilar(currentQuery, prevQuery) ||
+      this.hasChartParametersChanged(
+        prevState.eventView,
+        eventView,
+        prevYAxisArray,
+        yAxisArray
+      )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
