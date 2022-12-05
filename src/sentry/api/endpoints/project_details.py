@@ -540,9 +540,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
         else:
             data["dynamicSamplingBiases"] = None
-        # TODO(ahmed): Deprecated dynamic sampling logic, and will be removed in the future
-        if not ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
-            data["dynamicSampling"] = None
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -910,10 +907,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         data = serialize(project, request.user, DetailedProjectSerializer())
         if not ds_flags_multiplexer.is_on_dynamic_sampling:
             data["dynamicSamplingBiases"] = None
-        # If here because the case of when no dynamic sampling is enabled at all, you would want to kick out both
-        # keys actually
-        if not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated:
-            data["dynamicSampling"] = None
+        # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
+        # out both keys actually
 
         return Response(data)
 

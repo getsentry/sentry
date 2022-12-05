@@ -27,18 +27,6 @@ class DynamicSamplingFeatureMultiplexer:
         self.current_dynamic_sampling = features.has(
             "organizations:dynamic-sampling", project.organization
         )
-        # Flag responsible to inform us if the org was in the original LA/EA Dynamic Sampling
-        self.deprecated_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling-deprecated", project.organization
-        )
-
-    @property
-    def is_on_dynamic_sampling_deprecated(self) -> bool:
-        return (
-            self.allow_dynamic_sampling
-            and self.deprecated_dynamic_sampling
-            and not self.current_dynamic_sampling
-        )
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
