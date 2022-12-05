@@ -607,8 +607,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             # This allows checking for caching related output
             self._caplog.set_level(logging.INFO, logger="sentry")
             # Check that the cache is clear
+            repo_key = "github:repo:Test-Organization/foo:source-code"
             assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
-            assert cache.get("githubtrees:repo:Test-Organization/foo") is None
+            assert cache.get(repo_key) is None
             trees = installation.get_trees_for_org()
 
             # These checks are useful since they will be available in the GCP logs

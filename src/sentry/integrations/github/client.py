@@ -149,6 +149,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
         repositories = cache.get(cache_key)
+        extra = {"gh_org": gh_org}
         if not repositories:
             # Simply removing unnecessary fields from the response
             repositories = [
@@ -157,7 +158,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             ]
             cache.set(cache_key, repositories, cache_seconds)
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
-            logger.info(f"Caching trees for {gh_org} org until {next_time}.")
+            extra["next_time"] = str(next_time)
+            logger.info("Caching trees for Github org.", extra=extra)
 
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
@@ -167,7 +169,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 branch = repo_info["default_branch"]
                 repo_files = self.get_cached_repo_files(full_name, branch)
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
-            logger.info(f"Using cached trees for {gh_org}.")
+            logger.info("Using cached trees for Github org.", extra=extra)
         except Exception:
             # Reset the control cache in order to repopulate
             cache.delete(cache_key)
