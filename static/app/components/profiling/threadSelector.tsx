@@ -33,9 +33,7 @@ function ThreadMenuSelector({
 
     sortedProfiles.forEach(profile => {
       const option = {
-        label: profile.name
-          ? `tid (${profile.threadId}): ${profile.name}`
-          : `tid (${profile.threadId})`,
+        label: profile.name ? `${profile.name}` : `tid(${profile.threadId})`,
         value: profile.threadId,
         details: (
           <ThreadLabelDetails
