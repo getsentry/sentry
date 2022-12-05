@@ -106,7 +106,6 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
-  isSavedSearchesOpen: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -175,7 +174,6 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
-      isSavedSearchesOpen: false,
       issuesLoading: true,
       memberList: {},
     };
@@ -1112,12 +1110,6 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchData(true);
   };
 
-  onToggleSavedSearches = (isOpen: boolean) => {
-    this.setState({
-      isSavedSearchesOpen: isOpen,
-    });
-  };
-
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getSelectedProjectIds();
@@ -1139,7 +1131,6 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
-      isSavedSearchesOpen,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1194,8 +1185,6 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <StyledPageContent>
         <IssueListHeader
-          isSavedSearchesOpen={isSavedSearchesOpen}
-          onToggleSavedSearches={this.onToggleSavedSearches}
           organization={organization}
           query={query}
           sort={this.getSort()}
@@ -1237,7 +1226,6 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
-                isSavedSearchesOpen={isSavedSearchesOpen}
               />
               <PanelBody>
                 <ProcessingIssueList
@@ -1260,7 +1248,6 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
-                    isSavedSearchesOpen={isSavedSearchesOpen}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>
@@ -1276,7 +1263,6 @@ class IssueListOverview extends Component<Props, State> {
           </StyledMain>
           <SavedIssueSearches
             {...{organization, query}}
-            isOpen={isSavedSearchesOpen}
             onSavedSearchSelect={this.onSavedSearchSelect}
             sort={this.getSort()}
           />

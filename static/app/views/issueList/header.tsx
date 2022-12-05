@@ -19,17 +19,23 @@ import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
-  isSavedSearchesOpen: boolean;
   onRealtimeChange: (realtime: boolean) => void;
-  onToggleSavedSearches: (isOpen: boolean) => void;
   organization: Organization;
   query: string;
   queryCounts: QueryCounts;
@@ -88,13 +94,15 @@ function IssueListHeader({
   onSavedSearchSelect,
   onSavedSearchDelete,
   savedSearch,
-  onToggleSavedSearches,
   savedSearchList,
-  isSavedSearchesOpen,
   router,
   displayReprocessingTab,
   selectedProjectIds,
 }: IssueListHeaderProps) {
+  const [isSavedSearchesOpen, onToggleSavedSearches] = useSyncedLocalStorageState(
+    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+    false
+  );
   const {projects} = useProjects();
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
