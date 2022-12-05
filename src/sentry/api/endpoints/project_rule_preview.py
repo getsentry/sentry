@@ -1,11 +1,13 @@
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.rule import RuleSetSerializer
+from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
 from sentry.rules.history.preview import preview
 from sentry.web.decorators import transaction_start
 
@@ -28,10 +30,15 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
                 "actionMatch": "all",
                 "filterMatch": "all",
                 "frequency": 60,
+                "endpoint": datetime or None
             }}
 
         """
-        serializer = RuleSetSerializer(
+        if not features.has(
+            "organizations:issue-alert-preview", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+        serializer = RulePreviewSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
 
@@ -39,6 +46,8 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             raise ValidationError
 
         data = serializer.validated_data
+        if data.get("endpoint") is None:
+            data["endpoint"] = timezone.now()
         results = preview(
             project,
             data.get("conditions", []),
@@ -46,6 +55,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             data.get("actionMatch"),
             data.get("filterMatch"),
             data.get("frequency"),
+            data.get("endpoint"),
         )
 
         if results is None:
@@ -58,4 +68,5 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
+        response["Endpoint"] = data["endpoint"]
         return response

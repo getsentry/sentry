@@ -11,7 +11,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalConsumer
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import Commit
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Partition, Topic
 
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer, commit_codec
 
@@ -57,7 +57,7 @@ def assert_does_not_change(
     ), f"postcondition ({operator}) on {callable} failed: expected: {value!r}, actual: {actual!r}"
 
 
-def wait_for_consumer(consumer: Consumer[T], message: Message[T], attempts: int = 10) -> None:
+def wait_for_consumer(consumer: Consumer[T], message: BrokerValue[T], attempts: int = 10) -> None:
     """Block until the provided consumer has received the provided message."""
     for i in range(attempts):
         part = consumer.tell().get(message.partition)
@@ -398,7 +398,7 @@ def test_synchronized_consumer_worker_crash_before_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[Message[KafkaPayload]]:
+        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
             try:
                 raise BrokenConsumerException()
             finally:
@@ -431,7 +431,7 @@ def test_synchronized_consumer_worker_crash_after_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[Message[KafkaPayload]]:
+        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
             if not self.tell():
                 return super().poll(timeout)
             else:
