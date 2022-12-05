@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
+import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
@@ -192,12 +192,15 @@ const ReplayControls = ({
   });
   useLayoutEffect(() => updateIsCompact, [updateIsCompact]);
 
+  const elem = useRef<HTMLDivElement>(null);
+  const mouseTrackingProps = useScrubberMouseTracking({elem});
+
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
       <TimeAndScrubber isCompact={isCompact}>
         <Time>{formatTime(currentTime)}</Time>
-        <StyledScrubber>
+        <StyledScrubber ref={elem} {...mouseTrackingProps}>
           <PlayerScrubber />
         </StyledScrubber>
         <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
@@ -244,7 +247,7 @@ const Time = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
-const StyledScrubber = styled(ScrubberMouseTracking)`
+const StyledScrubber = styled('div')`
   height: 32px;
   display: flex;
   align-items: center;

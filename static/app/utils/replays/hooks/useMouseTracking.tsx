@@ -1,9 +1,10 @@
-import {DOMAttributes, MouseEvent, useCallback, useRef} from 'react';
+import {DOMAttributes, MouseEvent, RefObject, useCallback, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 type CallbackArgs = {height: number; left: number; top: number; width: number};
 
 type Opts<T extends Element> = {
+  elem: RefObject<T>;
   onPositionChange: (args: undefined | CallbackArgs) => void;
 } & DOMAttributes<T>;
 
@@ -39,13 +40,13 @@ function getBoundingRect(
 }
 
 function useMouseTracking<T extends Element>({
+  elem,
   onPositionChange,
   onMouseEnter,
   onMouseMove,
   onMouseLeave,
   ...rest
 }: Opts<T>) {
-  const elem = useRef<T>(null);
   const controller = useRef<AbortController>(new AbortController());
 
   const handlePositionChange = useCallback(
@@ -74,7 +75,7 @@ function useMouseTracking<T extends Element>({
         Sentry.captureException(err);
       }
     },
-    [onPositionChange, controller]
+    [onPositionChange, controller, elem]
   );
 
   const handleOnMouseLeave = useCallback(() => {
@@ -87,7 +88,6 @@ function useMouseTracking<T extends Element>({
   }, [onPositionChange, controller]);
 
   return {
-    ref: elem,
     ...rest,
     onMouseEnter: (e: MouseEvent<T>) => {
       handlePositionChange(e);
