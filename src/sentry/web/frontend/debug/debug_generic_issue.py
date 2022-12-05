@@ -8,7 +8,7 @@ from django.views.generic import View
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 
@@ -67,7 +67,7 @@ class DebugGenericIssueEmailView(View):
                 "tags": event.tags,
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
-                "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
+                "issue_title": event.occurrence.issue_title,
                 "subtitle": event.title,
             },
         ).render(request)

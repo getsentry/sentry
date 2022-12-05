@@ -318,7 +318,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - something bad happened"
+        assert msg.subject == f"[Sentry] BAR-1 - {occurrence.issue_title}"
         checked_values = [
             "Issue Data",
             "Evidence 1",
