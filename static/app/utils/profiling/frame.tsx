@@ -60,6 +60,23 @@ export class Frame extends WeightedNode {
       if (this.line === undefined && this.column === undefined) {
         this.name += ` ${t('[native code]')}`;
       }
+
+      // Doing this on the frontend while we figure out how to do this on the backend/client properly
+      if (this.image === undefined && this.path) {
+        const match =
+          /node_modules\/(?<maybeScopeOrPackage>.*)\/(?<maybeFileOrPackage>.*)\//.exec(
+            this.path
+          );
+        if (match?.groups) {
+          const {maybeScopeOrPackage, maybeFileOrPackage} = match.groups;
+
+          if (maybeScopeOrPackage.startsWith('@')) {
+            this.image = `${maybeScopeOrPackage}/${maybeFileOrPackage}`;
+          } else {
+            this.image = match.groups.maybeScopeOrPackage;
+          }
+        }
+      }
     }
 
     if (!this.name) {
