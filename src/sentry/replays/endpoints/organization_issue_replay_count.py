@@ -63,7 +63,9 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         return self.respond(issue_id_counts)
 
 
-def _query_discover_for_replay_ids(request: Request, params: dict[str, Any]) -> dict[str, int]:
+def _query_discover_for_replay_ids(
+    request: Request, params: dict[str, Any]
+) -> dict[str, list[int]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
