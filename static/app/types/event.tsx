@@ -1,6 +1,7 @@
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -479,11 +480,25 @@ type OSContext = {
   version: string;
 };
 
+export enum OtelContextKey {
+  ATTRIBUTES = 'attributes',
+  RESOURCE = 'resource',
+}
+
+// OpenTelemetry Context
+// https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
+interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
+  type: 'otel';
+  [OtelContextKey.ATTRIBUTES]?: Record<string, unknown>;
+  [OtelContextKey.RESOURCE]?: Record<string, unknown>;
+}
+
 type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   os?: OSContext;
+  otel?: OtelContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
@@ -508,6 +523,7 @@ export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
+  issueType?: IssueType;
 };
 
 interface EventBase {

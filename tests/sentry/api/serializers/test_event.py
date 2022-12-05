@@ -416,6 +416,7 @@ class DetailedEventSerializerTest(TestCase):
             ],
             "op": "db",
             "parentSpanIds": ["8dd7a5869a4f4583"],
+            "issueType": "performance_n_plus_one_db_queries",
             "type": 1006,
         }
 

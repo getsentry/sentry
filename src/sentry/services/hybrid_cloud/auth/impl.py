@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import base64
+import dataclasses
 from typing import List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import F
+from django.db.models import Count, F
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
@@ -12,8 +13,11 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, AuthIdentity, AuthProvider, OrganizationMember, User
 from sentry.services.hybrid_cloud.auth import (
+    ApiAuthProvider,
+    ApiAuthProviderFlags,
     ApiAuthState,
     ApiMemberSsoState,
+    ApiOrganizationAuthConfig,
     AuthenticatedToken,
     AuthenticationRequest,
     AuthenticationResponse,
@@ -87,9 +91,9 @@ def query_sso_state(
 
                 if SiloMode.get_current_mode() != SiloMode.MONOLITH:
                     # Giant hack for now until we have control silo org membership table.
-                    from sentry.testutils.silo import exempt_from_silo_limits
-
-                    with exempt_from_silo_limits():
+                    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                        SiloMode.MONOLITH
+                    ):
                         user_ids = get_user_ids(member.organization_id, member.id)
                 else:
                     user_ids = get_user_ids(member.organization_id, member.id)
@@ -105,6 +109,42 @@ def query_sso_state(
 
 
 class DatabaseBackedAuthService(AuthService):
+    def _serialize_auth_provider_flags(self, ap: AuthProvider) -> ApiAuthProviderFlags:
+        d: dict[str, bool] = {}
+        for f in dataclasses.fields(ApiAuthProviderFlags):
+            d[f.name] = bool(ap.flags[f.name])
+        return ApiAuthProviderFlags(**d)
+
+    def _serialize_auth_provider(self, ap: AuthProvider) -> ApiAuthProvider:
+        return ApiAuthProvider(
+            id=ap.id,
+            organization_id=ap.organization_id,
+            provider=ap.provider,
+            flags=self._serialize_auth_provider_flags(ap),
+        )
+
+    def get_org_auth_config(
+        self, *, organization_ids: List[int]
+    ) -> List[ApiOrganizationAuthConfig]:
+        aps: Mapping[int, AuthProvider] = {
+            ap.organization_id: ap
+            for ap in AuthProvider.objects.filter(organization_id__in=organization_ids)
+        }
+        qs: Mapping[int, int] = {
+            row["organization_id"]: row["id__count"]
+            for row in ApiKey.objects.filter(organization_id__in=organization_ids)
+            .values("organization_id")
+            .annotate(Count("id"))
+        }
+        return [
+            ApiOrganizationAuthConfig(
+                organization_id=oid,
+                auth_provider=self._serialize_auth_provider(aps[oid]) if oid in aps else None,
+                has_api_key=qs.get(oid, 0) > 0,
+            )
+            for oid in organization_ids
+        ]
+
     def authenticate(self, *, request: AuthenticationRequest) -> AuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
         handler: Any = RequestAuthenticationMiddleware()
@@ -130,7 +170,13 @@ class DatabaseBackedAuthService(AuthService):
             result.user = user_service.serialize_user(expired_user)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
-            result.user = user_service.serialize_user(fake_request.user)
+            from django.db import connections, transaction
+
+            with transaction.atomic():
+                result.user = user_service.serialize_user(fake_request.user)
+                transaction.set_rollback(True)
+            if SiloMode.single_process_silo_mode():
+                connections.close_all()
 
         return result
 

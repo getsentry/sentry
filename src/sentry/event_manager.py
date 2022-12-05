@@ -897,12 +897,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                         "event_manager.dynamic_sampling_observe_latest_release"
                     ) as metrics_tags:
                         try:
-                            environment = data.get("environment", None)
-                            # We handle the case in which the users sets the empty string as environment, for us that
-                            # is equal to having no environment at all.
-                            if environment == "":
-                                environment = None
-
+                            environment = _extract_latest_release_data(data)
                             release_observed_in_last_24h = observe_release(
                                 project_id, release.id, environment
                             )
@@ -929,6 +924,16 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                             pass
                         except Exception:
                             sentry_sdk.capture_exception()
+
+
+def _extract_latest_release_data(data: EventDict) -> Optional[str]:
+    environment = data.get("environment", None)
+    # We handle the case in which the users sets the empty string as environment, for us that
+    # is equal to having no environment at all.
+    if environment == "":
+        environment = None
+
+    return environment  # type:ignore
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1368,9 +1373,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = problem.title
     return metadata
 
 

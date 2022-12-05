@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -24,15 +24,19 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "APIUser"]]:
 
 
 def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "APIUser"]:
+    results = fetch_actors_by_actor_ids(cls, [actor_id])
+    if len(results) == 0:
+        raise cls.DoesNotExist()
+    return results[0]
+
+
+def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], List["APIUser"]]:
     from sentry.models import Team, User
 
     if cls is User:
-        user = user_service.get_by_actor_id(actor_id)
-        if user is None:
-            raise User.DoesNotExist()
-        return user
+        return user_service.get_by_actor_ids(actor_ids=actor_ids)
     if cls is Team:
-        return Team.objects.get(actor_id=actor_id)
+        return Team.objects.filter(actor_id__in=actor_ids).all()
 
     raise ValueError(f"Cls {cls} is not a valid actor type.")
 
@@ -100,7 +104,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
-    def from_actor_identifier(cls, actor_identifier: Union[int, str]) -> "ActorTuple":
+    def from_actor_identifier(cls, actor_identifier: Union[int, str, None]) -> "ActorTuple":
         from sentry.models import Team, User
         from sentry.utils.auth import find_users
 
@@ -116,6 +120,10 @@ class ActorTuple(namedtuple("Actor", "id type")):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
+
+        if actor_identifier is None:
+            return None
+
         # If we have an integer, fall back to assuming it's a User
         if isinstance(actor_identifier, int):
             return cls(actor_identifier, User)

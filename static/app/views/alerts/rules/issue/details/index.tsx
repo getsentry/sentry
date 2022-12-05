@@ -12,7 +12,8 @@ interface Props
 
 function RuleDetailsContainer({children, params}: Props) {
   const organization = useOrganization();
-  const {projects, fetching} = useProjects({slugs: [params.projectId]});
+  const {projects, fetching} = useProjects();
+  const project = projects.find(({slug}) => slug === params.projectId);
 
   // Should almost never need to fetch project
   if (fetching) {
@@ -22,7 +23,7 @@ function RuleDetailsContainer({children, params}: Props) {
   return children && isValidElement(children)
     ? cloneElement<any>(children, {
         organization,
-        project: projects[0],
+        project,
       })
     : null;
 }

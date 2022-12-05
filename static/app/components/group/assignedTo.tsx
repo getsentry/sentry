@@ -22,10 +22,24 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface AssignedToProps {
   group: Group;
   projectId: Project['id'];
+  disableDropdown?: boolean;
   onAssign?: AssigneeSelectorDropdownProps['onAssign'];
 }
 
-function AssignedTo({group, projectId}: AssignedToProps) {
+export function getAssignedToDisplayName(group: Group, assignedTo?: Actor) {
+  if (assignedTo?.type === 'team') {
+    const team = TeamStore.getById(group.assignedTo.id);
+    return `#${team?.slug ?? group.assignedTo.name}`;
+  }
+  if (assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(assignedTo.id);
+    return user?.name ?? group.assignedTo.name;
+  }
+
+  return group.assignedTo?.name ?? t('No-one');
+}
+
+function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
   useEffect(() => {
@@ -33,24 +47,11 @@ function AssignedTo({group, projectId}: AssignedToProps) {
     fetchOrgMembers(api, organization.slug, [projectId]);
   }, [api, organization.slug, projectId]);
 
-  function getAssignedToDisplayName(assignedTo?: Actor) {
-    if (assignedTo?.type === 'team') {
-      const team = TeamStore.getById(group.assignedTo.id);
-      return `#${team?.slug ?? group.assignedTo.name}`;
-    }
-    if (assignedTo?.type === 'user') {
-      const user = MemberListStore.getById(assignedTo.id);
-      return user?.name ?? group.assignedTo.name;
-    }
-
-    return group.assignedTo?.name ?? t('No-one');
-  }
-
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown id={group.id}>
+        <AssigneeSelectorDropdown disabled={disableDropdown} id={group.id}>
           {({loading, assignedTo, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
@@ -68,9 +69,14 @@ function AssignedTo({group, projectId}: AssignedToProps) {
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group, assignedTo)}</ActorName>
               </ActorWrapper>
-              <IconChevron direction={isOpen ? 'up' : 'down'} />
+              {!disableDropdown && (
+                <IconChevron
+                  data-test-id="assigned-to-chevron-icon"
+                  direction={isOpen ? 'up' : 'down'}
+                />
+              )}
             </DropdownButton>
           )}
         </AssigneeSelectorDropdown>
