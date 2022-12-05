@@ -491,9 +491,11 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       ? [true, buffer.target]
       : [false, currentPlayerTime];
 
-  if (!isBuffering && buffer.target !== -1) {
-    setBufferTime({target: -1, previous: -1});
-  }
+  useEffect(() => {
+    if (!isBuffering && buffer.target !== -1) {
+      setBufferTime({target: -1, previous: -1});
+    }
+  }, [isBuffering, buffer.target]);
 
   return (
     <ReplayPlayerContext.Provider
