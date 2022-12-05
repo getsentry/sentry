@@ -20,7 +20,7 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import get_send_to
+from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
@@ -88,6 +88,13 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        notification_reason = get_owner_reason(
+            project=self.project,
+            target_type=self.target_type,
+            target_identifier=self.target_identifier,
+            event=self.event,
+        )
+
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
@@ -99,6 +106,7 @@ class AlertRuleNotification(ProjectNotification):
             "commits": get_commits(self.project, self.event),
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
+            "notification_reason": notification_reason,
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
         }
