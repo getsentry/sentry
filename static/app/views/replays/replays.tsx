@@ -50,8 +50,9 @@ function Replays({location}: Props) {
   }, [location]);
 
   const {replays, pageLinks, isFetching, fetchError} = useReplayList({
-    organization,
     eventView,
+    location,
+    organization,
   });
 
   const {enabled: shouldShowOnboardingPanel, activateSidebar} =
