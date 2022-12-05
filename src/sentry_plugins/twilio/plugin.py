@@ -48,7 +48,11 @@ def clean_phone(phone):
 #      in theory only cleaned data would make it to the plugin via the form,
 #      and cleaned numbers are deduped already.
 def split_sms_to(data):
-    return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
+    # we use regex below to split the string since we allow any whitespace, comma, or combination of the two
+    # as a delimeter
+    phone_numbers = set(re.split(r"[,\s]+", data))
+    stripped_phone_numbers = {num.strip() for num in phone_numbers}
+    return stripped_phone_numbers
 
 
 class TwilioConfigurationForm(forms.Form):
