@@ -20,7 +20,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
@@ -85,7 +85,7 @@ function ProjectPageFilter({
   disabled,
   ...otherProps
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
 
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
     null

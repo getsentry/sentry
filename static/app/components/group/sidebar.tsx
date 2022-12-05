@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
@@ -42,6 +41,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FeatureBadge from '../featureBadge';
 
@@ -404,6 +405,6 @@ const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
 `;
 
-const GroupSidebar = withApi(withRouter(BaseGroupSidebar));
+const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));
 
 export default GroupSidebar;
