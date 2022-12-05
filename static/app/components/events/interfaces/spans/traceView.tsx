@@ -1,4 +1,4 @@
-import {createRef} from 'react';
+import {createRef, memo} from 'react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -130,4 +130,4 @@ function TraceView(props: Props) {
   );
 }
 
-export default TraceView;
+export default memo(TraceView);
