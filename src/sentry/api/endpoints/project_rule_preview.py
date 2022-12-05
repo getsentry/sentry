@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
-from sentry.models import Group, get_inbox_details
+from sentry.models import get_inbox_details_from_ids
 from sentry.rules.history.preview import preview
 from sentry.web.decorators import transaction_start
 
@@ -70,7 +70,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             count_hits=True,
         )
 
-        inbox_details = get_inbox_details([Group(id=int(g["id"])) for g in response.data])
+        inbox_details = get_inbox_details_from_ids([int(g["id"]) for g in response.data])
         for group in response.data:
             group["inbox"] = inbox_details.get(int(group["id"]))
 
