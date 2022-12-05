@@ -62,10 +62,12 @@ export class Frame extends WeightedNode {
       }
 
       // Doing this on the frontend while we figure out how to do this on the backend/client properly
-      if (this.image === undefined && this.path) {
+      // @TODO Our old node.js incorrectly sends file instead of path (fixed in SDK, but not all SDK's are upgraded :rip:)
+      const pathOrFile = this.path || this.file;
+      if (this.image === undefined && pathOrFile) {
         const match =
           /node_modules\/(?<maybeScopeOrPackage>.*)\/(?<maybeFileOrPackage>.*)\//.exec(
-            this.path
+            pathOrFile
           );
         if (match?.groups) {
           const {maybeScopeOrPackage, maybeFileOrPackage} = match.groups;
