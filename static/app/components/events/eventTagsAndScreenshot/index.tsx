@@ -16,7 +16,6 @@ import Modal, {modalCss} from './screenshot/modal';
 import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
-import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
@@ -120,17 +119,13 @@ function EventTagsAndScreenshots({
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       <TagWrapper hasEventContext={hasEventContext}>
-        {hasEventContext && (
-          <TagsHighlightWrapper>
-            <TagsHighlight event={event} />
-          </TagsHighlightWrapper>
-        )}
         {showTags && (
           <Tags
             organization={organization}
             event={event}
             projectSlug={projectSlug}
             location={location}
+            hasEventContext={hasEventContext}
           />
         )}
       </TagWrapper>
@@ -207,14 +202,5 @@ const TagWrapper = styled('div')<{hasEventContext: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
-  }
-`;
-
-const TagsHighlightWrapper = styled('div')`
-  overflow: hidden;
-  padding: 0 ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 0 ${space(4)};
   }
 `;
