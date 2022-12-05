@@ -22,3 +22,9 @@ class ConditionActivity:
     type: ConditionActivityType
     timestamp: datetime
     data: Dict[str, Any] = field(default_factory=dict)
+
+
+def round_to_five_minute(time: datetime) -> datetime:
+    return time - timedelta(
+        minutes=time.minute % 5, seconds=time.second, microseconds=time.microsecond
+    )

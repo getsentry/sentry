@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -33,10 +33,6 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
     ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
     : 0;
 
-  if (fetchError) {
-    throw new Error('Failed to load Replay');
-  }
-
   const replayRecord = replay?.getReplay();
 
   const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
@@ -48,6 +44,14 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
     return 0;
   }, [eventTimestamp, startTimestampMs]);
+
+  if (fetchError) {
+    return (
+      <Alert type="info" showIcon data-test-id="replay-error">
+        {t('The replay associated with this event could not be found.')}
+      </Alert>
+    );
+  }
 
   if (fetching || !replayRecord) {
     return (
@@ -71,31 +75,18 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <PlayerContainer data-test-id="player-container">
+        <StaticPanel>
+          <ReplayPlayer isPreview />
+        </StaticPanel>
+        <CTAOverlay>
+          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+            {t('Open Replay')}
+          </Button>
+        </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
           <ReplaysFeatureBadge />
         </BadgeContainer>
-        <FluidHeight>
-          <CTAOverlayLink aria-label={t('View Full Replay')} to={fullReplayUrl}>
-            <CTAIcon />
-          </CTAOverlayLink>
-
-          <StaticPanel>
-            <ReplayPlayer isPreview />
-          </StaticPanel>
-        </FluidHeight>
-
-        <CTAButtonContainer>
-          <Button
-            data-test-id="view-replay-button"
-            to={fullReplayUrl}
-            priority="primary"
-            size="sm"
-            icon={<IconPlay size="sm" />}
-          >
-            {t('View Full Replay')}
-          </Button>
-        </CTAButtonContainer>
       </PlayerContainer>
     </ReplayContextProvider>
   );
@@ -109,6 +100,21 @@ const PlayerContainer = styled(FluidHeight)`
   max-height: 448px;
 `;
 
+const StaticPanel = styled(FluidHeight)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const CTAOverlay = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.5);
+`;
+
 const BadgeContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -118,7 +124,6 @@ const BadgeContainer = styled('div')`
   background: ${p => p.theme.background};
   border-radius: 2.25rem;
   padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  z-index: 2;
   box-shadow: ${p => p.theme.dropShadowLightest};
   gap: 0 ${space(0.25)};
 `;
@@ -127,44 +132,6 @@ const FeatureText = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
   color: ${p => p.theme.text};
-`;
-
-const CTAOverlayLink = styled(Link)`
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1;
-`;
-
-const CTAIcon = styled(({className}: {className?: string}) => (
-  <div className={className}>
-    <IconPlay size="xl" />
-  </div>
-))`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: ${p => p.theme.purple400};
-  color: white;
-  padding-left: 5px; /* Align the icon in the center of the circle */
-`;
-
-const StaticPanel = styled(FluidHeight)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
-`;
-
-const CTAButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
