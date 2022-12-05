@@ -526,7 +526,6 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
         />
       </Route>
-      <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -2102,7 +2101,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
-        path="profile/:projectId/:eventId"
+        path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profileGroupProvider'))}
       >
         <Route

@@ -25,6 +25,8 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
+    BoostedRelease,
+    BoostedReleases,
     get_boosted_releases,
     get_redis_client_for_ds,
 )
@@ -1809,6 +1811,79 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert o.kwargs["outcome"] == Outcome.ACCEPTED
         assert o.kwargs["category"] == DataCategory.ERROR
 
+    def test_transaction_outcome_accepted(self):
+        """
+        Without metrics extraction, we count the number of accepted transaction
+        events in the TRANSACTION data category. This maintains compatibility
+        with Sentry installations that do not have a metrics pipeline.
+        """
+
+        manager = EventManager(
+            make_event(
+                transaction="wait",
+                contexts={
+                    "trace": {
+                        "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
+                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                        "span_id": "bf5be759039ede9a",
+                    }
+                },
+                spans=[],
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
+                type="transaction",
+                platform="python",
+            )
+        )
+        manager.normalize()
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature({"organizations:transaction-metrics-extraction": False}):
+                manager.save(self.project.id)
+
+        assert_mock_called_once_with_partial(
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION
+        )
+
+    def test_transaction_indexed_outcome_accepted(self):
+        """
+        With metrics extraction, we count the number of accepted transaction
+        events in the TRANSACTION_INDEXED data category. The TRANSACTION data
+        category contains the number of metrics from
+        ``billing_metrics_consumer``.
+        """
+
+        manager = EventManager(
+            make_event(
+                transaction="wait",
+                contexts={
+                    "trace": {
+                        "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
+                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                        "span_id": "bf5be759039ede9a",
+                    }
+                },
+                spans=[],
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
+                type="transaction",
+                platform="python",
+            )
+        )
+        manager.normalize()
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:transaction-metrics-extraction"):
+                manager.save(self.project.id)
+
+        assert_mock_called_once_with_partial(
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
+        )
+
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
@@ -2953,7 +3028,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
 
             assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
-            assert get_boosted_releases(self.project.id) == []
+            assert get_boosted_releases(self.project.id) == BoostedReleases([])
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
@@ -2989,12 +3064,14 @@ class DSLatestReleaseBoostTest(TestCase):
                 ts,
             )
 
-            assert get_boosted_releases(self.project.id) == [
-                (self.release.id, None, ts),
-                (release_2.id, None, ts),
-                (release_2.id, self.environment1.name, ts),
-                (release_2.id, self.environment2.name, ts),
-            ]
+            assert get_boosted_releases(self.project.id) == BoostedReleases(
+                [
+                    BoostedRelease(self.release.id, ts, None),
+                    BoostedRelease(release_2.id, ts, None),
+                    BoostedRelease(release_2.id, ts, self.environment1.name),
+                    BoostedRelease(release_2.id, ts, self.environment2.name),
+                ]
+            )
 
     @freeze_time("2022-11-03 10:00:00")
     def test_evict_expired_boosted_releases(self):
@@ -3033,9 +3110,9 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
                 == "1"
             )
-            assert get_boosted_releases(self.project.id) == [
-                (release_3.id, self.environment1.name, time())
-            ]
+            assert get_boosted_releases(self.project.id) == BoostedReleases(
+                [BoostedRelease(release_3.id, time(), self.environment1.name)]
+            )
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(

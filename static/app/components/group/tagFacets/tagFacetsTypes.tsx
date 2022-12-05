@@ -6,9 +6,9 @@ import {Event} from 'sentry/types/event';
 export type TagFacetsProps = {
   environments: Environment[];
   groupId: string;
+  project: Project;
   tagKeys: string[];
   event?: Event;
-  project?: Project;
   tagFormatter?: (
     tagsData: Record<string, TagWithTopValues>
   ) => Record<string, TagWithTopValues>;

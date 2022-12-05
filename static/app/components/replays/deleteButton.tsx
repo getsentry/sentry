@@ -6,11 +6,13 @@ import Confirm from 'sentry/components/confirm';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 
 function DeleteButton() {
   const api = useApi();
-  const {params, router} = useRouteContext();
+  const router = useRouter();
+  const params = useParams();
 
   const orgSlug = params.orgId;
   const [projectSlug, replayId] = params.replaySlug.split(':');

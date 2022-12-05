@@ -30,8 +30,8 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -99,9 +99,8 @@ type Props = {
 
 function Onboarding({organization, project}: Props) {
   const api = useApi();
-
   const {projects} = useProjects();
-  const {location} = useRouteContext();
+  const location = useLocation();
 
   const {projectsForOnboarding} = filterProjects(projects);
 

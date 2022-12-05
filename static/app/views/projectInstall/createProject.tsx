@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
@@ -9,12 +8,13 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Input from 'sentry/components/input';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
@@ -26,6 +26,8 @@ import withRouteAnalytics, {
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
@@ -148,7 +150,9 @@ class CreateProject extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
+        <PageHeading withMargins>
+          {t('3. Name your project & assign it a team')}
+        </PageHeading>
         {createProjectForm}
       </Fragment>
     );
@@ -280,15 +284,18 @@ class CreateProject extends Component<Props, State> {
         {error && <Alert type="error">{error}</Alert>}
 
         <div data-test-id="onboarding-info">
-          <PageHeading withMargins>{t('Create a new Project')}</PageHeading>
+          <PageHeading withMargins>{t('Create a new project in 3 steps')}</PageHeading>
           <HelpText>
-            {t(
-              `Projects allow you to scope error and transaction events to a specific
-               application in your organization. For example, you might have separate
-               projects for your API server and frontend client.`
+            {tct(
+              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+                ),
+              }
             )}
           </HelpText>
-          <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
+          <PageHeading withMargins>{t('1. Choose your platform')}</PageHeading>
           <PlatformPicker
             platform={platform}
             defaultCategory={this.defaultCategory}
@@ -310,7 +317,7 @@ class CreateProject extends Component<Props, State> {
 
 // TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withRouteAnalytics(
-  withApi(withRouter(withOrganization(withTeams(CreateProject))))
+  withApi(withSentryRouter(withOrganization(withTeams(CreateProject))))
 );
 export {CreateProject};
 

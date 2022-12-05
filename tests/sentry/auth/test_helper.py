@@ -197,7 +197,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
-            features_has.assert_called_once_with("organizations:invite-members", self.organization)
+            features_has.assert_any_call("organizations:invite-members", self.organization)
 
 
 @control_silo_test
