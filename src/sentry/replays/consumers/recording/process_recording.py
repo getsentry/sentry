@@ -12,6 +12,7 @@ import msgpack
 import sentry_sdk
 from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
@@ -60,6 +61,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
+        self.__max_pending_futures = 32
 
     def _process_chunked_recording(
         self,
@@ -92,6 +94,9 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     @metrics.wraps("replays.process_recording.submit")
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
+
+        if len(self.__futures) > self.__max_pending_futures:
+            raise MessageRejected
 
         current_transaction = sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
