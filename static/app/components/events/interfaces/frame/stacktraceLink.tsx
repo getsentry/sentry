@@ -13,7 +13,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -229,10 +229,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
     event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
-  const hideErrors =
-    isMinifiedJsError ||
-    !supportedStacktracePlatforms.includes(event.platform as PlatformKey);
-
+  const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
+    event.platform as PlatformKey
+  );
+  const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
   // No match found - Has integration but no code mappings
   if (!hideErrors && (match.error || match.integrations.length > 0)) {
     const filename = frame.filename;
