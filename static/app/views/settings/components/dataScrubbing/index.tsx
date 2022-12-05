@@ -14,7 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useParams} from 'sentry/utils/useParams';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -49,7 +49,7 @@ export function DataScrubbing({
   const api = useApi();
   const [rules, setRules] = useState<Rule[]>([]);
   const navigate = useNavigate();
-  const routeContext = useRouteContext();
+  const params = useParams();
 
   const successfullySaved = useCallback(
     (response: {relayPiiConfig: string}, successMessage: string) => {
@@ -70,8 +70,8 @@ export function DataScrubbing({
 
   useEffect(() => {
     if (
-      !defined(routeContext.params.scrubbingId) ||
-      !rules.some(rule => String(rule.id) === routeContext.params.scrubbingId)
+      !defined(params.scrubbingId) ||
+      !rules.some(rule => String(rule.id) === params.scrubbingId)
     ) {
       return;
     }
@@ -80,7 +80,7 @@ export function DataScrubbing({
       modalProps => (
         <Edit
           {...modalProps}
-          rule={rules[routeContext.params.scrubbingId]}
+          rule={rules[params.scrubbingId]}
           projectId={project?.id}
           savedRules={rules}
           api={api}
@@ -97,7 +97,7 @@ export function DataScrubbing({
       {onClose: handleCloseModal}
     );
   }, [
-    routeContext.params.scrubbingId,
+    params.scrubbingId,
     rules,
     project?.id,
     api,

@@ -20,7 +20,7 @@ type State = AsyncView['state'] & {
 
 class EditMonitor extends AsyncView<Props, State> {
   get orgSlug() {
-    return this.context.organization.slug;
+    return this.props.organization.slug;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

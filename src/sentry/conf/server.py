@@ -975,7 +975,7 @@ SENTRY_FEATURES = {
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
-    "organizations:discover-query-builder-as-landing-page": False,
+    "organizations:discover-query-builder-as-landing-page": True,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
@@ -1109,6 +1109,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue actions on issue details
     "organizations:issue-actions-v2": False,
+    # Enable new issue alert "issue owners" fallback
+    "organizations:issue-alert-fallback-targeting": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
@@ -2923,3 +2925,7 @@ SHOW_LOGIN_BANNER = False
 #   },
 # }
 SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+
+# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
+# decorator.
+SINGLE_SERVER_SILO_MODE = False

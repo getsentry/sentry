@@ -23,23 +23,30 @@ describe('normalizeUrl', function () {
     const location = TestStubs.location();
     const cases = [
       // input, expected
+      ['/settings/', '/settings/'],
+
+      // Organization settings views.
       ['/settings/acme/', '/settings/organization/'],
       ['/settings/organization', '/settings/organization/'],
       ['/settings/sentry/members/', '/settings/members/'],
       ['/settings/sentry/members/3/', '/settings/members/3/'],
       ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
-      ['/settings/account/security/', '/settings/account/security/'],
-      ['/settings/account/details/', '/settings/account/details/'],
+      ['/settings/sentry/billing/receipts/', '/settings/billing/receipts/'],
       [
         '/settings/acme/developer-settings/release-bot/',
         '/settings/developer-settings/release-bot/',
       ],
-      ['/organizations/new', '/organizations/new'],
-      ['/organizations/new/', '/organizations/new/'],
+      // Account settings should stay the same
+      ['/settings/account/', '/settings/account/'],
+      ['/settings/account/security/', '/settings/account/security/'],
+      ['/settings/account/details/', '/settings/account/details/'],
+
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
+
+      ['/organizations/new/', '/organizations/new/'],
       ['/organizations/albertos-apples/issues/', '/issues/'],
       ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
       ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
@@ -53,9 +60,9 @@ describe('normalizeUrl', function () {
         '/settings/projects/python/filters/discarded/',
       ],
     ];
-    for (const scenario of cases) {
-      result = normalizeUrl(scenario[0], location);
-      expect(result).toEqual(scenario[1]);
+    for (const [input, expected] of cases) {
+      result = normalizeUrl(input, location);
+      expect(result).toEqual(expected);
     }
   });
 
