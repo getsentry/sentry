@@ -87,7 +87,7 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
 
 type ProGuardErrors = Array<Error>;
 
-type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
+type Props = {
   api: Client;
   location: Location;
   /**
@@ -110,8 +110,6 @@ const EventEntries = ({
   event,
   group,
   className,
-  router,
-  route,
   isShare = false,
   showTagSummary = true,
 }: Props) => {
@@ -367,8 +365,6 @@ const EventEntries = ({
         projectSlug={projectSlug}
         group={group}
         organization={organization}
-        route={route}
-        router={router}
         isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
@@ -458,13 +454,11 @@ function Entries({
   isShare,
   group,
   organization,
-  route,
-  router,
 }: {
   definedEvent: Event;
   projectSlug: string;
   isShare?: boolean;
-} & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
+} & Pick<Props, 'group' | 'organization'>) {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
   }
@@ -493,8 +487,6 @@ function Entries({
             organization={organization}
             event={definedEvent}
             entry={entry}
-            route={route}
-            router={router}
             isShare={isShare}
           />
         </ErrorBoundary>

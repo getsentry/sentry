@@ -62,7 +62,7 @@ describe('TableView > CellActions', function () {
     browserHistory.replace.mockReset();
 
     const organization = TestStubs.Organization({
-      features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+      features: ['discover-basic'],
       projects: [TestStubs.Project()],
     });
 
@@ -342,7 +342,6 @@ describe('TableView > CellActions', function () {
 
   it('renders size columns correctly', function () {
     const orgWithFeature = TestStubs.Organization({
-      features: ['discover-frontend-use-events-endpoint'],
       projects: [TestStubs.Project()],
     });
     render(
@@ -390,7 +389,6 @@ describe('TableView > CellActions', function () {
 
   it('shows events with value less than selected custom performance metric', function () {
     const orgWithFeature = TestStubs.Organization({
-      features: ['discover-frontend-use-events-endpoint'],
       projects: [TestStubs.Project()],
     });
     render(
