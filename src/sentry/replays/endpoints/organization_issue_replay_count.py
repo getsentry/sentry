@@ -36,7 +36,7 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response({})
 
         try:
-            replay_id_to_issue_map = _query_discover_for_replayIds(request, params)
+            replay_id_to_issue_map = _query_discover_for_replay_ids(request, params)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -55,14 +55,15 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         issue_id_counts: dict[int, int] = defaultdict(int)
 
         for row in replay_results["data"]:
-            issue_id = replay_id_to_issue_map[row["replay_id"]]
-            # cap count at 50
-            issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, 50)
+            issue_ids = replay_id_to_issue_map[row["replay_id"]]
+            for issue_id in issue_ids:
+                # cap count at 50
+                issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, 50)
 
         return self.respond(issue_id_counts)
 
 
-def _query_discover_for_replayIds(request: Request, params: dict[str, Any]) -> dict[str, int]:
+def _query_discover_for_replay_ids(request: Request, params: dict[str, Any]) -> dict[str, int]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
@@ -79,10 +80,11 @@ def _query_discover_for_replayIds(request: Request, params: dict[str, Any]) -> d
 
     discover_results = raw_snql_query(snql_query, "api.organization-issue-replay-count")
 
-    replay_id_to_issue_map = {}
+    replay_id_to_issue_map = defaultdict(list)
+
     for row in discover_results["data"]:
         for replay_id in row["group_array_100_replayId"]:
-            replay_id_to_issue_map[replay_id] = row["issue.id"]
+            replay_id_to_issue_map[replay_id].append(row["issue.id"])
 
     return replay_id_to_issue_map
 
