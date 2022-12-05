@@ -71,7 +71,7 @@ def test_distribution():
     for i in range(1000):
         _store_transaction_name(project, str(i))
 
-    freshness = sum(map(int, _get_transaction_names(project))) / 100
+    freshness = sum(map(int, get_transaction_names(project))) / 100
 
     # The average is usually around ~900, check for > 800 to be on the safe side
     assert freshness > 800, freshness
