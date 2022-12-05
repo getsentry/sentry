@@ -49,7 +49,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         />
         <SearchBar
           onChange={setSearchTerm}
-          placeholder={t('Search Logs')}
+          placeholder={t('Search Console Logs')}
           size="sm"
           query={searchTerm}
           disabled={!breadcrumbs || !breadcrumbs.length}
@@ -126,7 +126,7 @@ function ConsoleContent({
   if (breadcrumbs.length === 0) {
     return (
       <StyledEmptyStateWarning>
-        <p>{t('No logs recorded')}</p>
+        <p>{t('No console logs recorded')}</p>
       </StyledEmptyStateWarning>
     );
   }
