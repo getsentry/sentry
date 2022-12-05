@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.models import ApiKey, AuditLogEntry, UserIP
 from sentry.region_to_control.consumer import ProcessRegionToControlMessage
@@ -16,10 +16,12 @@ from sentry.utils import json
 
 def make_message(data: Mapping[str, Any]) -> Message[KafkaPayload]:
     return Message(
-        Partition(Topic("region-to-control"), 0),
-        0,
-        KafkaPayload(None, json.dumps(data).encode("utf-8"), []),
-        datetime.datetime.now(),
+        BrokerValue(
+            KafkaPayload(None, json.dumps(data).encode("utf-8"), []),
+            Partition(Topic("region-to-control"), 0),
+            0,
+            datetime.datetime.now(),
+        )
     )
 
 

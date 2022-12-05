@@ -250,48 +250,6 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
-    def test_calls_detect_duplicate_hash(self):
-        no_duplicate_event = create_event(
-            [create_span("http", 100.0, "http://example.com/slow?q=1", "")] * 4
-            + [create_span("http", 100.0, "http://example.com/slow?q=2", "")]
-        )
-        duplicate_event = create_event(
-            [create_span("http", 100.0, "http://example.com/slow?q=1", "abcdef")] * 4
-            + [create_span("http", 100.0, "http://example.com/slow?q=2", "abcdef")]
-        )
-
-        sdk_span_mock = Mock()
-
-        assert _detect_performance_problems(no_duplicate_event, sdk_span_mock) == []
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "sentry.python",
-                ),
-                call(
-                    "_pi_transaction",
-                    "aaaaaaaaaaaaaaaa",
-                ),
-                call(
-                    "_pi_dupes_hash_fp",
-                    "abcdef",
-                ),
-                call(
-                    "_pi_dupes_hash",
-                    "bbbbbbbbbbbbbbbb",
-                ),
-            ]
-        )
-
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
