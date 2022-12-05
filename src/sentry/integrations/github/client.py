@@ -130,7 +130,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     # The trees API does not return structures larger than 7MB
                     # As an example, all file paths in Sentry is about 1.3MB
                     # Larger customers may have larger repositories, however,
-                    # the cost of not having cached the files chached for those
+                    # the cost of not having cached the files cached for those
                     # repositories is a single GH API network request, thus,
                     # being acceptable to sometimes not having everything cached
                     cache.set(key, repo_files, cache_seconds)
