@@ -11,11 +11,6 @@ import ReplayPreview from './replayPreview';
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 
-const mockStartedAt = 'Sep 22, 2022 4:58:39 PM UTC';
-const mockFinishedAt = 'Sep 22, 2022 5:00:03 PM UTC';
-
-const mockReplayDuration = 84; // seconds
-
 const mockEvent = {
   ...TestStubs.Event(),
   dateCreated: '2022-09-22T16:59:41.596000Z',
@@ -35,13 +30,7 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
-  replayRecord: {
-    startedAt: new Date(mockStartedAt),
-    finishedAt: new Date(mockFinishedAt),
-    duration: mockReplayDuration,
-  },
-});
+const replayReaderParams = TestStubs.ReplayReaderParams({});
 const mockReplay = ReplayReader.factory(replayReaderParams);
 
 // Mock useReplayData hook to return the mocked replay data
