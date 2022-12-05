@@ -203,12 +203,9 @@ export const WidgetInteractiveTitle = ({
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
 
-  const options = [
-    ...menuOptions,
-    chartDefinition.allowsOpenInDiscover
-      ? {label: t('Open in Discover'), value: 'open_in_discover'}
-      : null,
-  ].filter(Boolean) as React.ComponentProps<typeof CompactSelect>['options'];
+  if (chartDefinition.allowsOpenInDiscover) {
+    menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
+  }
 
   const handleChange = option => {
     if (option.value === 'open_in_discover') {
@@ -220,7 +217,7 @@ export const WidgetInteractiveTitle = ({
 
   return (
     <StyledCompactSelect
-      options={options}
+      options={menuOptions}
       value={chartSetting}
       onChange={handleChange}
       renderWrapAs={TextOverflow}
