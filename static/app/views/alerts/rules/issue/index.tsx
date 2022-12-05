@@ -37,7 +37,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
@@ -478,9 +478,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule} = this.state;
     this.setState({sendingNotification: true});
-    const plural = rule?.actions && rule.actions.length > 1;
+    const actions = rule?.actions ? rule?.actions.length : 0;
     addLoadingMessage(
-      plural ? t('Sending test notifications...') : t('Sending a test notification...')
+      tn('Sending a test notification...', 'Sending test notifications...', actions)
     );
     this.api
       .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
@@ -490,10 +490,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(() => {
-        addSuccessMessage(plural ? t('Notifications sent!') : t('Notification sent!'));
+        addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
       })
       .catch(() => {
-        addErrorMessage(plural ? t('Notifications failed') : t('Notification failed'));
+        addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
       })
       .finally(() => {
         this.setState({sendingNotification: false});
