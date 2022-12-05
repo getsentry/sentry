@@ -225,7 +225,6 @@ def test_project_config_uses_filters_and_sampling_feature(
     with Feature(
         {
             "organizations:server-side-sampling": has_dyn_sampling,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         cfg = get_project_config(default_project, full_config=full_config)
@@ -249,7 +248,6 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     with Feature(
         {
             "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         cfg = get_project_config(default_project)
@@ -271,7 +269,6 @@ def test_project_config_dynamic_sampling_is_none(default_project):
     with Feature(
         {
             "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         cfg = get_project_config(default_project)
@@ -314,7 +311,6 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
     with Feature(
         {
             "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         cfg = get_project_config(default_project)
@@ -415,7 +411,6 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         {
             "organizations:server-side-sampling": ss_sampling,
             "organizations:dynamic-sampling": ds_basic,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         with mock.patch(

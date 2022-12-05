@@ -1261,7 +1261,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
         self.universal_ds_flag = "organizations:server-side-sampling"
-        self.old_ds_flag = "organizations:dynamic-sampling-deprecated"
         self.new_ds_flag = "organizations:dynamic-sampling"
 
 

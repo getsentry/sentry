@@ -13,7 +13,6 @@ class DynamicSamplingFeatureMultiplexer:
     Essentially the logic is as follows:
     - The `organizations:server-side-sampling` feature flag is the main flag enabled for dynamic sampling both in
     sentry and in relay
-    - The  `organizations:dynamic-sampling-deprecated` feature flag is the flag that enables the old dynamic sampling
     behaviour which needs to be supported for backwards compatibility but is deprecated
     - The `organizations:dynamic-sampling` feature flag is the flag that enables the new adaptive sampling
     """

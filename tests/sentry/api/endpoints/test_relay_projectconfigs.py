@@ -175,7 +175,6 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
     with Feature(
         {
             "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         result, status_code = call_endpoint(full_config=False)
