@@ -1113,6 +1113,10 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onToggleSavedSearches = (isOpen: boolean) => {
+    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
+      organization: this.props.organization,
+      open: isOpen,
+    });
     this.setState({
       isSavedSearchesOpen: isOpen,
     });
