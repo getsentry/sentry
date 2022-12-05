@@ -624,9 +624,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
                 {"full_name": "Test-Organization/baz", "default_branch": "master"},
             ]
-            assert cache.get("github:repo:Test-Organization/foo:source-code") == [
-                "src/sentry/api/endpoints/auth_login.py"
-            ]
+            assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
             assert trees == expected_trees
 
             # Calling a second time should produce the same results
