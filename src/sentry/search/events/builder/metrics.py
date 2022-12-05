@@ -66,7 +66,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
         # Flag to specify whether we want to use the metrics layer's SnubaQueryBuilder to generate alternative snql
-        # for the query.
+        # for the query. This flag is different from use_metrics_layer because that flag will only signal that the
+        # metrics layer should be used to perform build and execute the query(ies).
         self.generate_snql_via_metrics_layer = generate_snql_via_metrics_layer
         # always true if this is being called
         kwargs["has_metrics"] = True
@@ -433,7 +434,7 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
-    def through_metrics_layer(self, snuba_request: Request) -> Request:
+    def get_snql_using_metrics_layer(self, snuba_request: Request) -> Request:
         # We use directly the query builder which is not a good practice, considering that the metrics layer
         # should hide snql generation.
         from sentry.snuba.metrics import SnubaQueryBuilder
@@ -441,7 +442,9 @@ class MetricsQueryBuilder(QueryBuilder):
 
         snuba_queries, _ = SnubaQueryBuilder(
             projects=self.params.projects,
-            metrics_query=transform_mqb_query_to_metrics_query(snuba_request.query),
+            metrics_query=transform_mqb_query_to_metrics_query(
+                snuba_request.query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
+            ),
             use_case_id=UseCaseKey.PERFORMANCE
             if self.is_performance
             else UseCaseKey.RELEASE_HEALTH,
@@ -491,7 +494,7 @@ class MetricsQueryBuilder(QueryBuilder):
             )
 
             if self.generate_snql_via_metrics_layer:
-                request = self.through_metrics_layer(snuba_request=request)
+                request = self.get_snql_using_metrics_layer(snuba_request=request)
 
             return request
 

@@ -156,6 +156,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
     include_totals: bool = True
     include_series: bool = True
     interval: Optional[int] = None
+    # This field is used as a temporary fix to allow the metrics layer to support alerts by generating snql that
+    # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
+    # to dataset changes.
+    is_alerts_query: bool = False
 
     @cached_property
     def projects(self) -> QuerySet:
@@ -353,7 +357,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
-        if self.include_series:
+        if self.include_series and self.start and self.end:
             intervals_len = self.calculate_intervals_len(
                 start=self.start,
                 end=self.end,
@@ -414,6 +418,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
+
+    def validate_is_alerts_query(self):
+        # We only allow the omission of start and end if this is an alerts query.
+        if not self.is_alerts_query and (self.start is None and self.end is None):
+            raise InvalidParams(
+                "start and env fields can only be None if the query is needed by alerts"
+            )
 
     def __post_init__(self) -> None:
         super().__post_init__()

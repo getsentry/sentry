@@ -416,7 +416,9 @@ def _transform_team_key_transaction_fake_mri(mq_dict):
     }
 
 
-def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+def transform_mqb_query_to_metrics_query(
+    query: Query, is_alerts_query: bool = False
+) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
         raise MQBQueryTransformationException(
@@ -440,6 +442,7 @@ def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "granularity": query.granularity if query.granularity is not None else Granularity(3600),
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
+        "is_alerts_query": is_alerts_query,
         **_get_mq_dict_params_from_where(query.where),
     }
 
