@@ -1,6 +1,4 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
@@ -16,11 +14,12 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
+import useRouter from 'sentry/utils/useRouter';
 
 import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * Used to render a custom dropdown button for the DropdownAutoComplete
    */
@@ -80,10 +79,10 @@ function ProjectSelector({
   onApplyChange,
   onChange,
   organization,
-  router,
   value,
   disabled,
 }: Props) {
+  const router = useRouter();
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -328,7 +327,7 @@ function ProjectSelector({
   );
 }
 
-export default withRouter(ProjectSelector);
+export default ProjectSelector;
 
 const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};

@@ -4,9 +4,8 @@ import dataclasses
 import logging
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Any, TypedDict
+from typing import TypedDict
 
-import msgpack
 import sentry_sdk
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -53,6 +52,15 @@ class RecordingSegmentMessage(TypedDict):
     replay_recording: ReplayRecordingSegment
 
 
+class RecordingMessage(TypedDict):
+    replay_id: str
+    key_id: int | None
+    org_id: int
+    project_id: int
+    received: int
+    payload: bytes
+
+
 class MissingRecordingSegmentHeaders(ValueError):
     pass
 
@@ -67,6 +75,7 @@ class RecordingIngestMessage:
     payload_with_headers: bytes
 
 
+@metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
     parts: RecordingSegmentParts,
@@ -93,20 +102,18 @@ def ingest_recording_chunked(
         )
         ingest_recording(message, transaction)
 
-        # Segment chunks are always deleted regardless of success or failure.
+        # Segment chunks are always deleted if ingest behavior runs without error.
         with metrics.timer("replays.process_recording.store_recording.drop_segments"):
             parts.drop()
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(message_bytes: bytes, transaction: Transaction) -> None:
+def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Transaction) -> None:
     """Ingest non-chunked recording messages."""
     with transaction.start_child(
         op="replays.usecases.ingest.ingest_recording_not_chunked",
         description="ingest_recording_not_chunked",
     ):
-        message_dict: dict[str, Any] = msgpack.unpackb(message_bytes)
-
         message = RecordingIngestMessage(
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
@@ -115,7 +122,6 @@ def ingest_recording_not_chunked(message_bytes: bytes, transaction: Transaction)
             received=message_dict["received"],
             payload_with_headers=message_dict["payload"],
         )
-
         ingest_recording(message, transaction)
 
 

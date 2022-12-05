@@ -5,15 +5,12 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
-import merge from 'lodash/merge';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -31,28 +28,6 @@ type ProviderOptions = {
 };
 
 type Options = ProviderOptions & rtl.RenderOptions;
-
-const makeQueryClient = () =>
-  new QueryClient(
-    merge({}, DEFAULT_QUERY_CLIENT_CONFIG, {
-      defaultOptions: {
-        queries: {
-          // Disable retries for tests to allow them to fail fast
-          retry: false,
-        },
-        mutations: {
-          // Disable retries for tests to allow them to fail fast
-          retry: false,
-        },
-      },
-      // Don't want console output in tests
-      logger: {
-        log: () => {},
-        warn: () => {},
-        error: () => {},
-      },
-    })
-  );
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {
@@ -78,7 +53,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
       <ContextProvider>
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
-            <QueryClientProvider client={makeQueryClient()}>
+            <QueryClientProvider client={makeTestQueryClient()}>
               <RouteContext.Provider
                 value={{
                   router,
@@ -108,8 +83,13 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  * render(<TestedComponent />, {context: routerContext, organization});
  */
 function render(ui: React.ReactElement, options?: Options) {
-  const {context, organization, project, projects, router, ...otherOptions} =
-    options ?? {};
+  options = options ?? {};
+  const {context, organization, project, projects, ...otherOptions} = options;
+  let {router} = options;
+
+  if (router === undefined && context?.context?.router) {
+    router = context.context.router;
+  }
 
   const AllTheProviders = makeAllTheProviders({
     context,

@@ -16,9 +16,10 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, IssueCategory, Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
+import {handleRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -76,6 +77,22 @@ class GroupEvents extends Component<Props, State> {
       );
     }
   }
+
+  UNSAFE_componentDidMount() {
+    this._unsubscribeHandleRouteLeave = browserHistory.listen(newLocation =>
+      handleRouteLeave({
+        fieldsToClean: ['cursor'],
+        newLocation,
+        oldPathname: this.props.location.pathname,
+      })
+    );
+  }
+
+  UNSAFE_componentWillUnmount() {
+    this._unsubscribeHandleRouteLeave?.();
+  }
+
+  _unsubscribeHandleRouteLeave: undefined | ReturnType<typeof browserHistory.listen>;
 
   handleSearch = (query: string) => {
     const targetQueryParams = {...this.props.location.query};
@@ -142,12 +159,9 @@ class GroupEvents extends Component<Props, State> {
     return (
       <AllEventsTable
         issueId={this.props.group.id}
-        isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
-        projectId={this.props.group.project.id}
-        projectSlug={this.props.group.project.slug}
-        totalEventCount={this.props.group.count}
+        group={this.props.group}
         excludedTags={excludedTags}
       />
     );

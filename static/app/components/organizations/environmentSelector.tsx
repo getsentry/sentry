@@ -1,6 +1,4 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -22,8 +20,9 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
+import useRouter from 'sentry/utils/useRouter';
 
-type Props = WithRouterProps & {
+type Props = {
   customDropdownButton: (config: {
     actions: MenuActions;
     isOpen: boolean;
@@ -65,8 +64,8 @@ function EnvironmentSelector({
   customDropdownButton,
   customLoadingIndicator,
   disabled,
-  router,
 }: Props) {
+  const router = useRouter();
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
@@ -239,7 +238,7 @@ function EnvironmentSelector({
   );
 }
 
-export default withRouter(EnvironmentSelector);
+export default EnvironmentSelector;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: ${p => p.theme.background};

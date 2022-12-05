@@ -28,6 +28,10 @@ describe('App', function () {
     });
   });
 
+  afterEach(function () {
+    jest.resetAllMocks();
+  });
+
   it('renders', function () {
     render(
       <App params={{orgId: 'org-slug'}}>
@@ -36,6 +40,7 @@ describe('App', function () {
     );
 
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
+    expect(window.location.replace).not.toHaveBeenCalled();
   });
 
   it('renders NewsletterConsent', async function () {
@@ -73,5 +78,19 @@ describe('App', function () {
       'Complete setup by filling out the required configuration.'
     );
     expect(completeSetup).toBeInTheDocument();
+  });
+
+  it('redirects to sentryUrl on invalid org slug', function () {
+    const {sentryUrl} = ConfigStore.get('links');
+    render(
+      <App params={{orgId: 'albertos%2fapples'}}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
+    expect(sentryUrl).toEqual('https://sentry.io');
+    expect(window.location.replace).toHaveBeenCalledWith('https://sentry.io');
+    expect(window.location.replace).toHaveBeenCalledTimes(1);
   });
 });

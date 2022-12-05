@@ -9,19 +9,21 @@ import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import Placeholder from 'sentry/components/placeholder';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {MemorySpanType} from 'sentry/views/replays/types';
 
 interface Props {
-  memorySpans: MemorySpanType[];
+  memorySpans: undefined | MemorySpanType[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
-  startTimestampMs: number | undefined;
+  startTimestampMs: undefined | number;
 }
 
 interface MemoryChartProps extends Props {
@@ -39,6 +41,14 @@ function MemoryChart({
   setCurrentHoverTime,
 }: MemoryChartProps) {
   const theme = useTheme();
+
+  if (!memorySpans) {
+    return (
+      <MemoryLoadingWrapper>
+        <Placeholder height="100%" />
+      </MemoryLoadingWrapper>
+    );
+  }
 
   if (memorySpans.length <= 0) {
     return (
@@ -79,12 +89,12 @@ function MemoryChart({
           '<div class="tooltip-series">',
           ...seriesTooltips,
           '</div>',
-          `<div class="tooltip-date" style="display: inline-block; width: max-content;">${t(
+          `<div class="tooltip-footer" style="display: inline-block; width: max-content;">${t(
             'Span Time'
           )}:
             ${formatTimestamp(values[0].axisValue)}
           </div>`,
-          `<div class="tooltip-date" style="border: none;">${'Relative Time'}:
+          `<div class="tooltip-footer" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
               moment(values[0].axisValue * 1000)
                 .toDate()
@@ -213,11 +223,14 @@ function MemoryChart({
   );
 }
 
-const MemoryChartWrapper = styled('div')`
-  margin-top: ${space(2)};
+const MemoryChartWrapper = styled(FluidHeight)`
   margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
+`;
+
+const MemoryLoadingWrapper = styled(MemoryChartWrapper)`
+  height: 100%;
 `;
 
 const MemoizedMemoryChart = memo(

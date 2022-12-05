@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping, Tuple
 
 from django import forms
 from django.core.cache import cache
@@ -17,6 +17,11 @@ from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GRO
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.types.condition_activity import (
+    FREQUENCY_CONDITION_BUCKET_SIZE,
+    ConditionActivity,
+    round_to_five_minute,
+)
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
 
@@ -106,20 +111,29 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        interval = self.get_option("interval")
+    def _get_options(self) -> Tuple[str | None, float | None]:
+        interval, value = None, None
         try:
+            interval = self.get_option("interval")
             value = float(self.get_option("value"))
         except (TypeError, ValueError):
-            return False
+            pass
+        return interval, value
 
-        if not interval:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
+        interval, value = self._get_options()
+        if not (interval and value is not None):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
+
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
         query_result = self.query_hook(event, start, end, environment_id)
@@ -201,6 +215,25 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        interval, value = self._get_options()
+        if not (interval and value is not None):
+            return False
+        interval_delta = self.intervals[interval][1]
+
+        # extrapolate if interval less than bucket size
+        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
+            value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
+            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
+
+        end = round_to_five_minute(activity.timestamp)
+        start = round_to_five_minute(end - interval_delta)
+        count = buckets.get(end, 0) - buckets.get(start, 0)
+
+        return count > value
+
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
@@ -269,7 +302,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
     label = "The issue affects more than {value} percent of sessions in {interval}"
-    logger = logging.getLogger("rules.event_frequency")
+    logger = logging.getLogger("sentry.rules.event_frequency")
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.intervals = percent_intervals

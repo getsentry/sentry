@@ -1,4 +1,5 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
+import {useQuery} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
   /**
@@ -85,6 +86,27 @@ export async function promptsCheck(
   }
 
   return null;
+}
+
+export const makePromptsCheckQueryKey = ({
+  feature,
+  organizationId,
+  projectId,
+}: PromptCheckParams): [string, Record<string, string | undefined>] => [
+  '/prompts-activity/',
+  {feature, organizationId, projectId},
+];
+
+/**
+ * @param organizationId org numerical id, not the slug
+ */
+export function usePromptsCheck({feature, organizationId, projectId}: PromptCheckParams) {
+  return useQuery<PromptResponse>(
+    makePromptsCheckQueryKey({feature, organizationId, projectId}),
+    {
+      staleTime: 120000,
+    }
+  );
 }
 
 /**

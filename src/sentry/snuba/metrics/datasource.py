@@ -33,7 +33,7 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
-from sentry.snuba.metrics.query import Groupable, MetricsQuery
+from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -547,8 +547,8 @@ def _get_group_limit_filters(
     for metric_groupby_obj in metrics_query.groupby:
         key_to_condition_dict[
             metric_groupby_obj.name
-        ] = SnubaQueryBuilder.generate_snql_for_groupby_field(
-            metric_groupby_obj=metric_groupby_obj,
+        ] = SnubaQueryBuilder.generate_snql_for_action_by_fields(
+            metric_action_by_field=metric_groupby_obj,
             use_case_id=use_case_id,
             org_id=metrics_query.org_id,
             projects=Project.objects.get_many_from_cache(metrics_query.project_ids),
@@ -689,7 +689,31 @@ def get_series(
         # one group which is basically identical to eliminating the orderBy altogether
         metrics_query = replace(metrics_query, orderby=None)
 
+    # It is important to understand that str fields in the order by always refer to a simple column, which at the
+    # time of writing this comment is only the project_id column. Because you can't select with a str directly,
+    # we need to run some logic to account for that. The idea is that snuba will automatically "select" any field in
+    # the group by therefore if we want to order by str field "x" we must always group by "x" in order to have it
+    # injected in the select by Snuba. We decided for this approach because it allows us to avoid writing derived ops
+    # for fetching simple columns.
+    #
+    # Our goal is to treat order by str fields transparently, that means, we treat them as they are not in the order by.
+    # This means:
+    # - If we only have str fields in the order by -> we just run the logic as if the order by was empty.
+    # - If we have a mix of str and MetricField fields in the order by -> we run the order by logic by selecting in the
+    # first query only the MetricField-based fields, but we keep the group by and order by intact. Because we know
+    # that the group by must contain all the str fields specified in the order by we know that they will be returned
+    # by the first query, thus we will have the full result set with the proper ordering.
+    #
+    # If we wouldn't run this logic, we will enter all cases in the order by branch which will fail because no
+    # str-based fields can be injected into the select.
+    orderby_contains_only_str_fields = True
     if metrics_query.orderby is not None:
+        for orderby in metrics_query.orderby:
+            if isinstance(orderby.field, MetricField):
+                orderby_contains_only_str_fields = False
+                break
+
+    if metrics_query.orderby is not None and not orderby_contains_only_str_fields:
         # ToDo(ahmed): Now that we have conditional aggregates as select statements, we might be
         #  able to shave off a query here. we only need the other queries for fields spanning other
         #  entities otherwise if all the fields belong to one entity then there is no need
@@ -704,6 +728,8 @@ def get_series(
         # performance table.
         original_select = copy(metrics_query.select)
 
+        # This logic is in place because we don't want to put the project_id in the select, as it would require
+        # a DerivedOp, therefore
         orderby_fields = []
         for select_field in metrics_query.select:
             for orderby in metrics_query.orderby:

@@ -56,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {MetricsBaselineContainer} from './metricsBaselineContainer';
+import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -156,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -174,7 +174,6 @@ export class Results extends Component<Props, State> {
         yAxisArray
       )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
@@ -634,7 +633,7 @@ export class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsBaselineContainer
+                    <ResultsChart
                       api={api}
                       router={router}
                       organization={organization}

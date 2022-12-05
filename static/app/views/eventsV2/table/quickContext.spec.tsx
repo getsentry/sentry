@@ -1,12 +1,7 @@
+import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -19,7 +14,8 @@ import {
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import {EventData} from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {ContextType, QuickContextHoverWrapper} from './quickContext';
 
@@ -44,6 +40,16 @@ let mockedGroup = TestStubs.Group({
     name: 'ingest',
     type: 'team',
   },
+  count: 2500000,
+  userCount: 64000,
+});
+
+const mockEventView = EventView.fromSavedQuery({
+  id: '',
+  name: 'test query',
+  version: 2,
+  fields: ['title', 'issue'],
+  projects: [1],
 });
 
 const mockedCommit: Commit = {
@@ -96,11 +102,18 @@ const mockedReleaseWithHealth = TestStubs.Release({
   authors: [mockedUser1, mockedUser2],
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
-  contextType: ContextType = ContextType.ISSUE
+  contextType: ContextType = ContextType.ISSUE,
+  eventView?: EventView
 ) => {
   const organization = TestStubs.Organization();
   render(
@@ -109,6 +122,7 @@ const renderQuickContextContent = (
         dataRow={dataRow}
         contextType={contextType}
         organization={organization}
+        eventView={eventView}
       >
         Text from Child
       </QuickContextHoverWrapper>
@@ -126,11 +140,23 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
+jest.mock('sentry/utils/useLocation');
+const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
+
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: [],
+      });
+    });
+
     afterEach(() => {
       queryClient.clear();
       MockApiClient.clearMockResponses();
+      mockUseLocation.mockReset();
     });
 
     it('Renders child', async () => {
@@ -201,6 +227,12 @@ describe('Quick Context', function () {
         url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
         body: [],
       });
+
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -208,7 +240,25 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('Renders ignored Issue status context when data is loaded', async () => {
+    it('Renders issue context header with copy button', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
+      expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
+    });
+
+    it('Renders ignored issue status context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -224,7 +274,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-ignored-icon')).toBeInTheDocument();
     });
 
-    it('Renders resolved Issue status context when data is loaded', async () => {
+    it('Renders resolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'resolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -240,7 +290,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     });
 
-    it('Renders unresolved Issue status context when data is loaded', async () => {
+    it('Renders unresolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'unresolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -257,7 +307,23 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
     });
 
-    it('Renders assigned To context when data is loaded', async () => {
+    it('Renders event and user counts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Events/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.5m/i)).toBeInTheDocument();
+      expect(screen.getByText(/Users/i)).toBeInTheDocument();
+      expect(screen.getByText(/64k/i)).toBeInTheDocument();
+    });
+
+    it('Renders assigned to context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -271,37 +337,19 @@ describe('Quick Context', function () {
       expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
     });
 
-    it('Does not render suspect commit to context when row lacks event id', async () => {
-      const dataRowWithoutId: unknown = {
-        issue: 'SENTRY-VVY',
-        release: 'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76',
-        title: 'error: Error -3 while decompressing data: invalid stored block lengths',
-        'issue.id': 3512441874,
-        'project.name': 'sentry',
-      };
-
-      MockApiClient.addMockResponse({
-        url: '/issues/3512441874/',
-        method: 'GET',
-        body: mockedGroup,
-      });
-
-      renderQuickContextContent(dataRowWithoutId as EventData);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId('quick-context-suspect-commits-container')
-        ).not.toBeInTheDocument();
-      });
-    });
-
     it('Renders Suspect Commits', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
         body: mockedGroup,
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/events/oldest/',
+        method: 'GET',
+        body: {
+          eventID: '6b43e285de834ec5b5fe30d62d549b20',
+        },
       });
 
       MockApiClient.addMockResponse({
@@ -358,10 +406,12 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Release/i)).toBeInTheDocument();
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
-      expect(screen.getByTestId('version-hover-header-copy-icon')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
     });
 
-    it('Renders Release details for active release', async () => {
+    it('Renders Release details for release', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
         body: mockedReleaseWithHealth,
@@ -371,38 +421,12 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
-
-      const definitions = screen.getAllByRole('definition');
-      const terms = screen.getAllByRole('term');
-
-      expect(within(terms[0]).getByText(/Status/i)).toBeInTheDocument();
-      expect(within(definitions[0]).getByText(/Active/i)).toBeInTheDocument();
-      expect(within(terms[1]).getByText(/Created/i)).toBeInTheDocument();
-      expect(within(definitions[1]).getByText(/7 years ago/i)).toBeInTheDocument();
-      expect(within(terms[2]).getByText(/First Event/i)).toBeInTheDocument();
-      expect(within(definitions[2]).getByText(/7 years ago/i)).toBeInTheDocument();
-      expect(within(terms[3]).getByText(/Last Event/i)).toBeInTheDocument();
-      expect(within(definitions[3]).getByText(/6 years ago/i)).toBeInTheDocument();
-    });
-
-    it('Renders Release details for archived release', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-        body: {...mockedReleaseWithHealth, status: 'closed'},
-      });
-
-      renderQuickContextContent(defaultRow, ContextType.RELEASE);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
-
-      expect(screen.getByText(/Status/i)).toBeInTheDocument();
-      expect(screen.getByText(/Archived/i)).toBeInTheDocument();
-      expect(screen.queryByText(/Created/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/First Event/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Last Event/i)).not.toBeInTheDocument();
+      expect(await screen.findByText(/Created/i)).toBeInTheDocument();
+      expect(screen.getByText(/7 years ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/Last Event/i)).toBeInTheDocument();
+      expect(screen.getByText(/6 years ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/New Issues/i)).toBeInTheDocument();
+      expect(screen.getByText(/21/i)).toBeInTheDocument();
     });
 
     it('Renders Last Commit', async () => {
@@ -419,20 +443,6 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-commit-row')).toBeInTheDocument();
     });
 
-    it('Renders New Issues Count', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-        body: mockedReleaseWithHealth,
-      });
-
-      renderQuickContextContent(defaultRow, ContextType.RELEASE);
-
-      userEvent.hover(screen.getByText('Text from Child'));
-
-      expect(await screen.findByText(/New Issues/i)).toBeInTheDocument();
-      expect(screen.getByText(/21/i)).toBeInTheDocument();
-    });
-
     it('Renders Commit Count and Author when user is NOT in list of authors', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
@@ -443,10 +453,14 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/2/i)).toHaveLength(3);
-      expect(screen.getByText(/authors/i)).toBeInTheDocument();
+      const authorsSectionHeader = within(
+        await screen.findByTestId('quick-context-release-author-header')
+      );
+
+      expect(authorsSectionHeader.getByText(/4/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/commits by/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/2/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -463,28 +477,143 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/1/i)).toHaveLength(3);
-      expect(screen.getByText(/other/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by you and 1 other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
   });
 
   describe('Quick Context Content: Event ID Column', function () {
-    it('Renders NO context message for events that are not errors', async () => {
+    it('Renders transaction duration context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.TRANSACTION, entries: []}),
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
       });
-
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(
-        await screen.findByText(/There is no context available./i)
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'transaction.duration'],
+          }),
+        })
+      );
+    });
+
+    it('Renders transaction status context', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: 'title',
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+          contexts: {
+            trace: {
+              status: 'ok',
+            },
+          },
+          tags: [
+            {
+              key: 'http.status_code',
+              value: '200',
+            },
+          ],
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Status/i)).toBeInTheDocument();
+      expect(screen.getByText(/ok/i)).toBeInTheDocument();
+      expect(screen.getByText(/HTTP 200/i)).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId(
+        'quick-context-http-status-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'http.status_code'],
+          }),
+        })
+      );
+    });
+
+    it('Adds columns for saved query', async () => {
+      const currentTime = Date.now();
+      mockUseLocation.mockReturnValueOnce(
+        TestStubs.location({
+          query: {
+            field: null,
+          },
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({
+          type: EventOrGroupType.TRANSACTION,
+          entries: [],
+          endTimestamp: currentTime,
+          startTimestamp: currentTime - 2,
+        }),
+      });
+      renderQuickContextContent(defaultRow, ContextType.EVENT, mockEventView);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      const addAsColumnButton = await screen.findByTestId(
+        'quick-context-transaction-duration-add-button'
+      );
+      expect(addAsColumnButton).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['title', 'issue', 'transaction.duration'],
+          }),
+        })
+      );
     });
 
     it('Renders NO stack trace message for error events without stackTraces', async () => {
@@ -500,6 +629,24 @@ describe('Quick Context', function () {
 
       expect(
         await screen.findByText(/There is no stack trace available for this event./i)
+      ).toBeInTheDocument();
+    });
+
+    it('Renders event id header', async () => {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
+        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      });
+
+      renderQuickContextContent(defaultRow, ContextType.EVENT);
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
+      expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
       ).toBeInTheDocument();
     });
 
@@ -556,16 +703,42 @@ describe('Quick Context', function () {
         ],
       } as EventError;
 
+      mockUseLocation.mockReturnValue(
+        TestStubs.location({
+          query: {
+            field: ['issue', 'transaction.duration'],
+          },
+        })
+      );
+
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
         body: makeEvent(errorEvent),
       });
 
-      renderQuickContextContent(defaultRow, ContextType.EVENT);
+      const dataRow = {
+        ...defaultRow,
+      };
+      delete dataRow.title;
+      renderQuickContextContent(dataRow, ContextType.EVENT);
 
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
+
+      const addAsColumnButton = screen.getByTestId('quick-context-title-add-button');
+      expect(addAsColumnButton).toBeInTheDocument();
+      expect(screen.getByText(/Title/i)).toBeInTheDocument();
+
+      userEvent.click(addAsColumnButton);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({
+            field: ['issue', 'transaction.duration', 'title'],
+          }),
+        })
+      );
     });
   });
 });

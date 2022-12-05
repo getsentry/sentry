@@ -109,8 +109,6 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // prevent duplicate analytics
-    this.props.setDisableRouteAnalytics();
     // only track the view if we are loading the event early
     this.fetchData(this.canLoadEventEarly(this.props));
 
@@ -176,10 +174,11 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {organization, params, location} = this.props;
+    const {params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAdvancedAnalyticsEvent('issue_details.viewed', {
-      organization,
+
+    this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
+    this.props.setRouteAnalyticsParams({
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
       // group properties
@@ -204,6 +203,7 @@ class GroupDetails extends Component<Props, State> {
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      has_otel: event?.contexts?.otel !== undefined,
     });
   }
 

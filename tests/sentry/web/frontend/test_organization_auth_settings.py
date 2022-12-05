@@ -416,6 +416,22 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert auth_provider.get_scim_token() is not None
         assert auth_provider.get_scim_url() is not None
 
+        # "add" some scim users
+        u1 = self.create_user()
+        not_scim_member = OrganizationMember.objects.create(user=u1, organization=organization)
+        not_scim_member.save()
+        u2 = self.create_user()
+        scim_member = OrganizationMember.objects.create(user=u2, organization=organization)
+        scim_member.flags["idp:provisioned"] = True
+        scim_member.save()
+        u3 = self.create_user()
+        scim_role_restricted_user = OrganizationMember.objects.create(
+            user=u3, organization=organization
+        )
+        scim_role_restricted_user.flags["idp:provisioned"] = True
+        scim_role_restricted_user.flags["idp:role-restricted"] = True
+        scim_role_restricted_user.save()
+
         with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
                 path,
@@ -437,3 +453,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             SentryAppInstallationForProvider.objects.get(
                 organization=self.organization, provider="dummy_scim"
             )
+        not_scim_member.refresh_from_db()
+        scim_member.refresh_from_db()
+        scim_role_restricted_user.refresh_from_db()
+        assert not any(
+            (not_scim_member.flags["idp:provisioned"], not_scim_member.flags["idp:role-restricted"])
+        )
+        assert not any(
+            (scim_member.flags["idp:provisioned"], scim_member.flags["idp:role-restricted"])
+        )
+        assert not any(
+            (
+                scim_role_restricted_user.flags["idp:provisioned"],
+                scim_role_restricted_user.flags["idp:role-restricted"],
+            )
+        )

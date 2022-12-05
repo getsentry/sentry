@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
@@ -8,21 +6,20 @@ import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ReplayCount from 'sentry/components/group/issueReplayCount';
+import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import ReplayCountContext from 'sentry/components/replays/replayCountContext';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
@@ -32,10 +29,10 @@ type Props = WithRouterProps<{orgId: string}> & {
 function EventOrGroupExtraDetails({
   data,
   showAssignee,
-  params,
   showInboxTime,
   organization,
 }: Props) {
+  const params = useParams();
   const {
     id,
     lastSeen,
@@ -57,76 +54,68 @@ function EventOrGroupExtraDetails({
   const showReplayCount =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
-  const counts = useReplaysCount({
-    groupIds: id,
-    organization,
-    project,
-  });
-
   return (
-    <ReplayCountContext.Provider value={counts}>
-      <GroupExtra>
-        {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
-        {shortId && (
-          <InboxShortId
-            shortId={shortId}
-            avatar={
-              project && (
-                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-              )
+    <GroupExtra>
+      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
+      {shortId && (
+        <InboxShortId
+          shortId={shortId}
+          avatar={
+            project && (
+              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+            )
+          }
+        />
+      )}
+      {isUnhandled && <UnhandledTag />}
+      {!lifetime && !firstSeen && !lastSeen ? (
+        <Placeholder height="14px" width="100px" />
+      ) : (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      )}
+      {/* Always display comment count on inbox */}
+      {numComments > 0 && (
+        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+          <IconChat
+            size="xs"
+            color={
+              subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
             }
           />
-        )}
-        {isUnhandled && <UnhandledTag />}
-        {!lifetime && !firstSeen && !lastSeen ? (
-          <Placeholder height="14px" width="100px" />
-        ) : (
-          <TimesTag
-            lastSeen={lifetime?.lastSeen || lastSeen}
-            firstSeen={lifetime?.firstSeen || firstSeen}
-          />
-        )}
-        {/* Always display comment count on inbox */}
-        {numComments > 0 && (
-          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-            <IconChat
-              size="xs"
-              color={
-                subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
-              }
-            />
-            <span>{numComments}</span>
-          </CommentsLink>
-        )}
-        {showReplayCount && <ReplayCount groupId={id} />}
-        {logger && (
-          <LoggerAnnotation>
-            <GlobalSelectionLink
-              to={{
-                pathname: issuesPath,
-                query: {
-                  query: `logger:${logger}`,
-                },
-              }}
-            >
-              {logger}
-            </GlobalSelectionLink>
-          </LoggerAnnotation>
-        )}
-        {annotations?.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
+          <span>{numComments}</span>
+        </CommentsLink>
+      )}
+      {showReplayCount && <IssueReplayCount groupId={id} />}
+      {logger && (
+        <LoggerAnnotation>
+          <GlobalSelectionLink
+            to={{
+              pathname: issuesPath,
+              query: {
+                query: `logger:${logger}`,
+              },
             }}
-            key={key}
-          />
-        ))}
+          >
+            {logger}
+          </GlobalSelectionLink>
+        </LoggerAnnotation>
+      )}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
-        {showAssignee && assignedTo && (
-          <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-        )}
-      </GroupExtra>
-    </ReplayCountContext.Provider>
+      {showAssignee && assignedTo && (
+        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+      )}
+    </GroupExtra>
   );
 }
 
@@ -179,4 +168,4 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
 `;
 
-export default withRouter(withOrganization(EventOrGroupExtraDetails));
+export default withOrganization(EventOrGroupExtraDetails);
