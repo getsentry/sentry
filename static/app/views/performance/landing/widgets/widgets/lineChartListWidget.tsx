@@ -62,7 +62,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization} = props;
+  const {ContainerActions, organization, InteractiveTitle} = props;
   const pageError = usePageError();
 
   const field = props.fields[0];
@@ -220,9 +220,16 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => <Subtitle>{t('Suggested transactions')}</Subtitle>}
-      HeaderActions={provided => (
-        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-      )}
+      HeaderActions={provided =>
+        ContainerActions && (
+          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
+        )
+      }
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[

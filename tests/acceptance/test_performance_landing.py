@@ -47,3 +47,28 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
             self.browser.snapshot("performance landing - with data")
+
+    @patch("django.utils.timezone.now")
+    def test_with_data_and_new_widget_designs(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event = load_data("transaction", timestamp=before_now(minutes=10))
+        self.store_event(data=event, project_id=self.project.id)
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        FEATURES = (
+            "organizations:discover-basic",
+            "organizations:performance-view",
+            "organizations:performance-new-widget-designs",
+        )
+
+        with self.feature(FEATURES):
+            self.browser.get(self.path)
+            self.page.wait_until_loaded()
+
+            # This test is flakey in that we sometimes load this page before the event is processed
+            # depend on pytest-retry to reload the page
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
+            self.browser.snapshot("new widget performance landing - with data")
