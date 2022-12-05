@@ -37,7 +37,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
@@ -154,7 +154,8 @@ type State = AsyncView['state'] & {
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
-  previewError: boolean;
+  previewEndpoint: null | string;
+  previewError: null | string;
   previewGroups: string[] | null;
   previewPage: number;
   project: Project;
@@ -244,13 +245,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       project,
       previewGroups: null,
       previewCursor: null,
-      previewError: false,
+      previewError: null,
       issueCount: 0,
       previewPage: 0,
       loadingPreview: false,
       sendingNotification: false,
       incompatibleConditions: null,
       incompatibleFilters: null,
+      previewEndpoint: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -365,7 +367,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule, previewCursor} = this.state;
+    const {project, rule, previewCursor, previewEndpoint} = this.state;
 
     if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
@@ -390,6 +392,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           actionMatch: rule?.actionMatch || 'all',
           filterMatch: rule?.filterMatch || 'all',
           frequency: rule?.frequency || 60,
+          endpoint: previewEndpoint,
         },
       })
       .then(([data, _, resp]) => {
@@ -397,19 +400,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
         const pageLinks = resp?.getResponseHeader('Link');
         const hits = resp?.getResponseHeader('X-Hits');
+        const endpoint = resp?.getResponseHeader('Endpoint');
         const issueCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
           previewGroups: data.map(g => g.id),
-          previewError: false,
+          previewError: null,
           pageLinks: pageLinks ?? '',
           issueCount,
           loadingPreview: false,
+          previewEndpoint: endpoint ?? null,
         });
       })
       .catch(_ => {
+        const errorMessage =
+          rule?.conditions.length || rule?.filters.length
+            ? t('Preview is not supported for these conditions')
+            : t('Select a condition to generate a preview');
         this.setState({
-          previewError: true,
+          previewError: errorMessage,
           loadingPreview: false,
         });
       });
@@ -469,7 +478,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule} = this.state;
     this.setState({sendingNotification: true});
-    addLoadingMessage(t('Sending a test notification...'));
+    const actions = rule?.actions ? rule?.actions.length : 0;
+    addLoadingMessage(
+      tn('Sending a test notification...', 'Sending test notifications...', actions)
+    );
     this.api
       .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
         method: 'POST',
@@ -478,10 +490,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(() => {
-        addSuccessMessage(t('Notification sent!'));
+        addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
       })
       .catch(() => {
-        addErrorMessage(t('Notification failed'));
+        addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
       })
       .finally(() => {
         this.setState({sendingNotification: false});
@@ -1469,7 +1481,7 @@ export const findIncompatibleRules = (
       if (firstSeenError || regressionReappearedError) {
         const indices = [firstSeen, regression, reappeared, eventFrequency, userFrequency]
           .filter(idx => idx !== -1)
-          .sort();
+          .sort((a, b) => a - b);
         return {conditionIndices: indices, filterIndices: null};
       }
     }
