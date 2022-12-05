@@ -7,10 +7,12 @@ function ViewHierarchy({hierarchy}) {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <Container>
-      <div>
+      <div style={{display: 'flex', alignItems: 'center'}}>
         {!!hierarchy.children.length && (
           <StyledExpandIcon
             fill="black"
+            fillOpacity="1"
+            size="xs"
             collapsed={collapsed}
             onClick={() => setCollapsed(!collapsed)}
           />
@@ -30,10 +32,12 @@ function ViewHierarchy({hierarchy}) {
 }
 
 const Container = styled('div')`
-  margin-left: 24px;
+  margin-left: 18px;
+  margin-bottom: 4px;
 `;
 
 const StyledExpandIcon = styled(IconPlay)<{collapsed: boolean}>`
+  margin-right: 4px;
   rotate: 90deg;
   ${p =>
     p.collapsed &&

@@ -410,7 +410,7 @@ const EventEntries = ({
         />
       )}
       {/* TODO: Messing with attachment stuff */}
-      <pre>{JSON.stringify(parseViewHierarchy(mockViewHierarchyData), null, 2)}</pre>
+      {/* <pre>{JSON.stringify(parseViewHierarchy(mockViewHierarchyData), null, 2)}</pre> */}
       <ViewHierarchy hierarchy={parseViewHierarchy(mockViewHierarchyData)} />
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
