@@ -1232,11 +1232,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         value: searches.query,
         type: ItemType.RECENT_SEARCH,
       }));
-    } catch (e) {
-      Sentry.captureException(e);
+    } catch {
+      return [];
     }
-
-    return [];
   };
 
   getReleases = debounce(
