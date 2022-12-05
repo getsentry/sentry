@@ -21,7 +21,7 @@ function getExpectedReqestParams({
       environment: [],
       field,
       per_page: 50,
-      projects: [String(project.id)],
+      project: [String(project.id)],
       query,
       statsPeriod: '14d',
     },
