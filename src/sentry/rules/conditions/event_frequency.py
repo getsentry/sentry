@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Tuple, Sequence
+from typing import Any, Dict, Mapping, Sequence, Tuple
 
 from django import forms
 from django.core.cache import cache
