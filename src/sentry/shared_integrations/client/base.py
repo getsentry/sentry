@@ -132,10 +132,10 @@ class BaseApiClient(TrackResponseMixin):
                     resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
-                raise ApiHostError.from_exception(e)
+                raise ApiHostError.from_exception(e) from e
             except Timeout as e:
                 self.track_response_data("timeout", span, e)
-                raise ApiTimeoutError.from_exception(e)
+                raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 resp = e.response
                 if resp is None:
@@ -147,9 +147,9 @@ class BaseApiClient(TrackResponseMixin):
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
 
-                    raise ApiError("Internal Error", url=full_url)
+                    raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp, url=full_url)
+                raise ApiError.from_response(resp, url=full_url) from e
 
             self.track_response_data(resp.status_code, span, None, resp)
 
