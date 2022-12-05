@@ -66,7 +66,7 @@ default_manager.add("organizations:javascript-console-error-tag", OrganizationFe
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:api-keys", OrganizationFeature)
-default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True)
+default_manager.add("organizations:crash-rate-alerts", OrganizationFeature)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:customer-domains", OrganizationFeature, True)
 default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
