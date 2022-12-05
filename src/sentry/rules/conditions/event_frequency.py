@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 from django import forms
 from django.core.cache import cache
@@ -17,7 +17,11 @@ from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GRO
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.condition_activity import FREQUENCY_CONDITION_BUCKET_SIZE, ConditionActivity
+from sentry.types.condition_activity import (
+    FREQUENCY_CONDITION_BUCKET_SIZE,
+    ConditionActivity,
+    round_to_five_minute,
+)
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
 
@@ -127,7 +131,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Sequence[Dict[str, Any]]
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
@@ -212,7 +216,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         return sums[event.group_id]
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Sequence[Dict[str, Any]]
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -224,12 +228,9 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
             interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
 
-        end = activity.timestamp
-        start = end - interval_delta
-        count = 0
-        for bucket in buckets:
-            if start <= bucket["roundedTime"] < end:
-                count += bucket["bucketCount"]
+        end = round_to_five_minute(activity.timestamp)
+        start = round_to_five_minute(end - interval_delta)
+        count = buckets.get(end, 0) - buckets.get(start, 0)
 
         return count > value
 

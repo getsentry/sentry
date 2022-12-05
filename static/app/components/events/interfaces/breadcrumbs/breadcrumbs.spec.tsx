@@ -1,4 +1,12 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'react-select-event';
+
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
@@ -193,6 +201,54 @@ describe('Breadcrumbs', () => {
         expect(screen.getByText('Replays')).toBeVisible();
         expect(screen.getByTestId('player-container')).toBeInTheDocument();
       });
+    });
+
+    it('can change the sort', async function () {
+      render(
+        <Breadcrumbs
+          {...props}
+          data={{
+            values: [
+              {
+                message: 'sup',
+                category: 'default',
+                level: BreadcrumbLevelType.WARNING,
+                type: BreadcrumbType.INFO,
+              },
+              {
+                message: 'hey',
+                category: 'error',
+                level: BreadcrumbLevelType.INFO,
+                type: BreadcrumbType.INFO,
+              },
+              {
+                message: 'hello',
+                category: 'default',
+                level: BreadcrumbLevelType.WARNING,
+                type: BreadcrumbType.INFO,
+              },
+            ],
+          }}
+        />
+      );
+
+      const breadcrumbsBefore = screen.getAllByTestId(/crumb/i);
+      expect(breadcrumbsBefore).toHaveLength(4); // Virtual exception crumb added to 3 in props
+
+      // Should be sorted newest -> oldest by default
+      expect(within(breadcrumbsBefore[0]).getByText(/exception/i)).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[1]).getByText('hello')).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[2]).getByText('hey')).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[3]).getByText('sup')).toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText(/newest/i), /oldest/i);
+
+      // Now should be sorted oldest -> newest
+      const breadcrumbsAfter = screen.getAllByTestId(/crumb/i);
+      expect(within(breadcrumbsAfter[0]).getByText('sup')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[1]).getByText('hey')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[2]).getByText('hello')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[3]).getByText(/exception/i)).toBeInTheDocument();
     });
   });
 });

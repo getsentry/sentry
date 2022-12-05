@@ -158,6 +158,7 @@ function EventEntry({entry, projectSlug, event, organization, group, isShare}: P
       ) {
         return (
           <SpanEvidenceSection
+            issueType={group?.issueType}
             event={event as EventTransaction}
             organization={organization as Organization}
           />
