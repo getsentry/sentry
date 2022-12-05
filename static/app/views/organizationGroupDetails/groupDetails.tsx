@@ -28,9 +28,6 @@ import {
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
@@ -87,9 +84,7 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  loadingReplayIds: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
-  replayIds: null | string[];
   event?: Event;
 };
 
@@ -111,13 +106,6 @@ class GroupDetails extends Component<Props, State> {
   componentDidMount() {
     // only track the view if we are loading the event early
     this.fetchData(this.canLoadEventEarly(this.props));
-
-    if (
-      this.props.organization.features.includes('session-replay-ui') &&
-      this.getCurrentTab() === Tab.REPLAYS
-    ) {
-      this.fetchReplayIds();
-    }
     this.updateReprocessingProgress();
 
     // Fetch environments early - used in GroupEventDetailsContainer
@@ -161,14 +149,12 @@ class GroupDetails extends Component<Props, State> {
     return {
       group: null,
       loading: true,
-      loadingReplayIds: true,
       loadingEvent: true,
       loadingGroup: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
-      replayIds: null,
     };
   }
 
@@ -433,41 +419,6 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchReplayIds() {
-    const {api, location, organization, params} = this.props;
-    const {groupId} = params;
-
-    this.setState({loadingReplayIds: true});
-
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: `Errors within replay`,
-        version: 2,
-        fields: ['replayId', 'count()'],
-        query: `issue.id:${groupId} !replayId:""`,
-        projects: [],
-      },
-      location
-    );
-
-    try {
-      const [data] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location)
-      );
-
-      const replayIds = data.data.map(record => String(record.replayId));
-      this.setState({
-        replayIds,
-        loadingReplayIds: false,
-      });
-    } catch (err) {
-      this.setState({loadingReplayIds: false});
-    }
-  }
-
   async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -650,7 +601,7 @@ class GroupDetails extends Component<Props, State> {
 
   renderContent(project: AvatarProject, group: Group) {
     const {children, environments, organization, router} = this.props;
-    const {loadingEvent, eventError, event, replayIds} = this.state;
+    const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -680,8 +631,6 @@ class GroupDetails extends Component<Props, State> {
 
     if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
-    } else if (currentTab === Tab.REPLAYS) {
-      childProps = {...childProps, replayIds};
     }
 
     return (
