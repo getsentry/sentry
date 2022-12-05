@@ -411,7 +411,10 @@ const EventEntries = ({
       )}
       {/* TODO: Messing with attachment stuff */}
       {/* <pre>{JSON.stringify(parseViewHierarchy(mockViewHierarchyData), null, 2)}</pre> */}
-      <ViewHierarchy hierarchy={parseViewHierarchy(mockViewHierarchyData)} />
+      <h3 style={{marginLeft: '18px'}}>View Hierarchy</h3>
+      <div style={{whiteSpace: 'nowrap', overflow: 'auto'}}>
+        <ViewHierarchy hierarchy={parseViewHierarchy(mockViewHierarchyData)} />
+      </div>
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       )}
