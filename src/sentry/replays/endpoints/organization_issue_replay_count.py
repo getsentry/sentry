@@ -66,10 +66,10 @@ def _query_discover_for_replayIds(request: Request, params: dict[str, Any]) -> d
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
-        selected_columns=["group_array(replayId)", "issue.id"],
+        selected_columns=["group_array(100,replayId)", "issue.id"],
         groupby_columns=["issue.id"],
         query=request.GET.get("query"),
-        limit=25 * 100,  # 25 issues max, 100 replays per issue max
+        limit=25,
         offset=0,
         functions_acl=["group_array"],
     )
@@ -81,7 +81,7 @@ def _query_discover_for_replayIds(request: Request, params: dict[str, Any]) -> d
 
     replay_id_to_issue_map = {}
     for row in discover_results["data"]:
-        for replay_id in row["group_array_replayId"]:
+        for replay_id in row["group_array_100_replayId"]:
             replay_id_to_issue_map[replay_id] = row["issue.id"]
 
     return replay_id_to_issue_map
