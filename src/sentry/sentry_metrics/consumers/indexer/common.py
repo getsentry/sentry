@@ -7,7 +7,7 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Message
+from arroyo.types import Message, Value
 from django.conf import settings
 
 from sentry.utils import kafka_config, metrics
@@ -122,7 +122,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             return
         last = self.__batch.messages[-1]
 
-        new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        new_message = Message(Value(self.__batch.messages, last.committable))
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
             metrics.timing("batch_messages.build_time", elapsed_time)
@@ -147,7 +147,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(
-                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.offset}"
+                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.committable}"
             )
 
         self.__next_step.close()
