@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
@@ -459,4 +460,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default withScrollbarManager(SpanTree);
+export default withProfiler(withScrollbarManager(SpanTree));

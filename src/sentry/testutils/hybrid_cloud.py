@@ -89,5 +89,7 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
         ), "Too many inter silo calls (through stubs) found!  Consider consolidating total calls."
 
     hc_test_stub.cb = cb
-    yield
-    hc_test_stub.cb = None
+    try:
+        yield
+    finally:
+        hc_test_stub.cb = None
