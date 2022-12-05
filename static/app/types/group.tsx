@@ -28,18 +28,25 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
   sort: string;
   type: SavedSearchType;
+  visibility: SavedSearchVisibility;
 };
+
+export enum SavedSearchVisibility {
+  Organization = 'organization',
+  Owner = 'owner',
+  OwnerPinned = 'owner_pinned',
+}
 
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
   SESSION = 2,
+  REPLAY = 3,
 }
 
 export enum IssueCategory {
@@ -50,6 +57,7 @@ export enum IssueCategory {
 export enum IssueType {
   ERROR = 'error',
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
 }
 
 type CapabilityInfo = {
@@ -149,6 +157,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {

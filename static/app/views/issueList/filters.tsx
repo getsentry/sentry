@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -12,11 +10,11 @@ import {
 } from 'sentry/components/smartSearchBar/actions';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import IssueListSearchBar from './searchBar';
 
-interface Props extends WithRouterProps {
-  isSearchDisabled: boolean;
+interface Props {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
@@ -24,53 +22,62 @@ interface Props extends WithRouterProps {
   sort: string;
 }
 
-function IssueListFilters({
-  organization,
-  savedSearch,
-  query,
-  isSearchDisabled,
-  sort,
-  onSearch,
-  location,
-}: Props) {
+function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Props) {
+  const location = useLocation();
+
   const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
 
   return (
     <SearchContainer>
-      <PageFilterBar>
+      <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
-      </PageFilterBar>
-      <IssueListSearchBar
+      </StyledPageFilterBar>
+      <StyledIssueListSearchBar
         searchSource="main_search"
         organization={organization}
         query={query || ''}
         onSearch={onSearch}
-        disabled={isSearchDisabled}
         excludedTags={['environment']}
-        actionBarItems={[
-          makePinSearchAction({sort, pinnedSearch, location}),
-          makeSaveSearchAction({
-            sort,
-            disabled: !organization.access.includes('org:write'),
-          }),
-        ]}
+        actionBarItems={
+          organization.features.includes('issue-list-saved-searches-v2')
+            ? []
+            : [
+                makePinSearchAction({sort, pinnedSearch, location}),
+                makeSaveSearchAction({
+                  sort,
+                  disabled: !organization.access.includes('org:write'),
+                }),
+              ]
+        }
       />
     </SearchContainer>
   );
 }
 
 const SearchContainer = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
   width: 100%;
   margin-bottom: ${space(2)};
-  grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr);
+const StyledPageFilterBar = styled(PageFilterBar)`
+  flex: 0 1 0;
+  width: 100%;
+  max-width: 30rem;
+`;
+
+const StyledIssueListSearchBar = styled(IssueListSearchBar)`
+  flex: 1;
+  width: 100%;
+  min-width: 20rem;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    min-width: 25rem;
   }
 `;
 
-export default withRouter(IssueListFilters);
+export default IssueListFilters;

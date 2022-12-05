@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict
+
+FREQUENCY_CONDITION_BUCKET_SIZE = timedelta(minutes=5)
 
 
 class ConditionActivityType(Enum):
@@ -12,10 +14,9 @@ class ConditionActivityType(Enum):
     REAPPEARED = 2
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConditionActivity:
     group_id: str
-    # potentially can have multiple types if even more conditions are supported
     type: ConditionActivityType
     timestamp: datetime
-    data: Dict[str, Any] | None = None
+    data: Dict[str, Any] = field(default_factory=dict)

@@ -20,8 +20,12 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {UNPARAMETERIZED_TRANSACTION} from 'sentry/views/performance/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -91,8 +95,9 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location} = props;
+  const {ContainerActions, eventView, organization} = props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -136,7 +141,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <DiscoverQuery
               {...provided}
               eventView={_eventView}
-              location={props.location}
+              location={location}
               limit={4}
               cursor="0:0:1"
               noPagination
@@ -207,6 +212,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
@@ -293,12 +299,18 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 
                 _eventView.query = initialConditions.formatString();
 
-                const target = vitalDetailRouteWithQuery({
-                  orgSlug: organization.slug,
-                  query: _eventView.generateQueryStringObject(),
-                  vitalName: vital,
-                  projectID: decodeList(location.query.project),
-                });
+                const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+                const target = isUnparameterizedRow
+                  ? createUnnamedTransactionsDiscoverTarget({
+                      organization,
+                      location,
+                    })
+                  : vitalDetailRouteWithQuery({
+                      orgSlug: organization.slug,
+                      query: _eventView.generateQueryStringObject(),
+                      vitalName: vital,
+                      projectID: decodeList(location.query.project),
+                    });
 
                 const data = {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
@@ -328,7 +340,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                     {!props.withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
                       />
                     )}
                   </Fragment>

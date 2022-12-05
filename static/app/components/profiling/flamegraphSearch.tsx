@@ -1,9 +1,8 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
-import Fuse from 'fuse.js';
 
-import SearchBar from 'sentry/components/searchBar';
+import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -14,8 +13,69 @@ import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
 } from 'sentry/utils/profiling/flamegraphFrame';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+
+function yieldingRafFrameSearch(
+  query: string,
+  frames: ReadonlyArray<FlamegraphFrame>,
+  cb: (results: FlamegraphSearchResults['results']) => void
+) {
+  const raf = {id: 0};
+  const budget = 12; // ms
+  const results: FlamegraphSearchResults['results'] = new Map();
+  const isRegExpSearch = isRegExpString(query);
+  const [_, lookup, flags] = parseRegExp(query) ?? [];
+  // we lowercase the query to make the search case insensitive (assumption of fzf)
+  const lowercaseQuery = query.toLowerCase();
+  let processed = 0;
+
+  function work() {
+    const start = performance.now();
+
+    while (performance.now() - start < budget && processed < frames.length) {
+      const frame = frames[processed]!;
+
+      if (!isRegExpSearch) {
+        const match = fzf(frame.frame.name, lowercaseQuery, false);
+
+        if (match.score > 0) {
+          results.set(getFlamegraphFrameSearchId(frame), {
+            frame,
+            match: match.matches[0],
+          });
+        }
+      } else {
+        for (let i = start; i < frames.length; i++) {
+          const re = new RegExp(lookup, flags ?? 'g');
+          const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
+          const match = findBestMatchFromRegexpMatchArray(reMatches);
+
+          if (match) {
+            const frameId = getFlamegraphFrameSearchId(frame);
+            results.set(frameId, {
+              frame,
+              match,
+            });
+          }
+        }
+      }
+
+      processed++;
+    }
+
+    if (processed === frames.length) {
+      cb(results);
+    }
+    if (processed < frames.length) {
+      raf.id = requestAnimationFrame(work);
+    }
+  }
+
+  raf.id = requestAnimationFrame(work);
+  return raf;
+}
 
 function sortFrameResults(
   frames: FlamegraphSearchResults['results']
@@ -31,46 +91,10 @@ function sortFrameResults(
     );
 }
 
-function findBestMatchFromFuseMatches(
-  matches: ReadonlyArray<Fuse.FuseResultMatch>
-): Fuse.RangeTuple | null {
-  let bestMatch: Fuse.RangeTuple | null = null;
-  let bestMatchLength = 0;
-  let bestMatchStart = -1;
-
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i]!; // iterating over a non empty array
-
-    for (let j = 0; j < match.indices.length; j++) {
-      const index = match.indices[j]!; // iterating over a non empty array
-      const matchLength = index[1] - index[0];
-
-      if (matchLength < 0) {
-        // Fuse sometimes returns negative indices - we will just skip them for now.
-        continue;
-      }
-
-      // We only override the match if the match is longer than the current best match
-      // or if the matches are the same length, but the start is earlier in the string
-      if (
-        matchLength > bestMatchLength ||
-        (matchLength === bestMatchLength && index[0] > bestMatchStart)
-      ) {
-        // Offset end by 1 else we are always trailing by 1 character.
-        bestMatch = [index[0], index[1] + 1];
-        bestMatchLength = matchLength;
-        bestMatchStart = index[0];
-      }
-    }
-  }
-
-  return bestMatch;
-}
-
 function findBestMatchFromRegexpMatchArray(
   matches: RegExpMatchArray[]
-): Fuse.RangeTuple | null {
-  let bestMatch: Fuse.RangeTuple | null = null;
+): [number, number] | null {
+  let bestMatch: [number, number] | null = null;
   let bestMatchLength = 0;
   let bestMatchStart = -1;
 
@@ -101,74 +125,6 @@ function findBestMatchFromRegexpMatchArray(
 }
 
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
-
-function frameSearch(
-  query: string,
-  frames: ReadonlyArray<FlamegraphFrame>,
-  index: Fuse<FlamegraphFrame>
-): FlamegraphSearchResults['results'] {
-  const results: FlamegraphSearchResults['results'] = new Map();
-
-  if (isRegExpString(query)) {
-    const [_, lookup, flags] = parseRegExp(query) ?? [];
-    let matches = 0;
-
-    try {
-      if (!lookup) {
-        throw new Error('Invalid RegExp');
-      }
-
-      for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i]!; // iterating over a non empty array
-
-        const re = new RegExp(lookup, flags ?? 'g');
-        const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
-
-        const match = findBestMatchFromRegexpMatchArray(reMatches);
-
-        if (match) {
-          const frameId = getFlamegraphFrameSearchId(frame);
-          results.set(frameId, {
-            frame,
-            match,
-          });
-          matches += 1;
-        }
-      }
-    } catch (e) {
-      Sentry.captureMessage(e.message);
-    }
-
-    if (matches <= 0) {
-      return results;
-    }
-
-    return results;
-  }
-
-  const fuseResults = index.search(query);
-
-  if (fuseResults.length <= 0) {
-    return results;
-  }
-
-  for (let i = 0; i < fuseResults.length; i++) {
-    const fuseFrameResult = fuseResults[i]!; // iterating over a non empty array
-    const frame = fuseFrameResult.item;
-    const frameId = getFlamegraphFrameSearchId(frame);
-    const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
-
-    if (match) {
-      results.set(frameId, {
-        frame,
-        match,
-      });
-    }
-  }
-
-  return results;
-}
-
 const numericSort = (
   a: null | undefined | number,
   b: null | undefined | number,
@@ -211,16 +167,6 @@ function FlamegraphSearch({
     return flamegraphs.frames;
   }, [flamegraphs]);
 
-  const searchIndex = useMemo(() => {
-    return new Fuse(allFrames, {
-      keys: ['frame.name'],
-      threshold: 0.3,
-      includeMatches: true,
-      findAllMatches: true,
-      ignoreLocation: true,
-    });
-  }, [allFrames]);
-
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoom at frame', [frame, 'min']);
@@ -241,22 +187,30 @@ function FlamegraphSearch({
     }
   }, [search.results, search.index, onZoomIntoFrame]);
 
-  const handleChange: (value: string) => void = useCallback(
-    value => {
-      if (!value) {
+  const rafHandler = useRef<ReturnType<typeof yieldingRafFrameSearch> | null>(null);
+
+  const handleChange: (query: string) => void = useCallback(
+    query => {
+      if (rafHandler.current) {
+        window.cancelAnimationFrame(rafHandler.current.id);
+      }
+
+      if (!query) {
         dispatch({type: 'clear search'});
         return;
       }
 
-      dispatch({
-        type: 'set results',
-        payload: {
-          results: frameSearch(value, allFrames, searchIndex),
-          query: value,
-        },
+      rafHandler.current = yieldingRafFrameSearch(query, allFrames, results => {
+        dispatch({
+          type: 'set results',
+          payload: {
+            results,
+            query,
+          },
+        });
       });
     },
-    [dispatch, allFrames, searchIndex]
+    [dispatch, allFrames]
   );
 
   useEffect(() => {
@@ -321,12 +275,44 @@ function FlamegraphSearch({
     <StyledSearchBar
       size="xs"
       placeholder={t('Find Frames')}
-      query={search.query}
+      defaultQuery={search.query}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
+      trailing={
+        search.query && (
+          <Fragment>
+            <StyledTrailingText>
+              {`${
+                search.index !== null && search.results.size > 0 ? search.index + 1 : '-'
+              }/${search.results.size}`}
+            </StyledTrailingText>
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" />}
+              aria-label={t('Next')}
+              onClick={onPreviousSearchClick}
+            />
+            <SearchBarTrailingButton
+              type="button"
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" direction="down" />}
+              aria-label={t('Previous')}
+              onClick={onNextSearchClick}
+            />
+          </Fragment>
+        )
+      }
     />
   );
 }
+
+const StyledTrailingText = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;

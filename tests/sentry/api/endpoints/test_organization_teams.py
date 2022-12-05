@@ -1,7 +1,7 @@
 from django.urls import reverse
 from exam import fixture
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
@@ -141,6 +141,22 @@ class OrganizationTeamsListTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
+
+    def test_hanging_project_team(self):
+        user = self.create_user()
+        org = self.create_organization(owner=self.user)
+        external_org = self.create_organization()
+        team1 = self.create_team(organization=org, name="foo")
+        external_team = self.create_team(organization=external_org, name="bar")
+        self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
+
+        ProjectTeam.objects.create(project=self.project, team=team1)
+        ProjectTeam.objects.create(project=self.project, team=external_team)
+
+        self.login_as(user=user)
+        path = f"/api/0/organizations/{org.slug}/teams/"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
 
 
 @region_silo_test

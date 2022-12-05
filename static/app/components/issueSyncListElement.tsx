@@ -81,7 +81,7 @@ function IssueSyncListElement({
   );
 
   return (
-    <IssueSyncListElementContainer>
+    <IssueSyncListElementContainer data-test-id="external-issue-item">
       <ClassNames>
         {({css}) => (
           <StyledHovercard
@@ -133,13 +133,13 @@ export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
   cursor: pointer;
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   &:hover {
-    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
+    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.linkColor)};
   }
 `;
 

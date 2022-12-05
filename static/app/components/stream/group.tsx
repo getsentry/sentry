@@ -22,6 +22,7 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -413,6 +415,12 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
+  const issueStreamAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
+  ) : (
+    <GuideAnchor target="issue_stream" />
+  );
+
   return (
     <Wrapper
       data-test-id="group"
@@ -445,11 +453,10 @@ function BaseGroupRow({
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
       </GroupSummary>
-      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+      {hasGuideAnchor && issueStreamAnchor}
+
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper
-          className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
-        >
+        <ChartWrapper narrowGroups={narrowGroups}>
           {!group.filtered?.stats && !group.stats ? (
             <Placeholder height="24px" />
           ) : (
@@ -468,7 +475,7 @@ function BaseGroupRow({
         <Fragment>
           <EventCountsWrapper>{groupCount}</EventCountsWrapper>
           <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
-          <AssigneeWrapper className="hidden-xs hidden-sm">
+          <AssigneeWrapper narrowGroups={narrowGroups}>
             <AssigneeSelector
               id={group.id}
               memberList={memberList}
@@ -632,9 +639,14 @@ const MenuItemText = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 
 const EventCountsWrapper = styled('div')`
@@ -649,10 +661,15 @@ const EventCountsWrapper = styled('div')`
   }
 `;
 
-const AssigneeWrapper = styled('div')`
+const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
 
 // Reprocessing

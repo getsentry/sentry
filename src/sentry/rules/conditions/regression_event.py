@@ -27,10 +27,12 @@ class RegressionEventCondition(EventCondition):
                 type=ActivityType.SET_REGRESSION.value,
             )
             .order_by("-datetime")[:limit]
-            .values_list("group", "datetime")
+            .values_list("group", "datetime", "data")
         )
 
         return [
-            ConditionActivity(group_id=a[0], type=ConditionActivityType.REGRESSION, timestamp=a[1])
+            ConditionActivity(
+                group_id=a[0], type=ConditionActivityType.REGRESSION, timestamp=a[1], data=a[2]
+            )
             for a in activities
         ]

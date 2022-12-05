@@ -1,6 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -109,8 +115,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -138,8 +142,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -176,8 +178,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -217,8 +217,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -255,8 +253,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -294,8 +290,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -326,8 +320,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -356,8 +348,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached
       />
@@ -386,8 +376,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={mock}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -416,8 +404,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
       />
@@ -427,7 +413,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
-    await mountGlobalModal();
+    renderGlobalModal();
     await screen.findByRole('dialog');
 
     userEvent.click(screen.getByTestId('confirm-button'));
@@ -453,8 +439,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           tableItemLimit={20}
@@ -490,8 +474,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
         />
@@ -537,8 +519,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           tableItemLimit={20}
@@ -573,8 +553,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -603,11 +581,8 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-        showWidgetViewerButton
         index="10"
         isPreview
       />
@@ -646,8 +621,6 @@ describe('Dashboards > WidgetCard', function () {
         onEdit={() => undefined}
         onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
         showStoredAlert
@@ -691,8 +664,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
             tableItemLimit={20}
@@ -728,8 +699,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
           />
@@ -775,8 +744,6 @@ describe('Dashboards > WidgetCard', function () {
             onEdit={() => undefined}
             onDuplicate={() => undefined}
             renderErrorMessage={() => undefined}
-            isSorting={false}
-            currentWidgetDragging={false}
             showContextMenu
             widgetLimitReached={false}
             tableItemLimit={20}
@@ -817,8 +784,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           showStoredAlert
@@ -894,8 +859,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
         />
@@ -927,8 +890,6 @@ describe('Dashboards > WidgetCard', function () {
           onEdit={() => undefined}
           onDuplicate={() => undefined}
           renderErrorMessage={() => undefined}
-          isSorting={false}
-          currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
           isPreview

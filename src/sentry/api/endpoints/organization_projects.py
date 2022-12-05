@@ -72,6 +72,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "firstTransactionEvent": True,
                         "hasSessions": True,
                         "hasProfiles": True,
+                        "hasReplays": True,
                         "latestRelease": None,
                         "hasUserReports": False,
                     }
@@ -97,7 +98,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
-                team_list = list(request.auth.project.teams.all())
                 queryset = Project.objects.filter(id=request.auth.project.id)
             elif request.auth.organization is not None:
                 org = request.auth.organization

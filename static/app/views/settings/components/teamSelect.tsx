@@ -145,7 +145,7 @@ type TeamRowProps = {
 };
 
 const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
-  <TeamPanelItem>
+  <TeamPanelItem data-test-id="team-row">
     <StyledLink to={`/settings/${orgId}/teams/${team.slug}/`}>
       <TeamBadge team={team} />
     </StyledLink>

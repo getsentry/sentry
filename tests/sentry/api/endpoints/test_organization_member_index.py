@@ -12,22 +12,45 @@ from sentry.models import (
     OrganizationMemberTeam,
 )
 from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.helpers import Feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "eric@localhost",
+            "orgRole": "member",
+            "teamRoles": [{"teamSlug": self.team.slug, "role": None}],
+        }
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+
+    def test_valid_deprecated_fields(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert serializer.is_valid()
 
-    def test_gets_teams_objects(self):
+    def test_gets_team_objects(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        data = {
+            "email": "eric@localhost",
+            "orgRole": "member",
+            "teamRoles": [{"teamSlug": self.team.slug, "role": "admin"}],
+        }
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data["teamRoles"][0] == (self.team, "admin")
+
+    def test_gets_team_objects_with_deprecated_field(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "orgRole": "member", "teams": [self.team.slug]}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert serializer.is_valid()
@@ -35,7 +58,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
     def test_invalid_email(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": self.user.email, "role": "member", "teams": []}
+        data = {"email": self.user.email, "orgRole": "member", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
@@ -43,21 +66,61 @@ class OrganizationMemberSerializerTest(TestCase):
 
     def test_invalid_team_invites(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "eric@localhost", "role": "member", "teams": ["faketeam"]}
+        data = {"email": "eric@localhost", "orgRole": "member", "teams": ["faketeam"]}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
         assert serializer.errors == {"teams": ["Invalid teams"]}
 
-    def test_invalid_role(self):
+    def test_invalid_org_role(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "eric@localhost", "role": "owner", "teams": []}
+        data = {"email": "eric@localhost", "orgRole": "owner", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"role": ["You do not have permission to invite that role."]}
+        assert serializer.errors == {
+            "orgRole": ["You do not have permission to set that org-level role"]
+        }
+
+    def test_deprecated_org_role(self):
+        context = {
+            "organization": self.organization,
+            "allowed_roles": [roles.get("admin"), roles.get("member")],
+        }
+        data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+
+    @with_feature("organizations:team-roles")
+    def test_deprecated_org_role_with_flag(self):
+        context = {
+            "organization": self.organization,
+            "allowed_roles": [roles.get("admin"), roles.get("member")],
+        }
+        data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {"orgRole": ["This org-level role has been deprecated"]}
+
+    def test_invalid_team_role(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "eric@localhost",
+            "orgRole": "member",
+            "teamRoles": [{"teamSlug": self.team.slug, "role": "no-such-team-role"}],
+        }
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "teamRoles": ["You do not have permission to set that team-level role"]
+        }
 
 
 class OrganizationMemberListTestBase(APITestCase):
@@ -73,7 +136,7 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberListTest(OrganizationMemberListTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -210,8 +273,9 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         )
 
         # Two authenticators to ensure the user list is distinct
-        Authenticator.objects.create(user=member_2fa.user, type=1)
-        Authenticator.objects.create(user=member_2fa.user, type=2)
+        with exempt_from_silo_limits():
+            Authenticator.objects.create(user=member_2fa.user, type=1)
+            Authenticator.objects.create(user=member_2fa.user, type=2)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -345,7 +409,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert member.role == "admin"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
     method = "post"
 
@@ -481,7 +545,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     method = "post"
 

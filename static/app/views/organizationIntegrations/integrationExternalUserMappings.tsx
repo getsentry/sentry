@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -18,6 +17,8 @@ import {
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type Props = AsyncComponent['props'] &
   WithRouterProps & {
@@ -157,4 +158,4 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(IntegrationExternalUserMappings));
+export default withSentryRouter(withOrganization(IntegrationExternalUserMappings));

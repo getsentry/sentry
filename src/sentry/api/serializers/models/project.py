@@ -76,7 +76,7 @@ def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int
         return ()
 
     team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
+        organizationmember__user_id=user.id, team__in=team_list
     ).values_list("team", flat=True)
     return set(team_ids)
 
@@ -206,6 +206,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     hasSessions: bool
     hasProfiles: bool
+    hasReplays: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
 
@@ -266,7 +267,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             if user.is_authenticated and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
-                        user=user, project_id__in=project_ids
+                        user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
 
@@ -463,6 +464,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "hasSessions": bool(obj.flags.has_sessions),
             "hasProfiles": bool(obj.flags.has_profiles),
+            "hasReplays": bool(obj.flags.has_replays),
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
@@ -687,6 +689,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             firstTransactionEvent=bool(obj.flags.has_transactions),
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
+            hasReplays=bool(obj.flags.has_replays),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],

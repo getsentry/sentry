@@ -14,11 +14,10 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 function initializeData() {
   const organization = TestStubs.Organization({
-    features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
+    features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -157,22 +156,22 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', function () {
     render(
-      <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={initialData.organization}>
-          <EventsPageContent
-            totalEventCount={totalEventCount}
-            eventView={eventView}
-            organization={initialData.organization}
-            location={initialData.router.location}
-            transactionName={transactionName}
-            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-            onChangeSpanOperationBreakdownFilter={() => {}}
-            eventsDisplayFilterName={EventsDisplayFilterName.p100}
-            onChangeEventsDisplayFilter={() => {}}
-            setError={() => {}}
-          />
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          totalEventCount={totalEventCount}
+          eventView={eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          setError={() => {}}
+          projectId="123"
+          projects={[]}
+        />
+      </OrganizationContext.Provider>,
       {context: initialData.routerContext}
     );
 
@@ -198,23 +197,23 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', function () {
     render(
-      <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={initialData.organization}>
-          <EventsPageContent
-            totalEventCount={totalEventCount}
-            eventView={eventView}
-            organization={initialData.organization}
-            location={initialData.router.location}
-            transactionName={transactionName}
-            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-            onChangeSpanOperationBreakdownFilter={() => {}}
-            eventsDisplayFilterName={EventsDisplayFilterName.p100}
-            onChangeEventsDisplayFilter={() => {}}
-            webVital={WebVital.LCP}
-            setError={() => {}}
-          />
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          totalEventCount={totalEventCount}
+          eventView={eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+          projectId="123"
+          projects={[]}
+        />
+      </OrganizationContext.Provider>,
       {context: initialData.routerContext}
     );
 

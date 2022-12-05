@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from sentry.models import Project
 from sentry.replays.testutils import mock_replay
 from sentry.testutils import ReplaysAcceptanceTestCase
 
@@ -18,6 +19,7 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             organization=self.org,
             teams=[self.team],
             name="Bengal",
+            flags=Project.flags.has_replays,
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 

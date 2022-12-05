@@ -505,7 +505,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             "(column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = ParseError("test")
         with self.feature(self.features):

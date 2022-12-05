@@ -1,12 +1,11 @@
-import {Link} from 'react-router';
-
 import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
+import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {
   generateProfileDetailsRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -17,22 +16,21 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface ProfileHeaderProps {
-  profiles: ProfileGroup | null;
+  transaction: Event | null;
 }
 
-function ProfileHeader({profiles}: ProfileHeaderProps) {
+function ProfileHeader({transaction}: ProfileHeaderProps) {
   const params = useParams();
   const location = useLocation();
   const organization = useOrganization();
   const [profileGroup] = useProfileGroup();
 
-  const transaction = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
+  const transactionName = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
   const profileId = params.eventId ?? '';
   const projectSlug = params.projectId ?? '';
 
-  const transactionId = profiles?.metadata?.transactionID;
-  const transactionTarget = transactionId
-    ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transactionId}`)
+  const transactionTarget = transaction?.id
+    ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
     : null;
 
   function handleGoToTransaction() {
@@ -53,14 +51,14 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
               type: 'profile summary',
               payload: {
                 projectSlug,
-                transaction,
+                transaction: transactionName,
                 query: location.query,
               },
             },
             {
               type: 'flamechart',
               payload: {
-                transaction,
+                transaction: transactionName,
                 profileId,
                 projectSlug,
                 query: location.query,
@@ -72,7 +70,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         {transactionTarget && (
-          <Button onClick={handleGoToTransaction} to={transactionTarget}>
+          <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Transaction')}
           </Button>
         )}

@@ -3,6 +3,7 @@ import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
+import {NODE_ENV, usingCustomerDomain} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
@@ -64,6 +65,28 @@ const ACTIONS: Action[] = [
     },
   },
 ];
+
+// Add a command palette option for opening in production when using dev-ui
+if (NODE_ENV === 'development' && window?.__initialData?.isOnPremise === false) {
+  const customerUrl = new URL(
+    usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
+      ? window.__initialData.customerDomain.organizationUrl
+      : window.__initialData?.links?.sentryUrl
+  );
+
+  ACTIONS.push({
+    title: t('Open in Production'),
+    description: t('Open the current page in sentry.io'),
+    requiresSuperuser: false,
+    action: () => {
+      const url = new URL(window.location.toString());
+      url.host = customerUrl.host;
+      url.protocol = customerUrl.protocol;
+      url.port = '';
+      window.open(url.toString(), '_blank');
+    },
+  });
+}
 
 type Props = {
   children: (props: ChildProps) => React.ReactElement;

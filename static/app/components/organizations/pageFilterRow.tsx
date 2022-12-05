@@ -99,7 +99,7 @@ const Label = styled('div')<{multi: boolean}>`
 
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};
-    color: ${p => (p.multi ? p.theme.blue300 : null)};
+    color: ${p => (p.multi ? p.theme.linkColor : null)};
   }
 `;
 

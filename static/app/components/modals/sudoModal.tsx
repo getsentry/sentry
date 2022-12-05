@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -18,6 +17,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -90,15 +91,11 @@ class SudoModal extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      if (isSuperuser) {
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
         this.handleSuccess();
-      } else {
-        try {
-          await api.requestPromise('/auth/', {method: 'PUT', data});
-          this.handleSuccess();
-        } catch (err) {
-          this.handleError(err);
-        }
+      } catch (err) {
+        this.handleError(err);
       }
     }
   };
@@ -318,7 +315,7 @@ class SudoModal extends Component<Props, State> {
   }
 }
 
-export default withRouter(withApi(SudoModal));
+export default withSentryRouter(withApi(SudoModal));
 export {SudoModal};
 
 const StyledTextBlock = styled(TextBlock)`

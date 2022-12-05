@@ -55,6 +55,10 @@ export type GuideStoreState = {
    */
   orgSlug: string | null;
   /**
+   * Current Organization
+   */
+  organization: Organization | null;
+  /**
    * The previously shown guide
    */
   prevGuide: Guide | null;
@@ -68,6 +72,7 @@ const defaultState: GuideStoreState = {
   currentStep: 0,
   orgId: null,
   orgSlug: null,
+  organization: null,
   forceShow: false,
   prevGuide: null,
 };
@@ -123,6 +128,7 @@ const storeConfig: GuideStoreDefinition = {
   setActiveOrganization(data: Organization) {
     this.state.orgId = data ? data.id : null;
     this.state.orgSlug = data ? data.slug : null;
+    this.state.organization = data ? data : null;
     this.updateCurrentGuide();
   },
 

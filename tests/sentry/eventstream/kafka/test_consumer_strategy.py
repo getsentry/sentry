@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.utils import json
@@ -32,7 +32,7 @@ def get_kafka_payload() -> KafkaPayload:
                     "skip_consume": False,
                 },
             ]
-        ),
+        ).encode(),
         headers=[],
     )
 
@@ -45,7 +45,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
     factory = PostProcessForwarderStrategyFactory(concurrency=2, max_pending_futures=10)
     strategy = factory.create_with_partitions(commit, {partition: 0})
 
-    strategy.submit(Message(partition, 1, get_kafka_payload(), datetime.now()))
+    strategy.submit(Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now())))
     strategy.poll()
 
     # Dispatch can take a while

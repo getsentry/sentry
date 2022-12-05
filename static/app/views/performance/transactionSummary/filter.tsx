@@ -50,11 +50,7 @@ type Props = {
 };
 
 function Filter(props: Props) {
-  const {currentFilter, onChangeFilter, organization} = props;
-
-  if (!organization.features.includes('performance-ops-breakdown')) {
-    return null;
-  }
+  const {currentFilter, onChangeFilter} = props;
 
   const menuOptions = OPTIONS.map(operationName => ({
     value: operationName,

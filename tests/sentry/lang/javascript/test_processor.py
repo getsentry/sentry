@@ -24,6 +24,7 @@ from sentry.lang.javascript.processor import (
     fetch_release_archive_for_url,
     fetch_release_file,
     fetch_sourcemap,
+    fold_function_name,
     generate_module,
     get_function_for_token,
     get_max_age,
@@ -34,7 +35,7 @@ from sentry.lang.javascript.processor import (
 )
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -1105,27 +1106,54 @@ class GenerateModuleTest(unittest.TestCase):
 
 class GetFunctionForTokenTest(unittest.TestCase):
     # There is no point in pulling down `SourceMapCacheToken` and creating a constructor for it.
-    def get_token(self, name):
+    def get_token(self, fn_name, token_name=None):
         class Token:
-            def __init__(self, name):
-                self.function_name = name
+            def __init__(self, fn_name, token_name):
+                self.name = token_name
+                self.function_name = fn_name
 
-        return Token(name)
+        return Token(fn_name, token_name)
+
+    def get_frame(self, frame):
+        processable_frame = ProcessableFrame(frame, 0, None, None, None)
+        processable_frame.data = {"token": None}
+        return processable_frame
 
     def test_valid_name(self):
-        frame = {"function": "original"}
+        frame = self.get_frame({"function": "original"})
         token = self.get_token("lookedup")
         assert get_function_for_token(frame, token) == "lookedup"
 
-    def test_useless_name(self):
-        frame = {"function": "original"}
+    def test_fallback_to_previous_frames_token_if_useless_name(self):
+        previous_frame = self.get_frame({})
+        previous_frame.data["token"] = self.get_token("previous_fn", "previous_name")
+        frame = self.get_frame({"function": None})
         token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "original"
+        assert get_function_for_token(frame, token, previous_frame) == "previous_name"
 
-    def test_useless_name_but_no_original(self):
-        frame = {"function": None}
+    def test_fallback_to_useless_name(self):
+        previous_frame = self.get_frame({"data": {"token": None}})
+        frame = self.get_frame({"function": None})
         token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "__webpack_require__"
+        assert get_function_for_token(frame, token, previous_frame) == "__webpack_require__"
+
+    def test_fallback_to_original_name(self):
+        previous_frame = self.get_frame({"data": {"token": None}})
+        frame = self.get_frame({"function": "original"})
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "original"
+
+
+class FoldFunctionNameTest(unittest.TestCase):
+    def test_dedupe_properties(self):
+        assert fold_function_name("foo") == "foo"
+        assert fold_function_name("foo.foo") == "foo.foo"
+        assert fold_function_name("foo.foo.foo") == "{foo#2}.foo"
+        assert fold_function_name("bar.foo.foo") == "bar.foo.foo"
+        assert fold_function_name("bar.foo.foo.foo") == "bar.{foo#2}.foo"
+        assert fold_function_name("bar.foo.foo.onError") == "bar.{foo#2}.onError"
+        assert fold_function_name("bar.bar.bar.foo.foo.onError") == "{bar#3}.{foo#2}.onError"
+        assert fold_function_name("bar.foo.foo.bar.bar.onError") == "bar.{foo#2}.{bar#2}.onError"
 
 
 class FetchSourcemapTest(TestCase):

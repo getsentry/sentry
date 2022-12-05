@@ -8,7 +8,7 @@ import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
 import {SentrySampledProfile} from './sentrySampledProfile';
-import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
+import {makeSentrySampledProfile} from './sentrySampledProfile.specutil';
 
 describe('importProfile', () => {
   it('imports evented profile', () => {

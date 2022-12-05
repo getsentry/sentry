@@ -215,7 +215,6 @@ function importSentrySampledProfile(
       ),
       environment: input.environment,
       platform: input.platform,
-      version: input.version,
       profileID: input.event_id,
 
       // these don't really work for multiple transactions
@@ -232,7 +231,10 @@ function importSchema(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex('mobile', input.shared.frames);
+  const frameIndex = createFrameIndex(
+    input.metadata.platform === 'node' ? 'node' : 'mobile',
+    input.shared.frames
+  );
 
   return {
     traceID,

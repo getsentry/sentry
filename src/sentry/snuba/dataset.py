@@ -13,6 +13,7 @@ class Dataset(Enum):
     Metrics = "metrics"
     PerformanceMetrics = "generic_metrics"
     Replays = "replays"
+    Profiles = "profiles"
 
 
 @unique

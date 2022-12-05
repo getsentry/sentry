@@ -44,7 +44,8 @@ def get_allowed_org_roles(
     organization: Organization,
     member: OrganizationMember | None = None,
 ) -> Collection[Role]:
-    """Get the set of org-level roles that the request is allowed to manage.
+    """
+    Get the set of org-level roles that the request is allowed to manage.
 
     In order to change another member's role, the returned set must include both
     the starting role and the new role. That is, the set contains the roles that
@@ -58,7 +59,9 @@ def get_allowed_org_roles(
 
     if member is None:
         try:
-            member = OrganizationMember.objects.get(user=request.user, organization=organization)
+            member = OrganizationMember.objects.get(
+                user_id=request.user.id, organization=organization
+            )
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration
             # token whose proxy user does not have an OrganizationMember object.

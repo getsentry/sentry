@@ -138,7 +138,9 @@ export const fields: Record<string, Field> = {
     rows: 1,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
-    help: t('Separate multiple entries with a newline'),
+    help: t(
+      'Examples: https://example.com, *, *.example.com, *:80. Separate multiple entries with a newline'
+    ),
     getValue: val => extractMultilineFields(val),
     setValue: val => convertMultilineFieldValue(val),
   },

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
@@ -70,7 +69,6 @@ export class RenderField extends Component<RenderProps, State> {
       iconType,
       model,
       id: formElementId,
-      error,
     } = this.props;
 
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
@@ -279,10 +277,7 @@ export class RenderField extends Component<RenderProps, State> {
           </AddProjectWrapper>
           <FieldControlWrapper>
             {formElementId && (
-              <div>
-                <FormFieldControlState model={model} name={formElementId} />
-                {error ? <StyledFieldErrorReason>{error}</StyledFieldErrorReason> : null}
-              </div>
+              <FormFieldControlState model={model} name={formElementId} />
             )}
           </FieldControlWrapper>
         </Item>
@@ -413,5 +408,3 @@ const NextButtonWrapper = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-const StyledFieldErrorReason = styled(FieldErrorReason)``;

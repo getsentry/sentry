@@ -1,5 +1,6 @@
-from sentry.utils import redis
-from sentry.utils.locking.backends.redis import RedisLockBackend
-from sentry.utils.locking.manager import LockManager
+from django.conf import settings
 
-locks = LockManager(RedisLockBackend(redis.clusters.get("default")))
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.services import build_instance_from_options
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS))

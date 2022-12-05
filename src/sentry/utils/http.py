@@ -211,3 +211,7 @@ def origin_from_request(request: HttpRequest) -> str | None:
 def percent_encode(val: str) -> str:
     # see https://en.wikipedia.org/wiki/Percent-encoding
     return quote(val).replace("%7E", "~").replace("/", "%2F")
+
+
+def is_using_customer_domain(request: HttpRequest) -> bool:
+    return bool(hasattr(request, "subdomain") and request.subdomain)

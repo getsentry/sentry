@@ -24,8 +24,9 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -54,7 +55,7 @@ class OrganizationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -70,6 +71,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
+        assert "customer-domains" not in response.data["features"]
 
     def test_simple_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}.testserver"
@@ -88,6 +90,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
+        assert "customer-domains" in response.data["features"]
+
+        with self.feature({"organizations:customer-domains": False}):
+            HTTP_HOST = f"{self.organization.slug}.testserver"
+            response = self.get_success_response(
+                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            )
+            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -121,15 +131,18 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             status=ObjectStatus.PENDING_DELETION,
         )
 
-        # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
-
         # make sure options are not cached the first time to get predictable number of database queries
-        options.delete("system.rate-limit")
-        options.delete("store.symbolicate-event-lpq-always")
-        options.delete("store.symbolicate-event-lpq-never")
+        with exempt_from_silo_limits():
+            options.delete("system.rate-limit")
+            options.delete("store.symbolicate-event-lpq-always")
+            options.delete("store.symbolicate-event-lpq-never")
 
-        expected_queries += 3
+        # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            expected_queries = 37
+        else:
+            # In region mode, a number of auth related queries are batched considerably.
+            expected_queries = 36
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -180,7 +193,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
     def test_trusted_relays_info(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        with exempt_from_silo_limits():
+            AuditLogEntry.objects.filter(organization=self.organization).delete()
 
         trusted_relays = [
             {
@@ -223,7 +237,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        with exempt_from_silo_limits():
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True

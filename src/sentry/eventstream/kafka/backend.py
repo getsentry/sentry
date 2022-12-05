@@ -22,10 +22,13 @@ from sentry.eventstream.kafka.postprocessworker import (
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-from sentry.utils import json, kafka, metrics
+from sentry.utils import json, metrics
+from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.kafka_config import (
+    get_kafka_consumer_cluster_options,
+    get_kafka_producer_cluster_options,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +38,18 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.assign_transaction_partitions_randomly = True
+        self.__producers = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
         return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
-        return kafka.producers.get(topic)
+        if topic not in self.__producers:
+            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+            cluster_options = get_kafka_producer_cluster_options(cluster_name)
+            self.__producers[topic] = Producer(cluster_options)
+
+        return self.__producers[topic]
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -244,7 +253,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: Optional[bool],
     ) -> StreamProcessor[KafkaPayload]:
-        configure_metrics(MetricsWrapper(metrics.backend))
+        configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
@@ -327,6 +336,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         def handler(signum, frame):
             consumer.signal_shutdown()
+            for producer in self.__producers.values():
+                producer.flush()
 
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)

@@ -1,9 +1,4 @@
-import type {
-  BarSeriesOption,
-  EChartsOption,
-  LegendComponentOption,
-  LineSeriesOption,
-} from 'echarts';
+import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import moment from 'moment';
 
@@ -139,6 +134,11 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
     return '4h';
+  }
+
+  if (diffInMinutes < SIX_HOURS) {
+    // Less than 6 hours
+    return '5m';
   }
 
   return '1h';
@@ -296,8 +296,8 @@ export function useEchartsAriaLabels(
   {series, useUTC}: Omit<EChartsOption, 'series'>,
   isGroupedByDate: boolean
 ) {
-  const filteredSeries: (LineSeriesOption | BarSeriesOption)[] = Array.isArray(series)
-    ? series.filter(s => !!s.data && s.data.length > 0)
+  const filteredSeries = Array.isArray(series)
+    ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
   const dateFormat = useShortInterval({

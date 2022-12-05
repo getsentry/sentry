@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import first from 'lodash/first';
 
 import Pagination from 'sentry/components/pagination';
 import {PageContent} from 'sentry/styles/organization';
@@ -49,7 +50,7 @@ const GroupReplays = ({group, replayIds}: Props) => {
         isFetching={isFetching}
         replays={replays}
         showProjectColumn={false}
-        sort={eventView.sorts[0]}
+        sort={first(eventView.sorts)}
         fetchError={fetchError}
       />
       <Pagination pageLinks={pageLinks} />

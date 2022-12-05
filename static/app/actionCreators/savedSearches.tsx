@@ -3,7 +3,12 @@ import {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
-import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
+import {
+  RecentSearch,
+  SavedSearch,
+  SavedSearchType,
+  SavedSearchVisibility,
+} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 export function resetSavedSearches() {
@@ -28,17 +33,6 @@ export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedS
     });
 
   return promise;
-}
-
-export function fetchProjectSavedSearches(
-  api: Client,
-  orgSlug: string,
-  projectId: string
-): Promise<SavedSearch[]> {
-  const url = `/projects/${orgSlug}/${projectId}/searches/`;
-  return api.requestPromise(url, {
-    method: 'GET',
-  });
 }
 
 const getRecentSearchUrl = (orgSlug: string): string =>
@@ -85,7 +79,8 @@ export function createSavedSearch(
   orgSlug: string,
   name: string,
   query: string,
-  sort: string | null
+  sort: string | null,
+  visibility: SavedSearchVisibility
 ): Promise<SavedSearch> {
   const promise = api.requestPromise(`/organizations/${orgSlug}/searches/`, {
     method: 'POST',
@@ -94,6 +89,7 @@ export function createSavedSearch(
       query,
       name,
       sort,
+      visibility,
     },
   });
 

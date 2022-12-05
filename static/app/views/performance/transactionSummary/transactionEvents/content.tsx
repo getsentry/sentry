@@ -13,11 +13,12 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
@@ -33,6 +34,8 @@ type Props = {
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
   onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   organization: Organization;
+  projectId: string;
+  projects: Project[];
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalEventCount: string;
@@ -60,10 +63,13 @@ function EventsContent(props: Props) {
     webVital,
     setError,
     totalEventCount,
+    projectId,
+    projects,
   } = props;
   const routes = useRoutes();
   const eventView = originalEventView.clone();
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
+  const project = projects.find(p => p.id === projectId);
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, webVital);
@@ -79,7 +85,10 @@ function EventsContent(props: Props) {
     transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
   }
 
-  if (organization.features.includes('session-replay-ui')) {
+  const showReplayCol =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+
+  if (showReplayCol) {
     transactionsListTitles.push(t('replay'));
   }
 
@@ -95,6 +104,7 @@ function EventsContent(props: Props) {
         setError={setError}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
+        showReplayCol={showReplayCol}
       />
     </Layout.Main>
   );

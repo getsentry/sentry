@@ -9,9 +9,10 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayHighlight from 'sentry/components/replays/replayHighlight';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -31,7 +32,7 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   showProjectColumn: boolean;
-  sort: Sort;
+  sort: Sort | undefined;
   fetchError?: Error;
   showSlowestTxColumn?: boolean;
 };
@@ -54,40 +55,47 @@ function SortableHeader({
   fieldName,
   label,
   sort,
+  tooltip,
 }: {
   fieldName: string;
   label: string;
-  sort: Sort;
+  sort: Props['sort'];
+  tooltip?: string;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
 
-  const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
+  const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
-    <SortLink
-      role="columnheader"
-      aria-sort={
-        sort.field.endsWith(fieldName)
-          ? sort.kind === 'asc'
-            ? 'ascending'
-            : 'descending'
-          : 'none'
-      }
-      to={{
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          sort: sort.field.endsWith(fieldName)
-            ? sort.kind === 'desc'
-              ? fieldName
-              : '-' + fieldName
-            : '-' + fieldName,
-        },
-      }}
-    >
-      {label} {sort.field === fieldName && sortArrow}
-    </SortLink>
+    <Header>
+      <SortLink
+        role="columnheader"
+        aria-sort={
+          sort?.field.endsWith(fieldName)
+            ? sort?.kind === 'asc'
+              ? 'ascending'
+              : 'descending'
+            : 'none'
+        }
+        to={{
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            sort: sort?.field.endsWith(fieldName)
+              ? sort?.kind === 'desc'
+                ? fieldName
+                : '-' + fieldName
+              : '-' + fieldName,
+          },
+        }}
+      >
+        {label} {sort?.field === fieldName && sortArrow}
+      </SortLink>
+      {tooltip ? (
+        <StyledQuestionTooltip size="xs" position="top" title={tooltip} />
+      ) : null}
+    </Header>
   );
 }
 
@@ -119,7 +127,7 @@ function ReplayTable({
     showSlowestTxColumn && minWidthIsSmall && (
       <Header key="slowestTransaction">
         {t('Slowest Transaction')}
-        <QuestionTooltip
+        <StyledQuestionTooltip
           size="xs"
           position="top"
           title={t(
@@ -148,16 +156,15 @@ function ReplayTable({
       fieldName="countErrors"
       label={t('Errors')}
     />,
-    <Header key="activity">
-      {t('Activity')}{' '}
-      <QuestionTooltip
-        size="xs"
-        position="top"
-        title={t(
-          'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
-        )}
-      />
-    </Header>,
+    <SortableHeader
+      key="activity"
+      sort={sort}
+      fieldName="activity"
+      label={t('Activity')}
+      tooltip={t(
+        'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
+      )}
+    />,
   ].filter(Boolean);
 
   if (fetchError && !isFetching) {
@@ -215,6 +222,7 @@ function ReplayTableRow({
   const project = projects.find(p => p.id === replay.projectId);
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
+  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
 
   return (
     <Fragment>
@@ -250,10 +258,16 @@ function ReplayTableRow({
           {hasTxEvent ? (
             <SpanOperationBreakdown>
               {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
-              {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
-                organization,
-                location,
-              })}
+              {spanOperationRelativeBreakdownRenderer(
+                replay.txEvent,
+                {
+                  organization,
+                  location,
+                },
+                {
+                  enableOnClick: false,
+                }
+              )}
             </SpanOperationBreakdown>
           ) : null}
         </Item>
@@ -271,7 +285,12 @@ function ReplayTableRow({
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
       <Item>
-        <ReplayHighlight replay={replay} />
+        <ScoreBar
+          size={20}
+          score={replay?.activity ?? 1}
+          palette={scoreBarPalette}
+          radius={0}
+        />
       </Item>
     </Fragment>
   );
@@ -346,8 +365,11 @@ const StyledAlert = styled(Alert)`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  gap: ${space(0.5)};
   align-items: center;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;
 
 export default ReplayTable;

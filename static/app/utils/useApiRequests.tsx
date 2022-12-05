@@ -236,7 +236,7 @@ function useApiRequests<T extends Record<string, any>>({
 
   const fetchData = useCallback(
     async (extraState: Partial<State<T>> = {}) => {
-      // Nothing to fetch if enpoints are empty
+      // Nothing to fetch if endpoints are empty
       if (!endpoints.length) {
         setState(prevState => ({
           ...prevState,
@@ -288,7 +288,6 @@ function useApiRequests<T extends Record<string, any>>({
     },
     [api, endpoints, handleError, handleRequestSuccess, location]
   );
-
   const reloadData = useCallback(() => fetchData({isReloading: true}), [fetchData]);
 
   const handleMount = useCallback(async () => {

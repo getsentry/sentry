@@ -10,10 +10,7 @@ import {OrganizationContext} from '../organizationContext';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
-  });
-  const organizationWithFlag = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+    features: ['dashboards-basic', 'dashboards-edit'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -257,7 +254,7 @@ describe('Dashboards > Dashboard', () => {
         widgets: [newWidget, issueWidget],
       };
       await act(async () => {
-        mount(mockDashboardWithIssueWidget, organizationWithFlag);
+        mount(mockDashboardWithIssueWidget, organization);
         await tick();
       });
       expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
@@ -269,7 +266,7 @@ describe('Dashboards > Dashboard', () => {
         ...mockDashboard,
         widgets: [{...issueWidget}],
       };
-      mount(mockDashboardWithIssueWidget, organizationWithFlag);
+      mount(mockDashboardWithIssueWidget, organization);
       expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
@@ -340,7 +337,7 @@ describe('Dashboards > Dashboard', () => {
       const testData = initializeOrg({
         ...initializeOrg(),
         organization: {
-          features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+          features: ['dashboards-basic', 'dashboards-edit'],
         },
       });
       const dashboardWithOneWidget = {

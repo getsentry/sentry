@@ -24,7 +24,7 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
-  DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/clients/',
+  DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/platforms/',
   DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/platform-redirect/?next=/',
   DOCUMENTATION_CLI: 'https://docs.sentry.io/product/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/api/',
@@ -172,7 +172,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     <GridPanel>
       <HomePanelHeader>
         <SupportLink icon {...supportLinkProps}>
-          <HomeIconContainer color="purple300">
+          <HomeIconContainer color="activeText">
             <IconSupport size="lg" />
           </HomeIconContainer>
           {t('Support')}
@@ -300,10 +300,10 @@ const HomeIconContainer = styled('div')<{color?: string}>`
 `;
 
 const linkCss = ({theme}: {theme: Theme}) => css`
-  color: ${theme.purple300};
+  color: ${theme.activeText};
 
   &:hover {
-    color: ${theme.purple300};
+    color: ${theme.activeText};
   }
 `;
 

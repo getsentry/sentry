@@ -80,6 +80,10 @@ interface Props
    */
   menuTitle?: string;
   /**
+   * Minimum menu width, in pixels
+   */
+  minMenuWidth?: number;
+  /**
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
@@ -123,6 +127,7 @@ function DropdownMenuControl({
   triggerProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
+  minMenuWidth,
   isSubmenu = false,
   closeRootMenu,
   closeCurrentSubmenu,
@@ -153,7 +158,12 @@ function DropdownMenuControl({
     isDismissable: !isSubmenu && isDismissable,
     shouldCloseOnBlur: !isSubmenu && shouldCloseOnBlur,
     shouldCloseOnInteractOutside: target =>
-      target && triggerRef.current !== target && !triggerRef.current?.contains(target),
+      !isSubmenu &&
+      target &&
+      triggerRef.current !== target &&
+      !triggerRef.current?.contains(target),
+    // Necessary for submenus to be correctly positioned
+    ...(isSubmenu && {preventOverflowOptions: {boundary: document.body}}),
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -236,8 +246,8 @@ function DropdownMenuControl({
         {...props}
         {...menuProps}
         size={size}
-        triggerWidth={triggerWidth}
         isSubmenu={isSubmenu}
+        minWidth={Math.max(minMenuWidth ?? 0, triggerWidth ?? 0)}
         closeRootMenu={closeRootMenu ?? state.close}
         closeCurrentSubmenu={closeCurrentSubmenu}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}

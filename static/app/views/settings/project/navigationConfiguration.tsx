@@ -85,7 +85,8 @@ export default function getConfiguration({
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"
           ),
-          badge: () => 'beta',
+          badge: () =>
+            organization?.features.includes('dynamic-sampling') ? 'new' : 'beta',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,

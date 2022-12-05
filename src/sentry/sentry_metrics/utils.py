@@ -1,6 +1,5 @@
 from typing import Optional, Sequence, Union
 
-from sentry import options
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -12,16 +11,13 @@ STRING_NOT_FOUND = -1
 TAG_NOT_SET = 0
 
 
-class MetricIndexNotFound(InvalidParams):  # type: ignore
+class MetricIndexNotFound(InvalidParams):
     pass
 
 
 def reverse_resolve_tag_value(
     use_case_id: UseCaseKey, org_id: int, index: Union[int, str, None], weak: bool = False
 ) -> Optional[str]:
-    # XXX(markus): Normally there would be a check for the option
-    # "sentry-metrics.performance.tags-values-are-strings", but this function
-    # is sometimes called with metric IDs for reasons I haven't figured out.
     if isinstance(index, str) or index is None:
         return index
     else:
@@ -70,9 +66,7 @@ def resolve(
 def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
     resolved = resolve(use_case_id, org_id, string)
     assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
-    if use_case_id == UseCaseKey.PERFORMANCE and options.get(
-        "sentry-metrics.performance.tags-values-are-strings"
-    ):
+    if use_case_id == UseCaseKey.PERFORMANCE:
         return f"tags_raw[{resolved}]"
     else:
         return f"tags[{resolved}]"
@@ -81,9 +75,7 @@ def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
 def resolve_tag_value(use_case_id: UseCaseKey, org_id: int, string: str) -> Union[str, int]:
     assert isinstance(string, str)
     assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
-    if use_case_id == UseCaseKey.PERFORMANCE and options.get(
-        "sentry-metrics.performance.tags-values-are-strings"
-    ):
+    if use_case_id == UseCaseKey.PERFORMANCE:
         return string
     return resolve_weak(use_case_id, org_id, string)
 

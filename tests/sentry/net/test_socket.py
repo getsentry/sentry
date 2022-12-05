@@ -17,6 +17,17 @@ class SocketTest(TestCase):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("1.1.1.1") is True
 
+    @override_blacklist("::ffff:10.0.0.0/104", "::1/128")
+    def test_is_ipaddress_allowed_ipv6(self):
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::1") is False
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::ffff:10.0.1.2") is False
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::ffff:1.1.1.1") is True
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("2001:db8:a::123") is True
+
     @override_blacklist("10.0.0.0/8", "127.0.0.1")
     @patch("socket.getaddrinfo")
     def test_is_safe_hostname(self, mock_getaddrinfo):

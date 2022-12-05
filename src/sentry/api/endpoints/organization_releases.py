@@ -188,7 +188,7 @@ def debounce_update_release_health_data(organization, project_ids):
                 continue
 
             # Ignore versions that were saved with an empty string before validation was added
-            if version == "":
+            if not Release.is_valid_version(version):
                 continue
 
             # We might have never observed the release.  This for instance can
@@ -475,6 +475,7 @@ class OrganizationReleasesEndpoint(
                             "owner": result.get("owner"),
                             "date_released": result.get("dateReleased"),
                             "status": new_status or ReleaseStatus.OPEN,
+                            "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
                         },
                     )
                 except IntegrityError:

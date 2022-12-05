@@ -22,9 +22,7 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: 'interval', label: 'Interval'},
 ];
 
-const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
-  {value: 'cron_job', label: 'Cron Job'},
-];
+const DEFAULT_MONITOR_TYPE = 'cron_job';
 
 const INTERVALS: SelectValue<string>[] = [
   {value: 'minute', label: 'minute(s)'},
@@ -42,6 +40,7 @@ type Props = {
   projects: Project[];
   selection: PageFilters;
   monitor?: Monitor;
+  submitLabel?: string;
 };
 
 type TransformedData = {
@@ -103,7 +102,7 @@ class MonitorForm extends Component<Props> {
   }
 
   render() {
-    const {monitor} = this.props;
+    const {monitor, submitLabel} = this.props;
     const selectedProjectId = this.props.selection.projects[0];
     const selectedProject = selectedProjectId
       ? this.props.projects.find(p => p.id === selectedProjectId + '')
@@ -121,15 +120,17 @@ class MonitorForm extends Component<Props> {
               monitor
                 ? {
                     name: monitor.name,
-                    type: monitor.type,
+                    type: monitor.type ?? DEFAULT_MONITOR_TYPE,
                     project: monitor.project.slug,
                     ...this.formDataFromConfig(monitor.type, monitor.config),
                   }
                 : {
                     project: selectedProject ? selectedProject.slug : null,
+                    type: DEFAULT_MONITOR_TYPE,
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
+            submitLabel={submitLabel}
           >
             <Panel>
               <PanelHeader>{t('Details')}</PanelHeader>
@@ -149,6 +150,7 @@ class MonitorForm extends Component<Props> {
                   options={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => ({value: p.slug, label: p.slug}))}
+                  help={t('Associate your monitor with the appropriate project.')}
                   required
                 />
                 <TextField
@@ -164,42 +166,22 @@ class MonitorForm extends Component<Props> {
               <PanelHeader>{t('Config')}</PanelHeader>
 
               <PanelBody>
-                <SelectField
-                  name="type"
-                  label={t('Type')}
+                <NumberField
+                  name="config.max_runtime"
+                  label={t('Max Runtime')}
                   disabled={!hasAccess}
-                  options={MONITOR_TYPES}
+                  help={t(
+                    "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
+                  )}
+                  placeholder="e.g. 30"
+                />
+                <SelectField
+                  name="config.schedule_type"
+                  label={t('Schedule Type')}
+                  disabled={!hasAccess}
+                  options={SCHEDULE_TYPES}
                   required
                 />
-                <Observer>
-                  {() => {
-                    switch (this.form.getValue('type')) {
-                      case 'cron_job':
-                        return (
-                          <Fragment>
-                            <NumberField
-                              name="config.max_runtime"
-                              label={t('Max Runtime')}
-                              disabled={!hasAccess}
-                              help={t(
-                                "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
-                              )}
-                              placeholder="e.g. 30"
-                            />
-                            <SelectField
-                              name="config.schedule_type"
-                              label={t('Schedule Type')}
-                              disabled={!hasAccess}
-                              options={SCHEDULE_TYPES}
-                              required
-                            />
-                          </Fragment>
-                        );
-                      default:
-                        return null;
-                    }
-                  }}
-                </Observer>
                 <Observer>
                   {() => {
                     switch (this.form.getValue('config.schedule_type')) {
@@ -238,6 +220,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Frequency')}
                               disabled={!hasAccess}
                               placeholder="e.g. 1"
+                              help={t(
+                                'The amount of intervals that pass between executions of the cron job.'
+                              )}
                               required
                             />
                             <SelectField
@@ -245,6 +230,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Interval')}
                               disabled={!hasAccess}
                               options={INTERVALS}
+                              help={t(
+                                'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
+                              )}
                               required
                             />
                             <NumberField

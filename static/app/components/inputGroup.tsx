@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
-import {FormSize} from 'sentry/utils/theme';
+import {FormSize, Theme} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
@@ -42,7 +44,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
+export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -61,7 +63,9 @@ export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
 
   return (
     <InputGroupContext.Provider value={contextValue}>
-      <InputGroupWrap disabled={inputProps.disabled}>{children}</InputGroupWrap>
+      <InputGroupWrap disabled={inputProps.disabled} {...props}>
+        {children}
+      </InputGroupWrap>
     </InputGroupContext.Provider>
   );
 }
@@ -88,8 +92,29 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-interface InputItemsProps {
-  children?: React.ReactNode;
+export {TextAreaProps};
+export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
+  ({size, disabled, ...props}, ref) => {
+    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+
+    useLayoutEffect(() => {
+      setInputProps?.({size, disabled});
+    }, [size, disabled, setInputProps]);
+
+    return (
+      <StyledTextArea
+        ref={ref}
+        leadingWidth={leadingWidth}
+        trailingWidth={trailingWidth}
+        size={size}
+        disabled={disabled}
+        {...props}
+      />
+    );
+  }
+);
+
+interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Whether to disable pointer events on the leading/trailing item wrap. This
    * should be set to true when none of the items inside the wrap are
@@ -107,7 +132,11 @@ interface InputItemsProps {
  *     <Input />
  *   </InputGroup>
  */
-export function InputLeadingItems({children, disablePointerEvents}: InputItemsProps) {
+export function InputLeadingItems({
+  children,
+  disablePointerEvents,
+  ...props
+}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -127,6 +156,7 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
       data-test-id="input-leading-items"
+      {...props}
     >
       {children}
     </InputLeadingItemsWrap>
@@ -141,7 +171,11 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputTrailingItems({children, disablePointerEvents}: InputItemsProps) {
+export function InputTrailingItems({
+  children,
+  disablePointerEvents,
+  ...props
+}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -161,6 +195,7 @@ export function InputTrailingItems({children, disablePointerEvents}: InputItemsP
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
       data-test-id="input-trailing-items"
+      {...props}
     >
       {children}
     </InputTrailingItemsWrap>
@@ -183,28 +218,41 @@ const InputItemsWrap = styled('div')`
   transform: translateY(-50%);
 `;
 
-const StyledInput = styled(_Input)<{
+interface InputStyleProps {
   leadingWidth?: number;
   size?: FormSize;
   trailingWidth?: number;
-}>`
-  ${p =>
-    p.leadingWidth &&
-    `
-      padding-left: calc(
-        ${p.theme.formPadding[p.size ?? 'md'].paddingLeft}px * 1.5
-        + ${p.leadingWidth}px
-      );
-    `}
+}
 
-  ${p =>
-    p.trailingWidth &&
-    `
-      padding-right: calc(
-        ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.5
-        + ${p.trailingWidth}px
-      );
-    `}
+const getInputStyles = ({
+  leadingWidth,
+  trailingWidth,
+  size,
+  theme,
+}: InputStyleProps & {theme: Theme}) => css`
+  ${leadingWidth &&
+  `
+    padding-left: calc(
+      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
+      + ${leadingWidth}px
+    );
+  `}
+
+  ${trailingWidth &&
+  `
+    padding-right: calc(
+      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
+      + ${trailingWidth}px
+    );
+  `}
+`;
+
+const StyledInput = styled(_Input)<InputStyleProps>`
+  ${getInputStyles}
+`;
+
+const StyledTextArea = styled(_TextArea)<InputStyleProps>`
+  ${getInputStyles}
 `;
 
 const InputLeadingItemsWrap = styled(InputItemsWrap)<{

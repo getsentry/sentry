@@ -3,18 +3,15 @@ import 'intersection-observer'; // polyfill
 import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {AriaTabListProps} from '@react-aria/tabs';
-import {Item} from '@react-stately/collections';
 import {TabListProps, TabListState} from '@react-stately/tabs';
-import {ItemProps, Orientation} from '@react-types/shared';
+import {Orientation} from '@react-types/shared';
 
+import {Item} from './item';
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
-const _Item = Item as (
-  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean}
-) => JSX.Element;
-export {_Item as Item, TabList, TabPanels};
+export {Item, TabList, TabPanels};
 
 export interface TabsProps<T>
   extends Omit<TabListProps<any>, 'children'>,
@@ -57,6 +54,7 @@ export const TabsContext = createContext<TabContext>({
 export function Tabs<T extends React.Key>({
   orientation = 'horizontal',
   className,
+  children,
   ...props
 }: TabsProps<T>) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
@@ -66,7 +64,7 @@ export function Tabs<T extends React.Key>({
       value={{rootProps: {...props, orientation}, tabListState, setTabListState}}
     >
       <TabsWrap orientation={orientation} className={className}>
-        {props.children}
+        {children}
       </TabsWrap>
     </TabsContext.Provider>
   );

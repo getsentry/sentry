@@ -74,11 +74,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               <DateTime dateOnly date={app.datePublished} />
             </StatsSection>
           ) : null}
-          <StatsSection>
+          <StatsSection data-test-id="installs">
             <StatsHeader>{t('Total installs')}</StatsHeader>
             <p>{totalInstalls}</p>
           </StatsSection>
-          <StatsSection>
+          <StatsSection data-test-id="uninstalls">
             <StatsHeader>{t('Total uninstalls')}</StatsHeader>
             <p>{totalUninstalls}</p>
           </StatsSection>

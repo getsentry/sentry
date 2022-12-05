@@ -93,6 +93,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     }[metric_name]
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "query_string,expected",
     [
@@ -173,7 +174,14 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
             'transaction:"/bar/:orgId/"',
             lambda: [
                 Condition(
-                    Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                            [""],
+                            [resolve_tag_value(USE_CASE_ID, ORG_ID, "<< unparameterized >>")],
+                        ],
+                    ),
                     Op.EQ,
                     rhs=resolve_tag_value(USE_CASE_ID, ORG_ID, "/bar/:orgId/"),
                 )
@@ -566,6 +574,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
         )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_orderby(mock_now, mock_now2):
@@ -666,6 +675,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
@@ -1377,8 +1387,19 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     )
                 ],
             ),
@@ -1426,8 +1447,19 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Column(
-                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    Function(
+                        function="transform",
+                        parameters=[
+                            Column(
+                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
+                            ),
+                            [""],
+                            [
+                                resolve_tag_value(
+                                    self.use_case_id, self.org_id, "<< unparameterized >>"
+                                )
+                            ],
+                        ],
                     ),
                     Column(
                         name=resolve_tag_key(self.use_case_id, self.org_id, "platform"),

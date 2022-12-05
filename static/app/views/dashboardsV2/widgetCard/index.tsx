@@ -1,7 +1,6 @@
 import React, {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,6 +30,8 @@ import {
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
@@ -44,9 +45,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  currentWidgetDragging: boolean;
   isEditing: boolean;
-  isSorting: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -67,7 +66,6 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
-  showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -161,7 +159,6 @@ class WidgetCard extends Component<Props, State> {
       onDuplicate,
       onDelete,
       isEditing,
-      showWidgetViewerButton,
       router,
       location,
       index,
@@ -185,7 +182,6 @@ class WidgetCard extends Component<Props, State> {
         onDuplicate={onDuplicate}
         onEdit={onEdit}
         onDelete={onDelete}
-        showWidgetViewerButton={showWidgetViewerButton}
         router={router}
         location={location}
         index={index}
@@ -235,6 +231,7 @@ class WidgetCard extends Component<Props, State> {
       noDashboardsMEPProvider,
       dashboardFilters,
       isWidgetInvalid,
+      location,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -294,6 +291,7 @@ class WidgetCard extends Component<Props, State> {
                 </Fragment>
               ) : noLazyLoad ? (
                 <WidgetCardChartContainer
+                  location={location}
                   api={api}
                   organization={organization}
                   selection={selection}
@@ -308,6 +306,7 @@ class WidgetCard extends Component<Props, State> {
               ) : (
                 <LazyLoad once resize height={200}>
                   <WidgetCardChartContainer
+                    location={location}
                     api={api}
                     organization={organization}
                     selection={selection}
@@ -323,43 +322,44 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            {(organization.features.includes('dashboards-mep') ||
-              organization.features.includes('mep-rollout-flag')) && (
-              <MEPConsumer>
-                {metricSettingContext => {
-                  return (
-                    <DashboardsMEPConsumer>
-                      {({isMetricsData}) => {
-                        if (
-                          showStoredAlert &&
-                          isMetricsData === false &&
-                          widget.widgetType === WidgetType.DISCOVER &&
-                          metricSettingContext &&
-                          metricSettingContext.metricSettingState !==
-                            MEPState.transactionsOnly
-                        ) {
-                          if (!widgetContainsErrorFields) {
-                            return (
-                              <StoredDataAlert showIcon>
-                                {tct(
-                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                  {
-                                    indexedData: (
-                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                    ),
-                                  }
-                                )}
-                              </StoredDataAlert>
-                            );
+            {!organization.features.includes('performance-mep-bannerless-ui') &&
+              (organization.features.includes('dashboards-mep') ||
+                organization.features.includes('mep-rollout-flag')) && (
+                <MEPConsumer>
+                  {metricSettingContext => {
+                    return (
+                      <DashboardsMEPConsumer>
+                        {({isMetricsData}) => {
+                          if (
+                            showStoredAlert &&
+                            isMetricsData === false &&
+                            widget.widgetType === WidgetType.DISCOVER &&
+                            metricSettingContext &&
+                            metricSettingContext.metricSettingState !==
+                              MEPState.transactionsOnly
+                          ) {
+                            if (!widgetContainsErrorFields) {
+                              return (
+                                <StoredDataAlert showIcon>
+                                  {tct(
+                                    "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                    {
+                                      indexedData: (
+                                        <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                      ),
+                                    }
+                                  )}
+                                </StoredDataAlert>
+                              );
+                            }
                           }
-                        }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
-                  );
-                }}
-              </MEPConsumer>
-            )}
+                          return null;
+                        }}
+                      </DashboardsMEPConsumer>
+                    );
+                  }}
+                </MEPConsumer>
+              )}
           </React.Fragment>
         )}
       </ErrorBoundary>
@@ -367,7 +367,7 @@ class WidgetCard extends Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));
+export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
@@ -408,7 +408,7 @@ const ToolbarPanel = styled('div')`
   align-items: flex-start;
 
   background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
 `;
 
 const IconContainer = styled('div')`

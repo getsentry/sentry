@@ -8,11 +8,9 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.models import ReleaseProjectEnvironment
-from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import BaseMetricsTestCase
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -2173,39 +2171,3 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
                 "series": {"sum(session)": [5]},
             },
         ]
-
-
-@patch(
-    "sentry.api.endpoints.organization_sessions.release_health",
-    DuplexReleaseHealthBackend(datetime.datetime(2022, 4, 28, 16, 0, tzinfo=datetime.timezone.utc)),
-)
-class DuplexTestCase(BaseMetricsTestCase, APITestCase):
-    """Tests specific to the duplex backend"""
-
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")
-
-    @freeze_time(MOCK_DATETIME)
-    def test_invalid_params(self):
-        """InvalidParams in metrics backend leads to 400 response when return-metrics is enabled"""
-        self.create_project()
-        with Feature("organizations:release-health-return-metrics"):
-            response = self.do_request(
-                {
-                    "project": [-1],
-                    "statsPeriod": ["24h"],
-                    "interval": ["1h"],
-                    "field": ["crash_rate(session)"],
-                    "groupBy": ["session.status"],  # Cannot group crash rate by session status
-                }
-            )
-
-            assert response.status_code == 400
-            assert response.data == {
-                "detail": "Cannot group field crash_rate(session) by session.status"
-            }

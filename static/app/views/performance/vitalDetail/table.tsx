@@ -301,7 +301,7 @@ class Table extends Component<Props, State> {
           const star = (
             <IconStar
               key="keyTransaction"
-              color="yellow300"
+              color="yellow400"
               isSolid
               data-test-id="key-transaction-header"
             />

@@ -17,6 +17,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -26,7 +27,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -260,14 +261,14 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, organization} = this.props;
     const {project: projectId} = location.query;
 
-    return fetchTagValues(
-      this.api,
-      organization.slug,
-      key,
+    return fetchTagValues({
+      api: this.api,
+      orgSlug: organization.slug,
+      tagKey: key,
       search,
-      projectId ? [projectId] : null,
-      location.query
-    );
+      projectIds: projectId ? [projectId] : undefined,
+      endpointParams: location.query,
+    });
   };
 
   getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
@@ -524,7 +525,19 @@ class ReleasesList extends AsyncView<Props, State> {
         <PageContent>
           <NoProjectMessage organization={organization}>
             <PageHeader>
-              <PageHeading>{t('Releases')}</PageHeading>
+              <PageHeading>
+                {t('Releases')}
+                <PageHeadingQuestionTooltip
+                  title={tct(
+                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more. [link: Read the docs].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/releases/" />
+                      ),
+                    }
+                  )}
+                />
+              </PageHeading>
             </PageHeader>
 
             {this.renderHealthCta()}

@@ -14,7 +14,11 @@ export class VirtualizedTree<T extends TreeLike> {
   // Rebuilds the tree
   static fromRoots<T extends TreeLike>(
     items: T[],
+    expanded?: boolean,
     skipFn: (n: VirtualizedTreeNode<T>) => boolean = () => false,
+    // If we are selecting a sub-root of the tree and the user
+    // has previously expended some of the children, we use this
+    // to carry-them over and preserver their state.
     expandedNodes?: Set<T>
   ): VirtualizedTree<T> {
     const roots: VirtualizedTreeNode<T>[] = [];
@@ -25,11 +29,13 @@ export class VirtualizedTree<T extends TreeLike> {
       collection: VirtualizedTreeNode<T>[] | null,
       depth: number
     ) {
+      const shouldUseExpandedSet = expandedNodes && expandedNodes.size > 0;
+
       const treeNode = new VirtualizedTreeNode<T>(
         node,
         parent,
         depth,
-        expandedNodes ? expandedNodes.has(node) : false
+        shouldUseExpandedSet ? expandedNodes.has(node) : expanded
       );
 
       // We cannot skip root nodes, so we check that the parent is not null.
@@ -81,6 +87,44 @@ export class VirtualizedTree<T extends TreeLike> {
     }
 
     return list;
+  }
+
+  findNode(matcher: (item: T) => boolean): VirtualizedTreeNode<T> | null {
+    const queue = [...this.roots];
+
+    while (queue.length) {
+      const candidate = queue.pop()!;
+
+      if (candidate && matcher(candidate.node)) {
+        return candidate;
+      }
+
+      for (let i = 0; i < candidate.children.length; i++) {
+        queue.push(candidate.children[i]);
+      }
+    }
+
+    return null;
+  }
+
+  expandToNode(matcher: (item: T) => boolean) {
+    // When scrollTo is called, we need to first find a few things
+    // - does the element exist in the tree
+    // - if it does, what is the index of the element
+    // - if it exists, is it visible?
+    //   - if it is visible, scroll to it
+    //   - if it is not visible, expand its parents and scroll to it
+    const node = this.findNode(matcher);
+
+    if (!node) {
+      return;
+    }
+
+    let path: VirtualizedTreeNode<T> | null = node.parent;
+    while (path && !path.expanded) {
+      this.expandNode(path, true);
+      path = path.parent;
+    }
   }
 
   expandNode(

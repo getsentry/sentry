@@ -46,6 +46,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -55,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {MetricsBaselineContainer} from './metricsBaselineContainer';
+import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -80,6 +81,7 @@ type State = {
   eventView: EventView;
   needConfirmation: boolean;
   showTags: boolean;
+  tips: string[];
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
@@ -125,6 +127,7 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    tips: [],
   };
 
   componentDidMount() {
@@ -153,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -171,7 +174,6 @@ export class Results extends Component<Props, State> {
         yAxisArray
       )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
@@ -244,6 +246,7 @@ export class Results extends Component<Props, State> {
     this.setState({needConfirmation, confirmedQuery}, () => {
       this.setState({confirmedQuery: false});
     });
+
     if (needConfirmation) {
       this.openConfirm();
     }
@@ -295,7 +298,14 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const isReplayEnabled = organization.features.includes('session-replay-ui');
+    const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
+      fields: isReplayEnabled
+        ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
+        : DEFAULT_EVENT_VIEW.fields,
+    });
+
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -512,7 +522,11 @@ export class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    if (this.state.showMetricsAlert) {
+    const {organization} = this.props;
+    if (
+      !organization.features.includes('performance-mep-bannerless-ui') &&
+      this.state.showMetricsAlert
+    ) {
       return (
         <Alert type="info" showIcon>
           {t(
@@ -534,6 +548,18 @@ export class Results extends Component<Props, State> {
           )}
         </Alert>
       );
+    }
+    return null;
+  }
+
+  renderTips() {
+    const {tips} = this.state;
+    if (tips) {
+      return tips.map((tip, index) => (
+        <Alert type="info" showIcon key={`tip-${index}`}>
+          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+        </Alert>
+      ));
     }
     return null;
   }
@@ -583,6 +609,7 @@ export class Results extends Component<Props, State> {
                 <Top fullWidth>
                   {this.renderMetricsFallbackBanner()}
                   {this.renderError(error)}
+                  {this.renderTips()}
                   <StyledPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
@@ -606,7 +633,7 @@ export class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsBaselineContainer
+                    <ResultsChart
                       api={api}
                       router={router}
                       organization={organization}
@@ -634,6 +661,7 @@ export class Results extends Component<Props, State> {
                     confirmedQuery={confirmedQuery}
                     onCursor={this.handleCursor}
                     isHomepage={isHomepage}
+                    setTips={(tips: string[]) => this.setState({tips})}
                   />
                 </Layout.Main>
                 {showTags ? this.renderTagsTable() : null}
@@ -684,6 +712,12 @@ const StyledSearchBar = styled(SearchBar)`
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
+`;
+
+const TipContainer = styled('span')`
+  > p {
+    margin: 0;
+  }
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {

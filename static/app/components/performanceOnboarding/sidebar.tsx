@@ -8,6 +8,8 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
@@ -24,11 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
-import OnBoardingStep from './step';
-import usePerformanceOnboardingDocs, {
-  generateOnboardingDocKeys,
-} from './usePerformanceOnboardingDocs';
-import {filterProjects} from './utils';
+import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -181,16 +179,20 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     }
   }, [previousProject.id, currentProject.id]);
 
-  const {docContents, isLoading, hasOnboardingContents} =
-    usePerformanceOnboardingDocs(currentProject);
+  const currentPlatform = currentProject.platform
+    ? platforms.find(p => p.id === currentProject.platform)
+    : undefined;
+
+  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
+    project: currentProject,
+    docKeys,
+    isPlatformSupported: isPlatformSupported(currentPlatform),
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
-  const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
 
   const doesNotSupportPerformance = currentProject.platform
     ? withoutPerformanceSupport.has(currentProject.platform)
@@ -236,8 +238,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const docKeys = generateOnboardingDocKeys(currentPlatform.id);
-
   return (
     <Fragment>
       <div>
@@ -249,7 +249,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       {docKeys.map((docKey, index) => {
         let footer: React.ReactNode = null;
 
-        if (index === 2) {
+        if (index === docKeys.length - 1) {
           footer = (
             <EventWaiter
               api={api}
@@ -266,10 +266,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         }
         return (
           <div key={index}>
-            <OnBoardingStep
-              docKey={docKey}
-              project={currentProject}
+            <OnboardingStep
               docContent={docContents[docKey]}
+              docKey={docKey}
+              prefix="perf"
+              project={currentProject}
             />
             {footer}
           </div>
@@ -301,7 +302,7 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
@@ -330,7 +331,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -343,7 +344,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.successText};
 `;
 
 export default PerformanceOnboardingSidebar;

@@ -2,8 +2,10 @@ from django.core import mail
 
 from sentry.models import OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class SendRequestEmailTest(TestCase):
     def test_sends_email_to_everyone(self):
         owner = self.create_user("owner@example.com")

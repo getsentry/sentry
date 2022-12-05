@@ -6,10 +6,13 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@region_silo_test(stable=True)
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
@@ -83,6 +86,7 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
+@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -92,6 +96,7 @@ class GetParticipantsTest(TestCase):
         self.user = self.create_user()
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.update_user_settings_always()
+        self.user = user_service.serialize_user(self.user)
 
     def update_user_settings_always(self):
         NotificationSetting.objects.update_settings(
@@ -159,7 +164,7 @@ class GetParticipantsTest(TestCase):
 
         # unsubscribed
         GroupSubscription.objects.create(
-            user=self.user, group=group, project=project, is_active=False
+            user_id=self.user.id, group=group, project=project, is_active=False
         )
 
         users = GroupSubscription.objects.get_participants(group=group)
@@ -167,7 +172,7 @@ class GetParticipantsTest(TestCase):
         assert users == {}
 
         # not participating by default
-        GroupSubscription.objects.filter(user=self.user, group=group).delete()
+        GroupSubscription.objects.filter(user_id=self.user.id, group=group).delete()
 
         self.update_user_setting_subscribe_only()
 
@@ -177,7 +182,7 @@ class GetParticipantsTest(TestCase):
 
         # explicitly participating
         GroupSubscription.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             group=group,
             project=project,
             is_active=True,
@@ -222,7 +227,7 @@ class GetParticipantsTest(TestCase):
         # Explicit subscription, overridden by the global option.
 
         GroupSubscription.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             group=self.group,
             project=self.project,
             is_active=True,
@@ -317,7 +322,7 @@ class GetParticipantsTest(TestCase):
             },
         ):
             subscription = GroupSubscription.objects.create(
-                user=self.user,
+                user_id=self.user.id,
                 group=self.group,
                 project=self.project,
                 is_active=True,
@@ -339,7 +344,7 @@ class GetParticipantsTest(TestCase):
             },
         ):
             subscription = GroupSubscription.objects.create(
-                user=self.user,
+                user_id=self.user.id,
                 group=self.group,
                 project=self.project,
                 is_active=True,
@@ -363,7 +368,7 @@ class GetParticipantsTest(TestCase):
             },
         ):
             subscription = GroupSubscription.objects.create(
-                user=self.user,
+                user_id=self.user.id,
                 group=self.group,
                 project=self.project,
                 is_active=True,
@@ -385,7 +390,7 @@ class GetParticipantsTest(TestCase):
             },
         ):
             subscription = GroupSubscription.objects.create(
-                user=self.user,
+                user_id=self.user.id,
                 group=self.group,
                 project=self.project,
                 is_active=True,

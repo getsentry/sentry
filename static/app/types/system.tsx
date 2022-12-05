@@ -106,15 +106,25 @@ declare global {
     csrfCookieName?: string;
     sentryEmbedCallback?: ((embed: any) => void) | null;
     /**
+     * The domain of which the superuser cookie is set onto.
+     */
+    superUserCookieDomain?: string;
+    /**
      * The superuser cookie used on the backend
      */
     superUserCookieName?: string;
   }
 }
 
+interface CustomerDomain {
+  organizationUrl: string | undefined;
+  sentryUrl: string;
+  subdomain: string;
+}
 export interface Config {
   apmSampling: number;
   csrfCookieName: string;
+  customerDomain: CustomerDomain | null;
   demoMode: boolean;
   disableU2FForSUForm: boolean;
   distPrefix: string;
@@ -148,6 +158,7 @@ export interface Config {
     whitelistUrls: string[];
   };
   singleOrganization: boolean;
+  superUserCookieDomain: string | null;
   superUserCookieName: string;
   supportEmail: string;
   termsUrl: string | null;

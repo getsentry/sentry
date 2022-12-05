@@ -1,8 +1,15 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
+import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorCheckIns from './monitorCheckIns';
@@ -13,13 +20,19 @@ import MonitorOnboarding from './onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
+  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+    organization: Organization;
+  };
 
 type State = AsyncView['state'] & {
   monitor: Monitor | null;
 };
 
 class MonitorDetails extends AsyncView<Props, State> {
+  get orgSlug() {
+    return this.props.organization.slug;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
@@ -27,9 +40,9 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getTitle() {
     if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.props.params.orgId}`;
+      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
     }
-    return `Monitors - ${this.props.params.orgId}`;
+    return `Monitors - ${this.orgSlug}`;
   }
 
   onUpdate = (data: Monitor) =>
@@ -44,26 +57,33 @@ class MonitorDetails extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        <MonitorHeader
-          monitor={monitor}
-          orgId={this.props.params.orgId}
-          onUpdate={this.onUpdate}
-        />
+        <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
 
-        {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
+            <StyledPageFilterBar condensed>
+              <DatePageFilter alignDropdown="left" />
+            </StyledPageFilterBar>
 
-        <MonitorStats monitor={monitor} />
+            <MonitorStats monitor={monitor} />
 
-        <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
+            <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
-        <Panel>
-          <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
+            <Panel>
+              <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-          <MonitorCheckIns monitor={monitor} />
-        </Panel>
+              <MonitorCheckIns monitor={monitor} />
+            </Panel>
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
 
-export default MonitorDetails;
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
+`;
+
+export default withOrganization(MonitorDetails);

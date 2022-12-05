@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
@@ -41,6 +41,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FeatureBadge from '../featureBadge';
 
@@ -242,6 +244,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     const projectId = project.slug;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
 
+    // Evenly split style between distributions and bars for AB testing
+    const tagFacetsStyle =
+      parseInt(MD5(organization.id).toString().substring(0, 6), 36) % 2 === 0
+        ? 'distributions'
+        : 'bars';
+
     return (
       <Container>
         {!hasIssueActionsV2 && (
@@ -250,32 +258,35 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
-        <Feature
-          organization={organization}
-          features={['issue-details-tag-improvements']}
-        >
-          {isMobilePlatform(project.platform) && (
-            <TagFacets
-              environments={environments}
-              groupId={group.id}
-              tagKeys={MOBILE_TAGS}
-              event={event}
-              title={
-                <Fragment>
-                  {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
-                </Fragment>
-              }
-              tagFormatter={MOBILE_TAGS_FORMATTER}
-            />
-          )}
-        </Feature>
-
         <Feature organization={organization} features={['issue-details-owners']}>
           <OwnedBy group={group} project={project} organization={organization} />
           <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
         </Feature>
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
+
+        <Feature
+          organization={organization}
+          features={['issue-details-tag-improvements']}
+        >
+          {isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1') && (
+              <TagFacets
+                environments={environments}
+                groupId={group.id}
+                tagKeys={MOBILE_TAGS}
+                event={event}
+                title={
+                  <div>
+                    {t('Most Impacted Tags')} <FeatureBadge type="beta" />
+                  </div>
+                }
+                tagFormatter={MOBILE_TAGS_FORMATTER}
+                style={tagFacetsStyle}
+                project={project}
+              />
+            )}
+        </Feature>
 
         <GroupReleaseStats
           organization={organization}
@@ -298,47 +309,65 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection.Wrap>
-          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-          <SidebarSection.Content>
-            {!tagsWithTopValues ? (
-              <TagPlaceholders>
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-              </TagPlaceholders>
-            ) : (
-              group.tags.map(tag => {
-                const tagWithTopValues = tagsWithTopValues[tag.key];
-                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                const topValuesTotal = tagWithTopValues
-                  ? tagWithTopValues.totalValues
-                  : 0;
+        {(!organization.features.includes('issue-details-tag-improvements') ||
+          !(
+            isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1')
+          )) && (
+          <SidebarSection.Wrap>
+            <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+            <SidebarSection.Content>
+              {!tagsWithTopValues ? (
+                <TagPlaceholders>
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                </TagPlaceholders>
+              ) : (
+                group.tags.map(tag => {
+                  const tagWithTopValues = tagsWithTopValues[tag.key];
+                  const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                  const topValuesTotal = tagWithTopValues
+                    ? tagWithTopValues.totalValues
+                    : 0;
 
-                return (
-                  <GroupTagDistributionMeter
-                    key={tag.key}
-                    tag={tag.key}
-                    totalValues={topValuesTotal}
-                    topValues={topValues}
-                    name={tag.name}
-                    organization={organization}
-                    projectId={projectId}
-                    group={group}
-                  />
-                );
-              })
-            )}
-            {group.tags.length === 0 && (
-              <p data-test-id="no-tags">
-                {environments.length
-                  ? t('No tags found in the selected environments')
-                  : t('No tags found')}
-              </p>
-            )}
-          </SidebarSection.Content>
-        </SidebarSection.Wrap>
+                  return (
+                    <GroupTagDistributionMeter
+                      key={tag.key}
+                      tag={tag.key}
+                      totalValues={topValuesTotal}
+                      topValues={topValues}
+                      name={tag.name}
+                      organization={organization}
+                      projectId={projectId}
+                      group={group}
+                      onTagClick={(title, value) => {
+                        trackAdvancedAnalyticsEvent(
+                          'issue_group_details.tags_distribution.bar.clicked',
+                          {
+                            tag: title,
+                            value: value.name,
+                            platform: project.platform,
+                            is_mobile: isMobilePlatform(project?.platform),
+                            organization,
+                          }
+                        );
+                      }}
+                    />
+                  );
+                })
+              )}
+              {group.tags.length === 0 && (
+                <p data-test-id="no-tags">
+                  {environments.length
+                    ? t('No tags found in the selected environments')
+                    : t('No tags found')}
+                </p>
+              )}
+            </SidebarSection.Content>
+          </SidebarSection.Wrap>
+        )}
 
         {this.renderParticipantData()}
         {hasIssueActionsV2 && this.renderSeenByList()}
@@ -376,6 +405,6 @@ const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
 `;
 
-const GroupSidebar = withApi(withRouter(BaseGroupSidebar));
+const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));
 
 export default GroupSidebar;

@@ -12,6 +12,7 @@ __all__ = (
     "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
+    "FILTERABLE_TAGS",
     "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
@@ -83,7 +84,6 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
-    "transform_null_to_unparameterized",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -197,6 +197,14 @@ FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
 NON_RESOLVABLE_TAG_VALUES = (
     {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
 )
+FILTERABLE_TAGS = {
+    "tags[environment]",
+    "tags[transaction]",
+    "tags[transaction.op]",
+    "tags[transaction.status]",
+    "tags[browser.name]",
+    "tags[os.name]",
+}
 
 
 class Tag(TypedDict):
