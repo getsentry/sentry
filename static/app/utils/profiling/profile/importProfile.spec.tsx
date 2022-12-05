@@ -92,22 +92,6 @@ describe('importProfile', () => {
     const imported = importProfile(typescriptProfile, '');
     expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
-  it('imports a nodejs profile', () => {
-    const nodeProfile: Profiling.NodeProfile = {
-      name: 'profile',
-      startValue: 0,
-      endValue: 1000,
-      threadID: 0,
-      unit: 'milliseconds',
-      type: 'sampled',
-      weights: [],
-      samples: [],
-      frames: [],
-    };
-
-    const imported = importProfile([nodeProfile, {}], '');
-    expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
