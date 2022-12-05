@@ -72,8 +72,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
         inbox_details = get_inbox_details([Group(id=int(g["id"])) for g in response.data])
         for group in response.data:
-            if int(group["id"]) in inbox_details:
-                group["inbox"] = inbox_details[int(group["id"])]
+            group["inbox"] = inbox_details.get(int(group["id"]))
 
         response["Endpoint"] = data["endpoint"]
         return response
