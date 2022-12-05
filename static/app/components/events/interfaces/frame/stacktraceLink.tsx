@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -46,12 +46,7 @@ interface StacktraceLinkSetupProps {
 
 function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
   const api = useApi();
-  const [promptDismissed, setPromptDismissed] = useState(false);
   const queryClient = useQueryClient();
-
-  if (promptDismissed) {
-    return null;
-  }
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
@@ -62,6 +57,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
     });
 
     // Update cached query data
+    // Will set prompt to dismissed
     queryClient.setQueryData<PromptResponse>(
       makePromptsCheckQueryKey({
         feature: 'stacktrace_link',
@@ -82,8 +78,6 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       organization,
       ...getAnalyicsDataForEvent(event),
     });
-
-    setPromptDismissed(true);
   };
 
   return (
@@ -117,7 +111,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
-  const prompt = usePromptsCheck('stacktrace_link', organization.id, project?.id);
+  const prompt = usePromptsCheck({
+    feature: 'stacktrace_link',
+    organizationId: organization.id,
+    projectId: project?.id,
+  });
   const isPromptDismissed =
     prompt.isSuccess && prompt.data.data
       ? promptIsDismissed({

@@ -82,7 +82,10 @@ describe('StacktraceLink', function () {
     ).toBeInTheDocument();
 
     userEvent.click(screen.getByRole('button'));
-    expect(container).toBeEmptyDOMElement();
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
 
     expect(dismissPrompt).toHaveBeenCalledWith(
       `/prompts-activity/`,
