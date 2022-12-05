@@ -478,7 +478,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule} = this.state;
     this.setState({sendingNotification: true});
-    addLoadingMessage(t('Sending a test notification...'));
+    const plural = rule?.actions && rule.actions.length > 1;
+    addLoadingMessage(
+      plural ? t('Sending test notifications...') : t('Sending a test notification...')
+    );
     this.api
       .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
         method: 'POST',
@@ -487,10 +490,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(() => {
-        addSuccessMessage(t('Notification sent!'));
+        addSuccessMessage(plural ? t('Notifications sent!') : t('Notification sent!'));
       })
       .catch(() => {
-        addErrorMessage(t('Notification failed'));
+        addErrorMessage(plural ? t('Notifications failed') : t('Notification failed'));
       })
       .finally(() => {
         this.setState({sendingNotification: false});
