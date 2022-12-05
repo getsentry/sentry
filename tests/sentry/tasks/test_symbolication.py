@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import (
@@ -88,6 +89,12 @@ def mock_should_demote_symbolication():
 @pytest.fixture
 def mock_submit_symbolicate():
     with mock.patch("sentry.tasks.symbolication.submit_symbolicate", wraps=submit_symbolicate) as m:
+        yield m
+
+
+@pytest.fixture
+def mock_manager_save():
+    with mock.patch("sentry.event_manager.EventManager.save") as m:
         yield m
 
 
@@ -223,7 +230,7 @@ def test_should_demote_symbolication_always_and_never(default_project):
 
 @pytest.mark.django_db
 def test_submit_symbolicate_queue_switch(
-    default_project, mock_should_demote_symbolication, mock_submit_symbolicate
+    default_project, mock_should_demote_symbolication, mock_submit_symbolicate, mock_manager_save
 ):
     data = {
         "project": default_project.id,
@@ -232,17 +239,18 @@ def test_submit_symbolicate_queue_switch(
         "event_id": EVENT_ID,
         "extra": {"foo": "bar"},
     }
-
+    cache_key = event_processing_store.store(data)
     is_low_priority = mock_should_demote_symbolication(default_project.id)
     assert is_low_priority
-
+    mock_manager_save.return_value = None
     with TaskRunner():
         mock_submit_symbolicate(
             is_low_priority=is_low_priority,
             from_reprocessing=False,
-            cache_key="e:1",
+            cache_key=cache_key,
             event_id=EVENT_ID,
             start_time=0,
             data=data,
         )
+        event_processing_store.delete(data)
     assert mock_submit_symbolicate.call_count == 4
