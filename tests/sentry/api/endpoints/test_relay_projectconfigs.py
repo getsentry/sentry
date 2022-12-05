@@ -183,7 +183,7 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
         dynamic_sampling = safe.get_path(
             result, "configs", str(default_project.id), "config", "dynamicSampling"
         )
-        assert dynamic_sampling == dyn_sampling_data()
+        assert dynamic_sampling is None
 
 
 @pytest.mark.django_db

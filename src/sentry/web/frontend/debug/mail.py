@@ -158,7 +158,7 @@ def make_group_generator(random, project):
         yield group
 
 
-def make_event(request, project, platform):
+def make_error_event(request, project, platform):
     group = next(make_group_generator(get_random(request), project))
 
     data = dict(load_data(platform))
@@ -346,12 +346,26 @@ class ActivityMailDebugView(View):
     def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
-        platform = request.GET.get("platform", "python")
-        event = make_event(request, project, platform)
 
-        activity = Activity(
-            group=event.group, project=event.project, **self.get_activity(request, event)
+        group = next(make_group_generator(get_random(request), project))
+
+        data = dict(load_data("python"))
+        data["message"] = group.message
+        data.pop("logentry", None)
+
+        event_manager = EventManager(data)
+        event_manager.normalize()
+        data = event_manager.get_data()
+        event_type = get_event_type(data)
+
+        event = eventstore.create_event(
+            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
+
+        group.message = event.search_message
+        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+
+        activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
@@ -364,14 +378,20 @@ class ActivityMailDebugView(View):
 
 @login_required
 def alert(request):
+    random = get_random(request)
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
 
-    event = make_event(request, project, platform)
+    event = make_error_event(request, project, platform)
     group = event.group
 
     rule = Rule(id=1, label="An example rule")
+    notification_reason = (
+        random.randint(0, 1) > 0
+        and f"We notified all members in the {project.get_full_name()} project of this issue"
+        or None
+    )
 
     return MailPreview(
         html_template="sentry/emails/error.html",
@@ -381,6 +401,8 @@ def alert(request):
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
+            "environment": random.randint(0, 1) > 0 and "prod" or None,
+            "notification_reason": notification_reason,
         },
     ).render(request)
 
@@ -391,7 +413,7 @@ def release_alert(request):
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
 
-    event = make_event(request, project, platform)
+    event = make_error_event(request, project, platform)
     group = event.group
 
     rule = Rule(id=1, label="An example rule")
