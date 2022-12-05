@@ -13,6 +13,7 @@ from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.utils import RuleType
+from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_KEY_TRANSACTIONS = 10
@@ -88,7 +89,12 @@ class DiscoverSavedQuery(Model):
 class TeamKeyTransactionModelManager(BaseManager):
     @staticmethod
     def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
-        project = getattr(instance.project_team, "project", None)
+        try:
+            project = getattr(instance.project_team, "project", None)
+        except ProjectTeam.DoesNotExist:
+            # During org deletions TeamKeyTransactions are cleaned up as a cascade
+            # of ProjectTeam being deleted so this read can fail.
+            return
 
         if project is None:
             return
