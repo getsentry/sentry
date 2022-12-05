@@ -166,25 +166,26 @@ def get_features_for_projects(
 
 
 def format_options(attrs: defaultdict(dict)):
+    options = attrs["options"]
     return {
         "sentry:csp_ignored_sources_defaults": bool(
-            attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
+            options.get("sentry:csp_ignored_sources_defaults", True)
         ),
         "sentry:csp_ignored_sources": "\n".join(
-            attrs["options"].get("sentry:csp_ignored_sources", []) or []
+            options.get("sentry:csp_ignored_sources", []) or []
         ),
-        "sentry:reprocessing_active": bool(attrs.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_creation_rate": attrs["options"].get(
+        "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
+        "sentry:performance_issue_creation_rate": options.get(
             "sentry:performance_issue_creation_rate"
         ),
-        "filters:blacklisted_ips": "\n".join(attrs["options"].get("sentry:blacklisted_ips", [])),
+        "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
-            attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
+            options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
         f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-            attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
-        "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
+        "feedback:branding": options.get("feedback:branding", "1") == "1",
     }
 
 
