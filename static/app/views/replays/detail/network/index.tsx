@@ -299,7 +299,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           size="sm"
           onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
-          isDisabled={!networkSpans}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
@@ -312,14 +312,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
-          isDisabled={!networkSpans}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
           placeholder={t('Search Network Requests')}
           query={searchTerm}
-          disabled={!networkSpans}
+          disabled={!networkSpans || !networkSpans.length}
         />
       </NetworkFilters>
 

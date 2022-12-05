@@ -133,14 +133,14 @@ function DomMutations({replay}: Props) {
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={filteredTypes}
-          isDisabled={!replay}
+          isDisabled={!replay || !actions.length}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
           placeholder={t('Search DOM Events')}
           query={searchTerm}
-          disabled={!replay}
+          disabled={!replay || !actions.length}
         />
       </MutationFilters>
       <MutationList>

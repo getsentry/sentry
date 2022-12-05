@@ -45,14 +45,14 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
-          isDisabled={!breadcrumbs}
+          isDisabled={!breadcrumbs || !breadcrumbs.length}
         />
         <SearchBar
           onChange={setSearchTerm}
           placeholder={t('Search Logs')}
           size="sm"
           query={searchTerm}
-          disabled={!breadcrumbs}
+          disabled={!breadcrumbs || !breadcrumbs.length}
         />
       </ConsoleFilters>
       <ConsoleMessageContainer ref={containerRef}>
