@@ -211,8 +211,8 @@ class GitHubAppsClientTest(TestCase):
         assert resp == []
 
     @responses.activate
-    def test_get_cached_repo_files(self):
-        """Fetch files for repo"""
+    def test_get_cached_repo_files_caching_functionality(self):
+        """Fetch files for repo. Test caching logic."""
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
@@ -220,7 +220,6 @@ class GitHubAppsClientTest(TestCase):
             json={"tree": [{"path": "src/foo.py", "type": "blob"}], "truncated": False},
         )
         repo_key = f"github:repo:{self.repo.name}:source-code"
-        assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
             files = self.client.get_cached_repo_files(self.repo.name, "master")
@@ -232,3 +231,23 @@ class GitHubAppsClientTest(TestCase):
             cache.delete(repo_key)
             files = self.client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
+
+    @responses.activate
+    def test_get_cached_repo_files_with_all_files(self):
+        """Fetch files for repo. All files rather than just source code files"""
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=200,
+            json={
+                "tree": [
+                    {"type": "blob", "path": "src/foo.py"},
+                    {"type": "blob", "path": "README"},
+                ]
+            },
+        )
+        repo_key = f"github:repo:{self.repo.name}:all"
+        assert cache.get(repo_key) is None
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+            files = self.client.get_cached_repo_files(self.repo.name, "master")
+            assert files == ["src/foo.py"]
