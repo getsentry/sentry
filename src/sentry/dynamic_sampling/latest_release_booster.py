@@ -291,15 +291,24 @@ class LatestReleaseBias:
     def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
         self.latest_release_params = latest_release_params
+        self.project_boosted_releases = ProjectBoostedReleases(
+            self.latest_release_params.project.id
+        )
 
-    def observe_release(self) -> "LatestReleaseBooster":
+    def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
         # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
         # is a latest release.
-        boost = not self._is_already_observed() and self._is_latest_release()
-
-        return LatestReleaseBooster(
-            boost_latest_release=boost, latest_release_params=self.latest_release_params
-        )
+        if not self._is_already_observed() and self._is_latest_release():
+            # We don't perform any expiration cleanup when adding a new boosted release because we know that we
+            # have an upper bound in the number of elements in the hash, therefore it won't grow unbounded.
+            #
+            # Whenever the data is actually read by any consumer we are going to cleanup the releases.
+            self.project_boosted_releases.add_boosted_release(
+                self.latest_release_params.release.id, self.latest_release_params.environment
+            )
+            # We notify the user of this function when the boosted release has been added so that any side effects
+            # can be triggered on call-site.
+            on_boosted_release_added()
 
     def _is_already_observed(self) -> bool:
         cache_key = self._generate_cache_key_for_observed_release()
@@ -354,29 +363,3 @@ class LatestReleaseBias:
             f":r:{self.latest_release_params.release.id}"
             f"{_get_environment_cache_key(self.latest_release_params.environment)}"
         )
-
-
-class LatestReleaseBooster:
-    """
-    Class responsible of boosting a certain (release, environment) pair.
-    """
-
-    def __init__(self, boost_latest_release: bool, latest_release_params: LatestReleaseParams):
-        self.boost_latest_release = boost_latest_release
-        self.latest_release_params = latest_release_params
-        self.project_boosted_releases = ProjectBoostedReleases(
-            self.latest_release_params.project.id
-        )
-
-    def boost_if_not_observed(self, on_boosted_release_added: Callable[[], None]) -> None:
-        if self.boost_latest_release:
-            # We don't perform any expiration cleanup when adding a new boosted release because we know that we
-            # have an upper bound in the number of elements in the hash, therefore it won't grow unbounded.
-            #
-            # Whenever the data is actually read by any consumer we are going to cleanup the releases.
-            self.project_boosted_releases.add_boosted_release(
-                self.latest_release_params.release.id, self.latest_release_params.environment
-            )
-            # We notify the user of this function when the boosted release has been added so that any side effects
-            # can be triggered on call-site.
-            on_boosted_release_added()
