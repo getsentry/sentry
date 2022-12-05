@@ -1474,7 +1474,7 @@ export const findIncompatibleRules = (
       if (firstSeenError || regressionReappearedError) {
         const indices = [firstSeen, regression, reappeared, eventFrequency, userFrequency]
           .filter(idx => idx !== -1)
-          .sort();
+          .sort((a, b) => a - b);
         return {conditionIndices: indices, filterIndices: null};
       }
     }

@@ -6,7 +6,27 @@ from exam import fixture
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase, TestCase
-from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
+from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin, split_sms_to
+
+
+class TwilioPluginSMSSplitTest(TestCase):
+    def test_valid_split_sms_to(self):
+        to = "330-509-3095, (330)-509-3095, +13305093095, 4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_valid_split_sms_to_with_extra_spaces(self):
+        to = "330-509-3095       ,            (330)-509-3095,     +13305093095,    4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_split_sms_to_with_single_number(self):
+        to = "555-555-5555"
+        expected = {"555-555-5555"}
+        actual = split_sms_to(to)
+        assert expected == actual
 
 
 class TwilioConfigurationFormTest(TestCase):
