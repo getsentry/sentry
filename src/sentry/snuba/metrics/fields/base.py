@@ -58,6 +58,7 @@ from sentry.snuba.metrics.fields.snql import (
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
+    sum_if_column_snql,
     team_key_transaction_snql,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
@@ -465,7 +466,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
         metrics_query_args = inspect.signature(self.snql_func).parameters.keys()
-        kwargs: MutableMapping[str, Union[float, int, str]] = {}
+        kwargs: MutableMapping[str, Union[float, int, str, UseCaseKey, Function]] = {}
 
         if "alias" in metrics_query_args:
             kwargs["alias"] = alias
@@ -473,6 +474,8 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             kwargs["aggregate_filter"] = aggregate_filter
         if "org_id" in metrics_query_args:
             kwargs["org_id"] = org_id
+        if "use_case_id" in metrics_query_args:
+            kwargs["use_case_id"] = use_case_id
 
         if metrics_query_args and params is not None:
             for field in metrics_query_args:
@@ -1580,6 +1583,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=team_key_transaction_snql,
             default_null_value=0,
             meta_type="boolean",
+        ),
+        DerivedOp(
+            op="sum_if_column",
+            can_orderby=True,
+            snql_func=sum_if_column_snql,
+            default_null_value=0,
         ),
     ]
 }

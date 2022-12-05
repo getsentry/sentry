@@ -457,8 +457,19 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # We take only the first query, supposing a single query is generated.
         entity = list(snuba_queries.keys())[0]
-        if entity in {"generic_metrics_distributions", "generic_metrics_sets"}:
+        # TODO: use a common list between this and the transformer.
+        if entity in {
+            "metrics_counters",
+            "metrics_distributions",
+            "metrics_sets",
+            "generic_metrics_distributions",
+            "generic_metrics_sets",
+        }:
             snuba_request.query = snuba_queries[entity]["totals"]
+        else:
+            raise NotImplementedError(
+                "get_snql_query cannot be implemented for MetricsQueryBuilder"
+            )
 
         return snuba_request
 

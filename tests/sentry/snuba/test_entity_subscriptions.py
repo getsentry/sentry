@@ -227,6 +227,7 @@ class EntitySubscriptionTestCase(TestCase):
         session_status = resolve_tag_key(use_case_id, org_id, "session.status")
         session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
         session_status_init = resolve_tag_value(use_case_id, org_id, "init")
+        metric_id = resolve(use_case_id, org_id, SessionMRI.SESSION.value)
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -234,21 +235,31 @@ class EntitySubscriptionTestCase(TestCase):
         assert sorted(snql_query.query.select, key=key) == sorted(
             [
                 Function(
-                    function="sumIf",
-                    parameters=[
+                    "sumIf",
+                    [
                         Column("value"),
                         Function(
-                            "equals", parameters=[Column(session_status), session_status_init]
+                            "and",
+                            [
+                                Function("equals", [Column("metric_id"), metric_id]),
+                                Function("equals", [Column(session_status), session_status_init]),
+                            ],
                         ),
                     ],
                     alias="count",
                 ),
                 Function(
                     "sumIf",
-                    parameters=[
-                        Column(name="value"),
+                    [
+                        Column("value"),
                         Function(
-                            "equals", parameters=[Column(session_status), session_status_crashed]
+                            "and",
+                            [
+                                Function("equals", [Column("metric_id"), metric_id]),
+                                Function(
+                                    "equals", [Column(session_status), session_status_crashed]
+                                ),
+                            ],
                         ),
                     ],
                     alias="crashed",
@@ -257,17 +268,12 @@ class EntitySubscriptionTestCase(TestCase):
             key=key,
         )
         assert snql_query.query.where == [
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(
                 Column("metric_id"),
-                Op.EQ,
-                resolve(use_case_id, self.organization.id, entity_subscription.metric_key.value),
-            ),
-            Condition(
-                Column(session_status),
                 Op.IN,
-                [session_status_crashed, session_status_init],
+                [metric_id],
             ),
         ]
 

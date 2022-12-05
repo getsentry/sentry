@@ -84,6 +84,7 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "sum_if_column",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -243,6 +244,7 @@ DERIVED_OPERATIONS = (
     "count_transaction_name",
     "team_key_transaction",
     "transform_null_to_unparameterized",
+    "sum_if_column",
 )
 OPERATIONS = (
     (

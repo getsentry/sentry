@@ -26,10 +26,8 @@ from sentry.models import Environment
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
-    resolve,
     resolve_tag_key,
     resolve_tag_value,
-    resolve_tag_values,
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -334,6 +332,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
 
+        # If we are using any metrics-based dataset, we will enable the use of metrics layer and also the snql
+        # generation through it.
         use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
 
         params["project_id"] = project_ids
@@ -345,7 +345,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
-            # If the dataset is the performance metrics we will switch to generating snql via the metrics layer.
             use_metrics_layer=use_metrics_layer,
             generate_snql_via_metrics_layer=use_metrics_layer,
         )
@@ -517,11 +516,11 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
     def get_snql_extra_conditions(self) -> List[Condition]:
         return [
-            Condition(
-                Column("metric_id"),
-                Op.EQ,
-                resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
-            )
+            # Condition(
+            #     Column("metric_id"),
+            #     Op.EQ,
+            #     resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
+            # )
         ]
 
 
@@ -536,13 +535,13 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
-        extra_conditions.append(
-            Condition(
-                Column(self.session_status),
-                Op.IN,
-                resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
-            )
-        )
+        # extra_conditions.append(
+        #     Condition(
+        #         Column(self.session_status),
+        #         Op.IN,
+        #         resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
+        #     )
+        # )
         return extra_conditions
 
 

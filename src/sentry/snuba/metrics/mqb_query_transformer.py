@@ -31,7 +31,7 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
         raise MQBQueryTransformationException(
             "The first parameter of a function should be a column of the metric MRI"
         )
-    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias"}
+    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias", "use_case_id"}
 
     metric_field_params = {}
     function_params = function.parameters[1:]
@@ -420,7 +420,12 @@ def transform_mqb_query_to_metrics_query(
     query: Query, is_alerts_query: bool = False
 ) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
-    if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
+    if query.match.name not in {
+        "metrics_distributions",
+        "metrics_sets",
+        "generic_metrics_distributions",
+        "generic_metrics_sets",
+    }:
         raise MQBQueryTransformationException(
             f"Unsupported entity name for {query.match.name} MQB to MetricsQuery " f"Transformation"
         )

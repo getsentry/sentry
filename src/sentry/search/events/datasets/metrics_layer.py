@@ -11,7 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -245,6 +245,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
+                    "sumIf",
+                    # TODO: maybe add also here the column, aka metric id.
+                    required_args=[
+                        fields.MetricArg("if_col"),
+                        fields.MetricArg("if_val"),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "sum_if_column",
+                        [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -276,14 +290,21 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "uniq",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
                     snql_metric_layer=lambda args, alias: Function(
                         "uniq",
-                        [Column(TransactionMRI.DURATION.value)],
+                        [
+                            Column(self.resolve_metric(args["column"])),
+                        ],
                         alias,
                     ),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "uniqIf",
+                    # TODO: maybe add also here the column, aka metric id.
                     required_args=[
                         fields.ColumnTagArg("if_col"),
                         fields.FunctionArg("if_val"),
@@ -295,11 +316,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         }
                     ],
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniqIf",
-                        [
-                            Column(TransactionMRI.DURATION.value),
-                            Function("equals", [args["if_col"], args["resolved_val"]]),
-                        ],
+                        "uniq_if_column",
+                        [Column(SessionMRI.USER.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",
