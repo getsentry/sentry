@@ -1,12 +1,9 @@
 import {
   breadcrumbFactory,
-  // breadcrumbValuesFromEvents,
   isMemorySpan,
   isNetworkSpan,
   mapRRWebAttachments,
   rrwebEventListFactory,
-  // spanDataFromEvents,
-  // spanEntryFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {ReplayRecord, ReplaySpan} from 'sentry/views/replays/types';
 
