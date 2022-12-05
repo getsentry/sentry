@@ -28,7 +28,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     def test_basic_flow_compressed(self, mock_record, mock_onboarding_task):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x, force=False: None, None
+        )
         segment_id = 0
         consumer_messages = [
             {
@@ -105,7 +107,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         )
 
     def test_basic_flow_uncompressed(self):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x, force=False: None, None
+        )
         segment_id = 0
         consumer_messages = [
             {
@@ -165,7 +169,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         assert self.project.flags.has_replays
 
     def test_duplicate_segment_flow(self):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x, force=False: None, None
+        )
         segment_id = 0
         consumer_messages = [
             {
@@ -218,7 +224,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     def test_nonchunked_basic_flow_compressed(self, mock_record, mock_onboarding_task):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x, force=False: None, None
+        )
         segment_id = 0
 
         processing_strategy.submit(
@@ -274,7 +282,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     def test_nonchunked_basic_flow(self, mock_record, mock_onboarding_task):
-        processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x, force=False: None, None
+        )
         segment_id = 0
 
         processing_strategy.submit(
