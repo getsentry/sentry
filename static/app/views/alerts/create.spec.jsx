@@ -523,7 +523,16 @@ describe('ProjectAlertsCreate', function () {
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
       });
-      expect(screen.getByText('No preview available')).toBeInTheDocument();
+      expect(
+        screen.getByText('Select a condition to generate a preview')
+      ).toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      expect(
+        screen.getByText('Preview is not supported for these conditions')
+      ).toBeInTheDocument();
     });
 
     it('empty preview table', async () => {
