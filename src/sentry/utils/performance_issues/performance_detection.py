@@ -936,7 +936,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parsed_url = urlparse(str(url))
 
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
             return False
 
         return True
