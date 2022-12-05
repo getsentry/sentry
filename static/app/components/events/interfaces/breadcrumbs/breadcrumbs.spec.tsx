@@ -1,6 +1,5 @@
 import selectEvent from 'react-select-event';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -39,7 +38,6 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
-  const {router} = initializeOrg();
 
   const MockUseReplayOnboardingSidebarPanel =
     useReplayOnboardingSidebarPanel as jest.MockedFunction<
@@ -56,8 +54,6 @@ describe('Breadcrumbs', () => {
       activateSidebar: jest.fn(),
     });
     props = {
-      route: {},
-      router,
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
       isShare: false,

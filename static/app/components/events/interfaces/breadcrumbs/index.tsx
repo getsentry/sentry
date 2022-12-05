@@ -31,7 +31,7 @@ type FilterOptions = NonNullable<
 
 type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
 
-type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
+type Props = {
   data: {
     values: Array<RawCrumb>;
   };
@@ -53,15 +53,7 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.Oldest},
 ];
 
-function BreadcrumbsContainer({
-  data,
-  event,
-  organization,
-  projectSlug,
-  isShare,
-  route,
-  router,
-}: Props) {
+function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<FilterOptions>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -327,8 +319,6 @@ function BreadcrumbsContainer({
       <ErrorBoundary>
         <GuideAnchor target="breadcrumbs" position="bottom">
           <Breadcrumbs
-            router={router}
-            route={route}
             emptyMessage={getEmptyMessage()}
             breadcrumbs={displayedBreadcrumbs}
             event={event}
