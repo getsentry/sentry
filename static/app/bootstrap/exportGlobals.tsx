@@ -45,9 +45,8 @@ const SentryApp = {
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
+  // This is used in the Email Modal in the Sandbox
   IconArrow: require('sentry/icons/iconArrow').IconArrow,
-  IconClose: require('sentry/icons/iconClose').IconClose,
-  IconCheckmark: require('sentry/icons/iconCheckmark').IconCheckmark,
 };
 
 globals.SentryApp = SentryApp;

@@ -70,7 +70,9 @@ function renderMockRequests({
   return {distribution, sdkVersions, projects, statsV2};
 }
 
-describe('Server-Side Sampling', function () {
+// The Dynamic Sampling LA (Server Side Sampling) is over. We will be removing this code soon.
+// eslint-disable-next-line jest/no-disabled-tests
+describe.skip('Server-Side Sampling', function () {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -267,7 +269,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
-    const {organization, projects, router} = getMockData({
+    const {organization, projects, router, routerContext} = getMockData({
       projects: mockedProjects,
     });
 
@@ -282,7 +284,8 @@ describe('Server-Side Sampling', function () {
         project={projects[2]}
         router={router}
         withModal
-      />
+      />,
+      {context: routerContext}
     );
 
     expect(mockRequests.distribution).toHaveBeenCalled();

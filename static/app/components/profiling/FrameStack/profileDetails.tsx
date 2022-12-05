@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
+import {formatVersion} from 'sentry/utils/formatters';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {
@@ -197,6 +198,43 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               }
             }
 
+            if (key === 'release' && value) {
+              const release = value;
+
+              // If a release only contains a version key, then we cannot link to it and
+              // fallback to just displaying the raw version value.
+              if (
+                !organization ||
+                (Object.keys(release).length <= 1 && release.version)
+              ) {
+                return (
+                  <DetailsRow key={key}>
+                    <strong>{label}:</strong>
+                    <span>{formatVersion(release.version)}</span>
+                  </DetailsRow>
+                );
+              }
+              return (
+                <DetailsRow key={key}>
+                  <strong>{label}:</strong>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${
+                        organization.slug
+                      }/releases/${encodeURIComponent(release.version)}/`,
+                      query: {
+                        project: props.profileGroup.metadata.projectID,
+                      },
+                    }}
+                  >
+                    {formatVersion(release.version)}
+                  </Link>
+                </DetailsRow>
+              );
+            }
+
+            // This final fallback is only capabable of rendering a string/undefined/null.
+            // If the value is some other type, make sure not to let it reach here.
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
@@ -226,8 +264,8 @@ const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('organization')]: 'organizationID',
   [t('project')]: 'projectID',
   [t('platform')]: 'platform',
+  [t('release')]: 'release',
   [t('environment')]: 'environment',
-  [t('version')]: 'version',
   [t('duration')]: 'durationNS',
   [t('threads')]: 'threads',
 };
@@ -259,7 +297,8 @@ const DetailsRow = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
 
-  > span {
+  > span,
+  > a {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

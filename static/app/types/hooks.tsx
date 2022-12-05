@@ -2,6 +2,7 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
+import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -36,6 +37,7 @@ export interface Hooks
     InterfaceChromeHooks,
     OnboardingHooks,
     SettingsHooks,
+    FeatureSpecificHooks,
     ReactHooks,
     CallbackHooks {
   _: any;
@@ -126,7 +128,6 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
@@ -207,12 +208,26 @@ export type SettingsHooks = {
 };
 
 /**
+ * Feature Specific Hooks
+ */
+export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+
+/**
+ * Hooks related to Spend Visibitlity
+ * (i.e. Per-Project Spike Protection + Spend Allocations)
+ */
+export type SpendVisibilityHooks = {
+  'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
+};
+
+/**
  * Hooks that are actually React Hooks as well
  */
 export type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
 };
 
 /**
@@ -240,6 +255,11 @@ type RoutesHook = () => Route[];
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
+
+/**
+ * Receives a project object and should return a React node.
+ */
+type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the
 // GenericOrganizationComponentHook, passing org as a prop object, not direct

@@ -161,7 +161,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      <TooltipDescription>Mark Reviewed to remove this label</TooltipDescription>
+      <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
     </TooltipWrapper>
   );
 

@@ -1,8 +1,7 @@
-from typing import Dict
-from urllib.parse import parse_qsl, urlencode
+from typing import Dict, Tuple
 
-from django.urls import reverse
 from django.utils.crypto import constant_time_compare
+from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import (
@@ -17,50 +16,37 @@ from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
-INVITE_COOKIE = "pending-invite"
-COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
+
+def add_invite_details_to_session(request: Request, member_id: int, token: str):
+    """Add member ID and token to the request session"""
+    request.session["invite_token"] = token
+    request.session["invite_member_id"] = member_id
 
 
-def add_invite_cookie(request, response, member_id, token):
-    url = reverse("sentry-accept-invite", args=[member_id, token])
-    response.set_cookie(
-        INVITE_COOKIE,
-        urlencode({"memberId": member_id, "token": token, "url": url}),
-        max_age=COOKIE_MAX_AGE,
-    )
+def remove_invite_details_from_session(request):
+    """Deletes invite details from the request session"""
+    request.session.pop("invite_member_id", None)
+    request.session.pop("invite_token", None)
 
 
-def remove_invite_cookie(request, response):
-    if INVITE_COOKIE in request.COOKIES:
-        response.delete_cookie(INVITE_COOKIE)
-
-
-def get_invite_cookie(request):
-    if INVITE_COOKIE not in request.COOKIES:
-        return None
-
-    # memberId should be coerced back to an integer
-    invite_data = dict(parse_qsl(request.COOKIES.get(INVITE_COOKIE)))
-    invite_data["memberId"] = int(invite_data["memberId"])
-
-    return invite_data
+def get_invite_details(request) -> Tuple[str, int]:
+    """Returns tuple of (token, member_id) from request session"""
+    return request.session.get("invite_token", None), request.session.get("invite_member_id", None)
 
 
 class ApiInviteHelper:
     @classmethod
-    def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
+    def from_session_or_email(cls, request, organization, email, instance=None, logger=None):
         """
         Initializes the ApiInviteHelper by locating the pending organization
-        member via the currently set pending invite cookie, or via the passed
-        email if no cookie is currently set.
+        member via the currently set pending invite details in the session, or
+        via the passed email if no cookie is currently set.
         """
-        pending_invite = get_invite_cookie(request)
+        invite_token, invite_member_id = get_invite_details(request)
 
         try:
-            if pending_invite is not None:
-                om = OrganizationMember.objects.get(
-                    id=pending_invite["memberId"], token=pending_invite["token"]
-                )
+            if invite_token and invite_member_id:
+                om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
             else:
                 om = OrganizationMember.objects.get(
                     email=email, organization=organization, user=None
@@ -75,17 +61,17 @@ class ApiInviteHelper:
         )
 
     @classmethod
-    def from_cookie(cls, request, instance=None, logger=None):
-        org_invite = get_invite_cookie(request)
+    def from_session(cls, request, instance=None, logger=None):
+        invite_token, invite_member_id = get_invite_details(request)
 
-        if not org_invite:
+        if not invite_token or not invite_member_id:
             return None
 
         try:
             return ApiInviteHelper(
                 request=request,
-                member_id=org_invite["memberId"],
-                token=org_invite["token"],
+                member_id=invite_member_id,
+                token=invite_token,
                 instance=instance,
                 logger=logger,
             )
@@ -95,12 +81,12 @@ class ApiInviteHelper:
             return None
 
     def __init__(self, request, member_id, token, instance=None, logger=None):
-        self.request = request
-        self.member_id = member_id
-        self.token = token
+        self.request: Request = request
+        self.member_id: int = member_id
+        self.token: str = token
         self.instance = instance
         self.logger = logger
-        self.om = self.organization_member
+        self.om: OrganizationMember = self.organization_member
 
     def handle_success(self):
         member_joined.send_robust(
@@ -128,7 +114,7 @@ class ApiInviteHelper:
             self.om.delete()
 
     @property
-    def organization_member(self):
+    def organization_member(self) -> OrganizationMember:
         return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
 
     @property

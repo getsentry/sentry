@@ -1,17 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  highlighted?: boolean;
-}
-
-function scrollIntoView(element: HTMLDivElement) {
-  element?.scrollIntoView?.({block: 'nearest'});
-}
-
-const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
-  <div {...props} ref={highlighted ? scrollIntoView : undefined} />
-))`
+const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   cursor: pointer;
   display: block;
   color: ${p => p.theme.textColor};
@@ -21,7 +11,7 @@ const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.purple300};
+      color: ${p.theme.activeText};
       background: ${p.theme.backgroundSecondary};
     `};
 

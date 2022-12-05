@@ -118,7 +118,7 @@ describe('ProjectAlertsCreate', function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+        expect(screen.getAllByText('all')).toHaveLength(2);
       });
       await waitFor(() => {
         expect(screen.getByText('24 hours')).toBeInTheDocument();
@@ -470,6 +470,7 @@ describe('ProjectAlertsCreate', function () {
         body: groups,
         headers: {
           'X-Hits': groups.length,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -483,6 +484,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
+              endpoint: null,
             },
           })
         );
@@ -495,6 +497,20 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              endpoint: 'endpoint',
+            }),
+          })
+        );
+      });
     });
 
     it('invalid preview alert', async () => {
@@ -517,6 +533,7 @@ describe('ProjectAlertsCreate', function () {
         body: [],
         headers: {
           'X-Hits': 0,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -529,27 +546,58 @@ describe('ProjectAlertsCreate', function () {
     });
   });
 
-  it('shows error for incompatible conditions', async () => {
+  describe('test incompatible conditions', () => {
     const organization = TestStubs.Organization({
       features: ['issue-alert-incompatible-rules'],
     });
-    createWrapper({organization});
-    await selectEvent.select(screen.getByText('Add optional trigger...'), [
-      'A new issue is created',
-    ]);
-    await selectEvent.select(screen.getByText('Add optional trigger...'), [
-      'The issue changes state from resolved to unresolved',
-    ]);
     const errorText =
-      'This condition conflicts with other condition(s) above. Please select a different condition.';
-    expect(screen.getByText(errorText)).toBeInTheDocument();
+      'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
-    expect(screen.getByRole('button', {name: 'Save Rule'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    it('shows error for incompatible conditions', async () => {
+      createWrapper({organization});
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'The issue changes state from resolved to unresolved',
+      ]);
+      expect(screen.getByText(errorText)).toBeInTheDocument();
 
-    userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
-    expect(screen.queryByText(errorText)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+
+      userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      expect(screen.queryByText(errorText)).not.toBeInTheDocument();
+    });
+
+    it('test any filterMatch', async () => {
+      createWrapper({organization});
+      const allDropdowns = screen.getAllByText('all');
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
+      await selectEvent.select(allDropdowns[1], ['any']);
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue is older or newer than...',
+      ]);
+
+      userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      userEvent.click(document.body);
+
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue has happened at least {x} times (Note: this is approximate)',
+      ]);
+
+      expect(screen.getByText(errorText)).toBeInTheDocument();
+
+      userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      userEvent.clear(screen.getByDisplayValue('10'));
+      userEvent.click(document.body);
+
+      expect(screen.queryByText(errorText)).not.toBeInTheDocument();
+    });
   });
 });

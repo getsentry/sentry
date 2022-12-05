@@ -151,7 +151,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
         ...provided,
         ...(status?.error
           ? {
-              color: theme.red300,
+              color: theme.red400,
               border: `1px solid ${theme.red300}`,
               backgroundColor: theme.red100,
             }
@@ -163,7 +163,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
       return {
         ...provided,
         pointerEvents: 'all',
-        ...(status?.error ? {color: theme.red300} : {}),
+        ...(status?.error ? {color: theme.red400} : {}),
       };
     },
     multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
@@ -173,7 +173,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
         ...(status?.error
           ? {
               borderLeft: `1px solid ${theme.red300}`,
-              ':hover': {backgroundColor: theme.red100, color: theme.red300},
+              ':hover': {backgroundColor: theme.red100, color: theme.red400},
             }
           : {}),
       };

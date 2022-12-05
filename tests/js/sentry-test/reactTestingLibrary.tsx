@@ -108,8 +108,13 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  * render(<TestedComponent />, {context: routerContext, organization});
  */
 function render(ui: React.ReactElement, options?: Options) {
-  const {context, organization, project, projects, router, ...otherOptions} =
-    options ?? {};
+  options = options ?? {};
+  const {context, organization, project, projects, ...otherOptions} = options;
+  let {router} = options;
+
+  if (router === undefined && context?.context?.router) {
+    router = context.context.router;
+  }
 
   const AllTheProviders = makeAllTheProviders({
     context,

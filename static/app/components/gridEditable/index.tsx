@@ -373,7 +373,7 @@ class GridEditable<
       : [];
 
     return (
-      <GridRow key={row}>
+      <GridRow key={row} data-test-id="grid-body-row">
         {prependColumns &&
           prependColumns.map((item, i) => (
             <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
@@ -395,7 +395,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

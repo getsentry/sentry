@@ -56,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {MetricsBaselineContainer} from './metricsBaselineContainer';
+import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -156,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -174,7 +174,6 @@ export class Results extends Component<Props, State> {
         yAxisArray
       )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
@@ -247,6 +246,7 @@ export class Results extends Component<Props, State> {
     this.setState({needConfirmation, confirmedQuery}, () => {
       this.setState({confirmedQuery: false});
     });
+
     if (needConfirmation) {
       this.openConfirm();
     }
@@ -298,7 +298,14 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const isReplayEnabled = organization.features.includes('session-replay-ui');
+    const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
+      fields: isReplayEnabled
+        ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
+        : DEFAULT_EVENT_VIEW.fields,
+    });
+
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -626,7 +633,7 @@ export class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsBaselineContainer
+                    <ResultsChart
                       api={api}
                       router={router}
                       organization={organization}

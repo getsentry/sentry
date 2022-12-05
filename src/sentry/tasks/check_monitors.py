@@ -37,6 +37,12 @@ def check_monitors(current_datetime=None):
     ]
     for monitor in qs:
         logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
+        # add missed checkin
+        checkin = MonitorCheckIn.objects.create(
+            project_id=monitor.project_id,
+            monitor=monitor,
+            status=CheckInStatus.MISSED,
+        )
         monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[

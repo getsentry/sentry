@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
@@ -19,19 +17,20 @@ import {
 } from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> &
-  WithRouterProps & {
-    /**
-     * Reset these URL params when we fire actions (custom routing only)
-     */
-    resetParamsOnChange?: string[];
-  };
+> & {
+  /**
+   * Reset these URL params when we fire actions (custom routing only)
+   */
+  resetParamsOnChange?: string[];
+};
 
-function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props) {
+function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+  const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -105,19 +104,18 @@ function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props
 }
 
 const TitleContainer = styled('div')`
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   text-align: left;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
-  width: 100%;
+  width: max-content;
+  min-width: 0;
 `;
 
-export default withRouter(DatePageFilter);
+export default DatePageFilter;

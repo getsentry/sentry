@@ -84,14 +84,14 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
+  showReplayCol: boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
-  projectId?: string;
+  projectSlug?: string;
   referrer?: string;
-  showReplayCol?: boolean;
   totalEventCount?: string;
 };
 
@@ -150,7 +150,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectId} = this.props;
+    const {eventView, organization, location, transactionName, projectSlug} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -162,7 +162,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
-      projectId,
+      projectSlug,
     });
 
     const allowActions = [

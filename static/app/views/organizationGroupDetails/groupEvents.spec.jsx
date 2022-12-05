@@ -231,16 +231,12 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const eventIdATag = screen.getByText('id123').closest('a');
-      const traceIdATag = screen.getByText('trace123').closest('a');
       expect(eventIdATag).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/1/events/id123/'
-      );
-      expect(traceIdATag).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/performance/trace/trace123/?'
       );
     });
 
@@ -261,7 +257,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
       expect(attachmentsRequest).not.toHaveBeenCalled();
@@ -278,7 +275,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
       expect(attachmentsRequest).toHaveBeenCalled();
@@ -295,7 +293,8 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       const minidumpColumn = screen.queryByText('minidump');
       expect(minidumpColumn).not.toBeInTheDocument();
     });
@@ -330,7 +329,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       const minidumpColumn = screen.queryByText('minidump');
       expect(minidumpColumn).toBeInTheDocument();
     });
@@ -365,7 +364,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       const attachmentsColumn = screen.queryByText('attachments');
       const minidumpColumn = screen.queryByText('minidump');
       expect(attachmentsColumn).not.toBeInTheDocument();
@@ -415,6 +414,31 @@ describe('groupEvents', function () {
       );
     });
 
+    it('only request for a single projectId', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{
+            query: {
+              environment: ['prod', 'staging'],
+              sort: 'user',
+              project: [group.project.id, '456'],
+            },
+          }}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({project: [group.project.id]}),
+        })
+      );
+    });
+
     it('shows discover query error message', async () => {
       discoverRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
@@ -436,9 +460,41 @@ describe('groupEvents', function () {
         {context: routerContext, organization}
       );
 
-      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
+    });
+
+    it('requests for backend columns if backend project', async () => {
+      group.project.platform = 'node-express';
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.arrayContaining(['url', 'runtime']),
+          }),
+        })
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.not.arrayContaining(['browser']),
+          }),
+        })
+      );
     });
   });
 

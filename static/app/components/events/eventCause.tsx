@@ -9,10 +9,10 @@ import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, IssueCategory} from 'sentry/types';
+import {AvatarProject, Commit, Group, IssueCategory} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -30,26 +30,10 @@ function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
     projectSlug: project.slug,
   });
 
-  useEffectAfterFirstRender(() => {
-    if (fetching || !group?.id) {
-      return;
-    }
-
-    trackAdvancedAnalyticsEvent('issue_details.suspect_commits', {
-      organization,
-      count: committers.length,
-      project_id: parseInt(project.id as string, 10),
-      group_id: parseInt(group.id, 10),
-      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
-    });
-  }, [
-    organization,
+  useRouteAnalyticsParams({
     fetching,
-    committers.length,
-    project.id,
-    group?.id,
-    group?.issueCategory,
-  ]);
+    num_suspect_commits: committers.length,
+  });
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
@@ -77,12 +61,13 @@ function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
     });
   };
 
-  const handleCommitClick = () => {
+  const handleCommitClick = (commit: Commit) => {
     trackAdvancedAnalyticsEvent('issue_details.suspect_commits.commit_clicked', {
       organization,
       project_id: parseInt(project.id as string, 10),
       group_id: parseInt(group?.id as string, 10),
       issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+      has_pull_request: commit.pullRequest?.id !== undefined,
     });
   };
 

@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -77,16 +77,7 @@ export function Rule({
     <Fragment>
       <GrabColumn disabled={!canDrag}>
         {hideGrabButton ? null : (
-          <Tooltip
-            title={
-              noPermission
-                ? t('You do not have permission to reorder rules')
-                : isUniform
-                ? t('Uniform rules cannot be reordered')
-                : undefined
-            }
-            containerDisplayMode="flex"
-          >
+          <Tooltip title={undefined} containerDisplayMode="flex">
             <IconGrabbableWrapper
               {...listeners}
               {...grabAttributes}
@@ -144,22 +135,7 @@ export function Rule({
             onFinish={onActivate}
             disabled={!canActivate || !isUniform}
           >
-            <Tooltip
-              disabled={canActivate}
-              title={
-                !canActivate
-                  ? processingSamplingSdkVersions
-                    ? t(
-                        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
-                      )
-                    : tn(
-                        'To enable the rule, the recommended sdk version have to be updated',
-                        'To enable the rule, the recommended sdk versions have to be updated',
-                        upgradeSdkForProjects.length
-                      )
-                  : undefined
-              }
-            >
+            <Tooltip disabled={canActivate} title={undefined}>
               <ActiveToggle
                 inline={false}
                 hideControlState
@@ -186,20 +162,12 @@ export function Rule({
             {
               key: 'edit',
               label: t('Edit'),
-              details: noPermission
-                ? t("You don't have permission to edit rules")
-                : undefined,
               onAction: onEditRule,
               disabled: noPermission,
             },
             {
               key: 'delete',
               label: t('Delete'),
-              details: canDelete
-                ? undefined
-                : isUniform
-                ? t("The uniform rule can't be deleted")
-                : t("You don't have permission to delete rules"),
               onAction: () =>
                 openConfirmModal({
                   onConfirm: onDeleteRule,
@@ -280,7 +248,7 @@ const IconGrabbableWrapper = styled('div')`
 `;
 
 const ConditionEqualOperator = styled('div')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
 `;
 
 const Operator = styled('div')`

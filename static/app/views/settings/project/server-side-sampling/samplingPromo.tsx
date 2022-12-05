@@ -7,15 +7,13 @@ import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
-
 type Props = {
   hasAccess: boolean;
   onGetStarted: () => void;
   onReadDocs: () => void;
 };
 
-export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
+export function SamplingPromo({onGetStarted, hasAccess}: Props) {
   return (
     <OnboardingPanel image={<img src={onboardingServerSideSampling} />}>
       <h3>{t('Sample for relevancy')}</h3>
@@ -25,16 +23,8 @@ export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
         )}
       </Paragraph>
       <ButtonList gap={1}>
-        <Button
-          priority="primary"
-          onClick={onGetStarted}
-          disabled={!hasAccess}
-          title={hasAccess ? undefined : t('You do not have permission to set up rules')}
-        >
+        <Button priority="primary" onClick={onGetStarted} disabled={!hasAccess}>
           {t('Start Setup')}
-        </Button>
-        <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={onReadDocs} external>
-          {t('Read Docs')}
         </Button>
       </ButtonList>
     </OnboardingPanel>

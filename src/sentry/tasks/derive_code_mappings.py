@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
+from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
@@ -18,8 +19,9 @@ from sentry.utils.safe import get_path
 
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
 GROUP_ANALYSIS_RANGE = timedelta(days=14)
+SUPPORTED_LANGUAGES = ["javascript", "python"]
 
-logger = logging.getLogger("sentry.tasks.derive_code_mappings")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(  # type: ignore
@@ -42,6 +44,15 @@ def derive_code_mappings(
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
+    set_tag("project.slug", project.slug)
+
+    # Check the feature flag again to ensure the feature is still enabled.
+    should_continue = features.has(
+        "organizations:derive-code-mappings", organization
+    ) or features.has("organizations:derive-code-mappings-dry-run", organization)
+    if not (dry_run or should_continue):
+        logger.info(f"Event from {organization.slug} org should not be processed.")
+        return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
@@ -54,23 +65,30 @@ def derive_code_mappings(
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project, dry_run)
+    if dry_run:
+        report_project_codemappings(code_mappings, stacktrace_paths, project)
+        return
+
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
     Get the stacktrace_paths from the event data.
     """
-    if data["platform"] != "python":
+    if data["platform"] not in SUPPORTED_LANGUAGES:
         return []
+
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = {frame["filename"] for frame in stacktrace["frames"]}
+            paths = {
+                frame["filename"] for frame in stacktrace["frames"] if frame.get("in_app") is True
+            }
             stacktrace_paths.update(paths)
         except Exception:
-            logger.exception("Error getting filenames for project {project.slug}")
+            logger.exception("Error getting filenames for project.")
     return list(stacktrace_paths)
 
 
@@ -115,7 +133,6 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -133,12 +150,50 @@ def set_project_codemappings(
             },
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
-            repository=repository,
-            organization_integration=organization_integration,
             stack_root=code_mapping.stacktrace_root,
-            source_root=code_mapping.source_path,
-            default_branch=code_mapping.repo.branch,
-            automatically_generated=True,
+            defaults={
+                "repository": repository,
+                "organization_integration": organization_integration,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
         )
+        if not created:
+            logger.info(
+                "derive_code_mappings: code mapping already exists",
+                extra={
+                    "project": project,
+                    "stacktrace_root": code_mapping.stacktrace_root,
+                    "new_code_mapping": code_mapping,
+                    "existing_code_mapping": cm,
+                },
+            )
+
+
+def report_project_codemappings(
+    code_mappings: List[CodeMapping],
+    stacktrace_paths: List[str],
+    project: Project,
+) -> None:
+    """
+    Log the code mappings that would be created for a project.
+    """
+    extra = {
+        "org": project.organization.slug,
+        "project": project.slug,
+        "code_mappings": code_mappings,
+        "stacktrace_paths": stacktrace_paths,
+    }
+    if code_mappings:
+        msg = "derive_code_mappings: code mappings would have been created."
+    else:
+        msg = "derive_code_mappings: NO code mappings would have been created."
+    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
+    if existing_code_mappings.exists():
+        msg = "derive_code_mappings: code mappings already exist."
+        extra["existing_code_mappings"] = existing_code_mappings
+
+    logger.info(msg, extra=extra)

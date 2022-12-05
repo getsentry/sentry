@@ -199,9 +199,6 @@ class Symbolicator:
                 # Once we arrive here, we are done processing. Clean up the
                 # task id from the cache.
                 default_cache.delete(self.task_id_cache_key)
-                metrics.timing(
-                    "events.symbolicator.response.completed.size", len(json.dumps(json_response))
-                )
                 return json_response
 
     def process_minidump(self, minidump):
@@ -588,6 +585,11 @@ class SymbolicatorSession:
 
                 if response.ok:
                     json = response.json()
+
+                    if json["status"] != "pending":
+                        metrics.timing(
+                            "events.symbolicator.response.completed.size", len(response.content)
+                        )
                 else:
                     with sentry_sdk.push_scope():
                         sentry_sdk.set_extra("symbolicator_response", response.text)

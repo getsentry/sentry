@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import xor from 'lodash/xor';
@@ -13,8 +12,10 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueAttachment} from 'sentry/types';
+import {IssueAttachment, Project} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -24,7 +25,7 @@ import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
 
 type Props = {
-  projectSlug: string;
+  project: Project;
 } & WithRouterProps<{groupId: string; orgId: string}> &
   AsyncComponent['props'];
 
@@ -39,7 +40,7 @@ type State = {
   eventAttachments?: IssueAttachment[];
 } & AsyncComponent['state'];
 
-export const MAX_SCREENSHOTS_PER_PAGE = 6;
+export const MAX_SCREENSHOTS_PER_PAGE = 12;
 
 class GroupEventAttachments extends AsyncComponent<Props, State> {
   getDefaultState() {
@@ -100,7 +101,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 
   handleDelete = async (deletedAttachmentId: string) => {
-    const {params, projectSlug} = this.props;
+    const {params, project} = this.props;
     const attachment = this.state?.eventAttachments?.find(
       item => item.id === deletedAttachmentId
     );
@@ -114,7 +115,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/projects/${params.orgId}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
+        `/projects/${params.orgId}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
         {
           method: 'DELETE',
         }
@@ -153,7 +154,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 
   renderInnerBody() {
-    const {projectSlug, params} = this.props;
+    const {project, params} = this.props;
     const {loading, eventAttachments, deletedAttachments} = this.state;
 
     if (loading) {
@@ -165,7 +166,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         <GroupEventAttachmentsTable
           attachments={eventAttachments}
           orgId={params.orgId}
-          projectId={projectSlug}
+          projectId={project.slug}
           groupId={params.groupId}
           onDelete={this.handleDelete}
           deletedAttachments={deletedAttachments}
@@ -181,7 +182,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
   renderScreenshotGallery() {
     const {eventAttachments, loading} = this.state;
-    const {projectSlug, params} = this.props;
+    const {project, params} = this.props;
 
     if (loading) {
       return <LoadingIndicator />;
@@ -196,7 +197,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
                 key={`${index}-${screenshot.id}`}
                 eventAttachment={screenshot}
                 eventId={screenshot.event_id}
-                projectSlug={projectSlug}
+                projectSlug={project.slug}
                 groupId={params.groupId}
                 onDelete={this.handleDelete}
                 pageLinks={this.state.eventAttachmentsPageLinks}
@@ -221,10 +222,11 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {project} = this.props;
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <GroupEventAttachmentsFilter />
+          <GroupEventAttachmentsFilter project={project} />
           {this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS
             ? this.renderScreenshotGallery()
             : this.renderAttachmentsTable()}
@@ -235,7 +237,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 }
 
-export default withRouter(GroupEventAttachments);
+export default withSentryRouter(GroupEventAttachments);
 
 const ScreenshotGrid = styled('div')`
   display: grid;
@@ -244,10 +246,14 @@ const ScreenshotGrid = styled('div')`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    grid-template-columns: repeat(6, minmax(100px, 1fr));
   }
 `;

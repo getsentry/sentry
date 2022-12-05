@@ -2,7 +2,6 @@ import abc
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules.base import EventState, RuleBase
-from sentry.types.condition_activity import ConditionActivity
 
 
 class EventFilter(RuleBase, abc.ABC):
@@ -11,6 +10,3 @@ class EventFilter(RuleBase, abc.ABC):
     @abc.abstractmethod
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         pass
-
-    def passes_activity(self, condition_activity: ConditionActivity) -> bool:
-        raise NotImplementedError

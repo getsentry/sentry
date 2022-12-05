@@ -1,5 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
@@ -11,7 +15,6 @@ jest.mock('sentry/actionCreators/members', () => ({
 
 describe('OrganizationMemberDetail', function () {
   let organization;
-  let wrapper;
   let routerContext;
   const team = TestStubs.Team();
   const teams = [
@@ -47,14 +50,12 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
-    });
-
-    TeamStore.loadInitialData(teams);
-
-    beforeEach(function () {
+      TeamStore.init();
+      TeamStore.loadInitialData(teams);
+      jest.resetAllMocks();
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
@@ -75,22 +76,20 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('changes role to owner', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: member.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
 
       // Should have 4 roles
-      expect(wrapper.find('OrganizationRoleSelect Radio')).toHaveLength(4);
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(4);
 
-      wrapper.find('OrganizationRoleSelect Radio').last().simulate('click');
-
-      expect(wrapper.find('OrganizationRoleSelect Radio').last().prop('checked')).toBe(
-        true
-      );
+      // Click last radio
+      userEvent.click(radios.at(-1));
+      expect(radios.at(-1)).toBeChecked();
 
       // Save Member
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
@@ -102,21 +101,16 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('leaves a team', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: member.id}} />,
-        routerContext
-      );
-      // Wait for team list to load
-      await tick();
+    it('leaves a team', function () {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
 
       // Remove our one team
-      const button = wrapper.find('TeamSelect TeamRow Button');
-      expect(button).toHaveLength(1);
-      button.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       // Save Member
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
@@ -129,25 +123,21 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('joins a team', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: member.id}} />,
-        routerContext
-      );
-      // Wait for team list to fetch.
-      wrapper.update();
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
 
       // Should have one team enabled
-      expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
+      expect(screen.getByTestId('team-row')).toBeInTheDocument();
 
       // Select new team to join
       // Open the dropdown
-      wrapper.find('TeamSelect DropdownButton').simulate('click');
-
+      userEvent.click(screen.getByText('Add Team'));
       // Click the first item
-      wrapper.find('TeamSelect [title="new team"]').at(0).simulate('click');
+      userEvent.click(screen.getByText('#new-team'));
 
       // Save Member
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
@@ -161,80 +151,133 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
+      TeamStore.init();
+      TeamStore.loadInitialData(teams);
+      jest.resetAllMocks();
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: member,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
+        body: pendingMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
+        body: expiredMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
+      });
     });
 
     it('can not change roles, teams, or save', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: member.id}} />,
-        routerContext
-      );
-      wrapper.update();
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
 
       // Should have 4 roles
-      expect(wrapper.find('OrganizationRoleSelect').prop('disabled')).toBe(true);
-      expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
-      expect(wrapper.find('TeamRow Button').first().prop('disabled')).toBe(true);
+      const radios = screen.getAllByRole('radio');
+      expect(radios.at(0)).toHaveAttribute('readonly');
 
       // Save Member
-      expect(wrapper.find('Button[priority="primary"]').prop('disabled')).toBe(true);
+      expect(screen.getByRole('button', {name: 'Save Member'})).toBeDisabled();
     });
   });
 
   describe('Display status', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
+      TeamStore.init();
+      TeamStore.loadInitialData(teams);
+      jest.resetAllMocks();
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: member,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
+        body: pendingMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
+        body: expiredMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
+      });
     });
 
     it('display pending status', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
+        context: routerContext,
+      });
 
-      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual(
-        'Invitation Pending'
-      );
+      expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Pending');
     });
 
     it('display expired status', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
+        context: routerContext,
+      });
 
-      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual(
-        'Invitation Expired'
-      );
+      expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Expired');
     });
   });
 
   describe('Show resend button', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
+      TeamStore.init();
+      TeamStore.loadInitialData(teams);
+      jest.resetAllMocks();
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: member,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
+        body: pendingMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
+        body: expiredMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
+      });
     });
 
     it('shows for pending', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
+        context: routerContext,
+      });
 
-      const button = wrapper.find('Button[data-test-id="resend-invite"]');
-      expect(button.text()).toEqual('Resend Invite');
+      expect(screen.getByRole('button', {name: 'Resend Invite'})).toBeInTheDocument();
     });
 
     it('does not show for expired', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
+        context: routerContext,
+      });
 
-      expect(wrapper.find('Button[data-test-id="resend-invite"]')).toHaveLength(0);
+      expect(
+        screen.queryByRole('button', {name: 'Resend Invite'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -281,7 +324,7 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    beforeAll(function () {
+    beforeEach(function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
 
@@ -312,50 +355,47 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    const button = 'Button[data-test-id="reset-2fa"]';
-    const tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
+    const button = () =>
+      screen.queryByRole('button', {name: 'Reset two-factor authentication'});
+    const tooltip = () => screen.queryByTestId('reset-2fa-tooltip');
 
     const expectButtonEnabled = () => {
-      expect(wrapper.find(button).text()).toEqual('Reset two-factor authentication');
-      expect(wrapper.find(button).prop('disabled')).toBe(false);
+      expect(button()).toHaveTextContent('Reset two-factor authentication');
+      expect(button()).toBeEnabled();
 
-      expect(wrapper.find(tooltip).prop('title')).toEqual('');
-      expect(wrapper.find(tooltip).prop('disabled')).toBe(true);
+      expect(tooltip()).not.toBeInTheDocument();
     };
 
-    const expectButtonDisabled = title => {
-      expect(wrapper.find(button).text()).toEqual('Reset two-factor authentication');
-      expect(wrapper.find(button).prop('disabled')).toBe(true);
+    const expectButtonDisabled = async title => {
+      expect(button()).toHaveTextContent('Reset two-factor authentication');
+      expect(button()).toBeDisabled();
 
-      expect(wrapper.find(tooltip).prop('title')).toEqual(title);
-      expect(wrapper.find(tooltip).prop('disabled')).toBe(false);
+      userEvent.hover(button());
+      expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
     it('does not show for pending member', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
-        routerContext
-      );
-      expect(wrapper.find(button)).toHaveLength(0);
+      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
+        context: routerContext,
+      });
+      expect(button()).not.toBeInTheDocument();
     });
 
-    it('shows tooltip for joined member without permission to edit', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: noAccess.id}} />,
-        routerContext
-      );
-      expectButtonDisabled('You do not have permission to perform this action');
+    it('shows tooltip for joined member without permission to edit', async function () {
+      render(<OrganizationMemberDetail params={{memberId: noAccess.id}} />, {
+        context: routerContext,
+      });
+      await expectButtonDisabled('You do not have permission to perform this action');
     });
 
-    it('shows tooltip for member without 2fa', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: no2fa.id}} />,
-        routerContext
-      );
-      expectButtonDisabled('Not enrolled in two-factor authentication');
+    it('shows tooltip for member without 2fa', async function () {
+      render(<OrganizationMemberDetail params={{memberId: no2fa.id}} />, {
+        context: routerContext,
+      });
+      await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
-    it('can reset member 2FA', async function () {
+    it('can reset member 2FA', function () {
       const deleteMocks = has2fa.user.authenticators.map(auth =>
         MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
@@ -363,42 +403,41 @@ describe('OrganizationMemberDetail', function () {
         })
       );
 
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
-        routerContext
-      );
+      render(<OrganizationMemberDetail params={{memberId: has2fa.id}} />, {
+        context: routerContext,
+      });
+      renderGlobalModal();
 
       expectButtonEnabled();
-      wrapper.find(button).simulate('click');
+      userEvent.click(button());
 
-      const modal = await mountGlobalModal();
-      modal.find('Button[data-test-id="confirm-button"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       deleteMocks.forEach(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
     });
 
-    it('shows tooltip for member in multiple orgs', function () {
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />,
-        routerContext
+    it('shows tooltip for member in multiple orgs', async function () {
+      render(<OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />, {
+        context: routerContext,
+      });
+      await expectButtonDisabled(
+        'Cannot be reset since user is in more than one organization'
       );
-      expectButtonDisabled('Cannot be reset since user is in more than one organization');
     });
 
-    it('shows tooltip for member in 2FA required org', function () {
+    it('shows tooltip for member in 2FA required org', async function () {
       organization.require2FA = true;
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
       });
 
-      wrapper = mountWithTheme(
-        <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
-        routerContext
-      );
-      expectButtonDisabled(
+      render(<OrganizationMemberDetail params={{memberId: has2fa.id}} />, {
+        context: routerContext,
+      });
+      await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
       );
     });

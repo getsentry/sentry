@@ -1,6 +1,14 @@
+from unittest.mock import patch
+
 import pytest
 from snuba_sdk import Column, Function
 
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+    get_project_threshold_cache_key,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_weak
@@ -34,6 +42,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils import TestCase
+from sentry.utils.cache import cache
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -118,7 +127,6 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
         ]:
-
             assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "uniqIf",
                 [
@@ -433,6 +441,96 @@ class DerivedMetricSnQLTestCase(TestCase):
             ],
             "transaction.tolerated",
         )
+
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThresholdOverride.objects.filter")
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThreshold.objects.filter")
+    def test_project_threshold_called_once_with_valid_cache(self, threshold_override, threshold):
+        satisfaction_count_transaction(
+            [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+        )
+        tolerated_count_transaction(
+            [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+        )
+        all_transactions(
+            [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+        )
+
+        # We check whether we will call the database only for the first snql resolution.
+        threshold_override.assert_called_once()
+        threshold.assert_called_once()
+
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThresholdOverride.objects.filter")
+    @patch("sentry.models.transaction_threshold.ProjectTransactionThreshold.objects.filter")
+    def test_project_threshold_called_each_time_with_invalid_cache(
+        self, threshold_override, threshold
+    ):
+        with patch.object(cache, "get", return_value=None):
+            satisfaction_count_transaction(
+                [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+            )
+            tolerated_count_transaction(
+                [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+            )
+            all_transactions(
+                [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+            )
+
+            # We check whether we will call the database for each snql resolution.
+            assert threshold_override.call_count == 3
+            assert threshold.call_count == 3
+
+    def test_project_thresholds_are_cached(self):
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="foo_transaction",
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        expected_threshold_override_config = list(
+            ProjectTransactionThresholdOverride.objects.filter(
+                project_id__in=[self.project.id],
+                organization_id=self.organization.id,
+            )
+            .order_by("project_id")
+            .values_list("transaction", "project_id", "metric")
+        )
+        threshold_override_cache_key = get_project_threshold_cache_key(
+            "sentry_projecttransactionthresholdoverride",
+            [self.project.id],
+            self.organization.id,
+            ["project_id"],
+            ["transaction", "project_id", "metric"],
+        )
+
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        expected_threshold_config = list(
+            ProjectTransactionThreshold.objects.filter(
+                project_id__in=[self.project.id],
+                organization_id=self.organization.id,
+            )
+            .order_by("project_id")
+            .values_list("project_id", "metric")
+        )
+        threshold_cache_key = get_project_threshold_cache_key(
+            "sentry_projecttransactionthreshold",
+            [self.project.id],
+            self.organization.id,
+            ["project_id"],
+            ["project_id", "metric"],
+        )
+
+        all_transactions(
+            [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
+        )
+
+        assert cache.get(threshold_override_cache_key) == expected_threshold_override_config
+        assert cache.get(threshold_cache_key) == expected_threshold_config
 
     def test_complement_in_sql(self):
         alias = "foo.complement"

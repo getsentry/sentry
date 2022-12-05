@@ -78,10 +78,10 @@ class ReprocessedBox extends Component<Props, State> {
     return (
       <BannerContainer priority="success" className={className}>
         <StyledBannerSummary>
-          <IconCheckmark color="green300" isCircled />
+          <IconCheckmark color="successText" isCircled />
           <span>{this.renderMessage()}</span>
           <StyledIconClose
-            color="green300"
+            color="successText"
             aria-label={t('Dismiss')}
             isCircled
             onClick={this.handleBannerDismiss}

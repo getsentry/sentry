@@ -18,6 +18,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe(
         self,
         group: "Group",
-        user: "User",
+        user: "APIUser",
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -38,7 +39,11 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         try:
             with transaction.atomic():
                 self.create(
-                    user=user, group=group, project=group.project, is_active=True, reason=reason
+                    user_id=user.id,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
                 )
         except IntegrityError:
             pass
@@ -47,12 +52,12 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe_actor(
         self,
         group: "Group",
-        actor: Union["Team", "User"],
+        actor: Union["Team", "User", "APIUser"],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry.models import Team, User
 
-        if isinstance(actor, User):
+        if isinstance(actor, APIUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
@@ -105,15 +110,19 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
                     raise e
         return False
 
-    def get_participants(self, group: "Group") -> Mapping[ExternalProviders, Mapping["User", int]]:
+    def get_participants(
+        self, group: "Group"
+    ) -> Mapping[ExternalProviders, Mapping["APIUser", int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
-        from sentry.models import NotificationSetting, User
+        from sentry.models import NotificationSetting
 
-        all_possible_users = User.objects.get_from_group(group)
-        active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
+        all_possible_users = user_service.get_from_group(group)
+        active_and_disabled_subscriptions = self.filter(
+            group=group, user_id__in=[u.id for u in all_possible_users]
+        )
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
             recipients=all_possible_users,
@@ -126,7 +135,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             notification_settings, all_possible_users
         )
 
-        result: MutableMapping[ExternalProviders, MutableMapping["User", int]] = defaultdict(dict)
+        result: MutableMapping[ExternalProviders, MutableMapping["APIUser", int]] = defaultdict(
+            dict
+        )
         for user in all_possible_users:
             subscription_option = subscriptions_by_user_id.get(user.id)
             providers = where_should_be_participating(

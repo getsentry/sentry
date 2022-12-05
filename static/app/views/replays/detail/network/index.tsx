@@ -12,6 +12,7 @@ import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -32,8 +33,8 @@ import {
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  networkSpans: NetworkSpan[];
-  replayRecord: ReplayRecord;
+  networkSpans: undefined | NetworkSpan[];
+  replayRecord: undefined | ReplayRecord;
 };
 
 type SortDirection = 'asc' | 'desc';
@@ -46,7 +47,7 @@ const cache = new CellMeasurerCache({
 const headerRowHeight = 24;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
-  const startTimestampMs = replayRecord.startedAt.getTime();
+  const startTimestampMs = replayRecord?.startedAt?.getTime() || 0;
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
@@ -290,71 +291,90 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
+          options={getStatusTypes(networkSpans || []).map(value => ({
+            value,
+            label: value,
+          }))}
           size="sm"
           onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
+          isDisabled={!networkSpans}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
           triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
+          options={getResourceTypes(networkSpans || []).map(value => ({
+            value,
+            label: value,
+          }))}
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
+          isDisabled={!networkSpans}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
           placeholder={t('Search Network...')}
           query={searchTerm}
+          disabled={!networkSpans}
         />
       </NetworkFilters>
 
       <NetworkTable ref={networkTableRef}>
-        <AutoSizer>
-          {({width, height}) => (
-            <MultiGrid
-              ref={multiGridRef}
-              columnCount={columns.length}
-              columnWidth={({index}) => {
-                if (index === 1) {
-                  return Math.max(
-                    columns.reduce(
-                      (remaining, _, i) =>
-                        i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
-                      width - scrollBarWidth
-                    ),
-                    200
-                  );
-                }
+        {networkSpans ? (
+          <AutoSizer>
+            {({width, height}) => (
+              <MultiGrid
+                ref={multiGridRef}
+                columnCount={columns.length}
+                columnWidth={({index}) => {
+                  if (index === 1) {
+                    return Math.max(
+                      columns.reduce(
+                        (remaining, _, i) =>
+                          i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
+                        width - scrollBarWidth
+                      ),
+                      200
+                    );
+                  }
 
-                return cache.columnWidth({index});
-              }}
-              deferredMeasurementCache={cache}
-              height={height}
-              overscanRowCount={5}
-              cellRenderer={renderTableRow}
-              rowCount={networkData.length + 1}
-              rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
-              width={width}
-              fixedRowCount={1}
-              onScrollbarPresenceChange={({vertical, size}) => {
-                if (vertical) {
-                  setScrollBarWidth(size);
-                } else {
-                  setScrollBarWidth(0);
+                  return cache.columnWidth({index});
+                }}
+                deferredMeasurementCache={cache}
+                height={height}
+                overscanRowCount={5}
+                cellRenderer={renderTableRow}
+                rowCount={networkData.length + 1}
+                rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+                width={width}
+                fixedRowCount={1}
+                onScrollbarPresenceChange={({vertical, size}) => {
+                  if (vertical) {
+                    setScrollBarWidth(size);
+                  } else {
+                    setScrollBarWidth(0);
+                  }
+                }}
+                noContentRenderer={() =>
+                  networkSpans.length === 0 ? (
+                    <EmptyStateWarning withIcon={false} small>
+                      {t('No related network requests recorded')}
+                    </EmptyStateWarning>
+                  ) : (
+                    <EmptyStateWarning withIcon small>
+                      {t('No results found')}
+                    </EmptyStateWarning>
+                  )
                 }
-              }}
-              noContentRenderer={() => (
-                <EmptyStateWarning withIcon small>
-                  {t('No related network requests found.')}
-                </EmptyStateWarning>
-              )}
-            />
-          )}
-        </AutoSizer>
+              />
+            )}
+          </AutoSizer>
+        ) : (
+          <Placeholder height="100%" />
+        )}
       </NetworkTable>
     </NetworkContainer>
   );

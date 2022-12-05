@@ -183,7 +183,10 @@ class JiraCreateTicketActionTest(RuleTestCase):
             data["fields"]["summary"]
             == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
         )
-        assert event.message in data["fields"]["description"]  # TODO add span evidence
+        assert (
+            "*Transaction Name* | db - SELECT `books_author`.`id`, `books_author`"
+            in data["fields"]["description"]
+        )
         assert data["fields"]["issuetype"]["id"] == "1"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")

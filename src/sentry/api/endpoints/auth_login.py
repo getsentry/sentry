@@ -66,7 +66,9 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
                 }
             )
 
-        redirect_url = auth.get_org_redirect_url(request, self.active_organization)
+        redirect_url = auth.get_org_redirect_url(
+            request, self.active_organization.organization if self.active_organization else None
+        )
 
         return Response(
             {

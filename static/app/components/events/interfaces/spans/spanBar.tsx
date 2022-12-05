@@ -490,6 +490,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     ) {
       titleFragments.push(
         <Regroup
+          key={`regroup-${span.timestamp}`}
           onClick={event => {
             event.stopPropagation();
             event.preventDefault();

@@ -162,12 +162,13 @@ describe('ProfilingOnboarding', function () {
     });
 
     render(
-      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />,
+      {context: TestStubs.routerContext()}
     );
 
     selectProject(project);
 
-    const link = (await screen.findByText(/sentry.cocoa@9.0.0/)) as HTMLAnchorElement;
+    const link = (await screen.findByText(/sentry\.cocoa@9\.0\.0/)) as HTMLAnchorElement;
     expect(link).toBeInTheDocument();
     expect(link.href).toBe('http://test/fake-slug');
   });
@@ -204,7 +205,7 @@ describe('ProfilingOnboarding', function () {
 
     selectProject(project);
 
-    const link = screen.queryByText(/sentry.java@9.0.0/);
+    const link = screen.queryByText(/sentry\.java@9\.0\.0/);
     expect(link).not.toBeInTheDocument();
   });
 
@@ -241,7 +242,7 @@ describe('ProfilingOnboarding', function () {
     selectProject(project);
 
     expect(
-      await screen.findByText(/http:\/\/fake-public-dsn.ingest.sentry.io/)
+      await screen.findByText(/http:\/\/fake-public-dsn\.ingest\.sentry\.io/)
     ).toBeInTheDocument();
   });
 });

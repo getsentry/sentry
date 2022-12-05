@@ -34,7 +34,7 @@ class GitHubAppsClientTest(TestCase):
             integration_id=integration.id,
         )
 
-        self.install = integration.get_installation(organization_id="123")
+        self.install = integration.get_installation(organization_id=123)
         self.client = self.install.get_client()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")

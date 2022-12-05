@@ -56,7 +56,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
       - name: Install dependencies
         id: dependencies
@@ -110,24 +110,14 @@ jobs:
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
-        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a  # main
+        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a # main
         with:
           github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
         id: tsc
         if: steps.dependencies.outcome == 'success'
-        run: |
-          set -o pipefail
-          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
-
-      - name: monitor-tsc
-        continue-on-error: true
-        if: steps.tsc.outcome == 'success'
-        env:
-          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
+        run: yarn tsc -p config/tsconfig.ci.json
 
       - name: storybook
         if: github.ref != 'refs/heads/master'
@@ -143,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile

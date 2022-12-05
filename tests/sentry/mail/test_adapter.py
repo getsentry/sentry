@@ -1191,7 +1191,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         assert digests.add.call_count == 1
 
     @mock.patch("sentry.mail.adapter.digests")
-    def test_digest_errors_only(self, digests):
+    def test_digest_with_perf_issue(self, digests):
         digests.enabled.return_value = True
         event = self.store_event(
             data=load_data(
@@ -1205,7 +1205,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        assert digests.add.call_count == 0
+        assert digests.add.call_count == 1
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):

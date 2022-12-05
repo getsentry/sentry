@@ -17,7 +17,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -33,8 +33,10 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
+from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
 from .utils import build_user_choice
@@ -187,10 +189,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "name": self.issues_ignored_fields_key,
                 "label": "Ignored Fields",
                 "type": "textarea",
-                "placeholder": _('e.g. "components, security, customfield_10006"'),
-                "help": _(
-                    "Comma-separated list of Jira fields that you don't want to show in issue creation form"
-                ),
+                "placeholder": _("components, security, customfield_10006"),
+                "help": _("Comma-separated Jira field IDs that you want to hide."),
             },
         ]
 
@@ -324,6 +324,19 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
+    def get_performance_issue_body(self, event):
+        (
+            transaction_name,
+            parent_span,
+            num_repeating_spans,
+            repeating_spans,
+        ) = self.get_performance_issue_description_data(event)
+
+        body = f"| *Transaction Name* | {truncatechars(transaction_name, MAX_CHAR)} |\n"
+        body += f"| *Parent Span* | {truncatechars(parent_span, MAX_CHAR)} |\n"
+        body += f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, MAX_CHAR)} |"
+        return body
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             "Sentry Issue: [{}|{}]".format(
@@ -331,9 +344,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
             )
         ]
-        body = self.get_group_body(group, event)
-        if body:
-            output.extend(["", "{code}", body, "{code}"])
+
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            body = self.get_performance_issue_body(event)
+            output.extend([body])
+
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
     def get_client(self):

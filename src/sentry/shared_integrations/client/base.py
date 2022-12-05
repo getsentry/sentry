@@ -170,7 +170,7 @@ class BaseApiClient(TrackResponseMixin):
     def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         query = ""
         if kwargs.get("params", None):
-            query = json.dumps(kwargs.get("params"), sort_keys=True)
+            query = json.dumps(kwargs.get("params"))
         key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
         result: BaseApiResponseX | None = cache.get(key)

@@ -74,6 +74,10 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_demo': {};
   'growth.demo_modal_clicked_signup': {};
+  'growth.end_modal_close': {};
+  'growth.end_modal_more_tours': {};
+  'growth.end_modal_restart_tours': {};
+  'growth.end_modal_signup': {};
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
   };
@@ -96,15 +100,6 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'growth.onboarding_wizard_clicked_more_details': {
-    platform?: string;
-    project_id?: string;
-  };
-  'growth.onboarding_wizard_interacted': {
-    wizard_instructions: boolean;
-    platform?: string;
-    project_id?: string;
-  };
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -208,8 +203,9 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'sample_event.button_viewed': null, // high-volume event
   'sample_event.created': 'Sample Event Created',
   'sample_event.failed': 'Sample Event Failed',
-  'growth.onboarding_wizard_clicked_more_details':
-    'Onboarding Wizard: Clicked More Details',
-  'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
   'assistant.guide_cued': 'Assistant Guide Cued',
+  'growth.end_modal_more_tours': 'Growth: End Modal More Tours',
+  'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
+  'growth.end_modal_close': 'Growth: End Modal Close',
+  'growth.end_modal_signup': 'Growth: End Modal Signup',
 };

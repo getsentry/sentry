@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
@@ -15,11 +13,11 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 
 type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
 type Props = {
-  router: WithRouterProps['router'];
   alignDropdown?: EnvironmentSelectorProps['alignDropdown'];
   disabled?: EnvironmentSelectorProps['disabled'];
   /**
@@ -35,13 +33,14 @@ type Props = {
 };
 
 function EnvironmentPageFilter({
-  router,
   resetParamsOnChange = [],
   alignDropdown,
   disabled,
   maxTitleLength = 20,
   size = 'md',
 }: Props) {
+  const router = useRouter();
+
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = usePageFilters();
@@ -120,18 +119,18 @@ function EnvironmentPageFilter({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   flex: 1 1 0%;
   margin-left: ${space(1)};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-align: left;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
+  width: max-content;
+  min-width: 0;
 `;
 
-export default withRouter<Props>(EnvironmentPageFilter);
+export default EnvironmentPageFilter;

@@ -465,6 +465,7 @@ const inviteRowGrid = css`
   display: grid;
   gap: ${space(1.5)};
   grid-template-columns: 3fr 180px 2fr max-content;
+  align-items: start;
 `;
 
 const InviteeHeadings = styled('div')`
@@ -504,10 +505,10 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};
+  color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
+    ${p => p.status === 'success' && `color: ${p.theme.successText}`};
   }
 `;
 

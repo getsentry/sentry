@@ -20,6 +20,12 @@ class SystemOptionsTest(APITestCase):
         assert "system.url-prefix" in response.data
         assert "system.admin-email" in response.data
 
+    def test_redacted_secret(self):
+        self.login_as(user=self.user, superuser=True)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data["github-login.client-secret"]["value"] == "[redacted]"
+
     def test_bad_query(self):
         self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.url, {"query": "nonsense"})
@@ -79,6 +85,12 @@ class SystemOptionsTest(APITestCase):
             response = self.client.put(self.url, {"system.url-prefix": "bread"})
             assert response.status_code == 400
             assert response.data["error"] == "immutable_option"
+
+    def test_allowed_option_without_permission(self):
+        self.login_as(user=self.user, superuser=True)
+        response = self.client.put(self.url, {"system.admin-email": "new_admin@example.com"})
+        assert response.status_code == 200
+        assert options.get("system.admin-email") == "new_admin@example.com"
 
     def test_put_simple(self):
         self.login_as(user=self.user, superuser=True)

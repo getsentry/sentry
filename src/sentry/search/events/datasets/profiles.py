@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Mapping, Optional, Union
 
-from snuba_sdk import Direction, OrderBy
+from snuba_sdk import Condition, Direction, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder
-from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
+from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
@@ -90,6 +90,7 @@ COLUMNS = [
     # Snuba adds a time column for the dataset that rounds the timestamp.
     # The exact rounding depends on the granularity in the query.
     Column(alias="time", column="time", kind=Kind.DATE),
+    Column(alias="message", column="transaction_name", kind=Kind.STRING),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
@@ -131,7 +132,7 @@ class ProfileNumericColumn(NumericColumn):  # type: ignore
             return Kind.NUMBER.value
 
 
-class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
+class ProfilesDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "organization.id",
         "project.id",
@@ -161,9 +162,42 @@ class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
+            "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function("match", [self.builder.column("message"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+        elif value == "":
+            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+            return Condition(
+                Function("equals", [self.builder.column("message"), value]), operator, 1
+            )
+        else:
+            if search_filter.is_in_filter:
+                return Condition(
+                    self.builder.column("message"),
+                    Op(search_filter.operator),
+                    value,
+                )
+
+            # make message search case insensitive
+            return Condition(
+                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
+                0,
+            )
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
@@ -322,7 +356,7 @@ class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
         }
 
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
-        projects = self.builder.params["project_objects"]
+        projects = self.builder.params.projects
 
         # Try to reduce the size of the transform by using any existing conditions on projects
         # Do not optimize projects list if conditions contain OR operator

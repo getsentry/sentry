@@ -31,9 +31,10 @@ class ProjectTeamManager(BaseManager):
         orgs = {i.organization_id: i.organization for i in teams}
 
         for project_team in project_teams:
-            project_team.project.set_cached_field_value(
-                "organization", orgs[project_team.project.organization_id]
-            )
+            if project_team.project.organization_id in orgs:
+                project_team.project.set_cached_field_value(
+                    "organization", orgs[project_team.project.organization_id]
+                )
 
         return project_teams
 

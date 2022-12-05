@@ -4,6 +4,7 @@ import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import toArray from 'sentry/utils/toArray';
 
 import {VitalBar} from '../landing/vitalsCards';
 
@@ -35,7 +36,7 @@ function VitalInfo({
   hideVitalThresholds,
   hideDurationDetail,
 }: Props) {
-  const vitals = Array.isArray(vital) ? vital : [vital];
+  const vitals = toArray(vital);
   const contentCommonProps = {
     vital,
     showBar: !hideBar,

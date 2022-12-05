@@ -16,6 +16,7 @@ from django.views.decorators.http import require_http_methods
 from sentry.models import Authenticator, LostPasswordHash, NotificationSetting, Project, UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.signals import email_verified
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
@@ -37,10 +38,10 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    password_hash = LostPasswordHash.for_user(user)
-    password_hash.send_email(request)
+    hash = lost_password_hash_service.get_or_create(user.id).hash
+    LostPasswordHash.send_email(user, hash, request)
 
-    context = {"email": password_hash.user.email}
+    context = {"email": user.email}
     return render_to_response(get_template("recover", "expired"), context, request)
 
 
@@ -73,8 +74,8 @@ def recover(request):
     if form.is_valid():
         email = form.cleaned_data["user"]
         if email:
-            password_hash = LostPasswordHash.for_user(email)
-            password_hash.send_email(request)
+            password_hash = lost_password_hash_service.get_or_create(email.id)
+            LostPasswordHash.send_email(email, password_hash.hash, request)
 
             extra["passwordhash_id"] = password_hash.id
             extra["user_id"] = password_hash.user_id

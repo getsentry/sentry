@@ -183,7 +183,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            "" if self.builder.tag_values_are_strings else 0,
+                                            "",
                                         ],
                                     ),
                                 ],
@@ -216,9 +216,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                                 "notEquals",
                                                 [
                                                     self.builder.column("transaction"),
-                                                    ""
-                                                    if self.builder.tag_values_are_strings
-                                                    else 0,
+                                                    "",
                                                 ],
                                             ),
                                             Function(
@@ -651,7 +649,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "transform",
             [
                 Column(self.builder.resolve_column_name("transaction")),
-                [0 if not self.builder.tag_values_are_strings else ""],
+                [""],
                 [self.builder.resolve_tag_value("<< unparameterized >>")],
             ],
             alias,
@@ -666,8 +664,10 @@ class MetricsDatasetConfig(DatasetConfig):
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-            project_ids=self.builder.params.get("project_id"),
-            org_id=self.builder.params.get("organization_id"),
+            org_id=self.builder.params.organization.id
+            if self.builder.params.organization
+            else None,
+            project_ids=self.builder.params.project_ids,
         )
 
     def _project_threshold_multi_if_function(self) -> SelectType:
@@ -742,6 +742,13 @@ class MetricsDatasetConfig(DatasetConfig):
             if resolved_value is None:
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [self.builder.resolve_column("transaction"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
 
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
