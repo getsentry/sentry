@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -18,17 +19,17 @@ import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFil
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
 }
 
-function Console({breadcrumbs, startTimestampMs = 0}: Props) {
+function Console({breadcrumbs, startTimestampMs}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(containerRef);
 
   const {items, logLevel, searchTerm, getOptions, setLogLevel, setSearchTerm} =
     useConsoleFilters({
-      breadcrumbs,
+      breadcrumbs: breadcrumbs || [],
     });
 
   return (
@@ -42,20 +43,26 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
+          isDisabled={!breadcrumbs}
         />
         <SearchBar
           onChange={setSearchTerm}
           placeholder={t('Search console logs...')}
           size="sm"
           query={searchTerm}
+          disabled={!breadcrumbs}
         />
       </ConsoleFilters>
       <ConsoleMessageContainer ref={containerRef}>
-        <ConsoleContent
-          breadcrumbs={breadcrumbs}
-          items={items}
-          startTimestampMs={startTimestampMs}
-        />
+        {breadcrumbs ? (
+          <ConsoleContent
+            breadcrumbs={breadcrumbs}
+            items={items}
+            startTimestampMs={startTimestampMs}
+          />
+        ) : (
+          <Placeholder height="100%" />
+        )}
       </ConsoleMessageContainer>
     </ConsoleContainer>
   );

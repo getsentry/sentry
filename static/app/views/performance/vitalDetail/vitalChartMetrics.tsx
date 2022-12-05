@@ -18,7 +18,7 @@ import {Series} from 'sentry/types/echarts';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import {ViewProps} from '../types';
@@ -50,7 +50,7 @@ function VitalChartMetrics({
   vital,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const theme = useTheme();
 
   const {utc, legend, vitalPoor, markLines, chartOptions} = getVitalChartDefinitions({
