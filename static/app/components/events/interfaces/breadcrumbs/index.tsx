@@ -271,8 +271,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
-  const showReplay =
-    !isShare && Boolean(replayId) && organization.features.includes('session-replay-ui');
+  const showReplay = !isShare && organization.features.includes('session-replay-ui');
 
   const actions = (
     <SearchAndSortWrapper isFullWidth={showReplay}>
@@ -309,7 +308,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       {showReplay ? (
         <Fragment>
           <EventReplay
-            replayId={replayId!}
+            replayId={replayId}
             projectSlug={projectSlug}
             orgSlug={organization.slug}
             event={event}
