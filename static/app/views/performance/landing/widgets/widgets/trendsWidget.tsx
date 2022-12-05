@@ -92,6 +92,43 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, trendChangeType]
   );
 
+  const getItems = provided =>
+    provided.widgetData.chart.transactionsList.map(listItem => () => {
+      const initialConditions = new MutableSearch([]);
+      initialConditions.addFilterValues('transaction', [listItem.transaction]);
+
+      const trendsTarget = trendsTargetRoute({
+        organization: props.organization,
+        location,
+        initialConditions,
+        additionalQuery: {
+          trendFunction: trendFunctionField,
+          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+        },
+      });
+      return (
+        <Fragment>
+          <GrowLink to={trendsTarget}>
+            <Truncate value={listItem.transaction} maxLength={40} />
+          </GrowLink>
+          <RightAlignedCell>
+            <CompareDurations transaction={listItem} />
+          </RightAlignedCell>
+          {!withStaticFilters && (
+            <ListClose
+              setSelectListIndex={setSelectListIndex}
+              onClick={() =>
+                excludeTransaction(listItem.transaction, {
+                  eventView: props.eventView,
+                  location,
+                })
+              }
+            />
+          )}
+        </Fragment>
+      );
+    });
+
   const Queries = {
     chart,
   };
@@ -103,30 +140,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             <Accordion
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.chart.transactionsList.map(listItem => () => {
-                const initialConditions = new MutableSearch([]);
-                initialConditions.addFilterValues('transaction', [listItem.transaction]);
-
-                const trendsTarget = trendsTargetRoute({
-                  organization: props.organization,
-                  location,
-                  initialConditions,
-                  additionalQuery: {
-                    trendFunction: trendFunctionField,
-                    statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
-                  },
-                });
-                return (
-                  <Fragment>
-                    <GrowLink to={trendsTarget}>
-                      <Truncate value={listItem.transaction} maxLength={40} />
-                    </GrowLink>
-                    <RightAlignedCell>
-                      <CompareDurations transaction={listItem} />
-                    </RightAlignedCell>
-                  </Fragment>
-                );
-              })}
+              items={getItems(provided)}
               content={
                 <TrendsChart
                   {...provided}
@@ -183,41 +197,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             <SelectableList
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.chart.transactionsList.map(listItem => () => {
-                const initialConditions = new MutableSearch([]);
-                initialConditions.addFilterValues('transaction', [listItem.transaction]);
-
-                const trendsTarget = trendsTargetRoute({
-                  organization: props.organization,
-                  location,
-                  initialConditions,
-                  additionalQuery: {
-                    trendFunction: trendFunctionField,
-                    statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
-                  },
-                });
-                return (
-                  <Fragment>
-                    <GrowLink to={trendsTarget}>
-                      <Truncate value={listItem.transaction} maxLength={40} />
-                    </GrowLink>
-                    <RightAlignedCell>
-                      <CompareDurations transaction={listItem} />
-                    </RightAlignedCell>
-                    {!withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                );
-              })}
+              items={getItems(provided)}
             />
           ),
           height: 124,
