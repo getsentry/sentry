@@ -404,7 +404,6 @@ def alert(request):
             "commits": json.loads(COMMIT_EXAMPLE),
             "environment": random.randint(0, 1) > 0 and "prod" or None,
             "notification_reason": notification_reason,
-            "subtitle": event.title,
             "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
         },
     ).render(request)
