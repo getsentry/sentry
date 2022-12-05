@@ -66,9 +66,5 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
 
-            # This test is flakey in that we sometimes load this page before the event is processed
-            # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
+            self.wait_for_event_count(self.project.id, 1)
             self.browser.snapshot("new widget performance landing - with data")
