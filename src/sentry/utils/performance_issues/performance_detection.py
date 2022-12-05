@@ -928,6 +928,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         # Ignore anything that looks like an asset
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
         if type(url) is dict:
