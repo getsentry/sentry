@@ -1,6 +1,5 @@
 import {
   breadcrumbFactory,
-  // breadcrumbValuesFromEvents,
   isMemorySpan,
   isNetworkSpan,
   mapRRWebAttachments,
