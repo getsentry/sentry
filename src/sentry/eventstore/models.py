@@ -771,7 +771,7 @@ class EventSubjectTemplateData:
         elif name == "title":
             return (
                 self.event.occurrence.issue_title
-                if hasattr(self.event, "occurrence", None)
+                if getattr(self.event, "occurrence", None)
                 else self.event.title
             )
         elif name == "issueType":
