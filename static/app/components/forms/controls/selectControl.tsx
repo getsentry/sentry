@@ -168,7 +168,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight} = props;
+  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight, menuTitle} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -269,7 +269,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       menuList: provided => ({
         ...provided,
         ...(isCompact && {
-          paddingTop: isSearchable ? 0 : `calc(${space(0.5)} + 1px)`,
+          paddingTop: isSearchable
+            ? 0
+            : // If the menu title is present, then add 1px to the top padding to ensure
+            // even padding (the menu title element has a box-shadow border that takes up
+            // zero height)
+            menuTitle
+            ? `calc(${space(0.5)} + 1px)`
+            : space(0.5),
           paddingBottom: space(0.5),
         }),
       }),
