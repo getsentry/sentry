@@ -34,10 +34,6 @@ def _get_project_platform(project_id: int) -> Platform:
         return Platform()
 
 
-def _is_active(current_timestamp: float, expiration_timestamp: float) -> bool:
-    return current_timestamp <= expiration_timestamp
-
-
 @dataclass(frozen=True)
 class BoostedRelease:
     """
@@ -72,7 +68,7 @@ class ExtendedBoostedRelease(BoostedRelease):
     platform: Platform
 
     def is_active(self, current_timestamp: float) -> bool:
-        return _is_active(current_timestamp, self.timestamp + self.platform.time_to_adoption)
+        return current_timestamp <= self.timestamp + self.platform.time_to_adoption
 
 
 @dataclass
@@ -214,12 +210,12 @@ class ProjectBoostedReleases:
 
             # For efficiency reasons we don't parse the release and extend it with information, therefore we have to
             # check timestamps in the following way.
-            if _is_active(current_timestamp, timestamp + self.project_platform.time_to_adoption):
+            if current_timestamp <= timestamp + self.project_platform.time_to_adoption:
                 # With this logic we want to find the boosted release with the lowest timestamp, if multiple releases
                 # have the same timestamp we are going to take the first one in the hash.
                 #
-                # We run this logic while counting the number of active release so that we can remove it in O(1) in case
-                # the number of active releases is >= the limit.
+                # We run this logic while counting the number of active release so that we can remove the lrb release
+                # in O(1) in case the number of active releases is >= the limit.
                 #
                 # We leverage OR execution order to avoid the condition lru_boosted_release is not None because:
                 # The expression x or y first evaluates x;
