@@ -927,7 +927,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
-        # Ignore anything that looks like an asset
+        # GraphQL URLs have complicated queries in them. Until we parse those
+        # queries to check for what's duplicated, we can't tell what is being
+        # duplicated. Ignore them for now
+        if "graphql" in description:
+            return False
+
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
