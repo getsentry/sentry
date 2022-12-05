@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
 
-const DEFAULT_QUERY = 'duration:>5';
+const DEFAULT_QUERY = 'duration:>=5';
 
 function ReplaysFilters() {
   const {selection} = usePageFilters();
