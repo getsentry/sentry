@@ -33,7 +33,7 @@ import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import {
@@ -81,7 +81,7 @@ function SidebarCharts({
   transactionName,
 }: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -243,8 +243,7 @@ function SidebarChartsContainer({
   transactionName,
 }: ContainerProps) {
   const location = useLocation();
-  const {router} = useRouteContext();
-
+  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 

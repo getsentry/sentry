@@ -27,7 +27,7 @@ class OrganizationMemberSerializerTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         projects = [self.project, self.project_2]
@@ -51,7 +51,7 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
         assert [r["projects"] for r in result] == expected_projects
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
@@ -71,7 +71,7 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
