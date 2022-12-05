@@ -74,7 +74,6 @@ function Event({
   startTimestampMs: number;
 }) {
   const theme = useTheme();
-
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -182,4 +181,5 @@ const TooltipWrapper = styled('div')`
   max-height: calc(100vh - ${space(4)});
   overflow: auto;
 `;
+
 export default ReplayTimelineEvents;
