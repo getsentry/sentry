@@ -12,9 +12,10 @@ from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
-from sentry.models import AuditLogEntry, AuthProvider, Organization
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {
@@ -52,12 +53,6 @@ class AuthSAML2Test(AuthProviderTestCase):
     def setUp(self):
         self.user = self.create_user("rick@onehundredyears.com")
         self.org = self.create_organization(owner=self.user, name="saml2-org")
-
-        # enable require 2FA and enroll user
-        TotpInterface().enroll(self.user)
-        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set
-
         self.auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, config=dummy_provider_config, organization=self.org
         )
@@ -99,7 +94,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == "/sso_url"
         assert "SAMLRequest" in query
 
-    def accept_auth(self, **kargs):
+    def accept_auth(self, **kwargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
         saml_response = base64.b64encode(saml_response).decode("utf-8")
 
@@ -107,7 +102,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 
         with mock.patch(is_valid, return_value=True):
-            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kargs)
+            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kwargs)
 
     def test_auth_sp_initiated(self):
         # Start auth process from SP side
@@ -116,6 +111,52 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
+
+    def test_auth_sp_initiated_login(self):
+        # setup an existing identity so we can complete login
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+        )
+        self.client.post(self.login_path, {"init": True})
+
+        resp = self.accept_auth(follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("/auth/login/", 302),
+            ("/organizations/saml2-org/issues/", 302),
+        ]
+
+    def test_auth_sp_initiated_customer_domain(self):
+        # setup an existing identity so we can complete login
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+        )
+        self.client.post(self.login_path, {"init": True}, HTTP_HOST="saml2-org.testserver")
+
+        resp = self.accept_auth(follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("http://saml2-org.testserver/auth/login/", 302),
+            ("http://saml2-org.testserver/issues/", 302),
+        ]
+
+    @with_feature("organizations:customer-domains")
+    def test_auth_sp_initiated_login_customer_domain_feature(self):
+        # setup an existing identity so we can complete login
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+        )
+        self.client.post(self.login_path, {"init": True})
+
+        resp = self.accept_auth(follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("http://saml2-org.testserver/auth/login/", 302),
+            ("http://saml2-org.testserver/issues/", 302),
+        ]
 
     def test_auth_idp_initiated(self):
         auth = self.accept_auth()
@@ -166,6 +207,11 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     @mock.patch("sentry.auth.helper.logger")
     def test_auth_setup(self, auth_log):
+        # enable require 2FA and enroll user
+        TotpInterface().enroll(self.user)
+        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        assert self.org.flags.require_2fa.is_set
+
         self.auth_provider.delete()
         self.login_as(self.user)
 

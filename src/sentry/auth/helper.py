@@ -198,6 +198,8 @@ class AuthIdentityHandler:
         subdomain = None
         if data:
             subdomain = data.get("subdomain") or None
+        if features.has("organizations:customer-domains", self.organization, actor=user):
+            subdomain = self.organization.slug
 
         try:
             self._login(user)
@@ -212,6 +214,8 @@ class AuthIdentityHandler:
         return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
     def _get_login_redirect(self, subdomain: str | None) -> str:
+        # TODO(domains) Passing this method the organization should let us consolidate and simplify subdomain
+        # state tracking.
         login_redirect_url = auth.get_login_redirect(self.request)
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
