@@ -15,14 +15,13 @@ const SNOOZE_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
 const DISMISS_TIME = 1000 * 60 * 60 * 24 * 365; // 1 year
 
 function getHideUntilTime() {
-  const val = localStorage.getItem(LOCAL_STORAGE_KEY);
-  const time = val ? new Date(val || '').getTime() : 0;
-  return time || 0; // Time could be `NaN`
+  return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
 }
 
 function setHideUntilTime(offset: number) {
-  localStorage.setItem(LOCAL_STORAGE_KEY, new Date(Date.now() + offset).toISOString());
+  localStorage.setItem(LOCAL_STORAGE_KEY, String(Date.now() + offset));
 }
+
 function clearHideUntilTime() {
   localStorage.removeItem(LOCAL_STORAGE_KEY);
 }
