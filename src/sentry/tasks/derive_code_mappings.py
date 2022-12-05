@@ -19,6 +19,7 @@ from sentry.utils.safe import get_path
 
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
 GROUP_ANALYSIS_RANGE = timedelta(days=14)
+SUPPORTED_LANGUAGES = ["javascript", "python"]
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +76,16 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
     Get the stacktrace_paths from the event data.
     """
-    if data["platform"] != "python":
+    if data["platform"] not in SUPPORTED_LANGUAGES:
         return []
+
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = {frame["filename"] for frame in stacktrace["frames"]}
+            paths = {
+                frame["filename"] for frame in stacktrace["frames"] if frame.get("in_app") is True
+            }
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project.")

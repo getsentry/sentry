@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Commit, Repository, User} from 'sentry/types';
@@ -40,6 +40,8 @@ let mockedGroup = TestStubs.Group({
     name: 'ingest',
     type: 'team',
   },
+  count: 2500000,
+  userCount: 64000,
 });
 
 const mockEventView = EventView.fromSavedQuery({
@@ -100,7 +102,13 @@ const mockedReleaseWithHealth = TestStubs.Release({
   authors: [mockedUser1, mockedUser2],
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
@@ -232,7 +240,25 @@ describe('Quick Context', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('Renders ignored Issue status context when data is loaded', async () => {
+    it('Renders issue context header with copy button', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
+      expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-hover-header-copy-icon')
+      ).toBeInTheDocument();
+    });
+
+    it('Renders ignored issue status context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -248,7 +274,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-ignored-icon')).toBeInTheDocument();
     });
 
-    it('Renders resolved Issue status context when data is loaded', async () => {
+    it('Renders resolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'resolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -264,7 +290,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     });
 
-    it('Renders unresolved Issue status context when data is loaded', async () => {
+    it('Renders unresolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'unresolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -281,7 +307,23 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
     });
 
-    it('Renders assigned To context when data is loaded', async () => {
+    it('Renders event and user counts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Events/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.5m/i)).toBeInTheDocument();
+      expect(screen.getByText(/Users/i)).toBeInTheDocument();
+      expect(screen.getByText(/64k/i)).toBeInTheDocument();
+    });
+
+    it('Renders assigned to context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -411,10 +453,14 @@ describe('Quick Context', function () {
 
       userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/2/i)).toHaveLength(3);
-      expect(screen.getByText(/authors/i)).toBeInTheDocument();
+      const authorsSectionHeader = within(
+        await screen.findByTestId('quick-context-release-author-header')
+      );
+
+      expect(authorsSectionHeader.getByText(/4/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/commits by/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/2/i)).toBeInTheDocument();
+      expect(authorsSectionHeader.getByText(/authors/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });
@@ -431,9 +477,7 @@ describe('Quick Context', function () {
       userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/4/i)).toBeInTheDocument();
-      expect(screen.getByText(/commits by you and/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/1/i)).toHaveLength(3);
-      expect(screen.getByText(/other/i)).toBeInTheDocument();
+      expect(screen.getByText(/commits by you and 1 other/i)).toBeInTheDocument();
       expect(screen.getByText(/KN/i)).toBeInTheDocument();
       expect(screen.getByText(/VN/i)).toBeInTheDocument();
     });

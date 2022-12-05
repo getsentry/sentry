@@ -76,7 +76,7 @@ def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int
         return ()
 
     team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
+        organizationmember__user_id=user.id, team__in=team_list
     ).values_list("team", flat=True)
     return set(team_ids)
 
@@ -267,7 +267,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             if user.is_authenticated and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
-                        user=user, project_id__in=project_ids
+                        user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
 

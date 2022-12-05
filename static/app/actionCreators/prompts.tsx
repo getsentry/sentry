@@ -88,23 +88,25 @@ export async function promptsCheck(
   return null;
 }
 
+export const makePromptsCheckQueryKey = ({
+  feature,
+  organizationId,
+  projectId,
+}: PromptCheckParams): [string, Record<string, string | undefined>] => [
+  '/prompts-activity/',
+  {feature, organizationId, projectId},
+];
+
 /**
  * @param organizationId org numerical id, not the slug
  */
-export function usePromptsCheck(
-  feature: PromptCheckParams['feature'],
-  organizationId: string,
-  projectId: PromptCheckParams['projectId']
-) {
-  const query = {
-    feature,
-    organization_id: organizationId,
-    ...(projectId === undefined ? {} : {project_id: projectId}),
-  };
-
-  return useQuery<PromptResponse>(['/prompts-activity/', {query}], {
-    staleTime: 120000,
-  });
+export function usePromptsCheck({feature, organizationId, projectId}: PromptCheckParams) {
+  return useQuery<PromptResponse>(
+    makePromptsCheckQueryKey({feature, organizationId, projectId}),
+    {
+      staleTime: 120000,
+    }
+  );
 }
 
 /**

@@ -1,18 +1,29 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {promptsUpdate, usePromptsCheck} from 'sentry/actionCreators/prompts';
+import {
+  makePromptsCheckQueryKey,
+  PromptResponse,
+  promptsUpdate,
+  usePromptsCheck,
+} from 'sentry/actionCreators/prompts';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
+import type {
+  Event,
+  Frame,
+  Organization,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -20,22 +31,13 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
-
-interface StacktraceLinkProps {
-  event: Event;
-  frame: Frame;
-  /**
-   * The line of code being linked
-   */
-  line: string;
-}
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -47,16 +49,91 @@ const supportedStacktracePlatforms: PlatformKey[] = [
   'elixir',
 ];
 
-export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
+interface StacktraceLinkSetupProps {
+  event: Event;
+  organization: Organization;
+  project?: Project;
+}
+
+function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
   const api = useApi();
+  const queryClient = useQueryClient();
+
+  const dismissPrompt = () => {
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      projectId: project?.id,
+      feature: 'stacktrace_link',
+      status: 'dismissed',
+    });
+
+    // Update cached query data
+    // Will set prompt to dismissed
+    queryClient.setQueryData<PromptResponse>(
+      makePromptsCheckQueryKey({
+        feature: 'stacktrace_link',
+        organizationId: organization.id,
+        projectId: project?.id,
+      }),
+      () => {
+        const dimissedTs = new Date().getTime() / 1000;
+        return {
+          data: {dismissed_ts: dimissedTs},
+          features: {stacktrace_link: {dismissed_ts: dimissedTs}},
+        };
+      }
+    );
+
+    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+      view: 'stacktrace_issue_details',
+      organization,
+      ...getAnalyicsDataForEvent(event),
+    });
+  };
+
+  return (
+    <CodeMappingButtonContainer columnQuantity={2}>
+      <StyledLink to={`/settings/${organization.slug}/integrations/`}>
+        <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+        {t(
+          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        )}
+      </StyledLink>
+      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
+        <IconClose size="xs" aria-label={t('Close')} />
+      </CloseButton>
+    </CodeMappingButtonContainer>
+  );
+}
+
+interface StacktraceLinkProps {
+  event: Event;
+  frame: Frame;
+  /**
+   * The line of code being linked
+   */
+  line: string;
+}
+
+export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
-  const [promptDismissed, setPromptDismissed] = useState(false);
-  const prompt = usePromptsCheck('stacktrace_link', organization.id, project?.id);
+  const prompt = usePromptsCheck({
+    feature: 'stacktrace_link',
+    organizationId: organization.id,
+    projectId: project?.id,
+  });
+  const isPromptDismissed =
+    prompt.isSuccess && prompt.data.data
+      ? promptIsDismissed({
+          dismissedTime: prompt.data.data.dismissed_ts,
+          snoozedTime: prompt.data.data.snoozed_ts,
+        })
+      : false;
 
   const query = {
     file: frame.filename,
@@ -76,23 +153,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     {query},
   ]);
 
-  // Update dismissed state when prompt is loaded
-  useEffect(() => {
-    if (prompt.isLoading || !prompt.data?.data) {
-      return;
-    }
-
-    setPromptDismissed(
-      promptIsDismissed({
-        dismissedTime: prompt.data.data.dismissed_ts,
-        snoozedTime: prompt.data.data.snoozed_ts,
-      })
-    );
-  }, [prompt.isLoading, prompt.data]);
-
   // Track stacktrace analytics after loaded
   useEffect(() => {
-    if (isLoading || !match) {
+    if (isLoading || prompt.isLoading || !match) {
       return;
     }
 
@@ -107,31 +170,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           ? 'match'
           : match.error || match.integrations.length > 0
           ? 'no_match'
-          : !promptDismissed
+          : !isPromptDismissed
           ? 'prompt'
           : 'empty',
       ...getAnalyicsDataForEvent(event),
     });
-    // excluding promptDismissed because we want this only to record once
+    // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, match, organization, project, event]);
-
-  const dismissPrompt = () => {
-    promptsUpdate(api, {
-      organizationId: organization.id,
-      projectId: project?.id,
-      feature: 'stacktrace_link',
-      status: 'dismissed',
-    });
-
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
-      view: 'stacktrace_issue_details',
-      organization,
-      ...getAnalyicsDataForEvent(event),
-    });
-
-    setPromptDismissed(true);
-  };
+  }, [isLoading, prompt.isLoading, match, organization, project, event]);
 
   const onOpenLink = () => {
     const provider = match!.config?.provider;
@@ -237,23 +283,13 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   }
 
   // No integrations, but prompt is dismissed or hidden
-  if (hideErrors || promptDismissed) {
+  if (hideErrors || isPromptDismissed) {
     return null;
   }
 
   // No integrations
   return (
-    <CodeMappingButtonContainer columnQuantity={2}>
-      <StyledLink to={`/settings/${organization.slug}/integrations/`}>
-        <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-        {t(
-          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
-        )}
-      </StyledLink>
-      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
-        <IconClose size="xs" aria-label={t('Close')} />
-      </CloseButton>
-    </CodeMappingButtonContainer>
+    <StacktraceLinkSetup event={event} project={project} organization={organization} />
   );
 }
 
