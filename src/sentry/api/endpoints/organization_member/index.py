@@ -274,7 +274,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=result["role"],
-                inviter=request.user,
+                inviter_id=request.user.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:

@@ -46,7 +46,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _serialize_member_flags(self, member: OrganizationMember) -> ApiOrganizationMemberFlags:
         result = ApiOrganizationMemberFlags()
         for f in dataclasses.fields(ApiOrganizationMemberFlags):
-            setattr(result, f.name, getattr(member.flags, unescape_flag_name(f.name)))
+            setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
         return result
 
     def _serialize_member(

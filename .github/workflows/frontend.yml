@@ -117,17 +117,7 @@ jobs:
       - name: tsc
         id: tsc
         if: steps.dependencies.outcome == 'success'
-        run: |
-          set -o pipefail
-          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
-
-      - name: monitor-tsc
-        continue-on-error: true
-        if: steps.tsc.outcome == 'success'
-        env:
-          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
+        run: yarn tsc -p config/tsconfig.ci.json
 
       - name: storybook
         if: github.ref != 'refs/heads/master'
