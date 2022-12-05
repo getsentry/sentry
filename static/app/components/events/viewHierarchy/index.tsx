@@ -23,6 +23,15 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
       kindOfMatches =
         value && hierarchy.meta[key].toLowerCase().includes(value.toLowerCase());
     }
+
+    if (key === 'title' && value) {
+      match =
+        hierarchy.title.split(': ')[0].toLowerCase() === value.toLowerCase() ||
+        (value.includes(': ') &&
+          hierarchy.title.toLowerCase().startsWith(value.toLowerCase()));
+      kindOfMatches =
+        value && hierarchy.title.toLowerCase().includes(value.toLowerCase());
+    }
   }
 
   return (
@@ -84,7 +93,7 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
           )}
         </div>
 
-        {(showData || showingData) && (
+        {(showData || showingData || showAllData) && (
           <table style={{marginLeft: '18px', borderSpacing: '4px'}}>
             <tr>
               {Object.keys(hierarchy.meta).map(key => (
