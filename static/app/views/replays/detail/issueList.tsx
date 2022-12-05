@@ -89,7 +89,7 @@ function IssueList({projectId, replayId}: Props) {
     <ReplayCountContext.Provider value={counts}>
       <StyledPanelTable
         isEmpty={state.issues.length === 0}
-        emptyMessage={t('No related Issues found.')}
+        emptyMessage={t('No Issues are related')}
         isLoading={state.fetching}
         headers={
           isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))

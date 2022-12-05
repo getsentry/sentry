@@ -8,6 +8,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -17,7 +18,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -298,7 +299,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           size="sm"
           onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
-          isDisabled={!networkSpans}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
@@ -311,14 +312,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
-          isDisabled={!networkSpans}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
-          placeholder={t('Search Network...')}
+          placeholder={t('Search Network Requests')}
           query={searchTerm}
-          disabled={!networkSpans}
+          disabled={!networkSpans || !networkSpans.length}
         />
       </NetworkFilters>
 
@@ -360,13 +361,20 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                 }}
                 noContentRenderer={() =>
                   networkSpans.length === 0 ? (
-                    <EmptyStateWarning withIcon={false} small>
-                      {t('No related network requests recorded')}
-                    </EmptyStateWarning>
+                    <StyledEmptyStateWarning>
+                      <p>{t('No network requests recorded')}</p>
+                    </StyledEmptyStateWarning>
                   ) : (
-                    <EmptyStateWarning withIcon small>
-                      {t('No results found')}
-                    </EmptyStateWarning>
+                    <StyledEmptyStateWarning>
+                      <p>{t('No results found')}</p>
+                      <Button
+                        icon={<IconClose color="gray500" size="sm" isCircled />}
+                        onClick={() => setSearchTerm('')}
+                        size="md"
+                      >
+                        {t('Clear filters')}
+                      </Button>
+                    </StyledEmptyStateWarning>
                   )
                 }
               />
@@ -379,6 +387,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </NetworkContainer>
   );
 }
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;
