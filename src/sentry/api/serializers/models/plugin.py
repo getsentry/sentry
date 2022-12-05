@@ -121,10 +121,14 @@ class PluginWithConfigSerializer(PluginSerializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         return {
-            "config": [
-                serialize_field(self.project, item, c)
-                for c in item.get_config(project=self.project, user=user, add_additial_fields=True)
-            ]
+            item: {
+                "config": [
+                    serialize_field(self.project, item, c)
+                    for c in item.get_config(
+                        project=self.project, user=user, add_additial_fields=True
+                    )
+                ]
+            }
             for item in item_list
         }
 
