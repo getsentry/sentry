@@ -86,20 +86,18 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
         stacked
         flexibleControlStateSize
       />
-      {organization.features.includes('issue-list-saved-searches-v2') && (
-        <SelectField
-          disabled={!canChangeVisibility}
-          disabledReason={t('Only organization admins can create global saved searches.')}
-          name="visibility"
-          label={t('Choose who can view this saved search')}
-          options={SELECT_FIELD_VISIBILITY_OPTIONS}
-          required
-          clearable={false}
-          inline={false}
-          stacked
-          flexibleControlStateSize
-        />
-      )}
+      <SelectField
+        disabled={!canChangeVisibility}
+        disabledReason={t('Only organization admins can create global saved searches.')}
+        name="visibility"
+        label={t('Choose who can view this saved search')}
+        options={SELECT_FIELD_VISIBILITY_OPTIONS}
+        required
+        clearable={false}
+        inline={false}
+        stacked
+        flexibleControlStateSize
+      />
     </Fragment>
   );
 }
