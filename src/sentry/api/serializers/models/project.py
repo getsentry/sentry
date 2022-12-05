@@ -184,7 +184,7 @@ def format_options(attrs: defaultdict(dict)):
         f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
             attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
-        "feedback:branding": attrs.get("feedback:branding", "1") == "1",
+        "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
     }
 
 
