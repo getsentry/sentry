@@ -98,9 +98,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
@@ -146,7 +143,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
-              useEvents={useEvents}
+              useEvents
             />
           );
         },
@@ -226,7 +223,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           [settingToVital[props.chartSetting]]: getVitalDataForListItem(
             listItem,
             vital,
-            !useEvents
+            false
           ),
         };
 
@@ -316,7 +313,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
                     listItem,
                     vital,
-                    !useEvents
+                    false
                   ),
                 };
 
