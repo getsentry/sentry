@@ -394,4 +394,8 @@ def bucket_count(start: datetime, end: datetime, buckets: Dict[datetime, int]) -
 
 
 def percent_increase(result: int, comparison_result: int) -> int:
-    return int(max(0, ((result / comparison_result) * 100) - 100)) if comparison_result > 0 else 0
+    return (
+        int(max(0, ((result - comparison_result) / comparison_result * 100)))
+        if comparison_result > 0
+        else 0
+    )
