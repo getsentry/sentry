@@ -69,11 +69,7 @@ class Content extends AsyncComponent<Props, State> {
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
     apiPayload.referrer = 'api.performance.durationpercentilechart';
-    const endpoint = organization.features.includes(
-      'performance-frontend-use-events-endpoint'
-    )
-      ? `/organizations/${organization.slug}/events/`
-      : `/organizations/${organization.slug}/eventsv2/`;
+    const endpoint = `/organizations/${organization.slug}/events/`;
 
     return [['chartData', endpoint, {query: apiPayload}]];
   }
@@ -105,7 +101,7 @@ class Content extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {currentFilter, organization} = this.props;
+    const {currentFilter} = this.props;
     const {chartData} = this.state;
 
     if (!defined(chartData)) {
@@ -117,15 +113,7 @@ class Content extends AsyncComponent<Props, State> {
         ? theme.charts.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
-    return (
-      <Chart
-        series={transformData(
-          chartData.data,
-          !organization.features.includes('performance-frontend-use-events-endpoint')
-        )}
-        colors={colors}
-      />
-    );
+    return <Chart series={transformData(chartData.data, false)} colors={colors} />;
   }
 }
 

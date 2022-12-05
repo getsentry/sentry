@@ -100,7 +100,7 @@ function mockEventView(data) {
 }
 
 describe('Performance > Table', function () {
-  let eventsV2Mock, eventsMock;
+  let eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
@@ -152,13 +152,6 @@ describe('Performance > Table', function () {
         project_threshold_config: ['duration', 300],
       },
     ];
-    eventsV2Mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {
-        meta: eventsMetaFieldsMock,
-        data: eventsBodyMock,
-      },
-    });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -177,7 +170,7 @@ describe('Performance > Table', function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with eventsv2', function () {
+  describe('with events', function () {
     it('renders correct cell actions without feature', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
@@ -233,12 +226,9 @@ describe('Performance > Table', function () {
     });
 
     it('hides cell actions when withStaticFilters is true', function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
 
       render(
         <WrappedComponent
@@ -261,139 +251,6 @@ describe('Performance > Table', function () {
           query: 'event.type:transaction transaction:/api*',
         },
         ['performance-use-metrics']
-      );
-
-      render(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-          isMEPEnabled
-        />
-      );
-
-      expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-      expect(eventsV2Mock).toHaveBeenNthCalledWith(
-        1,
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            environment: [],
-            field: [
-              'team_key_transaction',
-              'transaction',
-              'project',
-              'tpm()',
-              'p50()',
-              'p95()',
-              'failure_rate()',
-              'apdex()',
-              'count_unique(user)',
-              'count_miserable(user)',
-              'user_misery()',
-            ],
-            dataset: 'metrics',
-            per_page: 50,
-            project: ['1', '2'],
-            query: 'event.type:transaction transaction:/api*',
-            referrer: 'api.performance.landing-table',
-            sort: '-team_key_transaction',
-            statsPeriod: '14d',
-          }),
-        })
-      );
-    });
-  });
-
-  describe('with events', function () {
-    it('renders correct cell actions without feature', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
-
-      ProjectsStore.loadInitialData(data.organization.projects);
-
-      render(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-        />,
-        {context: data.routerContext}
-      );
-
-      const rows = await screen.findAllByTestId('grid-body-row');
-      const transactionCells = within(rows[0]).getAllByTestId('grid-body-cell');
-      const transactionCell = transactionCells[1];
-      const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
-      expect(link).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
-      );
-
-      const cellActionContainers = screen.getAllByTestId('cell-action-container');
-      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
-      userEvent.hover(cellActionContainers[8]);
-      const cellActions = await screen.findByTestId('cell-action');
-      expect(cellActions).toBeInTheDocument();
-      userEvent.click(cellActions);
-
-      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
-      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
-
-      userEvent.hover(cellActionContainers[0]); // Transaction name
-      const transactionCellActions = await screen.findAllByTestId('cell-action');
-      expect(transactionCellActions[0]).toBeInTheDocument();
-      userEvent.click(transactionCellActions[0]);
-
-      expect(browserHistory.push).toHaveBeenCalledTimes(0);
-      userEvent.click(screen.getByTestId('add-to-filter'));
-
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
-        pathname: undefined,
-        query: expect.objectContaining({
-          query: 'transaction:/apple/cart',
-        }),
-      });
-    });
-
-    it('hides cell actions when withStaticFilters is true', function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
-
-      render(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-          withStaticFilters
-        />
-      );
-
-      const cellActionContainers = screen.queryByTestId('cell-action-container');
-      expect(cellActionContainers).not.toBeInTheDocument();
-    });
-
-    it('sends MEP param when setting enabled', function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-use-metrics', 'performance-frontend-use-events-endpoint']
       );
 
       render(

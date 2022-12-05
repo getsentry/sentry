@@ -37,7 +37,7 @@ describe('Discover > Homepage', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: [],
     });
     MockApiClient.addMockResponse({

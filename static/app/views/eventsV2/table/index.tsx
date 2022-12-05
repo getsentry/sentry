@@ -110,13 +110,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
 
-    const shouldUseEvents = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
-    );
-
-    const url = shouldUseEvents
-      ? `/organizations/${organization.slug}/events/`
-      : `/organizations/${organization.slug}/eventsv2/`;
+    const url = `/organizations/${organization.slug}/events/`;
     const tableFetchID = Symbol('tableFetchID');
 
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
@@ -151,12 +145,10 @@ class Table extends PureComponent<TableProps, TableState> {
 
         const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
-        const tableData = shouldUseEvents
-          ? {
-              ...data,
-              meta: {...fields, ...nonFieldsMeta},
-            }
-          : data;
+        const tableData = {
+          ...data,
+          meta: {...fields, ...nonFieldsMeta},
+        };
 
         this.setState(prevState => ({
           isLoading: false,

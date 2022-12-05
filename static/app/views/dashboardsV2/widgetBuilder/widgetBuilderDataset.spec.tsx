@@ -776,7 +776,7 @@ describe('WidgetBuilder', function () {
         const {router} = renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
           dashboard: testDashboard,
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
@@ -850,7 +850,6 @@ describe('WidgetBuilder', function () {
           },
           orgFeatures: [
             ...defaultOrgFeatures,
-            'discover-frontend-use-events-endpoint',
             'dashboards-mep',
             'server-side-sampling',
             'mep-rollout-flag',
@@ -903,7 +902,6 @@ describe('WidgetBuilder', function () {
           },
           orgFeatures: [
             ...defaultOrgFeatures,
-            'discover-frontend-use-events-endpoint',
             'dashboards-mep',
             'server-side-sampling',
             'mep-rollout-flag',
@@ -953,11 +951,7 @@ describe('WidgetBuilder', function () {
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
-          orgFeatures: [
-            ...defaultOrgFeatures,
-            'discover-frontend-use-events-endpoint',
-            'dashboards-mep',
-          ],
+          orgFeatures: [...defaultOrgFeatures, 'dashboards-mep'],
         });
 
         await waitFor(() => {
@@ -986,7 +980,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
           dashboard: testDashboard,
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
@@ -1047,7 +1041,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('12.00hr');
@@ -1095,7 +1089,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('12.0 KiB');
@@ -1143,7 +1137,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('12 MB');
@@ -1177,7 +1171,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
         await screen.findByText('measurements.custom.measurement');
       });
@@ -1215,7 +1209,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
         await screen.findByText('transaction');
         userEvent.click(screen.getAllByText('count()')[1]);
@@ -1254,7 +1248,7 @@ describe('WidgetBuilder', function () {
           params: {
             widgetIndex: '0',
           },
-          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+          orgFeatures: [...defaultOrgFeatures],
         });
         expect(
           await screen.findByText('p99(measurements.custom.measurement)')

@@ -39,13 +39,7 @@ function SearchBar(props: SearchBarProps) {
   const api = useApi();
   const eventView = _eventView.clone();
 
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
-
-  const url = useEvents
-    ? `/organizations/${organization.slug}/events/`
-    : `/organizations/${organization.slug}/eventsv2/`;
+  const url = `/organizations/${organization.slug}/events/`;
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
 

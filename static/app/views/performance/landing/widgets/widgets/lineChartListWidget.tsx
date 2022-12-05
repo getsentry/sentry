@@ -9,7 +9,6 @@ import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {
   canUseMetricsData,
   useMEPSettingContext,
@@ -64,9 +63,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const pageError = usePageError();
 
   const field = props.fields[0];
@@ -130,7 +126,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            useEvents={useEvents}
+            useEvents
           />
         );
       },
@@ -285,7 +281,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       additionalQuery,
                     });
 
-                const fieldString = useEvents ? field : getAggregateAlias(field);
+                const fieldString = field;
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
