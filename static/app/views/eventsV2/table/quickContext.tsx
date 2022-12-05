@@ -3,12 +3,14 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Clipboard from 'sentry/components/clipboard';
+import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import AssignedTo from 'sentry/components/group/assignedTo';
+import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -17,13 +19,20 @@ import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {IconWrapper} from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {IconAdd, IconCheckmark, IconCopy, IconMute, IconNot} from 'sentry/icons';
+import {
+  IconAdd,
+  IconCheckmark,
+  IconCopy,
+  IconMute,
+  IconNot,
+  IconUser,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {Event, Group, Organization, Project, ReleaseWithHealth, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -77,14 +86,28 @@ function getHoverBody(
 }
 
 // NOTE: Will be adding switch cases as more contexts require headers.
-function getHoverHeader(dataRow: EventData, contextType: ContextType) {
+function getHoverHeader(
+  dataRow: EventData,
+  contextType: ContextType,
+  organization: Organization
+) {
   switch (contextType) {
     case ContextType.RELEASE:
       return (
         <HoverHeader
           title={t('Release')}
+          organization={organization}
           copyLabel={<StyledVersion version={dataRow.release} truncate anchor={false} />}
           copyContent={dataRow.release}
+        />
+      );
+    case ContextType.ISSUE:
+      return (
+        <HoverHeader
+          title={t('Issue')}
+          organization={organization}
+          copyLabel={dataRow.issue}
+          copyContent={dataRow.issue}
         />
       );
     case ContextType.EVENT:
@@ -92,6 +115,7 @@ function getHoverHeader(dataRow: EventData, contextType: ContextType) {
         dataRow.id && (
           <HoverHeader
             title={t('Event ID')}
+            organization={organization}
             copyLabel={getShortEventId(dataRow.id)}
             copyContent={dataRow.id}
           />
@@ -127,6 +151,7 @@ const addFieldAsColumn = (
 const fiveMinutesInMs = 5 * 60 * 1000;
 
 type HoverHeaderProps = {
+  organization: Organization;
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
@@ -138,6 +163,7 @@ function HoverHeader({
   hideCopy = false,
   copyLabel,
   copyContent,
+  organization,
 }: HoverHeaderProps) {
   return (
     <HoverHeaderWrapper>
@@ -151,6 +177,12 @@ function HoverHeader({
               cursor="pointer"
               data-test-id="quick-context-hover-header-copy-icon"
               size="xs"
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('discover_v2.quick_context_header_copy', {
+                  organization,
+                  clipBoardTitle: title,
+                });
+              }}
             />
           </Clipboard>
         )}
@@ -162,6 +194,13 @@ function HoverHeader({
 function IssueContext(props: BaseContextProps) {
   const statusTitle = t('Issue Status');
   const {dataRow, organization} = props;
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.ISSUE,
+    });
+  }, [organization]);
 
   const {
     isLoading: issueLoading,
@@ -178,11 +217,7 @@ function IssueContext(props: BaseContextProps) {
       },
     ],
     {
-      onSuccess: group => {
-        GroupStore.add([group]);
-      },
       staleTime: fiveMinutesInMs,
-      retry: false,
     }
   );
 
@@ -196,36 +231,67 @@ function IssueContext(props: BaseContextProps) {
     staleTime: fiveMinutesInMs,
   });
 
-  const renderStatus = () =>
+  const renderStatusAndCounts = () =>
     issue && (
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextHeader>{statusTitle}</ContextHeader>
-        <ContextBody>
-          {issue.status === 'ignored' ? (
-            <IconMute
-              data-test-id="quick-context-ignored-icon"
-              color="gray500"
-              size="sm"
-            />
-          ) : issue.status === 'resolved' ? (
-            <IconCheckmark color="gray500" size="sm" />
-          ) : (
-            <IconNot
-              data-test-id="quick-context-unresolved-icon"
-              color="gray500"
-              size="sm"
-            />
-          )}
-          <StatusText>{issue.status}</StatusText>
-        </ContextBody>
+        <ContextRow>
+          <div>
+            <ContextHeader>{t('Events')}</ContextHeader>
+            <ContextBody>
+              <Count className="count" value={issue.count} />
+            </ContextBody>
+          </div>
+          <div>
+            <ContextHeader>{t('Users')}</ContextHeader>
+            <ContextBody>
+              <Count className="count" value={issue.userCount} />
+            </ContextBody>
+          </div>
+          <div>
+            <ContextHeader>{statusTitle}</ContextHeader>
+            <ContextBody>
+              {issue.status === 'ignored' ? (
+                <IconMute
+                  data-test-id="quick-context-ignored-icon"
+                  color="gray500"
+                  size="xs"
+                />
+              ) : issue.status === 'resolved' ? (
+                <IconCheckmark color="gray500" size="xs" />
+              ) : (
+                <IconNot
+                  data-test-id="quick-context-unresolved-icon"
+                  color="gray500"
+                  size="xs"
+                />
+              )}
+              <StatusText>{issue.status}</StatusText>
+            </ContextBody>
+          </div>
+        </ContextRow>
       </IssueContextContainer>
     );
 
-  const renderAssigneeSelector = () =>
+  const renderAssignee = () =>
     issue && (
-      <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <AssignedTo disableDropdown group={issue} projectId={issue.project.id} />
-      </IssueContextContainer>
+      <AssignedToContainer data-test-id="quick-context-assigned-to-container">
+        <ContextHeader>{t('Assigned To')}</ContextHeader>
+        <AssignedToBody>
+          {issue.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={issue.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
+          )}
+          {getAssignedToDisplayName(issue, issue.assignedTo)}
+        </AssignedToBody>
+      </AssignedToContainer>
     );
 
   const renderSuspectCommits = () =>
@@ -248,17 +314,9 @@ function IssueContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.ISSUE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
-      {renderStatus()}
-      {renderAssigneeSelector()}
+    <Wrapper data-test-id="quick-context-hover-body">
+      {renderStatusAndCounts()}
+      {renderAssignee()}
       {renderSuspectCommits()}
     </Wrapper>
   );
@@ -296,6 +354,13 @@ function ReleaseContext(props: BaseContextProps) {
       retry: false,
     }
   );
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      organization,
+      contextType: ContextType.RELEASE,
+    });
+  }, [organization]);
 
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
@@ -348,7 +413,9 @@ function ReleaseContext(props: BaseContextProps) {
     return (
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ReleaseAuthorsTitle>{getCommitAuthorTitle()}</ReleaseAuthorsTitle>
+          <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
+            {getCommitAuthorTitle()}
+          </ReleaseAuthorsTitle>
           <ReleaseAuthorsBody>
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
@@ -403,15 +470,7 @@ function ReleaseContext(props: BaseContextProps) {
   }
 
   return (
-    <Wrapper
-      onMouseEnter={() => {
-        trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-          organization,
-          contextType: ContextType.RELEASE,
-        });
-      }}
-      data-test-id="quick-context-hover-body"
-    >
+    <Wrapper data-test-id="quick-context-hover-body">
       {renderReleaseDetails()}
       {renderReleaseAuthors()}
       {renderLastCommit()}
@@ -436,6 +495,16 @@ function EventContext(props: EventContextProps) {
     }
   );
 
+  useEffect(() => {
+    if (data) {
+      trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+        organization,
+        contextType: ContextType.EVENT,
+        eventType: data.type,
+      });
+    }
+  }, [data, organization]);
+
   if (isLoading || isError) {
     return <NoContext isLoading={isLoading} />;
   }
@@ -445,16 +514,7 @@ function EventContext(props: EventContextProps) {
     const {start, end} = getTraceTimeRangeFromEvent(data);
     const project = projects?.find(p => p.slug === data.projectID);
     return (
-      <Wrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.RELEASE,
-            eventType: 'transaction',
-          });
-        }}
-        data-test-id="quick-context-hover-body"
-      >
+      <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
           <ContextHeader>
             <Title>
@@ -493,7 +553,7 @@ function EventContext(props: EventContextProps) {
             <ContextHeader>
               <Title>
                 {t('Status')}
-                {!('tags[http.status_code]' in dataRow) && (
+                {!('http.status_code' in dataRow) && (
                   <Tooltip
                     skipWrapper
                     title={t('Add HTTP status code as a column')}
@@ -504,7 +564,7 @@ function EventContext(props: EventContextProps) {
                       cursor="pointer"
                       onClick={() =>
                         addFieldAsColumn(
-                          'tags[http.status_code]',
+                          'http.status_code',
                           organization,
                           location,
                           eventView
@@ -568,15 +628,7 @@ function EventContext(props: EventContextProps) {
           <ErrorTitleBody>{data.title}</ErrorTitleBody>
         </ErrorTitleContainer>
       )}
-      <StackTraceWrapper
-        onMouseEnter={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
-            organization,
-            contextType: ContextType.EVENT,
-            eventType: 'error',
-          });
-        }}
-      >
+      <StackTraceWrapper>
         <StackTracePreviewContent event={data} stacktrace={stackTrace} />
       </StackTraceWrapper>
     </Fragment>
@@ -603,7 +655,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
 
   useEffect(() => {
     return () => {
-      GroupStore.reset();
       queryClient.clear();
     };
   }, [queryClient]);
@@ -614,7 +665,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         showUnderline
         displayTimeout={600}
         delay={HOVER_DELAY}
-        header={getHoverHeader(dataRow, contextType)}
+        header={getHoverHeader(dataRow, contextType, organization)}
         body={getHoverBody(
           dataRow,
           contextType,
@@ -662,7 +713,7 @@ const IssueContextContainer = styled(ContextContainer)`
     padding: 0;
   }
 
-  ${CauseHeader}, ${SidebarSection.Title} {
+  ${CauseHeader} {
     margin-top: ${space(2)};
   }
 
@@ -680,6 +731,10 @@ const ContextHeader = styled('h6')`
   justify-content: space-between;
   align-items: center;
   margin: 0;
+`;
+
+const AssignedToContainer = styled(IssueContextContainer)`
+  margin-top: ${space(2)};
 `;
 
 const ContextBody = styled('div')`
@@ -714,8 +769,12 @@ const EventContextBody = styled(ContextBody)`
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${space(0.5)};
   text-transform: capitalize;
+`;
+
+const AssignedToBody = styled(ContextBody)`
+  gap: ${space(1)};
 `;
 
 const Wrapper = styled('div')`
