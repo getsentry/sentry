@@ -13,7 +13,7 @@ import Level from './level';
 import Time from './time';
 import Type from './type';
 
-type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
+type Props = {
   breadcrumb: Crumb;
   ['data-test-id']: string;
   displayRelativeTime: boolean;
@@ -38,8 +38,6 @@ export const Breadcrumb = memo(function Breadcrumb({
   onLoad,
   scrollbarSize,
   style,
-  route,
-  router,
   meta,
   ['data-test-id']: dataTestId,
 }: Props) {
@@ -61,8 +59,6 @@ export const Breadcrumb = memo(function Breadcrumb({
         organization={organization}
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
-        route={route}
-        router={router}
         meta={meta}
       />
       <div>

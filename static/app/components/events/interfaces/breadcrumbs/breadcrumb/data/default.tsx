@@ -16,22 +16,13 @@ type Props = {
   orgSlug: Organization['slug'];
   searchTerm: string;
   event?: Event;
-  linkedEvent?: React.ReactElement;
   meta?: Record<any, any>;
 };
 
-export function Default({
-  meta,
-  breadcrumb,
-  event,
-  orgSlug,
-  searchTerm,
-  linkedEvent,
-}: Props) {
+export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
   const {message, data} = breadcrumb;
   return (
     <Summary kvData={data} meta={meta}>
-      {linkedEvent}
       {meta?.message?.[''] ? (
         <AnnotatedText value={message} meta={meta?.message?.['']} />
       ) : (

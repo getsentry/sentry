@@ -12,11 +12,10 @@ import Summary from './summary';
 type Props = {
   breadcrumb: BreadcrumbTypeHTTP;
   searchTerm: string;
-  linkedEvent?: React.ReactElement;
   meta?: Record<any, any>;
 };
 
-export function Http({breadcrumb, searchTerm, meta, linkedEvent}: Props) {
+export function Http({breadcrumb, searchTerm, meta}: Props) {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -43,7 +42,6 @@ export function Http({breadcrumb, searchTerm, meta, linkedEvent}: Props) {
       kvData={!data ? data : omit(data, ['method', 'url', 'status_code'])}
       meta={meta}
     >
-      {linkedEvent}
       {meta?.data?.method?.[''] ? (
         <AnnotatedText value={data?.method} meta={meta?.data?.method?.['']} />
       ) : (

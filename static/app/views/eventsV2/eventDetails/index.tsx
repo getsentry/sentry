@@ -16,7 +16,7 @@ type Props = RouteComponentProps<{eventSlug: string}, {}> & {
   organization: Organization;
 };
 
-function EventDetails({organization, location, params, router, route}: Props) {
+function EventDetails({organization, location, params}: Props) {
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
 
   const isHomepage = location.query.homepage;
@@ -46,8 +46,6 @@ function EventDetails({organization, location, params, router, route}: Props) {
             params={params}
             eventView={eventView}
             eventSlug={eventSlug}
-            router={router}
-            route={route}
             isHomepage={isHomepage}
           />
         </NoProjectMessage>
