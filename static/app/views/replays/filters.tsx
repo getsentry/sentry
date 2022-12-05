@@ -1,3 +1,4 @@
+import {useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -12,12 +13,29 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
 
+const DEFAULT_QUERY = 'duration:>=5';
+
 function ReplaysFilters() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const didMount = useRef(false);
 
   const {pathname, query} = location;
+
+  useEffect(() => {
+    if (!didMount.current && !query?.query) {
+      browserHistory.push({
+        pathname,
+        query: {
+          ...query,
+          cursor: undefined,
+          query: DEFAULT_QUERY,
+        },
+      });
+    }
+    didMount.current = true;
+  }, [pathname, query]);
 
   return (
     <FilterContainer>
@@ -29,7 +47,7 @@ function ReplaysFilters() {
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
-        defaultQuery={decodeScalar(location.query?.query, '')}
+        defaultQuery={decodeScalar(query?.query ?? DEFAULT_QUERY, '')}
         onSearch={searchQuery => {
           browserHistory.push({
             pathname,

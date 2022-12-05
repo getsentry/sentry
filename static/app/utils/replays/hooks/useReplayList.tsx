@@ -20,7 +20,6 @@ function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
   const querySearchRef = useRef<string>();
-  const controllerRef = useRef<AbortController | null>(null);
 
   const [data, setData] = useState<State>({
     fetchError: undefined,
@@ -51,21 +50,16 @@ function useReplayList({eventView, organization}: Options): Result {
 
   useEffect(() => {
     if (!querySearchRef.current || querySearchRef.current !== location.search) {
-      controllerRef.current = new AbortController();
+      const controller = new AbortController();
       querySearchRef.current = location.search;
 
-      loadReplays(controllerRef.current.signal);
-    }
-  }, [loadReplays, location.search]);
-
-  useEffect(() => {
-    const controller = controllerRef?.current;
-    return () => {
-      if (controller) {
+      loadReplays(controller.signal);
+      return () => {
         controller.abort();
-      }
-    };
-  }, []);
+      };
+    }
+    return () => {};
+  }, [loadReplays, location.search]);
 
   return data;
 }
