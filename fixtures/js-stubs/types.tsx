@@ -33,7 +33,6 @@ type TestStubFixtures = {
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
-  DynamicSamplingConfig: OverridableStub;
   Entries: SimpleStub;
   Environments: OverridableStub;
   Event: OverridableStub;
