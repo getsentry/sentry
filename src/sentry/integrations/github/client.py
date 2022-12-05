@@ -11,7 +11,6 @@ from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.utils import jwt
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
@@ -94,9 +93,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     # https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limit-http-headers
     def get_rate_limit(self) -> JSONData:
         """This gives information of the current rate limit"""
-        # XXX: Determine what value to send. It has to do with the installation
-        response: BaseApiResponse = self.head("/")
-        return GithubRateLimitInfo(response.headers)
+        foo = self.head("/rate_limit")
+        breakpoint()
+        return GithubRateLimitInfo(self.head("/rate_limit").headers)
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
@@ -136,6 +135,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
     ) -> List[str]:
         """It return all files for a repo or just source code files.
+
         repo_full_name: e.g. getsentry/sentry
         tree_sha: A branch or a commit sha
         only_source_code_files: Include all files or just the source code files

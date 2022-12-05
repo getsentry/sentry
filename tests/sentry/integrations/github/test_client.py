@@ -37,6 +37,33 @@ class GitHubAppsClientTest(TestCase):
         self.install = integration.get_installation(organization_id=123)
         self.client = self.install.get_client()
 
+    @responses.activate
+    def test_get_rate_limit(self):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.HEAD,
+            url="https://api.github.com/rate_limit",
+            status=200,
+            content_type="application/json",
+            headers={
+                "resources": {
+                    "core": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
+                    "search": {"limit": 30, "remaining": 18, "reset": 1372697452, "used": 12},
+                    "graphql": {"limit": 5000, "remaining": 4993, "reset": 1372700389, "used": 7},
+                },
+                "rate": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
+            },
+        )
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+            value = self.client.get_rate_limit()
+            assert value == {}
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_save_token(self, get_jwt):
