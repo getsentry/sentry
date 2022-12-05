@@ -1,4 +1,5 @@
 import re
+from collections import namedtuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -202,7 +203,8 @@ class ProjectBoostedReleases:
         boosted_releases = self.redis_client.hgetall(cache_key)
         current_timestamp = datetime.utcnow().replace(tzinfo=UTC).timestamp()
 
-        lru_boosted_release = None
+        LRBRelease = namedtuple("LRBRelease", ["key", "timestamp"])
+        lrb_release = None
         active_releases = 0
         keys_to_delete = []
         for boosted_release_key, timestamp in boosted_releases.items():
@@ -216,21 +218,16 @@ class ProjectBoostedReleases:
                 #
                 # We run this logic while counting the number of active release so that we can remove the lrb release
                 # in O(1) in case the number of active releases is >= the limit.
-                #
-                # We leverage OR execution order to avoid the condition lru_boosted_release is not None because:
-                # The expression x or y first evaluates x;
-                # if x is true, its value is returned;
-                # otherwise, y is evaluated and the resulting value is returned.
-                if lru_boosted_release is None or timestamp < lru_boosted_release[1]:  # type:ignore
-                    lru_boosted_release = (boosted_release_key, timestamp)
+                if lrb_release is None or timestamp < lrb_release.timestamp:  # type:ignore
+                    lrb_release = LRBRelease(key=boosted_release_key, timestamp=timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
             else:
                 keys_to_delete.append(boosted_release_key)
 
         # We delete the least recently boosted release if we have surpassed the limit of elements in the hash.
-        if active_releases >= self.BOOSTED_RELEASES_LIMIT and lru_boosted_release:
-            keys_to_delete.append(lru_boosted_release[0])
+        if active_releases >= self.BOOSTED_RELEASES_LIMIT and lrb_release:
+            keys_to_delete.append(lrb_release.key)
 
         # If we have some keys to remove from redis we are going to remove them in batch for efficiency.
         if keys_to_delete:
