@@ -19,7 +19,7 @@ from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.commit import CommitCodec
 from arroyo.errors import ConsumerError, EndOfPartition
-from arroyo.types import Message, Partition, Position, Topic, TPayload
+from arroyo.types import BrokerValue, Partition, Position, Topic, TPayload
 from arroyo.utils.concurrent import execute
 
 from sentry.utils import metrics
@@ -220,7 +220,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
     def unsubscribe(self) -> None:
         return self.__consumer.unsubscribe()
 
-    def poll(self, timeout: Optional[float] = None) -> Optional[Message[TPayload]]:
+    def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[TPayload]]:
         self.__check_commit_log_worker_running()
 
         # Resume any partitions that can be resumed (where the local

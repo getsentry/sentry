@@ -1,4 +1,3 @@
-import {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
@@ -14,12 +13,12 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
   end: DateString;
   loading: boolean;
-  router: InjectedRouter;
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
@@ -64,7 +63,6 @@ function computeAxisMax(data: Series[]) {
 function Chart({
   data,
   previousData,
-  router,
   statsPeriod,
   start,
   end,
@@ -78,6 +76,7 @@ function Chart({
   chartColors,
   isLineChart,
 }: Props) {
+  const router = useRouter();
   const theme = useTheme();
 
   if (!data || data.length <= 0) {

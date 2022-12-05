@@ -1364,9 +1364,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = problem.title
     return metadata
 
 

@@ -591,10 +591,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
             )
-        if (
-            result.get("dynamicSampling")
-            and not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated
-        ):
+        if result.get("dynamicSampling"):
             return Response(
                 {"detail": ["dynamicSampling is not a valid field"]},
                 status=403,

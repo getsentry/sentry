@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
@@ -26,6 +27,13 @@ class APIUser:
     is_authenticated: bool = False
     is_anonymous: bool = False
     is_active: bool = False
+    is_staff: bool = False
+    last_active: datetime.datetime | None = None
+    is_sentry_app: bool = False
+    password_usable: bool = False
+
+    def has_usable_password(self) -> bool:
+        return self.password_usable
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
@@ -78,13 +86,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        """
-        This method returns a User object given an actor ID
-        :param actor_id:
-        An actor ID to fetch
-        :return:
-        """
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 
     def get_user(self, user_id: int) -> Optional[APIUser]:
@@ -129,6 +131,7 @@ class UserService(InterfaceWithLifecycle):
         args["pk"] = user.pk
         args["display_name"] = user.get_display_name()
         args["is_superuser"] = user.is_superuser
+        args["password_usable"] = user.has_usable_password()
         return APIUser(**args)
 
 

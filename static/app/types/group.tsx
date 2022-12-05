@@ -57,6 +57,7 @@ export enum IssueCategory {
 export enum IssueType {
   ERROR = 'error',
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
 }
 
 type CapabilityInfo = {

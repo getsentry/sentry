@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
@@ -25,6 +24,8 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import {ViewProps} from '../types';
 
@@ -43,21 +44,19 @@ import {
   trendToColor,
 } from './utils';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    isLoading: boolean;
-    location: Location;
-    organization: OrganizationSummary;
-    projects: Project[];
-    statsData: TrendsStats;
-    trendChangeType: TrendChangeType;
-    disableLegend?: boolean;
-    disableXAxis?: boolean;
-    grid?: LineChartProps['grid'];
-    height?: number;
-    transaction?: NormalizedTrendsTransaction;
-    trendFunctionField?: TrendFunctionField;
-  };
+type Props = ViewProps & {
+  isLoading: boolean;
+  organization: OrganizationSummary;
+  projects: Project[];
+  statsData: TrendsStats;
+  trendChangeType: TrendChangeType;
+  disableLegend?: boolean;
+  disableXAxis?: boolean;
+  grid?: LineChartProps['grid'];
+  height?: number;
+  transaction?: NormalizedTrendsTransaction;
+  trendFunctionField?: TrendFunctionField;
+};
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
   return [
@@ -230,12 +229,10 @@ function getIntervalLine(
 
 export function Chart({
   trendChangeType,
-  router,
   statsPeriod,
   transaction,
   statsData,
   isLoading,
-  location,
   start: propsStart,
   end: propsEnd,
   trendFunctionField,
@@ -246,6 +243,8 @@ export function Chart({
   projects,
   project,
 }: Props) {
+  const location = useLocation();
+  const router = useRouter();
   const theme = useTheme();
 
   const handleLegendSelectChanged = legendChange => {
@@ -402,4 +401,4 @@ export function Chart({
   );
 }
 
-export default withRouter(Chart);
+export default Chart;
