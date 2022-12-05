@@ -499,6 +499,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
             template = EventSubjectTemplate(template)
         elif self.group.issue_category == GroupCategory.PERFORMANCE:
             template = EventSubjectTemplate("$shortID - $issueType")
+        elif self.occurrence is not None:
+            template = EventSubjectTemplate("$shortID - $issueTitle")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
         return cast(
@@ -772,6 +774,8 @@ class EventSubjectTemplateData:
             return self.event.title
         elif name == "issueType":
             return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
+        elif name == "issueTitle":
+            return cast(str, self.event.occurrence.issue_title)
         raise KeyError
 
 
