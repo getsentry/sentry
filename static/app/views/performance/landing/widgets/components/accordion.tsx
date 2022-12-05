@@ -1,27 +1,31 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import space from 'sentry/styles/space';
 
 type Props = {
-  content: React.ReactNode;
-  items: (() => React.ReactNode)[];
+  content: ReactNode;
+  items: (() => ReactNode)[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  radioColor?: string;
 };
 
-export default function Accordion(props: Props) {
+export default function Accordion({
+  content,
+  items,
+  selectedIndex,
+  setSelectedIndex,
+}: Props) {
   return (
     <AccordionContainer>
-      {props.items.map((item, index) => (
+      {items.map((item, index) => (
         <AccordionItem
-          {...props}
-          isSelected={index === props.selectedIndex}
+          isSelected={index === selectedIndex}
           currentIndex={index}
           key={index}
-          content={props.content}
+          content={content}
+          setSelectedIndex={setSelectedIndex}
         >
           {item()}
         </AccordionItem>
@@ -37,11 +41,12 @@ function AccordionItem({
   setSelectedIndex,
   content,
 }: {
-  children: React.ReactNode;
-  content: React.ReactNode;
+  children: ReactNode;
+  content: ReactNode;
   currentIndex: number;
   isSelected: boolean;
-} & Props) {
+  setSelectedIndex: (index: number) => void;
+}) {
   return (
     <Fragment>
       <ListItemContainer>
