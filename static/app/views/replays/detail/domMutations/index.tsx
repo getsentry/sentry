@@ -8,6 +8,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -18,6 +19,7 @@ import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
+import {IconClose} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -136,7 +138,7 @@ function DomMutations({replay}: Props) {
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
-          placeholder={t('Search DOM')}
+          placeholder={t('Search DOM Events')}
           query={searchTerm}
           disabled={!replay}
         />
@@ -157,13 +159,20 @@ function DomMutations({replay}: Props) {
                 rowCount={items.length}
                 noRowsRenderer={() =>
                   actions.length === 0 ? (
-                    <EmptyStateWarning withIcon={false} small>
-                      {t('No related DOM events recorded')}
-                    </EmptyStateWarning>
+                    <StyledEmptyStateWarning>
+                      <p>{t('No DOM events recorded')}</p>
+                    </StyledEmptyStateWarning>
                   ) : (
-                    <EmptyStateWarning withIcon small>
-                      {t('No results found')}
-                    </EmptyStateWarning>
+                    <StyledEmptyStateWarning>
+                      <p>{t('No results found')}</p>
+                      <Button
+                        icon={<IconClose color="gray500" size="sm" isCircled />}
+                        onClick={() => setSearchTerm('')}
+                        size="md"
+                      >
+                        {t('Clear filters')}
+                      </Button>
+                    </StyledEmptyStateWarning>
                   )
                 }
                 rowHeight={cache.rowHeight}
@@ -186,6 +195,15 @@ const MutationFilters = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 `;
 
 const MutationContainer = styled(FluidHeight)`
