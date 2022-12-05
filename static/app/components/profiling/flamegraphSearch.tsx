@@ -15,7 +15,42 @@ import {
 } from 'sentry/utils/profiling/flamegraphFrame';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
-import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+
+export function searchFzf(
+  frame: FlamegraphFrame,
+  matches: FlamegraphSearchResults['results'],
+  query: string
+) {
+  const match = fzf(frame.frame.name, query, false);
+
+  if (match.score > 0) {
+    matches.set(getFlamegraphFrameSearchId(frame), {
+      frame,
+      match: match.matches[0],
+    });
+  }
+  return match;
+}
+
+export function searchRegExp(
+  frame: FlamegraphFrame,
+  matches: FlamegraphSearchResults['results'],
+  query: string,
+  flags: string
+) {
+  const regExp = new RegExp(query, flags ?? 'g');
+  const reMatches = Array.from(frame.frame.name.matchAll(regExp));
+  const match = findBestMatchFromRegexpMatchArray(reMatches);
+
+  if (match) {
+    matches.set(getFlamegraphFrameSearchId(frame), {
+      frame,
+      match,
+    });
+  }
+  return match;
+}
 
 function yieldingRafFrameSearch(
   query: string,
@@ -25,43 +60,21 @@ function yieldingRafFrameSearch(
   const raf = {id: 0};
   const budget = 12; // ms
   const results: FlamegraphSearchResults['results'] = new Map();
-  const isRegExpSearch = isRegExpString(query);
-  const [_, lookup, flags] = parseRegExp(query) ?? [];
+  const regexp = parseRegExp(query);
+  const isRegExpSearch = regexp !== null;
   // we lowercase the query to make the search case insensitive (assumption of fzf)
-  const lowercaseQuery = query.toLowerCase();
   let processed = 0;
+  const lowercaseQuery = query.toLowerCase();
+  const [_, lookup, flags] = isRegExpSearch ? regexp : ['', '', ''];
 
-  function work() {
+  const searchFunction = isRegExpSearch ? searchRegExp : searchFzf;
+  const searchQuery = isRegExpSearch ? lookup : lowercaseQuery;
+
+  function search() {
     const start = performance.now();
 
     while (performance.now() - start < budget && processed < frames.length) {
-      const frame = frames[processed]!;
-
-      if (!isRegExpSearch) {
-        const match = fzf(frame.frame.name, lowercaseQuery, false);
-
-        if (match.score > 0) {
-          results.set(getFlamegraphFrameSearchId(frame), {
-            frame,
-            match: match.matches[0],
-          });
-        }
-      } else {
-        for (let i = start; i < frames.length; i++) {
-          const re = new RegExp(lookup, flags ?? 'g');
-          const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
-          const match = findBestMatchFromRegexpMatchArray(reMatches);
-
-          if (match) {
-            const frameId = getFlamegraphFrameSearchId(frame);
-            results.set(frameId, {
-              frame,
-              match,
-            });
-          }
-        }
-      }
-
+      searchFunction(frames[processed]!, results, searchQuery, flags);
       processed++;
     }
 
@@ -69,11 +82,11 @@ function yieldingRafFrameSearch(
       cb(results);
     }
     if (processed < frames.length) {
-      raf.id = requestAnimationFrame(work);
+      raf.id = requestAnimationFrame(search);
     }
   }
 
-  raf.id = requestAnimationFrame(work);
+  raf.id = requestAnimationFrame(search);
   return raf;
 }
 
@@ -99,24 +112,21 @@ function findBestMatchFromRegexpMatchArray(
   let bestMatchStart = -1;
 
   for (let i = 0; i < matches.length; i++) {
-    const match = matches[i]; // iterating over a non empty array
-    if (match === undefined) {
-      continue;
-    }
-
+    const match = matches[i]!; // iterating over a non empty array
     const index = match.index;
     if (index === undefined) {
       continue;
     }
+    const length = match[0].length;
 
     // We only override the match if the match is longer than the current best match
     // or if the matches are the same length, but the start is earlier in the string
     if (
-      match.length > bestMatchLength ||
-      (match.length === bestMatchLength && index[0] > bestMatchStart)
+      length > bestMatchLength ||
+      (length === bestMatchLength && index < bestMatchStart)
     ) {
-      bestMatch = [index, index + match.length];
-      bestMatchLength = match.length;
+      bestMatch = [index, index + length];
+      bestMatchLength = length;
       bestMatchStart = index;
     }
   }
