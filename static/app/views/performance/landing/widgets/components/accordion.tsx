@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -48,7 +48,7 @@ function AccordionItem({
   setSelectedIndex: (index: number) => void;
 }) {
   return (
-    <Fragment>
+    <StyledLineItem>
       <ListItemContainer>
         {children}
         <StyledDropdownButton
@@ -59,17 +59,21 @@ function AccordionItem({
         />
       </ListItemContainer>
       <StyledContentContainer>{isSelected && content}</StyledContentContainer>
-    </Fragment>
+    </StyledLineItem>
   );
 }
 
-const AccordionContainer = styled('div')`
-  padding-top: ${space(1)};
+const StyledLineItem = styled('li')``;
+
+const AccordionContainer = styled('ul')`
+  padding: ${space(1)} 0 0 0;
+  margin: 0;
+  list-style-type: none;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
   svg {
-    margin-left: 0;
+    margin: 0;
   }
 `;
 
