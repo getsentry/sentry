@@ -223,7 +223,10 @@ export function SpanGroupBar(props: Props) {
                         paddingTop: 0,
                       }}
                       onClick={() => {
-                        PerformanceInteraction.startInteraction('SpanTreeToggle');
+                        PerformanceInteraction.startInteraction(
+                          'SpanTreeToggle',
+                          1000 * 10
+                        );
                         props.toggleSpanGroup();
                       }}
                       ref={spanTitleRef}

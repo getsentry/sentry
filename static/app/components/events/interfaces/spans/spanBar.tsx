@@ -462,7 +462,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
-            PerformanceInteraction.startInteraction('SpanTreeToggle');
+            PerformanceInteraction.startInteraction('SpanTreeToggle', 1000 * 10);
             this.props.toggleSpanTree();
           }}
         >
