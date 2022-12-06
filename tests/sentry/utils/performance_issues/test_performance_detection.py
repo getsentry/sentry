@@ -881,7 +881,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
-    def test_does_not_detect_consecutive_db_spans_with_paramterized_query(self):
+    def test_does_not_detect_consecutive_db_spans_with_parameterized_query(self):
         span_duration = 750
         spans = [
             create_span(
