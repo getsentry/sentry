@@ -1,5 +1,8 @@
 from typing import Any
 
+import sentry_sdk
+from django.conf import settings
+
 from sentry import features
 from sentry.tasks.base import instrumented_task
 
@@ -17,10 +20,14 @@ MERGE_THRESHOLD = 100
     # TODO: set appropriate soft_timeout
 )  # type: ignore
 def run_clusterer(**kwargs: Any) -> None:
-    # TODO: Avoid scanning redis when no organization has the feature flag enabled
-    for project in redis.get_active_projects():
-        if features.has("organizations:transaction-name-clusterer", project.organization):
-            clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-            clusterer.add_input(redis.get_transaction_names(project))
-            new_rules = clusterer.get_rules()
-            rules.update(project, new_rules)
+    if not settings.SENTRY_TRANSACTION_CLUSTERER_RUN:
+        return
+    with sentry_sdk.start_span(op="txcluster_run"):
+        for project in redis.get_active_projects():
+            if features.has("organizations:transaction-name-clusterer", project.organization):
+                with sentry_sdk.start_span(op="txcluster_project") as span:
+                    span.set_data("project_id", project.id)
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                    clusterer.add_input(redis.get_transaction_names(project))
+                    new_rules = clusterer.get_rules()
+                    rules.update(project, new_rules)
