@@ -95,10 +95,6 @@ declare namespace Profiling {
     type: 'sampled';
   }
 
-  interface NodeProfile extends Profiling.SampledProfile {
-    frames: Profiling.FrameInfo[];
-  }
-
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
   type Span = {

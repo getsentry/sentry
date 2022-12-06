@@ -1,14 +1,13 @@
-import {useCallback} from 'react';
+import {RefObject, useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 
-type Props = {
-  children: React.ReactNode;
-  className?: string;
+type Opts<T extends Element> = {
+  elem: RefObject<T>;
 };
 
-function ScrubberMouseTracking({className, children}: Props) {
+export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
   const {replay, setCurrentHoverTime} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 
@@ -31,15 +30,11 @@ function ScrubberMouseTracking({className, children}: Props) {
     [durationMs, setCurrentHoverTime]
   );
 
-  const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
+  const mouseTrackingProps = useMouseTracking({
+    elem,
     onPositionChange: handlePositionChange,
   });
-
-  return (
-    <div className={className} {...mouseTrackingProps}>
-      {children}
-    </div>
-  );
+  return mouseTrackingProps;
 }
 
-export default ScrubberMouseTracking;
+export default useScrubberMouseTracking;
