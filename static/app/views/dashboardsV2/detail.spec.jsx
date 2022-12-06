@@ -765,7 +765,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('redirects user to dashboard url if widget is not found', () => {
+    it('redirects user to dashboard url if widget is not found', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -780,6 +780,8 @@ describe('Dashboards > Detail', function () {
         />,
         {context: initialData.routerContext, organization: initialData.organization}
       );
+
+      await screen.findByText('All Releases');
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -895,6 +897,7 @@ describe('Dashboards > Detail', function () {
 
       userEvent.click(await screen.findByText('24H'));
       userEvent.click(screen.getByText('Last 7 days'));
+      await screen.findByText('7D');
 
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
