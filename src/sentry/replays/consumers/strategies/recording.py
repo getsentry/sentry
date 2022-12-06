@@ -34,7 +34,7 @@ class RecordingProcessorStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
 
 def run(message: Message[KafkaPayload]) -> None:
     transaction = sentry_sdk.start_transaction(
-        name="replays.consumers.strategies.recording",
+        name="replays.consumers.strategies.recording.run",
         op="run",
         sampled=random.random()
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
