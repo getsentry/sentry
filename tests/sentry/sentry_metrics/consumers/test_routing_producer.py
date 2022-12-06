@@ -5,7 +5,7 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from confluent_kafka import Producer
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
@@ -60,10 +60,12 @@ def test_routing_producer() -> None:
             routing_header={"key": i}, routing_message=KafkaPayload(None, value, [])
         )
         message = Message(
-            Partition(orig_topic, 0),
-            1,
-            data,
-            epoch,
+            BrokerValue(
+                data,
+                Partition(orig_topic, 0),
+                1,
+                epoch,
+            )
         )
 
         strategy.submit(message)

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future
 from functools import partial
-from typing import Any, Deque, MutableMapping, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Deque, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Tuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
@@ -90,7 +90,9 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__message_router = message_router
         self.__closed = False
         self.__offsets_to_be_committed: MutableMapping[Partition, Position] = {}
-        self.__queue: Deque[Tuple[Partition, Position, Future[Message[KafkaPayload]]]] = deque()
+        self.__queue: Deque[
+            Tuple[Mapping[Partition, Position], Future[Message[KafkaPayload]]]
+        ] = deque()
         self.__all_producers = message_router.get_all_producers()
 
     def poll(self) -> None:
@@ -105,7 +107,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             producer.poll(0)
 
         while self.__queue:
-            partition, position, future = self.__queue[0]
+            committable, future = self.__queue[0]
 
             if not future.done():
                 break
@@ -113,7 +115,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             future.result()
 
             self.__queue.popleft()
-            self.__commit_function({partition: position})
+            self.__commit_function(committable)
 
     def __delivery_callback(
         self,
@@ -138,12 +140,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         """
         assert not self.__closed
         producer, topic = self.__message_router.get_route_for_message(message)
-        output_message = Message(
-            partition=message.partition,
-            offset=message.offset,
-            timestamp=message.timestamp,
-            payload=message.payload.routing_message,
-        )
+        output_message = Message(message.value.replace(message.payload.routing_message))
 
         future: Future[Message[KafkaPayload]] = Future()
         future.set_running_or_notify_cancel()
@@ -154,7 +151,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             headers=output_message.payload.headers,
             on_delivery=partial(self.__delivery_callback, future),
         ),
-        self.__queue.append((output_message.partition, output_message.position_to_commit, future))
+        self.__queue.append((output_message.committable, future))
 
     def terminate(self) -> None:
         self.__closed = True
@@ -181,9 +178,8 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
                 logger.warning(f"Timed out with {len(self.__queue)} futures in queue")
                 break
 
-            partition, position, future = self.__queue.popleft()
+            committable, future = self.__queue.popleft()
             future.result(remaining)
-            offset = {partition: position}
 
-            logger.info("Committing offset: %r", offset)
-            self.__commit_function(offset, force=True)
+            logger.info("Committing offset: %r", committable)
+            self.__commit_function(committable, force=True)

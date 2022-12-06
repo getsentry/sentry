@@ -1,6 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -11,15 +9,15 @@ import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import _DurationChart from 'sentry/views/performance/charts/chart';
+import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -61,12 +59,10 @@ const framesList = [
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const pageError = usePageError();
 
   const field = props.fields[0];
@@ -125,12 +121,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           <DiscoverQuery
             {...provided}
             eventView={eventView}
-            location={props.location}
+            location={location}
             limit={3}
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            useEvents={useEvents}
+            useEvents
           />
         );
       },
@@ -222,6 +218,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={() => <Subtitle>{t('Suggested transactions')}</Subtitle>}
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
@@ -274,7 +271,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 const transactionTarget = isUnparameterizedRow
                   ? createUnnamedTransactionsDiscoverTarget({
                       organization,
-                      location: props.location,
+                      location,
                     })
                   : transactionSummaryRouteWithQuery({
                       orgSlug: props.organization.slug,
@@ -284,7 +281,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       additionalQuery,
                     });
 
-                const fieldString = useEvents ? field : getAggregateAlias(field);
+                const fieldString = field;
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
@@ -315,7 +312,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
+                              excludeTransaction(listItem.transaction, {
+                                eventView: props.eventView,
+                                location,
+                              })
                             }
                           />
                         )}
@@ -336,7 +336,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
+                              excludeTransaction(listItem.transaction, {
+                                eventView: props.eventView,
+                                location,
+                              })
                             }
                           />
                         )}
@@ -356,7 +359,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             <ListClose
                               setSelectListIndex={setSelectListIndex}
                               onClick={() =>
-                                excludeTransaction(listItem.transaction, props)
+                                excludeTransaction(listItem.transaction, {
+                                  eventView: props.eventView,
+                                  location,
+                                })
                               }
                             />
                           )}
@@ -373,7 +379,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
+                              excludeTransaction(listItem.transaction, {
+                                eventView: props.eventView,
+                                location,
+                              })
                             }
                           />
                         )}
@@ -392,4 +401,3 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-const DurationChart = withRouter(_DurationChart);

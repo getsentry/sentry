@@ -9,6 +9,9 @@ from sentry.integrations.utils.code_mapping import (
     FrameFilename,
     Repo,
     RepoTree,
+    filter_source_code_files,
+    get_extension,
+    should_include,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -17,6 +20,35 @@ with open(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_files.json")
 ) as fd:
     sentry_files = json.load(fd)
+
+
+class TestRepoFiles(TestCase):
+    def test_filter_source_code_files(self):
+        source_code_files = filter_source_code_files(sentry_files)
+
+        assert source_code_files.index("bin/__init__.py") == 0
+        assert source_code_files.index("docs-ui/.eslintrc.js") == 3
+        with pytest.raises(ValueError):
+            source_code_files.index("README.md")
+
+    def test_filter_source_code_files_not_supported(self):
+        source_code_files = filter_source_code_files([])
+        assert source_code_files == []
+        source_code_files = filter_source_code_files([".env", "README"])
+        assert source_code_files == []
+
+    def test_should_not_include(self):
+        for file in [
+            "static/app/views/organizationRoot.spec.jsx",
+            "tests/foo.py",
+        ]:
+            assert should_include(file) is False
+
+    def test_get_extension(self):
+        assert get_extension("") == ""
+        assert get_extension(None) == ""
+        assert get_extension("f.py") == "py"
+        assert get_extension("f.xx") == "xx"
 
 
 class TestDerivedCodeMappings(TestCase):
@@ -66,11 +98,17 @@ class TestDerivedCodeMappings(TestCase):
         assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
 
     def test_buckets_logic(self):
-        stacktraces = ["app://foo.js", "getsentry/billing/tax/manager.py", "ssl.py"]
+        stacktraces = [
+            "app://foo.js",
+            "./app/utils/handleXhrErrorResponse.tsx",
+            "getsentry/billing/tax/manager.py",
+            "ssl.py",
+        ]
         buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
         assert buckets == {
             "NO_TOP_DIR": [FrameFilename("ssl.py")],
             "app:": [FrameFilename("app://foo.js")],
+            "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
             "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
         }
 

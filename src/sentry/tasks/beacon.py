@@ -17,7 +17,7 @@ from sentry.utils import json
 
 BEACON_URL = "https://sentry.io/remote/beacon/"
 
-logger = logging.getLogger("beacon")
+logger = logging.getLogger(__name__)
 
 
 def get_install_id():

@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import (
     ApiOrganizationFlags,
     ApiOrganizationMember,
     ApiOrganizationMemberFlags,
+    ApiOrganizationSummary,
     ApiProject,
     ApiTeam,
     ApiTeamMember,
@@ -39,7 +40,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _serialize_member_flags(self, member: "OrganizationMember") -> "ApiOrganizationMemberFlags":
         result = ApiOrganizationMemberFlags()
         for f in dataclasses.fields(ApiOrganizationMemberFlags):
-            setattr(result, f.name, getattr(member.flags, unescape_flag_name(f.name)))
+            setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
         return result
 
     def _serialize_member(
@@ -109,6 +110,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
             name=project.name,
             organization_id=project.organization_id,
             status=project.status,
+        )
+
+    def _serialize_organization_summary(self, org: "Organization") -> "ApiOrganizationSummary":
+        return ApiOrganizationSummary(
+            slug=org.slug,
+            id=org.id,
+            name=org.name,
         )
 
     def _serialize_organization(self, org: "Organization") -> "ApiOrganization":
@@ -182,12 +190,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
         pass
 
     def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
-    ) -> List[ApiOrganization]:
-        if user_id is None:
-            return []
-        organizations = self._query_organizations(user_id, scope, only_visible)
-        return [self._serialize_organization(o) for o in organizations]
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
+    ) -> List[ApiOrganizationSummary]:
+        # This needs to query the control tables for organization data and not the region ones, because spanning out
+        # would be very expansive.
+        if user_id is not None:
+            organizations = self._query_organizations(user_id, scope, only_visible)
+        elif organization_ids is not None:
+            qs = Organization.objects.filter(id__in=organization_ids)
+            if only_visible:
+                qs = qs.filter(status=OrganizationStatus.VISIBLE)
+            organizations = list(qs)
+        else:
+            organizations = []
+        return [self._serialize_organization_summary(o) for o in organizations]
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool

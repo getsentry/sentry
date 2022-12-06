@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
 from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -107,7 +107,9 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = user_service.serialize_users([user.id])[0]
+            data["user"] = user_service.serialize_users(
+                [user.id], detailed=UserSerializeType.SIMPLE
+            )[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 

@@ -9,19 +9,26 @@ from django.utils import timezone
 from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
+from sentry.rules.history.preview_strategy import (
+    DATASET_TO_COLUMN_NAME,
+    GROUP_CATEGORY_TO_DATASET,
+    UPDATE_KWARGS_FOR_GROUP,
+    UPDATE_KWARGS_FOR_GROUPS,
+)
 from sentry.rules.processor import get_match_function
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
     ConditionActivityType,
+    round_to_five_minute,
 )
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
-from sentry.utils.snuba import parse_snuba_datetime, raw_query
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
+from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
 ConditionFunc = Callable[[Sequence[bool]], bool]
-GroupActivityMap = Dict[str, List[ConditionActivity]]
+GroupActivityMap = Dict[int, List[ConditionActivity]]
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -34,11 +41,6 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 ]
 
-GROUP_CATEGORY_TO_DATASET = {
-    GroupCategory.ERROR: Dataset.Events,
-    GroupCategory.PERFORMANCE: Dataset.Transactions,
-}
-
 
 def preview(
     project: Project,
@@ -47,23 +49,24 @@ def preview(
     condition_match: str,
     filter_match: str,
     frequency_minutes: int,
+    end: datetime | None = None,
 ) -> BaseQuerySet | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
-    end = timezone.now()
-    start = end - PREVIEW_TIME_RANGE
+    # must have at least one condition to filter activity
+    if not conditions:
+        return None
 
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
 
-    # must have at least one issue state condition to filter activity
-    # TODO: support cases where there are only freq conditions
-    if not issue_state_conditions:
-        return None
     # all the issue state conditions are mutually exclusive
-    elif len(issue_state_conditions) > 1 and condition_match == "all":
+    if len(issue_state_conditions) > 1 and condition_match == "all":
         return Group.objects.none()
 
+    if end is None:
+        end = timezone.now()
+    start = end - PREVIEW_TIME_RANGE
     try:
         group_activity = get_issue_state_activity(project, issue_state_conditions, start, end)
         filter_objects, filter_func, event_columns = get_filters(project, filters, filter_match)
@@ -76,16 +79,22 @@ def preview(
         event_map = {}
         # if there is an event filter, retrieve event data
         if event_columns:
-            event_map = get_events(project, group_activity, event_columns)
+            event_map = get_events(project, group_activity, event_columns, start, end)
 
         if frequency_conditions:
+            dataset_map = get_group_dataset(list(group_activity.keys()))
+            has_issue_state_condition = bool(issue_state_conditions)
             group_activity = apply_frequency_conditions(
                 project,
                 start,
                 end,
-                get_top_groups(project, start, end, group_activity),
+                get_top_groups(
+                    project, start, end, group_activity, dataset_map, has_issue_state_condition
+                ),
                 frequency_conditions,
                 condition_match,
+                dataset_map,
+                has_issue_state_condition,
             )
 
         frequency = timedelta(minutes=frequency_minutes)
@@ -136,9 +145,8 @@ def get_issue_state_activity(
         except NotImplementedError:
             raise PreviewException
 
-    k = lambda a: a.timestamp
     for activities in group_activity.values():
-        activities.sort(key=k)
+        activities.sort(key=lambda a: a.timestamp)
 
     return group_activity
 
@@ -177,7 +185,7 @@ def get_fired_groups(
     start: datetime,
     frequency: timedelta,
     event_map: Dict[str, Any],
-) -> Sequence[str]:
+) -> Sequence[int]:
     """
     Applies filter objects to the condition activity, returns the group ids of activities that pass the filters
     """
@@ -198,52 +206,93 @@ def get_fired_groups(
 
 
 def get_top_groups(
-    project: Project, start: datetime, end: datetime, condition_activity: GroupActivityMap
+    project: Project,
+    start: datetime,
+    end: datetime,
+    condition_activity: GroupActivityMap,
+    dataset_map: Dict[int, Dataset],
+    has_issue_state_condition: bool = True,
 ) -> GroupActivityMap:
     """
-    Filters the activity to contain only groups that have the most events in the past 2 weeks.
+    Filters the activity to contain only groups that have the most events (out of the given groups) in the past 2 weeks.
+    If no groups are provided because there are no issue state change conditions, returns the top groups overall.
 
     Since frequency conditions require one snuba query per groups, we need to limit the number groups we process.
     """
-    if not condition_activity:
-        return condition_activity
-    # TODO: Also check other datasets for top groups
-    groups = raw_query(
-        dataset=Dataset.Events,
-        start=start,
-        end=end,
-        filter_keys={"project_id": [project.id]},
-        conditions=[("group_id", "IN", list(condition_activity.keys()))],
-        aggregations=[("count", "group_id", "groupCount")],
-        groupby=["group_id"],
-        order_by="-groupCount",
-        seleted_columns=["group_id"],
-        limit=FREQUENCY_CONDITION_GROUP_LIMIT,
-    ).get("data", [])
+    if has_issue_state_condition:
+        datasets = {dataset_map.get(group) for group in condition_activity.keys()}
+    else:
+        # condition_activity will be empty because there are no issue state conditions.
+        # So, we look to find top groups over all datasets
+        datasets = set(DATASET_TO_COLUMN_NAME.keys())
+    group_ids = list(condition_activity.keys())
 
-    top_groups = {group["group_id"] for group in groups}
-    top_activity = {
-        group: activity for group, activity in condition_activity.items() if group in top_groups
+    # queries each dataset for top x groups and then gets top x overall
+    query_params = []
+    for dataset in datasets:
+        if dataset not in UPDATE_KWARGS_FOR_GROUPS:
+            continue
+
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+            group_ids,
+            {
+                "dataset": dataset,
+                "start": start,
+                "end": end,
+                "filter_keys": {"project_id": [project.id]},
+                "aggregations": [("count", "group_id", "groupCount")],
+                "groupby": ["group_id"],
+                "orderby": "-groupCount",
+                "selected_columns": ["group_id", "groupCount"],
+                "limit": FREQUENCY_CONDITION_GROUP_LIMIT,
+            },
+            has_issue_state_condition,
+        )
+        query_params.append(SnubaQueryParams(**kwargs))
+
+    groups = []
+    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
+        groups.extend(result.get("data", []))
+
+    top_groups = sorted(groups, key=lambda x: int(x["groupCount"]), reverse=True)[
+        :FREQUENCY_CONDITION_GROUP_LIMIT
+    ]
+    if not has_issue_state_condition:
+        # dataset_map should be empty here since there are no groups. Update with new overall top groups
+        dataset_map.update(get_group_dataset([group["group_id"] for group in top_groups]))
+
+    return {
+        group["group_id"]: condition_activity.get(group["group_id"], []) for group in top_groups
     }
-    return top_activity
+
+
+def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
+    """
+    Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
+    If the dataset is not found/supported, it is mapped to None.
+    """
+    group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
+    return {
+        group[0]: GROUP_CATEGORY_TO_DATASET.get(GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])))
+        for group in group_categories
+    }
 
 
 def get_events(
     project: Project,
     group_activity: GroupActivityMap,
     columns: Dict[Dataset, List[str]],
+    start: datetime,
+    end: datetime,
 ) -> Dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
     group_ids = defaultdict(list)
     event_ids = defaultdict(list)
-    group_categories = Group.objects.filter(id__in=group_activity.keys()).values_list("id", "type")
-    category_map = {
-        group[0]: GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])) for group in group_categories
-    }
+    dataset_map = get_group_dataset(list(group_activity.keys()))
     for group, activities in group_activity.items():
-        dataset = GROUP_CATEGORY_TO_DATASET.get(category_map[group], None)
+        dataset = dataset_map[group]
         for activity in activities:
             if activity.type == ConditionActivityType.CREATE_ISSUE:
                 group_ids[dataset].append(activity.group_id)
@@ -260,58 +309,67 @@ def get_events(
     columns = {k: v + ["event_id"] for k, v in columns.items()}
     events = []
 
+    query_params = []
+    # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
+        if (
+            dataset not in columns
+            or dataset not in UPDATE_KWARGS_FOR_GROUP
+            or dataset == Dataset.Transactions
+        ):
+            # transaction query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
+            continue
+        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+            ids,
+            {
+                "dataset": dataset,
+                "start": start,
+                "end": end,
+                "filter_keys": {"project_id": [project.id]},
+                "conditions": [("group_id", "IN", ids)],
+                "orderby": ["group_id", "timestamp"],
+                "limitby": (1, "group_id"),
+                "selected_columns": columns[dataset] + ["group_id"],
+            },
+        )
+        query_params.append(SnubaQueryParams(**kwargs))
+
+    # query events by event_id
+    for dataset, ids in event_ids.items():
         if dataset not in columns:
             continue
-        kwargs = {
-            "dataset": dataset,
-            "filter_keys": {"project_id": [project.id]},
-            "conditions": [("group_id", "IN", ids)],
-            "orderby": ["group_id", "timestamp"],
-            "limitby": (1, "group_id"),
-            "selected_columns": columns[dataset] + ["group_id"],
-        }
-        if dataset.value == Dataset.Transactions.value:
-            # this query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
-            """
-            kwargs["aggregations"] = [("arrayJoin", ["group_ids"], "group_id")]
-            kwargs["having"] = kwargs.pop("conditions")
-            """
-            continue
-
-        events.extend(
-            # retrieves the first event for each group
-            raw_query(**kwargs).get("data", [])
+        query_params.append(
+            SnubaQueryParams(
+                dataset=dataset,
+                start=start,
+                end=end,
+                filter_keys={"project_id": [project.id]},
+                conditions=[("event_id", "IN", ids)],
+                selected_columns=columns[dataset],
+            )
         )
 
-    if group_ids:
+    group_map = {}
+    for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_events"):
+        event_data = result.get("data", [])
+        events.extend(event_data)
+        for event in event_data:
+            if "tags.key" in event and "tags.value" in event:
+                # the keys and values of tags come in 2 separate lists, pair them up together
+                keys = event.pop("tags.key")
+                values = event.pop("tags.value")
+                event["tags"] = {k: v for k, v in zip(keys, values)}
+            if "group_id" in event:
+                group_map[event["group_id"]] = event["event_id"]
+
+    if group_map:
         # store event_ids for CREATE_ISSUE condition activities
-        group_map = {event["group_id"]: event["event_id"] for event in events}
         for group, activities in group_activity.items():
             # if there is a CREATE_ISSUE activity, it must be the first
             if activities[0].type == ConditionActivityType.CREATE_ISSUE:
                 event_id = group_map.get(group, None)
                 if event_id is not None:
                     activities[0].data["event_id"] = event_id
-
-    for dataset, ids in event_ids.items():
-        if dataset not in columns:
-            continue
-        events.extend(
-            raw_query(
-                dataset=dataset,
-                filter_keys={"project_id": [project.id]},
-                conditions=[("event_id", "IN", ids)],
-                selected_columns=columns[dataset],
-            ).get("data", [])
-        )
-
-    # the keys and values of tags come in 2 separate lists, pair them up together
-    for event in events:
-        if "tags.key" in event and "tags.value" in event:
-            keys = event.pop("tags.key")
-            values = event.pop("tags.value")
-            event["tags"] = {k: v for k, v in zip(keys, values)}
 
     return {event["event_id"]: event for event in events}
 
@@ -323,10 +381,13 @@ def apply_frequency_conditions(
     group_activity: GroupActivityMap,
     frequency_conditions: Conditions,
     condition_match: str,
+    dataset_map: Dict[int, Dataset],
+    has_issue_state_condition: bool,
 ) -> GroupActivityMap:
     """
     Applies frequency conditions to issue state activity.
     """
+    # TODO: separate the conditions so we can reuse queries for conditions of the same class
     conditions = []
     for condition_data in frequency_conditions:
         condition_cls = rules.get(condition_data["id"])
@@ -334,57 +395,123 @@ def apply_frequency_conditions(
             raise PreviewException
         conditions.append(condition_cls(project, data=condition_data))
 
-    filtered_activity = defaultdict(list)
-    for group, activities in group_activity.items():
-        # TODO: only EventFrequencyCondition is supported right now, so we can reuse the same query
-        buckets = get_frequency_buckets(project, start, end, group)
-        pass_count = [0] * len(activities)
-        for condition in conditions:
-            for i, activity in enumerate(activities):
-                try:
-                    if condition.passes_activity_frequency(activity, buckets):
-                        pass_count[i] += 1
-                except NotImplementedError:
-                    raise PreviewException
+    if condition_match == "all":
+        filtered_activity = {}
+        for group, activities in group_activity.items():
+            # TODO: only EventFrequencyCondition is supported right now, so we can reuse the same query
+            buckets = get_frequency_buckets(
+                project, start, end, group, dataset_map.get(group, None)
+            )
+            if not has_issue_state_condition:
+                # If there are no issue state change conditions, then we won't have any initial activities to base our
+                # frequency condition queries off of. Instead, we take the first frequency condition and create the
+                # initial activities from that
+                for bucket_time in buckets.keys():
+                    activity = ConditionActivity(
+                        group,
+                        ConditionActivityType.FREQUENCY_CONDITION,
+                        bucket_time,
+                    )
+                    try:
+                        if conditions[0].passes_activity_frequency(activity, buckets):
+                            activities.append(activity)
+                    except NotImplementedError:
+                        raise PreviewException
 
-        for i in range(len(activities)):
-            if (
-                pass_count[i]
-                and condition_match == "any"
-                or pass_count[i] == len(conditions)
-                and condition_match == "all"
-            ):
-                filtered_activity[group].append(activities[i])
+            passes = [True] * len(activities)
+            for condition in conditions if has_issue_state_condition else conditions[1:]:
+                for i, activity in enumerate(activities):
+                    try:
+                        if passes[i] and not condition.passes_activity_frequency(activity, buckets):
+                            passes[i] = False
+                    except NotImplementedError:
+                        raise PreviewException
 
-    return filtered_activity
+            filtered_activity[group] = [activities[i] for i in range(len(activities)) if passes[i]]
+
+        return filtered_activity
+    elif condition_match == "any":
+        # Find buckets that pass at least one condition, and create condition activity from it
+        for group, activities in group_activity.items():
+            pass_buckets = set()
+            buckets = get_frequency_buckets(
+                project, start, end, group, dataset_map.get(group, None)
+            )
+            for condition in conditions:
+                for bucket_time in buckets.keys():
+                    activity = ConditionActivity(
+                        group,
+                        ConditionActivityType.FREQUENCY_CONDITION,
+                        bucket_time,
+                    )
+                    try:
+                        if condition.passes_activity_frequency(activity, buckets):
+                            pass_buckets.add(activity.timestamp)
+                    except NotImplementedError:
+                        raise PreviewException
+
+            for bucket in pass_buckets:
+                activities.append(
+                    ConditionActivity(group, ConditionActivityType.FREQUENCY_CONDITION, bucket)
+                )
+            k = lambda a: a.timestamp
+            activities.sort(key=k)
+
+        return group_activity
+    return {}
 
 
 def get_frequency_buckets(
-    project: Project, start: datetime, end: datetime, group_id: str
-) -> Sequence[Dict[str, Any]]:
+    project: Project,
+    start: datetime,
+    end: datetime,
+    group_id: int,
+    dataset: Dataset,
+) -> Dict[datetime, int]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
-    # TODO: support counting of other issue types and fields (# of unique users, ...)
-    bucket_counts: Sequence[Dict[str, Any]] = raw_query(
-        dataset=Dataset.Events,
-        start=start,
-        end=end,
-        filter_keys={"project_id": [project.id]},
-        conditions=[("group_id", "=", group_id)],
-        aggregations=[
-            ("toStartOfFiveMinute", "timestamp", "roundedTime"),
-            ("count", "roundedTime", "bucketCount"),
-        ],
-        groupby=["roundedTime"],
-        orderby=["-roundedTime"],
-        selected_columns=["roundedTime", "bucketCount"],
-        limit=PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
+    if dataset not in UPDATE_KWARGS_FOR_GROUP:
+        return {}
+
+    # TODO: support counting of other fields (# of unique users, ...)
+    kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
+        group_id,
+        {
+            "dataset": dataset,
+            "start": start,
+            "end": end,
+            "filter_keys": {"project_id": [project.id]},
+            "aggregations": [
+                ("toStartOfFiveMinute", "timestamp", "roundedTime"),
+                ("count", "roundedTime", "bucketCount"),
+            ],
+            "orderby": ["-roundedTime"],
+            "groupby": ["roundedTime"],
+            "selected_columns": ["roundedTime", "bucketCount"],
+            "limit": PREVIEW_TIME_RANGE // FREQUENCY_CONDITION_BUCKET_SIZE + 1,  # at most ~4k
+        },
+    )
+    bucket_counts = raw_query(
+        **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
     ).get("data", [])
 
     for bucket in bucket_counts:
         bucket["roundedTime"] = parse_snuba_datetime(bucket["roundedTime"])
-    return bucket_counts
+
+    rounded_time = round_to_five_minute(start)
+    rounded_end = round_to_five_minute(end)
+    cumulative_sum = 0
+    buckets = {}
+    # the query result only contains buckets that have a positive count
+    # here we fill in the empty buckets and accumulate the sum
+    while rounded_time <= rounded_end:
+        if bucket_counts and bucket_counts[-1]["roundedTime"] == rounded_time:
+            cumulative_sum += bucket_counts.pop()["bucketCount"]
+        buckets[rounded_time] = cumulative_sum
+        rounded_time += FREQUENCY_CONDITION_BUCKET_SIZE
+
+    return buckets
 
 
 class PreviewException(Exception):

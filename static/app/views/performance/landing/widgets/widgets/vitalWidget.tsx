@@ -20,6 +20,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -94,11 +95,9 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
+  const {ContainerActions, eventView, organization} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
@@ -139,12 +138,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <DiscoverQuery
               {...provided}
               eventView={_eventView}
-              location={props.location}
+              location={location}
               limit={4}
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
-              useEvents={useEvents}
+              useEvents
             />
           );
         },
@@ -210,6 +209,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
@@ -223,7 +223,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           [settingToVital[props.chartSetting]]: getVitalDataForListItem(
             listItem,
             vital,
-            !useEvents
+            false
           ),
         };
 
@@ -313,7 +313,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
                     listItem,
                     vital,
-                    !useEvents
+                    false
                   ),
                 };
 
@@ -337,7 +337,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                     {!props.withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
                       />
                     )}
                   </Fragment>

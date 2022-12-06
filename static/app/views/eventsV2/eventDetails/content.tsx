@@ -47,10 +47,7 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-type Props = Pick<
-  RouteComponentProps<{eventSlug: string}, {}>,
-  'params' | 'location' | 'route' | 'router'
-> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
@@ -125,7 +122,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView, route, router, isHomepage} = this.props;
+    const {organization, location, eventView, isHomepage} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -252,8 +249,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         location={location}
                         showTagSummary={false}
                         api={this.api}
-                        router={router}
-                        route={route}
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

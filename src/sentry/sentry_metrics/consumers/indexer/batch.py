@@ -17,7 +17,7 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message
+from arroyo.types import BrokerValue, Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -94,7 +94,8 @@ class IndexerBatch:
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
         for msg in self.outer_message.payload:
-            partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
+            assert isinstance(msg.value, BrokerValue)
+            partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
                 self.parsed_payloads_by_offset[partition_offset] = parsed_payload
@@ -214,11 +215,17 @@ class IndexerBatch:
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
             output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
-            partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
+            assert isinstance(message.value, BrokerValue)
+            partition_offset = PartitionIdxOffset(
+                message.value.partition.index, message.value.offset
+            )
             if partition_offset in self.skipped_offsets:
                 logger.info(
                     "process_message.offset_skipped",
-                    extra={"offset": message.offset, "partition": message.partition.index},
+                    extra={
+                        "offset": message.value.offset,
+                        "partition": message.value.partition.index,
+                    },
                 )
                 continue
             new_payload_value = cast(
@@ -357,23 +364,9 @@ class IndexerBatch:
                     routing_header={"org_id": org_id},
                     routing_message=kafka_payload,
                 )
-                new_messages.append(
-                    Message(
-                        partition=message.partition,
-                        offset=message.offset,
-                        payload=routing_payload,
-                        timestamp=message.timestamp,
-                    )
-                )
+                new_messages.append(Message(message.value.replace(routing_payload)))
             else:
-                new_messages.append(
-                    Message(
-                        partition=message.partition,
-                        offset=message.offset,
-                        payload=kafka_payload,
-                        timestamp=message.timestamp,
-                    )
-                )
+                new_messages.append(Message(message.value.replace(kafka_payload)))
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

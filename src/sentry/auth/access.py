@@ -177,9 +177,6 @@ class Access(abc.ABC):
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         pass
 
-    def to_django_context(self) -> Mapping[str, bool]:
-        return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
-
 
 @dataclass
 class DbAccess(Access):

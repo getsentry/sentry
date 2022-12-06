@@ -1,6 +1,3 @@
-from django.conf import settings
-
-from sentry import options
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
@@ -8,9 +5,6 @@ from sentry.utils.safe import get_path
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
 from .processor import JavaScriptStacktraceProcessor
-from .processor_smcache import JavaScriptSmCacheStacktraceProcessor
-
-PROCESSING_OPTION_SOURCEMAPCACHE = "processing.sourcemapcache-processor"
 
 
 def preprocess_event(data):
@@ -33,18 +27,6 @@ def generate_modules(data):
                 frame["module"] = generate_module(abs_path)
 
 
-# TODO(smcache): Remove after rollout.
-def _use_sourcemapcache(project_id: int) -> bool:
-    # Internal Sentry projects
-    # 11276 - sentry/javascript project for forced dogfooding
-    # SENTRY_PROJECT - default project for all installations
-    # SENTRY_FRONTEND_PROJECT - configurable default frontend project
-    if project_id in (11276, settings.SENTRY_PROJECT, settings.SENTRY_FRONTEND_PROJECT):
-        return True
-
-    return project_id % 1000 < options.get(PROCESSING_OPTION_SOURCEMAPCACHE, 0.0) * 1000
-
-
 class JavascriptPlugin(Plugin2):
     can_disable = False
 
@@ -60,6 +42,4 @@ class JavascriptPlugin(Plugin2):
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if "javascript" in platforms or "node" in platforms:
-            if _use_sourcemapcache(data["project"]):
-                return [JavaScriptSmCacheStacktraceProcessor]
             return [JavaScriptStacktraceProcessor]

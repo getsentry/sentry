@@ -714,9 +714,11 @@ def _run_background_grouping(project: Project, job: Job) -> None:
         sentry_sdk.capture_exception()
 
 
-def _get_job_category(data: Mapping[str, Any]) -> DataCategory:
+def _get_job_category(data: Mapping[str, Any], organization: Organization) -> DataCategory:
     event_type = data.get("type")
-    if event_type == "transaction":
+    if event_type == "transaction" and features.has(
+        "organizations:transaction-metrics-extraction", organization
+    ):
         # TODO: This logic should move into sentry-relay, but I'm not sure
         # about the consequences of making `from_event_type` return
         # `TRANSACTION_INDEXED` unconditionally.
@@ -758,9 +760,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
 
-        job["category"] = _get_job_category(data)
+        event._project_cache = project = projects[job["project_id"]]
+        job["category"] = _get_job_category(data, project.organization)
         job["platform"] = event.platform
-        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
@@ -895,7 +897,10 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                         "event_manager.dynamic_sampling_observe_latest_release"
                     ) as metrics_tags:
                         try:
-                            release_observed_in_last_24h = observe_release(project_id, release.id)
+                            environment = _extract_latest_release_data(data)
+                            release_observed_in_last_24h = observe_release(
+                                project_id, release.id, environment
+                            )
                             if not release_observed_in_last_24h:
                                 span.set_tag(
                                     "dynamic_sampling.observe_release_status",
@@ -904,7 +909,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                                 metrics_tags[
                                     "dynamic_sampling.observe_release_status"
                                 ] = f"New release observed {release.id}"
-                                add_boosted_release(project_id, release.id)
+                                add_boosted_release(project_id, release.id, environment)
                                 schedule_invalidate_project_config(
                                     project_id=project_id, trigger="dynamic_sampling:boost_release"
                                 )
@@ -919,6 +924,16 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                             pass
                         except Exception:
                             sentry_sdk.capture_exception()
+
+
+def _extract_latest_release_data(data: EventDict) -> Optional[str]:
+    environment = data.get("environment", None)
+    # We handle the case in which the users sets the empty string as environment, for us that
+    # is equal to having no environment at all.
+    if environment == "":
+        environment = None
+
+    return environment  # type:ignore
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1358,9 +1373,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = problem.title
     return metadata
 
 

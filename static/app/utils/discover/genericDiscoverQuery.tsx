@@ -252,12 +252,9 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     api.clear();
 
     try {
-      const [data, , resp] = await doDiscoverQuery<T>(
-        api,
-        url,
-        apiPayload,
-        queryBatching
-      );
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
+        queryBatching,
+      });
 
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
@@ -324,12 +321,27 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
 
 export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
-export function doDiscoverQuery<T>(
+type RetryOptions = {
+  statusCodes: number[];
+  tries: number;
+  baseTimeout?: number;
+  timeoutMultiplier?: number;
+};
+
+const BASE_TIMEOUT = 200;
+const TIMEOUT_MULTIPLIER = 2;
+const wait = duration => new Promise(resolve => setTimeout(resolve, duration));
+
+export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams,
-  queryBatching?: QueryBatching
+  options: {
+    queryBatching?: QueryBatching;
+    retry?: RetryOptions;
+  } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
+  const {queryBatching, retry} = options;
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, url, {
       query: params,
@@ -337,14 +349,34 @@ export function doDiscoverQuery<T>(
     });
   }
 
-  return api.requestPromise(url, {
-    method: 'GET',
-    includeAllArgs: true,
-    query: {
-      // marking params as any so as to not cause typescript errors
-      ...(params as any),
-    },
-  });
+  const baseTimeout = retry?.baseTimeout ?? BASE_TIMEOUT;
+  const timeoutMultiplier = retry?.timeoutMultiplier ?? TIMEOUT_MULTIPLIER;
+  const statusCodes = retry?.statusCodes ?? [];
+  const maxTries = retry?.tries ?? 1;
+  let tries = 0;
+  let timeout = 0;
+  let error;
+
+  while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
+    if (timeout > 0) {
+      await wait(timeout);
+    }
+    try {
+      tries++;
+      return await api.requestPromise(url, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: {
+          // marking params as any so as to not cause typescript errors
+          ...(params as any),
+        },
+      });
+    } catch (err) {
+      error = err;
+      timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
+    }
+  }
+  throw error;
 }
 
 function getPayload<T, P>(props: Props<T, P>) {
@@ -387,7 +419,9 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
 
   return useQuery<T, QueryError>([route, apiPayload], async () => {
-    const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, props.queryBatching);
+    const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
+      queryBatching: props.queryBatching,
+    });
     return resp;
   });
 }

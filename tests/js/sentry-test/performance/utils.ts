@@ -1,5 +1,5 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventOrGroupType, EventTransaction} from 'sentry/types';
+import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/types';
 
 export enum ProblemSpan {
   PARENT = 'parent',
@@ -50,6 +50,7 @@ export class TransactionEventBuilder {
         causeSpanIds: [],
         offenderSpanIds: [],
         parentSpanIds: [],
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       },
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
