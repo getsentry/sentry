@@ -45,17 +45,3 @@ export const mockedUser2 = {
   email: 'author2@commit.com',
   name: 'Value Name',
 } as User;
-
-export const mockedReleaseWithHealth = TestStubs.Release({
-  id: '1',
-  shortVersion: 'sentry-android-shop@1.2.0',
-  version: 'sentry-android-shop@1.2.0',
-  dateCreated: '2010-05-17T02:41:20Z',
-  lastEvent: '2011-10-17T02:41:20Z',
-  firstEvent: '2010-05-17T02:41:20Z',
-  status: 'open',
-  commitCount: 4,
-  lastCommit: mockedCommit,
-  newGroups: 21,
-  authors: [mockedUser1, mockedUser2],
-});

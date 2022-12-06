@@ -5,7 +5,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 
 import ReleaseContext from './releaseContext';
-import {defaultRow, mockedReleaseWithHealth, mockedUser1} from './testUtils';
+import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +13,20 @@ const queryClient = new QueryClient({
       retry: false,
     },
   },
+});
+
+export const mockedReleaseWithHealth = TestStubs.Release({
+  id: '1',
+  shortVersion: 'sentry-android-shop@1.2.0',
+  version: 'sentry-android-shop@1.2.0',
+  dateCreated: '2010-05-17T02:41:20Z',
+  lastEvent: '2011-10-17T02:41:20Z',
+  firstEvent: '2010-05-17T02:41:20Z',
+  status: 'open',
+  commitCount: 4,
+  lastCommit: mockedCommit,
+  newGroups: 21,
+  authors: [mockedUser1, mockedUser2],
 });
 
 const renderReleaseContext = () => {

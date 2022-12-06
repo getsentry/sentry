@@ -8,7 +8,7 @@ import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
-import {defaultRow, mockedReleaseWithHealth} from './testUtils';
+import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 import {ContextType} from './utils';
 
 const queryClient = new QueryClient({
@@ -145,7 +145,19 @@ describe('Quick Context', function () {
     it('Renders release header with copy button', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-        body: mockedReleaseWithHealth,
+        body: TestStubs.Release({
+          id: '1',
+          shortVersion: 'sentry-android-shop@1.2.0',
+          version: 'sentry-android-shop@1.2.0',
+          dateCreated: '2010-05-17T02:41:20Z',
+          lastEvent: '2011-10-17T02:41:20Z',
+          firstEvent: '2010-05-17T02:41:20Z',
+          status: 'open',
+          commitCount: 4,
+          lastCommit: mockedCommit,
+          newGroups: 21,
+          authors: [mockedUser1, mockedUser2],
+        }),
       });
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
