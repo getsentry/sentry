@@ -47,29 +47,38 @@ class GitHubAppsClientTest(TestCase):
     @responses.activate
     def test_get_rate_limit(self):
         responses.add(
-            method=responses.POST,
-            url="https://api.github.com/app/installations/1/access_tokens",
-            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
-            content_type="application/json",
-        )
-        responses.add(
-            method=responses.HEAD,
+            method=responses.GET,
             url="https://api.github.com/rate_limit",
-            status=200,
-            content_type="application/json",
-            headers={
+            json={
                 "resources": {
                     "core": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
                     "search": {"limit": 30, "remaining": 18, "reset": 1372697452, "used": 12},
                     "graphql": {"limit": 5000, "remaining": 4993, "reset": 1372700389, "used": 7},
                 },
-                "rate": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
             },
         )
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
-            value = self.client.get_rate_limit()
-            assert value == {}
+            gh_rate_limit = self.client.get_rate_limit()
+            assert gh_rate_limit.limit == 5000
+            assert gh_rate_limit.remaining == 4999
+            assert gh_rate_limit.used == 1
+            assert gh_rate_limit.next_window() == "17:47:53"
+
+            gh_rate_limit = self.client.get_rate_limit("search")
+            assert gh_rate_limit.limit == 30
+            assert gh_rate_limit.remaining == 18
+            assert gh_rate_limit.used == 12
+            assert gh_rate_limit.next_window() == "16:50:52"
+
+            gh_rate_limit = self.client.get_rate_limit("graphql")
+            assert gh_rate_limit.limit == 5000
+            assert gh_rate_limit.remaining == 4993
+            assert gh_rate_limit.used == 7
+            assert gh_rate_limit.next_window() == "17:39:49"
+
+    def test_get_rate_limit_specific_resouces(self):
+        with pytest.raises(AssertionError):
+            self.client.get_rate_limit("foo")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
