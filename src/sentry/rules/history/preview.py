@@ -398,6 +398,7 @@ def apply_frequency_conditions(
     if condition_match == "all":
         for group, activities in group_activity.items():
             init_activities_from_freq_cond = False
+            passes = [True] * len(activities)
             for conditions in condition_types.values():
                 # reuse frequency buckets for conditions of the same type
                 try:
@@ -429,7 +430,9 @@ def apply_frequency_conditions(
                         except NotImplementedError:
                             raise PreviewException
 
-                passes = [True] * len(activities)
+                    # recreate passes array
+                    passes = [True] * len(activities)
+
                 for condition in conditions[1:] if skip_first else conditions:
                     for i, activity in enumerate(activities):
                         try:
@@ -440,11 +443,9 @@ def apply_frequency_conditions(
                         except NotImplementedError:
                             raise PreviewException
 
-                filtered_activity[group] = [
-                    activities[i] for i in range(len(activities)) if passes[i]
-                ]
+            filtered_activity[group] = [activities[i] for i in range(len(activities)) if passes[i]]
 
-            return filtered_activity
+        return filtered_activity
     elif condition_match == "any":
         # Find buckets that pass at least one condition, and create condition activity from it
         for group, activities in group_activity.items():

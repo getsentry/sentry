@@ -709,6 +709,33 @@ class FrequencyConditionTest(TestCase, SnubaTestCase):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group not in result
 
+    def tests_multiple_freq_cond_types(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        group = self.store_event(
+            project_id=self.project.id,
+            data={"timestamp": iso_format(prev_hour), "user": {"id": self.user.id}},
+        ).group
+
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group in result
+
+        conditions[1]["value"] = 1
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group not in result
+
 
 @freeze_time()
 @region_silo_test
