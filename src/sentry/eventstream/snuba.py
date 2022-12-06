@@ -344,7 +344,6 @@ class SnubaProtocolEventStream(EventStream):
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:
-        pass
         """
         Tell Snuba to move events into a new group ID
 
