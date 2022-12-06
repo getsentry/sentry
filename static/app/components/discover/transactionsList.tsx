@@ -234,32 +234,34 @@ class _TransactionsList extends Component<Props> {
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
-    const tableRenderer = ({isLoading, pageLinks, tableData}) => (
-      <Fragment>
-        <Header>
-          {this.renderHeader()}
-          <StyledPagination
-            pageLinks={pageLinks}
-            onCursor={this.handleCursor}
-            size="xs"
-          />
-        </Header>
-        <GuideAnchor target="transactions_table" position="top-start">
-          <TransactionsTable
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            isLoading={isLoading}
-            tableData={tableData}
-            columnOrder={columnOrder}
-            titles={titles}
-            generateLink={generateLink}
-            handleCellAction={handleCellAction}
-            useAggregateAlias={false}
-          />
-        </GuideAnchor>
-      </Fragment>
-    );
+    const tableRenderer = ({isLoading, pageLinks, tableData}) => {
+      return (
+        <Fragment>
+          <Header>
+            {this.renderHeader()}
+            <StyledPagination
+              pageLinks={pageLinks}
+              onCursor={this.handleCursor}
+              size="xs"
+            />
+          </Header>
+          <GuideAnchor target="transactions_table" position="top-start">
+            <TransactionsTable
+              eventView={eventView}
+              organization={organization}
+              location={location}
+              isLoading={isLoading}
+              tableData={tableData}
+              columnOrder={columnOrder}
+              titles={titles}
+              generateLink={generateLink}
+              handleCellAction={handleCellAction}
+              useAggregateAlias={false}
+            />
+          </GuideAnchor>
+        </Fragment>
+      );
+    };
 
     if (forceLoading) {
       return tableRenderer({

@@ -217,6 +217,23 @@ class EventsTable extends Component<Props, State> {
       );
     }
 
+    if (field === 'profileId') {
+      const target: LocationDescriptor | null = dataRow.profileId
+        ? null // @TODO
+        : null;
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
+        </CellAction>
+      );
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -292,11 +309,12 @@ class EventsTable extends Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    // EventId, TraceId, ReplayId and ProfileId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
       field.field !== 'replayId' &&
+      field.field !== 'profileId' &&
       field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 

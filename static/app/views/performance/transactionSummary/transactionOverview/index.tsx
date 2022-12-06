@@ -179,6 +179,10 @@ function generateEventView({
     fields.push('replayId');
   }
 
+  if (organization.features.includes('profiling')) {
+    fields.push('profileId');
+  }
+
   return EventView.fromNewQueryWithLocation(
     {
       id: undefined,

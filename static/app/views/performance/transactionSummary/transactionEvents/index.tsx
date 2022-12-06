@@ -273,6 +273,9 @@ function generateEventView({
   if (organization.features.includes('session-replay-ui')) {
     fields.push('replayId');
   }
+  if (organization.features.includes('profiling')) {
+    fields.push('profileId');
+  }
   const breakdown = decodeFilterFromLocation(location);
   if (breakdown !== SpanOperationBreakdownFilter.None) {
     fields.splice(2, 1, `spans.${breakdown}`);

@@ -13,6 +13,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {isProfilingSupportedForProject} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -47,6 +48,7 @@ import Filter, {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -212,9 +214,13 @@ function SummaryContent({
     transactionsListTitles.push(t('replay'));
   }
 
-  // if (organization.features.includes('profiling') && projectSupportsProfiling(project)) {
-  transactionsListTitles.push(t('profile'));
-  // }
+  if (
+    project &&
+    organization.features.includes('profiling') &&
+    isProfilingSupportedForProject(project)
+  ) {
+    transactionsListTitles.push(t('profile'));
+  }
 
   let transactionsListEventView = eventView.clone();
 
@@ -325,7 +331,7 @@ function SummaryContent({
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             replayId: generateReplayLink(routes),
-            profileId: () => '',
+            profileId: generateProfileLink(),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {

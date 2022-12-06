@@ -92,6 +92,10 @@ function EventsContent(props: Props) {
     transactionsListTitles.push(t('replay'));
   }
 
+  if (organization.features.includes('profiling')) {
+    transactionsListTitles.push(t('profile id'));
+  }
+
   return (
     <Layout.Main fullWidth>
       <Search {...props} />
