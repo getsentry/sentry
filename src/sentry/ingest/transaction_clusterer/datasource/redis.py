@@ -6,10 +6,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.eventstore.models import Event
-from sentry.ingest.transaction_clusterer.datasource import (
-    TRANSACTION_SOURCE_SANITIZED,
-    TRANSACTION_SOURCE_URL,
-)
+from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
 from sentry.models import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
@@ -65,9 +62,6 @@ def get_transaction_names(project: Project) -> Iterable[str]:
 
 
 def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
-    # TODO: revisit file structure to prevent circular import
-    from sentry.ingest.transaction_clusterer.rules import update_rule_expiry
-
     transaction_info = event.data.get("transaction_info") or {}
     transaction_name = event.transaction
     source = transaction_info.get("source")
@@ -78,8 +72,8 @@ def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> No
             safe_execute(
                 _store_transaction_name, project, transaction_name, _with_transaction=False
             )
-        elif source == TRANSACTION_SOURCE_SANITIZED:
-            # Bump lifetime of rule
-            # TODO: add this rule ID in relay when sanitizing
-            if rule_id := transaction_info.get("applied_rule_id"):
-                safe_execute(update_rule_expiry, project, rule_id)
+        # TODO: For every transaction that had a rule applied to it, we should
+        # bump the rule's lifetime here such that it stays alive while it is
+        # being used.
+        # For that purpose, we need to add the applied rule to the transaction
+        # payload so we can check it here.

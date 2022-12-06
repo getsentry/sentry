@@ -20,12 +20,6 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def update_rule_expiry(project: Project, rule_id: str) -> None:
-    client = get_redis_client()
-    key = _get_rules_key(project)
-    client.hset(key, rule_id, _now() + RULE_TTL)
-
-
 def get(project: Project) -> MutableMapping[str, int]:
     client = get_redis_client()
     key = _get_rules_key(project)
