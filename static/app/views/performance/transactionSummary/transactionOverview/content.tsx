@@ -212,6 +212,10 @@ function SummaryContent({
     transactionsListTitles.push(t('replay'));
   }
 
+  // if (organization.features.includes('profiling') && projectSupportsProfiling(project)) {
+  transactionsListTitles.push(t('profile'));
+  // }
+
   let transactionsListEventView = eventView.clone();
 
   // update search conditions
@@ -321,6 +325,7 @@ function SummaryContent({
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             replayId: generateReplayLink(routes),
+            profileId: () => '',
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
