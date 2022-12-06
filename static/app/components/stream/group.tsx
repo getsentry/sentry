@@ -422,28 +422,12 @@ function BaseGroupRow({
   const lastTriggered = !defined(lastTriggeredDate) ? (
     <Placeholder height="18px" />
   ) : (
-    <DeprecatedDropdownMenu isNestedDropdown>
-      {({isOpen, getRootProps, getActorProps}) => {
-        const topLevelCx = classNames('dropdown', {'anchor-middle': true, open: isOpen});
-
-        return (
-          <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-            <span {...getRootProps({className: topLevelCx})}>
-              <span {...getActorProps({})}>
-                <div className="dropdown-actor-title">
-                  <TimeSince
-                    tooltipTitle={t('Last Triggered')}
-                    date={lastTriggeredDate}
-                    suffix={t('ago')}
-                    shorten
-                  />
-                </div>
-              </span>
-            </span>
-          </GuideAnchor>
-        );
-      }}
-    </DeprecatedDropdownMenu>
+    <TimeSince
+      tooltipTitle={t('Last Triggered')}
+      date={lastTriggeredDate}
+      suffix={t('ago')}
+      shorten
+    />
   );
 
   const issueStreamAnchor = isDemoWalkthrough() ? (

@@ -21,7 +21,7 @@ const GroupListHeader = ({
     <EventUserWrapper>{t('events')}</EventUserWrapper>
     <EventUserWrapper>{t('users')}</EventUserWrapper>
     <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
-    {showLastTriggered && <EventUserWrapper>{t('last triggered')}</EventUserWrapper>}
+    {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
   </PanelHeader>
 );
 

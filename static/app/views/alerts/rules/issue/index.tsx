@@ -938,16 +938,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       );
     }
     return tct(
-      "[issueCount] issues would have triggered this rule in the past 14 days [approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
+      "[issueCount] issues would have triggered this rule in the past 14 days [approximately:approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
       {
         issueCount,
         approximately: (
           <Tooltip
-            title="Previews that include issue frequency conditions are approximated"
+            title={t('Previews that include issue frequency conditions are approximated')}
             showUnderline
-          >
-            approximately
-          </Tooltip>
+          />
         ),
         link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
       }
