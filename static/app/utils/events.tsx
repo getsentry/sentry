@@ -8,7 +8,7 @@ import {
   IssueCategory,
   TreeLabelPart,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
@@ -208,8 +208,20 @@ function hasTrace(event: Event) {
 function eventHasSourceMaps(event: Event) {
   return event.entries?.some(entry => {
     return (
-      entry.type === 'exception' &&
+      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
       entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
+    );
+  });
+}
+
+/**
+ * Function to determine if an event has minified stack trace
+ */
+function eventHasMinifiedStackTrace(event: Event) {
+  return event.entries?.some(entry => {
+    return (
+      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
+      entry.data.values?.some(value => !!value.rawStacktrace)
     );
   });
 }
@@ -274,6 +286,7 @@ export function getAnalyicsDataForEvent(event?: Event) {
     event_type: event?.type,
     has_release: !!event?.release,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
+    has_minified_stack_trace: event ? eventHasMinifiedStackTrace(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
     event_errors: event ? getEventErrorString(event) : '',
