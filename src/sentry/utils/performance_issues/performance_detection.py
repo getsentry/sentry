@@ -243,6 +243,15 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "n_plus_one_db_duration_threshold": options.get(
                 "performance.issues.n_plus_one_db.duration_threshold"
             ),
+            "render_blocking_fcp_min": options.get(
+                "performance.issues.render_blocking_assets.fcp_minimum_threshold"
+            ),
+            "render_blocking_fcp_max": options.get(
+                "performance.issues.render_blocking_assets.fcp_maximum_threshold"
+            ),
+            "render_blocking_fcp_ratio": options.get(
+                "performance.issues.render_blocking_assets.fcp_ratio_threshold"
+            ),
         }
     )
 
@@ -274,10 +283,9 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
-            "fcp_minimum_threshold": 2000.0,  # ms
-            "fcp_maximum_threshold": 10000.0,  # ms
-            "fcp_ratio_threshold": 0.25,
-            "allowed_span_ops": ["resource.link", "resource.script"],
+            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
+            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
+            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
         },
         DetectorType.N_PLUS_ONE_SPANS: [
             {
@@ -764,15 +772,22 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return
 
         op = span.get("op", None)
-        allowed_span_ops = self.settings.get("allowed_span_ops")
-        if op not in allowed_span_ops:
+        if op not in ["resource.link", "resource.script"]:
             return False
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
             fingerprint = fingerprint_span(span)
             if span_id and fingerprint:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
+                self.stored_problems[fingerprint] = PerformanceProblem(
+                    fingerprint=fingerprint,
+                    op=op,
+                    desc=span.get("description") or "",
+                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    offender_span_ids=[span_id],
+                    parent_span_ids=[],
+                    cause_span_ids=[],
+                )
 
         # If we visit a span that starts after FCP, then we know we've already
         # seen all possible render-blocking resource spans.

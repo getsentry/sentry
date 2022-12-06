@@ -102,6 +102,9 @@ register(
         "n_plus_one_db_issue_rate": 0,
         "n_plus_one_db_count": 5,
         "n_plus_one_db_duration_threshold": 500,
+        "render_blocking_fcp_min": 2000.0,
+        "render_blocking_fcp_max": 10000.0,
+        "render_blocking_fcp_ratio": 0.33,
     },
 )
 
