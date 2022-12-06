@@ -23,419 +23,448 @@ class RelayRegisterTest(APITestCase):
 
         self.private_key = self.key_pair[0]
         self.relay_id = str(uuid4())
-
-        self.path = reverse("sentry-api-0-relay-register-challenge", args=[self.organization.slug])
+        self.challenge_paths = (
+            reverse("sentry-api-0-relay-register-challenge-orgless"),
+            reverse("sentry-api-0-relay-register-challenge", args=[self.organization.slug]),
+        )
+        self.response_paths = (
+            reverse("sentry-api-0-relay-register-response-orgless"),
+            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
+        )
 
     def add_internal_key(self, public_key):
         if public_key not in settings.SENTRY_RELAY_WHITELIST_PK:
             settings.SENTRY_RELAY_WHITELIST_PK.append(str(self.public_key))
 
     def register_relay(self, key_pair, version, relay_id):
+        for challenge_path in self.challenge_paths:
+            private_key = key_pair[0]
+            public_key = key_pair[1]
 
-        private_key = key_pair[0]
-        public_key = key_pair[1]
+            data = {"public_key": str(public_key), "relay_id": relay_id, "version": version}
 
-        data = {"public_key": str(public_key), "relay_id": relay_id, "version": version}
+            raw_json, signature = private_key.pack(data)
 
-        raw_json, signature = private_key.pack(data)
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            data = {
+                "token": str(result.get("token")),
+                "relay_id": relay_id,
+                "version": version,
+            }
 
-        data = {
-            "token": str(result.get("token")),
-            "relay_id": relay_id,
-            "version": version,
-        }
+            raw_json, signature = private_key.pack(data)
 
-        raw_json, signature = private_key.pack(data)
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
-
-        assert resp.status_code == 200, resp.content
+                assert resp.status_code == 200, resp.content
 
     def test_valid_register(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
+            assert resp.status_code == 200, resp.content
 
     def test_register_missing_relay_id(self):
         data = {"public_key": str(self.public_key)}
 
         raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+        for challenge_path in self.challenge_paths:
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_register_missing_public_key(self):
-        data = {"relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_register_invalid_body(self):
-        resp = self.client.post(
-            self.path,
-            data="a",
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-        )
+        for challenge_path in self.challenge_paths:
+            resp = self.client.post(
+                challenge_path,
+                data="a",
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            )
 
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_register_missing_header(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+            )
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-        )
-
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_register_missing_header2(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_register_wrong_sig(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature + "a",
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature + "a",
+            )
 
-        assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_valid_register_response(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 200, resp.content
-        relay = Relay.objects.get(relay_id=self.relay_id)
-        assert relay
-        assert relay.relay_id == self.relay_id
+                assert resp.status_code == 200, resp.content
+                relay = Relay.objects.get(relay_id=self.relay_id)
+                assert relay
+                assert relay.relay_id == self.relay_id
 
     def test_forge_public_key(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        keys = generate_key_pair()
+                keys = generate_key_pair()
 
-        settings.SENTRY_RELAY_WHITELIST_PK.append(str(keys[1]))
+                settings.SENTRY_RELAY_WHITELIST_PK.append(str(keys[1]))
 
-        data = {"public_key": str(keys[1]), "relay_id": self.relay_id}
+                data = {"public_key": str(keys[1]), "relay_id": self.relay_id}
 
-        raw_json, signature = keys[0].pack(data)
+                raw_json, signature = keys[0].pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_public_key_mismatch(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        keys = generate_key_pair()
+                keys = generate_key_pair()
 
-        data = {"token": str(result.get("token")), "relay_id": self.relay_id}
+                data = {"token": str(result.get("token")), "relay_id": self.relay_id}
 
-        raw_json, signature = keys[0].pack(data)
+                raw_json, signature = keys[0].pack(data)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_forge_public_key_on_register(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        result = json.loads(resp.content)
+            result = json.loads(resp.content)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
+            assert resp.status_code == 200, resp.content
 
-        keys = generate_key_pair()
+            keys = generate_key_pair()
 
-        data = {"token": str(result.get("token")), "relay_id": self.relay_id}
+            data = {"token": str(result.get("token")), "relay_id": self.relay_id}
 
-        raw_json, signature = keys[0].pack(data)
+            raw_json, signature = keys[0].pack(data)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_invalid_json_response(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        _, signature = self.private_key.pack(result)
+            _, signature = self.private_key.pack(result)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data="a",
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data="a",
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_missing_token_response(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        del result["token"]
+            del result["token"]
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_missing_sig_response(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_relay_id_mismatch_response(self):
-        data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
+        for challenge_path in self.challenge_paths:
+            data = {"public_key": str(self.public_key), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=str(uuid4()),
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=str(uuid4()),
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 400, resp.content
+                assert resp.status_code == 400, resp.content
 
     def test_valid_register_response_twice(self):
         self.test_valid_register_response()
@@ -446,48 +475,50 @@ class RelayRegisterTest(APITestCase):
         Test that an old Relay that does not send version information
         in the challenge response is still able to register.
         """
-        data = {
-            "public_key": str(self.public_key),
-            "relay_id": self.relay_id,
-            "version": "1.0.0",
-        }
+        for challenge_path in self.challenge_paths:
+            data = {
+                "public_key": str(self.public_key),
+                "relay_id": self.relay_id,
+                "version": "1.0.0",
+            }
 
-        raw_json, signature = self.private_key.pack(data)
+            raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            resp = self.client.post(
+                challenge_path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
 
-        assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+            assert resp.status_code == 200, resp.content
+            result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
+            raw_json, signature = self.private_key.pack(result)
 
-        self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+            for response_path in self.response_paths:
+                self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        data = {"token": str(result.get("token")), "relay_id": self.relay_id}
+                data = {"token": str(result.get("token")), "relay_id": self.relay_id}
 
-        raw_json, signature = self.private_key.pack(data)
+                raw_json, signature = self.private_key.pack(data)
 
-        resp = self.client.post(
-            reverse("sentry-api-0-relay-register-response", args=[self.organization.slug]),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+                resp = self.client.post(
+                    response_path,
+                    data=raw_json,
+                    content_type="application/json",
+                    HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                    HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+                )
 
-        assert resp.status_code == 200, resp.content
+                assert resp.status_code == 200, resp.content
 
     def test_multiple_relay_versions_tracked(self):
         """
