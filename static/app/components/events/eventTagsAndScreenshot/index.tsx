@@ -5,7 +5,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -118,7 +117,7 @@ function EventTagsAndScreenshots({
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <TagWrapper hasEventContext={hasEventContext}>
+      <TagWrapper>
         {showTags && (
           <Tags
             organization={organization}
@@ -197,10 +196,5 @@ const ScreenshotWrapper = styled('div')`
 `;
 
 const TagWrapper = styled('div')<{hasEventContext: boolean}>`
-  padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
   overflow: hidden;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
-  }
 `;
