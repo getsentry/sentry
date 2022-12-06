@@ -564,7 +564,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_problems(render_blocking_asset_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -578,6 +578,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call(
                     "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_render_blocking_assets_fp",
+                    "6060649d4f8435d88735",
                 ),
                 call(
                     "_pi_render_blocking_assets",
