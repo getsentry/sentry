@@ -10,7 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import GroupSerializer, serialize
 from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
-from sentry.models import get_inbox_details
+from sentry.models import Group, get_inbox_details
 from sentry.rules.history.preview import preview
 from sentry.web.decorators import transaction_start
 
@@ -51,7 +51,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
         data = serializer.validated_data
         if data.get("endpoint") is None:
             data["endpoint"] = timezone.now()
-        results = preview(
+        group_fires = preview(
             project,
             data.get("conditions", []),
             data.get("filters", []),
@@ -61,12 +61,14 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             data.get("endpoint"),
         )
 
-        if results is None:
+        if group_fires is None:
             raise ValidationError
+
+        fired_groups = Group.objects.filter(id__in=group_fires.keys()).order_by("-id")
 
         response = self.paginate(
             request=request,
-            queryset=results,
+            queryset=fired_groups,
             order_by="-id",
             count_hits=True,
         )
@@ -76,6 +78,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             request.user,
             PreviewSerializer(),
             inbox_details=get_inbox_details(response.data),
+            group_fires=group_fires,
         )
 
         response["Endpoint"] = data["endpoint"]
@@ -87,5 +90,7 @@ class PreviewSerializer(GroupSerializer):
         self, obj: Dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> Dict[str, Any]:
         result = super().serialize(obj, attrs, user, **kwargs)
-        result["inbox"] = kwargs["inbox_details"].get(int(result["id"]))
+        group_id = int(result["id"])
+        result["inbox"] = kwargs["inbox_details"].get(group_id)
+        result["lastTriggered"] = kwargs["group_fires"][group_id][-1]
         return result
