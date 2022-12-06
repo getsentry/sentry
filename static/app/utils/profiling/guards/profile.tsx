@@ -8,10 +8,6 @@ export function isSchema(input: any): input is Profiling.Schema {
   );
 }
 
-export function isNodeProfile(profile: any): profile is [Profiling.NodeProfile, {}] {
-  return Array.isArray(profile) && profile.length === 2 && isSampledProfile(profile[0]);
-}
-
 export function isEventedProfile(profile: any): profile is Profiling.EventedProfile {
   return 'type' in profile && profile.type === 'evented';
 }
