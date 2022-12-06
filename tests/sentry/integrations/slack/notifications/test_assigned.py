@@ -159,7 +159,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
 
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
@@ -197,7 +197,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             notification.send()
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == "Blocked Thread"
+        assert attachment["title"] == occurrence.issue_title
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"

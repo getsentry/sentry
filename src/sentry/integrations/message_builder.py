@@ -47,14 +47,13 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
         group = getattr(obj, "group", obj)
         if group.issue_category == GroupCategory.PERFORMANCE:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
-        elif hasattr(group, "occurrence"):
-            title = group.occurrence.issue_title
-        elif not hasattr(obj, "occurrence"):
-            event = obj.get_latest_event()
+        elif hasattr(obj, "occurrence"):
+            title = obj.occurrence.issue_title
+        else:
+            event = group.get_latest_event()
+            # occurrence doesn't seem to be on the groupevent after being fetched from eventstore
             if event.occurrence is not None:
                 title = event.occurrence.issue_title
-            else:
-                title = obj.title
 
     # Explicitly typing to satisfy mypy.
     title_str: str = title
