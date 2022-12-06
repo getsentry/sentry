@@ -1,10 +1,10 @@
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {LocationDescriptor} from 'history';
+import {Location, LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
@@ -27,6 +27,18 @@ type Props = LinkProps & {
   query?: string;
 };
 
+const isRouteActive = (
+  location: Location,
+  target: LocationDescriptor,
+  index: boolean = false
+) => {
+  if (index) {
+    // if true, it will only match the exact path.
+    return location.pathname === target.toString();
+  }
+  return location.pathname.indexOf(target.toString()) !== -1;
+};
+
 function ListLink({
   children,
   className,
@@ -38,12 +50,13 @@ function ListLink({
   disabled = false,
   ...props
 }: Props) {
-  const router = useRouter();
+  const location = useLocation();
+
   const queryData = query ? qs.parse(query) : undefined;
   const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
   const target = normalizeUrl(targetLocation);
 
-  const active = isActive?.(target, index) ?? router.isActive(target, index);
+  const active = isActive?.(target, index) ?? isRouteActive(location, target, index);
 
   return (
     <StyledLi
