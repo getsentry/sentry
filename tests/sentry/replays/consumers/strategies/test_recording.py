@@ -9,6 +9,7 @@ from unittest.mock import ANY, patch
 import msgpack
 from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue
 
 from sentry.models import File, OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.strategies.recording import RecordingProcessorStrategyFactory
@@ -32,24 +33,26 @@ class RecordingConsumerTestCase(TransactionTestCase):
 
         self.processing_strategy.submit(
             Message(
-                Partition(Topic("ingest-replay-recordings"), 1),
-                1,
-                KafkaPayload(
-                    b"key",
-                    msgpack.packb(
-                        {
-                            "type": "replay_recording_not_chunked",
-                            "replay_id": self.replay_id,
-                            "org_id": self.organization.id,
-                            "key_id": 123,
-                            "project_id": self.project.id,
-                            "received": time.time(),
-                            "payload": b'{"segment_id":0}\n' + zlib.compress(b"test"),
-                        }
+                BrokerValue(
+                    KafkaPayload(
+                        b"key",
+                        msgpack.packb(
+                            {
+                                "type": "replay_recording_not_chunked",
+                                "replay_id": self.replay_id,
+                                "org_id": self.organization.id,
+                                "key_id": 123,
+                                "project_id": self.project.id,
+                                "received": time.time(),
+                                "payload": b'{"segment_id":0}\n' + zlib.compress(b"test"),
+                            }
+                        ),
+                        [("should_drop", b"1")],
                     ),
-                    [("should_drop", b"1")],
-                ),
-                datetime.now(),
+                    Partition(Topic("ingest-replay-recordings"), 1),
+                    1,
+                    datetime.now(),
+                )
             )
         )
         self.processing_strategy.poll()
@@ -87,24 +90,26 @@ class RecordingConsumerTestCase(TransactionTestCase):
 
         self.processing_strategy.submit(
             Message(
-                Partition(Topic("ingest-replay-recordings"), 1),
-                1,
-                KafkaPayload(
-                    b"key",
-                    msgpack.packb(
-                        {
-                            "type": "replay_recording_not_chunked",
-                            "replay_id": self.replay_id,
-                            "org_id": self.organization.id,
-                            "key_id": 123,
-                            "project_id": self.project.id,
-                            "received": time.time(),
-                            "payload": b'{"segment_id":0}\n' + b"test",
-                        }
+                BrokerValue(
+                    KafkaPayload(
+                        b"key",
+                        msgpack.packb(
+                            {
+                                "type": "replay_recording_not_chunked",
+                                "replay_id": self.replay_id,
+                                "org_id": self.organization.id,
+                                "key_id": 123,
+                                "project_id": self.project.id,
+                                "received": time.time(),
+                                "payload": b'{"segment_id":0}\n' + b"test",
+                            }
+                        ),
+                        [("should_drop", b"1")],
                     ),
-                    [("should_drop", b"1")],
-                ),
-                datetime.now(),
+                    Partition(Topic("ingest-replay-recordings"), 1),
+                    1,
+                    datetime.now(),
+                )
             )
         )
         self.processing_strategy.poll()
