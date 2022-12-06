@@ -147,6 +147,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _strip_uuid_dashes("replay_id", Column("replay_id")),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
+        _grouped_unique_scalar_value(column_name="replay_type"),
         Function(
             "toString",
             parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
