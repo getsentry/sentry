@@ -144,6 +144,15 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
+    # Check for the event url
+    url = event.data.get("request").url
+
+    if not url:
+        for tag in event.tags:
+            if tag.key == "url":
+                url = tag.value
+                break
+
     # Check if an event contains a minified stack trace
     has_minified_stack_trace = False
 
@@ -162,7 +171,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
-            url=event.request.url,
+            url=url,
         )
 
     # this event fires once per project
@@ -172,7 +181,7 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
-        url=event.request.url,
+        url=url,
         has_minified_stack_trace=has_minified_stack_trace,
     )
 
