@@ -10,6 +10,9 @@ from . import rules
 from .datasource import redis
 from .tree import TreeClusterer
 
+#: Minimum number of children in the URL tree which triggers a merge.
+#: See TreeClusterer for more information.
+#: NOTE: We could make this configurable through django settings or even per-project in the future.
 MERGE_THRESHOLD = 100
 
 
