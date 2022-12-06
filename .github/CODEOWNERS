@@ -85,9 +85,10 @@ yarn.lock           @getsentry/owners-js-deps
 /static/images/       @getsentry/design
 /docs-ui/components/  @getsentry/design @getsentry/core-ui
 
-# Frontend
-/static/app/components  	@getsentry/core-ui
-/static/app/views/issueList @getsentry/core-ui
+# Core UI
+/static/app/components  					@getsentry/core-ui
+/static/app/views/issueList 				@getsentry/core-ui
+/static/app/views/organizationGroupDetails 	@getsentry/core-ui
 
 # Owners by product feature
 
