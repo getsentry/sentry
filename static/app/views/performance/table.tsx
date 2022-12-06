@@ -407,7 +407,7 @@ class _Table extends Component<Props, State> {
     const {eventView, organization, location, setError} = this.props;
     const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
-      .getColumns(true)
+      .getColumns()
       // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
