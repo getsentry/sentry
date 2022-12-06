@@ -156,11 +156,11 @@ def record_first_event(project, event, **kwargs):
     # Check if an event contains a minified stack trace
     has_minified_stack_trace = False
 
-    values = get_path(event.data, "exception", "values", filter=True)
+    exception_values = get_path(event.data, "exception", "values", filter=True)
 
-    if values:
-        for value in values:
-            if "raw_stacktrace" in value:
+    if exception_values:
+        for exception_value in exception_values:
+            if "raw_stacktrace" in exception_value:
                 has_minified_stack_trace = True
                 break
 
