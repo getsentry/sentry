@@ -8,6 +8,7 @@ import space from 'sentry/styles/space';
 import {Frame, Organization, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
@@ -54,13 +55,38 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  const isMobile =
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform));
+  if (
+    !hasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly &&
+    !isMobile
+  ) {
     return emptySourceNotation ? (
       <div className="empty-context">
         <StyledIconFlag size="xs" />
         <p>{t('No additional details are available for this frame.')}</p>
       </div>
     ) : null;
+  }
+
+  // Temporarily allow mobile platforms to make API call and "show" stacktrace link
+  if (isMobile) {
+    return (
+      <ErrorBoundary customComponent={null}>
+        <StacktraceLink
+          key={0}
+          line={frame.function ? frame.function : ''}
+          frame={frame}
+          event={event}
+        />
+      </ErrorBoundary>
+    );
   }
 
   const contextLines = isExpanded

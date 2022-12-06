@@ -30,6 +30,7 @@ import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -135,6 +136,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
+  const isMobile =
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform));
+
   const query = {
     file: frame.filename,
     platform: event.platform,
@@ -198,6 +205,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const handleSubmit = () => {
     refetch();
   };
+
+  // Temporarily prevent mobile platforms from showing stacktrace link
+  if (isMobile) {
+    return null;
+  }
 
   if (isLoading || !match) {
     return (
