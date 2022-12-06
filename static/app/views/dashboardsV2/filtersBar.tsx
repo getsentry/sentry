@@ -25,9 +25,9 @@ type FiltersBarProps = {
   isEditingDashboard: boolean;
   isPreview: boolean;
   location: Location;
-  onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
-  onSave: () => void;
+  onCancel?: () => void;
+  onSave?: () => void;
 };
 
 export default function FiltersBar({

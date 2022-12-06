@@ -13,8 +13,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -22,9 +20,7 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -650,11 +646,14 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
-            </StyledPageFilterBar>
+            <FiltersBar
+              filters={{}} // Default Dashboards don't have filters set
+              location={location}
+              hasUnsavedChanges={false}
+              isEditingDashboard={false}
+              isPreview={false}
+              onDashboardFilterChange={this.handleChangeFilter}
+            />
             <MetricsCardinalityProvider organization={organization} location={location}>
               <MetricsDataSwitcher
                 organization={organization}
@@ -928,10 +927,6 @@ const StyledTitle = styled(Layout.Title)`
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
 `;
 
 export default withProjects(withApi(withOrganization(DashboardDetail)));
