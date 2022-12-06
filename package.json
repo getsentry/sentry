@@ -185,7 +185,7 @@
     "@storybook/router": "6.5.14",
     "@storybook/theming": "6.5.14",
     "@types/js-beautify": "^1.13.3",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.11.11",
     "@visual-snapshot/jest": "7.0.0",
     "assert": "^2.0.0",
     "babel-gettext-extractor": "^4.1.3",
