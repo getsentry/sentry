@@ -227,6 +227,7 @@ METRICS_MAP = {
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
     "spans.resource": "d:transactions/breakdowns.span_ops.ops.resource@millisecond",
+    "spans.ui": "d:transactions/breakdowns.span_ops.ops.ui@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
