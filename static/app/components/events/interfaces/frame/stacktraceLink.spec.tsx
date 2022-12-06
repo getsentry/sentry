@@ -21,6 +21,7 @@ describe('StacktraceLink', function () {
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
+
   const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
 
   beforeEach(function () {
@@ -162,6 +163,24 @@ describe('StacktraceLink', function () {
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
       />,
+      {context: TestStubs.routerContext()}
+    );
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('should hide stacktrace link error state on unsupported platforms', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />,
       {context: TestStubs.routerContext()}
     );
     await waitFor(() => {
