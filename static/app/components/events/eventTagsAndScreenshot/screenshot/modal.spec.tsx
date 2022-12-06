@@ -61,7 +61,7 @@ describe('Modals -> ScreenshotModal', function () {
   let getAttachmentsMock;
   beforeEach(() => {
     initialData = initializeOrg({
-      organization: TestStubs.Organization({features: ['mobile-screenshot-gallery']}),
+      organization: TestStubs.Organization(),
       router: {
         params: {orgId: 'org-slug', groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},
