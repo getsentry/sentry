@@ -320,7 +320,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "duration_threshold": 5,  # ms
             "concurrency_threshold": 5,  # ms
-            "count": 5,
+            "count": 10,
             "allowed_span_ops": ["http.client"],
         },
     }
@@ -943,7 +943,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
-        # Ignore anything that looks like an asset
+        # GraphQL URLs have complicated queries in them. Until we parse those
+        # queries to check for what's duplicated, we can't tell what is being
+        # duplicated. Ignore them for now
+        if "graphql" in description:
+            return False
+
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
         if type(url) is dict:
@@ -952,7 +959,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parsed_url = urlparse(str(url))
 
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
             return False
 
         return True
