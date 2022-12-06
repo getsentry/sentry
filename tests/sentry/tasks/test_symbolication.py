@@ -222,12 +222,6 @@ def test_should_demote_symbolication_always_and_never(default_project):
         assert not should_demote_symbolication(default_project.id)
 
 
-@pytest.fixture
-def mock_processing_store():
-    with mock.patch("sentry.eventstore.processing.base.store", wraps=submit_symbolicate) as m:
-        yield m
-
-
 @pytest.mark.django_db
 @patch("sentry.event_manager.EventManager.save", return_value=None)
 def test_submit_symbolicate_queue_switch(
