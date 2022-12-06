@@ -13,10 +13,11 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
+from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -1357,6 +1358,51 @@ class FileIOMainThreadDetector(PerformanceDetector):
         self.most_recent_start_time = {}
         self.most_recent_hash = {}
         self.stored_problems = {}
+        self.mapper = None
+        self._prepare_deobfuscation()
+
+    def _prepare_deobfuscation(self):
+        event = self._event
+        if "debug_meta" in event:
+            images = event["debug_meta"].get("images", [])
+            project_id = event.get("project")
+            if not isinstance(images, list):
+                return
+            if project_id is not None:
+                project = Project.objects.get_from_cache(id=project_id)
+            else:
+                return
+
+            for image in images:
+                if image.get("type") == "proguard":
+                    uuid = image.get("uuid")
+                    dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                        project, [uuid], features=["mapping"]
+                    )
+                    debug_file_path = dif_paths.get(uuid)
+                    if debug_file_path is None:
+                        return
+
+                    mapper = ProguardMapper.open(debug_file_path)
+                    if not mapper.has_line_info:
+                        return
+                    self.mapper = mapper
+                    return
+
+    def _deobfuscate_module(self, module: str) -> str:
+        if self.mapper is not None:
+            return self.mapper.remap_class(module)
+        else:
+            return module
+
+    def _deobfuscate_function(self, frame):
+        if self.mapper is not None and "module" in frame and "function" in frame:
+            functions = self.mapper.remap_frame(
+                frame["module"], frame["function"], frame.get("lineno") or 0
+            )
+            return ".".join([func.method for func in functions])
+        else:
+            return frame.get("function", "")
 
     def visit_span(self, span: Span):
         if self._is_file_io_on_main_thread(span):
@@ -1378,12 +1424,12 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 )
 
     def _fingerprint(self, span) -> str:
-        call_stack = ".".join(
-            [
-                f"{item.get('module', '')}.{item.get('function', '')}"
-                for item in span.get("data", {}).get("call_stack", [])
-            ]
-        ).encode("utf8")
+        call_stack_strings = []
+        for item in span.get("data", {}).get("call_stack", []):
+            module = self._deobfuscate_module(item.get("module", ""))
+            function = self._deobfuscate_function(item)
+            call_stack_strings.append(f"{module}.{function}")
+        call_stack = ".".join(call_stack_strings).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 
@@ -1392,7 +1438,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
         if data is None:
             return False
         # doing is True since the value can be any type
-        return data.get("blocked_ui_thread", False) is True
+        return data.get("blocked_main_thread", False) is True
 
 
 # Reports metrics and creates spans for detection
