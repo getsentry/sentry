@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
-    autoretry_for=(UnableToAcquireLock),
+    autoretry_for=(UnableToAcquireLock,),
     max_retries=3,
 )
 def derive_code_mappings(
