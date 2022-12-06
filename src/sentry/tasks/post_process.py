@@ -622,17 +622,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
         if project_queued:
             return
 
-        org_slug = project.organization.slug
+        org = event.project.organization
+        org_slug = org.slug
         next_time = timezone.now() + timedelta(hours=1)
-        has_normal_run_flag = features.has(
-            "organizations:derive-code-mappings", event.project.organization
-        )
-        has_dry_run_flag = features.has(
-            "organizations:derive-code-mappings-dry-run", event.project.organization
-        )
+        has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
+        has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-        # Right now EA orgs have both flags on, thus, only supporting dry run
-        if has_normal_run_flag and event.data["platform"] == "python":
+        if has_normal_run_flag:
             logger.info(
                 f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                 + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
