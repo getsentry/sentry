@@ -9,8 +9,8 @@ class FirstEventSentEvent(analytics.Event):
         analytics.Attribute("user_id"),
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("url"),
         analytics.Attribute("platform", required=False),
+        analytics.Attribute("url", required=False),
         analytics.Attribute("has_minified_stack_trace", required=False),
     )
 

@@ -144,18 +144,16 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-
     # Check if an event contains a minified stack trace
     has_minified_stack_trace = False
 
     values = get_path(event.data, "exception", "values", filter=True)
 
     if values:
-            for value in values:
-              if 'raw_stacktrace' in value:
+        for value in values:
+            if "raw_stacktrace" in value:
                 has_minified_stack_trace = True
                 break
-
 
     if has_minified_stack_trace:
         analytics.record(
@@ -186,7 +184,6 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
-            url=event.request.url,
         )
         return
 
