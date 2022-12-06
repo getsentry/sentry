@@ -1,4 +1,5 @@
 import inspect
+from typing import Set
 
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op
 from snuba_sdk.query import Query
@@ -416,16 +417,20 @@ def _transform_team_key_transaction_fake_mri(mq_dict):
     }
 
 
+def _get_supported_entities(is_alerts_query: bool) -> Set[str]:
+    supported_entities = {"generic_metrics_distributions", "generic_metrics_sets"}
+
+    if is_alerts_query:
+        supported_entities.update({"metrics_distributions", "metrics_sets"})
+
+    return supported_entities
+
+
 def transform_mqb_query_to_metrics_query(
     query: Query, is_alerts_query: bool = False
 ) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
-    if query.match.name not in {
-        "metrics_distributions",
-        "metrics_sets",
-        "generic_metrics_distributions",
-        "generic_metrics_sets",
-    }:
+    if query.match.name not in _get_supported_entities(is_alerts_query):
         raise MQBQueryTransformationException(
             f"Unsupported entity name for {query.match.name} MQB to MetricsQuery " f"Transformation"
         )

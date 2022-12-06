@@ -798,21 +798,50 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         entity = list(snuba_queries.keys())[0]
         snuba_request.query = snuba_queries[entity]["totals"]
 
-        # TODO: use a common list between this and the transformer.
-        # if entity in {
-        #     "metrics_counters",
-        #     "metrics_distributions",
-        #     "metrics_sets",
-        #     "generic_metrics_distributions",
-        #     "generic_metrics_sets",
-        # }:
-        #     snuba_request.query = snuba_queries[entity]["totals"]
-        # else:
-        #     raise NotImplementedError(
-        #         "get_snql_query cannot be implemented for MetricsQueryBuilder"
-        #     )
-
         return snuba_request
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if self.use_metrics_layer:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                transform_mqb_query_to_metrics_query,
+            )
+
+            # We have to copy the entire code of the run query here, because of how the get_snql_query() method
+            # behaves.
+            snuba_query = super().get_snql_query().query
+            try:
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(
+                        query=snuba_query, is_alerts_query=True
+                    )
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.params.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                    )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data[meta["name"]] is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+                return metric_layer_result
+
+        return super().run_query(referrer, use_cache)
 
     def get_snql_query(self) -> Request:
         request = super().get_snql_query()
