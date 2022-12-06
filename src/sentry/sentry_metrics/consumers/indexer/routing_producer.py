@@ -119,7 +119,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
 
     def __delivery_callback(
         self,
-        future: Future[str],
+        future: "Future[str]",
         error: KafkaError,
         message: ConfluentMessage,
     ) -> None:
