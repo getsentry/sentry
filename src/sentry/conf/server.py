@@ -970,12 +970,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
