@@ -208,7 +208,7 @@ function hasTrace(event: Event) {
 function eventHasSourceMaps(event: Event) {
   return event.entries?.some(entry => {
     return (
-      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
+      entry.type === EntryType.EXCEPTION &&
       entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
     );
   });
@@ -220,7 +220,7 @@ function eventHasSourceMaps(event: Event) {
 function eventHasMinifiedStackTrace(event: Event) {
   return event.entries?.some(entry => {
     return (
-      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
+      entry.type === EntryType.EXCEPTION &&
       entry.data.values?.some(value => !!value.rawStacktrace)
     );
   });
