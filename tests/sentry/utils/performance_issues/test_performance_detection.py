@@ -1008,7 +1008,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     def test_does_not_detect_file_io_main_thread(self):
         file_io_event = EVENTS["file-io-on-main-thread"]
-        file_io_event["spans"][0]["data"]["blocked_ui_thread"] = False
+        file_io_event["spans"][0]["data"]["blocked_main_thread"] = False
         sdk_span_mock = Mock()
 
         _detect_performance_problems(file_io_event, sdk_span_mock)
