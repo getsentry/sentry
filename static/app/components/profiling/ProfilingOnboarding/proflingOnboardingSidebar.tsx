@@ -47,7 +47,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    // we'll only ever select an unsupportedProject if they do not have a supported project in their project
+    // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
         setCurrentProject(unsupportedProjects[0]);
@@ -128,20 +128,30 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
     <TaskSidebar orientation={orientation} collapsed={collapsed} hidePanel={hidePanel}>
       <TaskSidebarList>
         <Heading>{t('Profile Code')}</Heading>
-        <CompactSelect
-          triggerLabel={
-            <StyledIdBadge
-              project={currentProject}
-              avatarSize={16}
-              hideOverflow
-              disableLink
-            />
-          }
-          onChange={option => setCurrentProject(option.value)}
-          triggerProps={{'aria-label': currentProject?.slug}}
-          options={projectSelectOptions}
-          position="bottom-end"
-        />
+        <div
+          onClick={e => {
+            // we need to stop bubbling the CompactSelect click event
+            // failing to do so will cause the sidebar panel to close
+            // the event.target will be unmounted by the time the panel listener
+            // receives the event and assume the click was outside the panel
+            e.stopPropagation();
+          }}
+        >
+          <CompactSelect
+            triggerLabel={
+              <StyledIdBadge
+                project={currentProject}
+                avatarSize={16}
+                hideOverflow
+                disableLink
+              />
+            }
+            onChange={option => setCurrentProject(option.value)}
+            triggerProps={{'aria-label': currentProject?.slug}}
+            options={projectSelectOptions}
+            position="bottom-end"
+          />
+        </div>
         {currentProject && (
           <OnboardingContent
             currentProject={currentProject}
@@ -193,13 +203,13 @@ function OnboardingContent({
       <Fragment>
         <div>
           {tct(
-            'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            'Fiddlesticks. Profiling isn’t available for your [platform] project yet. Reach out to us on Discord for more information.',
             {platform: currentPlatform?.name || currentProject.slug}
           )}
         </div>
         <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
-            {t('Go to Sentry Documentation')}
+          <Button size="sm" href="https://discord.gg/zrMjKA4Vnz" external>
+            {t('Join Discord')}
           </Button>
         </div>
       </Fragment>

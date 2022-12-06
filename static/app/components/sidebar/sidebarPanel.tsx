@@ -87,20 +87,10 @@ function SidebarPanel({
   useEffect(() => {
     // Wait one tick to setup the click handler so we don't detect the click
     // that is bubbling up from opening the panel itself
-    window.setTimeout(() =>
-      document.addEventListener('click', panelCloseHandler, {
-        // listening on capture ensures we don't incorrectly hide the panel in instances where the target
-        // is unmounted before it bubbles up to this listener
-        capture: true,
-      })
-    );
+    window.setTimeout(() => document.addEventListener('click', panelCloseHandler));
 
     return function cleanup() {
-      window.setTimeout(() =>
-        document.removeEventListener('click', panelCloseHandler, {
-          capture: true,
-        })
-      );
+      window.setTimeout(() => document.removeEventListener('click', panelCloseHandler));
     };
   }, [panelCloseHandler]);
 
