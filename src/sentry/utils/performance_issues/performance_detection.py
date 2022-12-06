@@ -1447,9 +1447,11 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     self.mapper = mapper
                     return
 
-    def _deobfuscate_module(self, module):
+    def _deobfuscate_module(self, module: str) -> str:
         if self.mapper is not None:
             return self.mapper.remap_class(module)
+        else:
+            return module
 
     def _deobfuscate_function(self, frame):
         if self.mapper is not None and "module" in frame and "function" in frame:
