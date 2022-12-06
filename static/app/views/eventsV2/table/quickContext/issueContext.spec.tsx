@@ -32,7 +32,7 @@ let mockedGroup = TestStubs.Group({
   userCount: 64000,
 });
 
-const renderQuickContextContent = (dataRow: EventData = defaultRow) => {
+const renderIssueContext = (dataRow: EventData = defaultRow) => {
   const organization = TestStubs.Organization();
   render(
     <QueryClientProvider client={queryClient}>
@@ -73,7 +73,7 @@ describe('Quick Context Content Issue Column', function () {
       body: mockedGroup,
     });
 
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
     expect(screen.getByText(/Ignored/i)).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe('Quick Context Content Issue Column', function () {
       method: 'GET',
       body: mockedGroup,
     });
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
     expect(screen.getByText(/Resolved/i)).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('Quick Context Content Issue Column', function () {
       body: mockedGroup,
     });
 
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
     expect(screen.getByText(/Unresolved/i)).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe('Quick Context Content Issue Column', function () {
       method: 'GET',
       body: mockedGroup,
     });
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Events/i)).toBeInTheDocument();
     expect(screen.getByText(/2.5m/i)).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('Quick Context Content Issue Column', function () {
       method: 'GET',
       body: mockedGroup,
     });
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Assigned To/i)).toBeInTheDocument();
     expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
@@ -173,7 +173,7 @@ describe('Quick Context Content Issue Column', function () {
         ],
       },
     });
-    renderQuickContextContent();
+    renderIssueContext();
 
     expect(await screen.findByText(/Suspect Commits/i)).toBeInTheDocument();
     expect(screen.getByText(/MB/i)).toBeInTheDocument();

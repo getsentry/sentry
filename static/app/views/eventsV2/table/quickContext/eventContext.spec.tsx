@@ -51,7 +51,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const renderQuickContextContent = (location?: Location, eventView?: EventView) => {
+const renderEventContext = (location?: Location, eventView?: EventView) => {
   const organization = TestStubs.Organization();
   render(
     <QueryClientProvider client={queryClient}>
@@ -88,7 +88,7 @@ describe('Quick Context Content: Event ID Column', function () {
         startTimestamp: currentTime - 2,
       }),
     });
-    renderQuickContextContent(mockedLocation);
+    renderEventContext(mockedLocation);
 
     expect(await screen.findByText(/Transaction Duration/i)).toBeInTheDocument();
     expect(screen.getByText(/2.00s/i)).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('Quick Context Content: Event ID Column', function () {
         ],
       }),
     });
-    renderQuickContextContent(mockedLocation);
+    renderEventContext(mockedLocation);
 
     expect(await screen.findByText(/Status/i)).toBeInTheDocument();
     expect(screen.getByText(/ok/i)).toBeInTheDocument();
@@ -172,7 +172,7 @@ describe('Quick Context Content: Event ID Column', function () {
         startTimestamp: currentTime - 2,
       }),
     });
-    renderQuickContextContent(mockedLocation, mockEventView);
+    renderEventContext(mockedLocation, mockEventView);
 
     const addAsColumnButton = await screen.findByTestId(
       'quick-context-transaction-duration-add-button'
@@ -197,7 +197,7 @@ describe('Quick Context Content: Event ID Column', function () {
       body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
     });
 
-    renderQuickContextContent();
+    renderEventContext();
 
     expect(
       await screen.findByText(/There is no stack trace available for this event./i)
@@ -268,7 +268,7 @@ describe('Quick Context Content: Event ID Column', function () {
       body: makeEvent(errorEvent),
     });
 
-    renderQuickContextContent(mockedLocation);
+    renderEventContext(mockedLocation);
 
     expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
 
