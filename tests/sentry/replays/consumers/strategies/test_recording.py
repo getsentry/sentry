@@ -23,7 +23,7 @@ class RecordingConsumerTestCase(TransactionTestCase):
         self.replay_recording_id = uuid.uuid4().hex
 
         self.processing_strategy = RecordingProcessorStrategyFactory().create_with_partitions(
-            lambda x: None, None
+            lambda x, force=False: None, None
         )
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
