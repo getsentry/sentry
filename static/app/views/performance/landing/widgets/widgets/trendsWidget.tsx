@@ -138,8 +138,8 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         {
           component: provided => (
             <Accordion
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
+              expandedIndex={selectedListIndex}
+              setExpandedIndex={setSelectListIndex}
               items={getItems(provided)}
               content={
                 <TrendsChart

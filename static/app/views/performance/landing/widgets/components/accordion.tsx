@@ -6,26 +6,26 @@ import space from 'sentry/styles/space';
 
 type Props = {
   content: ReactNode;
+  expandedIndex: number;
   items: (() => ReactNode)[];
-  selectedIndex: number;
-  setSelectedIndex: (index: number) => void;
+  setExpandedIndex: (index: number) => void;
 };
 
 export default function Accordion({
   content,
   items,
-  selectedIndex,
-  setSelectedIndex,
+  expandedIndex,
+  setExpandedIndex,
 }: Props) {
   return (
     <AccordionContainer>
       {items.map((item, index) => (
         <AccordionItem
-          isSelected={index === selectedIndex}
+          isExpanded={index === expandedIndex}
           currentIndex={index}
           key={index}
           content={content}
-          setSelectedIndex={setSelectedIndex}
+          setExpandedIndex={setExpandedIndex}
         >
           {item()}
         </AccordionItem>
@@ -35,17 +35,17 @@ export default function Accordion({
 }
 
 function AccordionItem({
-  isSelected,
+  isExpanded,
   currentIndex: index,
   children,
-  setSelectedIndex,
+  setExpandedIndex,
   content,
 }: {
   children: ReactNode;
   content: ReactNode;
   currentIndex: number;
-  isSelected: boolean;
-  setSelectedIndex: (index: number) => void;
+  isExpanded: boolean;
+  setExpandedIndex: (index: number) => void;
 }) {
   return (
     <StyledLineItem>
@@ -54,11 +54,11 @@ function AccordionItem({
         <StyledDropdownButton
           size="zero"
           borderless
-          onClick={() => setSelectedIndex(index)}
-          isOpen={isSelected}
+          onClick={() => setExpandedIndex(index)}
+          isOpen={isExpanded}
         />
       </ListItemContainer>
-      <StyledContentContainer>{isSelected && content}</StyledContentContainer>
+      <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
     </StyledLineItem>
   );
 }
