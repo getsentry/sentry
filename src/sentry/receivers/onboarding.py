@@ -145,13 +145,10 @@ def record_first_event(project, event, **kwargs):
         return
 
     # Check for the event url
-    url = event.data.request.get("url")
-
-    if not url:
-        for tag in event.tags:
-            if tag.key == "url":
-                url = tag.value
-                break
+    for tag in event.tags:
+        if tag.key == "url":
+            url = tag.value
+            break
 
     # Check if an event contains a minified stack trace
     has_minified_stack_trace = False
