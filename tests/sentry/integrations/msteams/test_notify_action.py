@@ -1,16 +1,20 @@
 import re
 import time
+import uuid
+from datetime import datetime
 
 import responses
 
 from sentry.event_manager import EventManager
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.issues import GroupType
 from sentry.utils import json
+from sentry.utils.dates import ensure_aware
 from sentry.utils.samples import load_data
 
 
@@ -68,6 +72,60 @@ class MsTeamsNotifyActionTest(RuleTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
+
+    @responses.activate
+    def test_applies_correctly_generic_issue(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Attention", "Very important information!!!", True),
+                IssueEvidence("Evidence 2", "Not important", False),
+                IssueEvidence("Evidence 3", "Nobody cares about this", False),
+            ],
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save()
+        event.occurrence = occurrence
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+
+        rule = self.get_rule(
+            data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
+        )
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/nb/activities",
+            status=200,
+            json={},
+        )
+
+        results[0].callback(event, futures=[])
+
+        data = json.loads(responses.calls[0].request.body)
+        assert "attachments" in data
+        attachments = data["attachments"]
+        assert len(attachments) == 1
+
+        title_card = attachments[0]["content"]["body"][0]
+        description = attachments[0]["content"]["body"][1]
+        assert (
+            title_card["text"]
+            == f"[{occurrence.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+        )
+        assert description["text"] == occurrence.evidence_display[0].value
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):
