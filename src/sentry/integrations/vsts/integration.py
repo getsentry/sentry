@@ -7,9 +7,9 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.db.models import QuerySet
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import ugettext as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -485,7 +485,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
@@ -525,7 +525,7 @@ class AccountConfigView(PipelineView):
         )
 
     def get_account_from_id(
-        self, account_id: int, accounts: Sequence[Mapping[str, Any]]
+        self, account_id: str, accounts: Sequence[Mapping[str, Any]]
     ) -> Mapping[str, Any] | None:
         for account in accounts:
             if account["accountId"] == account_id:

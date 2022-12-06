@@ -9,6 +9,8 @@ from django.http import (
     HttpResponseNotFound,
     HttpResponseRedirect,
 )
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
 from django.urls import reverse
@@ -47,7 +49,7 @@ class _HasRespond(Protocol):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         ...
 
 
@@ -199,7 +201,7 @@ class OrganizationMixin:
 
         return project
 
-    def redirect_to_org(self: _HasRespond, request: Request) -> HttpResponse:
+    def redirect_to_org(self: _HasRespond, request: Request) -> HttpResponseBase:
         from sentry import features
 
         using_customer_domain = request and is_using_customer_domain(request)
@@ -261,7 +263,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         super().__init__(*args, **kwargs)
 
     @csrf_exempt  # type: ignore[misc]
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
         A note on the CSRF protection process.
 
@@ -286,6 +288,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         self.determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
+            # https://github.com/python/mypy/issues/14123
             if hasattr(self.dispatch.__func__, "csrf_exempt"):
                 delattr(self.dispatch.__func__, "csrf_exempt")
             response = self.test_csrf(request)
@@ -317,9 +320,9 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
 
         return self.handle(request, *args, **kwargs)
 
-    def test_csrf(self, request: Request) -> HttpResponse:
+    def test_csrf(self, request: Request) -> HttpResponseBase | None:
         middleware = CsrfViewMiddleware()
-        return middleware.process_view(request, self.dispatch, [request], {})
+        return middleware.process_view(request, self.dispatch, (request,), {})
 
     def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
         return access.DEFAULT
@@ -329,13 +332,13 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def handle(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
         return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
-    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponseBase:
         auth.initiate_login(request, next_url=request.get_full_path())
         if "organization_slug" in kwargs:
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])
@@ -346,7 +349,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
     def is_sudo_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
         return self.sudo_required and not request.is_sudo()
 
-    def handle_sudo_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_sudo_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return redirect_to_sudo(request.get_full_path())
 
     def has_permission(self, request: Request, *args: Any, **kwargs: Any) -> bool:
@@ -354,11 +357,13 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
 
     def handle_permission_required(
         self, request: Request, *args: Any, **kwargs: Any
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def handle_not_2fa_compliant(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_not_2fa_compliant(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> HttpResponseBase:
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
@@ -374,14 +379,14 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         default_context = self.default_context
         if context:
             default_context.update(context)
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponse:
+    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponseBase:
         res = HttpResponseRedirect(url)
         if headers:
             for k, v in headers.items():
@@ -396,7 +401,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
     ) -> object:
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
-    def handle_disabled_member(self, organization: Organization) -> HttpResponse:
+    def handle_disabled_member(self, organization: Organization) -> HttpResponseBase:
         redirect_uri = reverse("sentry-organization-disabled-member", args=[organization.slug])
         return self.redirect(redirect_uri)
 
@@ -470,7 +475,7 @@ class OrganizationView(BaseView):
 
         return False
 
-    def handle_permission_required(self, request: Request, organization: Organization | ApiOrganization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(self, request: Request, organization: Organization | ApiOrganization, *args: Any, **kwargs: Any) -> HttpResponseBase:  # type: ignore[override]
         if self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",

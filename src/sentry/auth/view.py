@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
+from sentry.pipeline.views.base import PipelineView
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.web.frontend.base import BaseView
 
@@ -12,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class AuthView(BaseView):
+class AuthView(PipelineView):
     """
     A segment of Provider's auth pipeline.
 
@@ -30,8 +32,8 @@ class AuthView(BaseView):
 class ConfigureView(BaseView, PluggableViewMixin):
     def dispatch(
         self, request: Request, organization: Organization, auth_provider: AuthProvider
-    ) -> str:
-        return ""
+    ) -> HttpResponseBase:
+        raise NotImplementedError
 
 
 __all__ = ["AuthView", "ConfigureView"]

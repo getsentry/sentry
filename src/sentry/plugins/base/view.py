@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase
 
 from .response import Response
 
@@ -13,7 +14,7 @@ class PluggableViewMixin:
     enable embedding of content within base-views.
     """
 
-    def redirect(self, url: str) -> HttpResponseRedirect:
+    def redirect(self, url: str) -> HttpResponseBase:
         """
         Returns a redirect response type.
         """

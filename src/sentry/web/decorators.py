@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
@@ -13,7 +14,7 @@ from sentry.utils import auth
 ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
-EndpointFunc = Callable[..., HttpResponse]
+EndpointFunc = Callable[..., HttpResponseBase]
 
 
 def login_required(func: EndpointFunc) -> EndpointFunc:
