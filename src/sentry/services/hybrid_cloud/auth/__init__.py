@@ -58,26 +58,6 @@ def impl_with_db() -> AuthService:
 
 
 @dataclass
-class ApiAuthProvider:
-    organization_id: int = -1
-    provider: str = ""
-    flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
-
-
-@dataclass
-class ApiAuthProviderFlags:
-    allow_unlinked: bool = False
-    scim_enabled: bool = False
-
-
-@dataclass
-class ApiAuthIdentity:
-    user_id: int = -1
-    provider_id: int = -1
-    ident: str = ""
-
-
-@dataclass
 class ApiAuthState:
     sso_state: ApiMemberSsoState
     permissions: List[str]
@@ -229,6 +209,13 @@ class ApiAuthProvider:
     organization_id: int = -1
     provider: str = ""
     flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+@dataclass
+class ApiAuthIdentity:
+    user_id: int = -1
+    provider_id: int = -1
+    ident: str = ""
 
 
 @dataclass(eq=True)
