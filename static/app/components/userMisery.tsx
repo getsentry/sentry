@@ -44,7 +44,7 @@ function UserMisery(props: Props) {
     );
   } else if (defined(miserableUsers) && defined(totalUsers)) {
     title = tct(
-      'User Misery score is [userMisery], because [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
+      'User Misery score is [userMisery], meaning [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
       {
         miserableUsers,
         totalUsers,
