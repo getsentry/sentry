@@ -3,6 +3,7 @@ import logging
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
+from sentry.utils.safe import get_path
 
 from sentry import analytics
 from sentry.models import (
@@ -143,6 +144,29 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
+
+    # Check if an event contains a minified stack trace
+    has_minified_stack_trace = False
+
+    values = get_path(event.data, "exception", "values", filter=True)
+
+    if values:
+            for value in values:
+              if 'raw_stacktrace' in value:
+                has_minified_stack_trace = True
+                break
+
+
+    if has_minified_stack_trace:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            url=event.request.url,
+        )
+
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
@@ -150,6 +174,8 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        url=event.request.url,
+        has_minified_stack_trace=has_minified_stack_trace,
     )
 
     if rows_affected or created:
@@ -160,6 +186,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            url=event.request.url,
         )
         return
 
