@@ -12,7 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import SpanBar from './spanBar';
+import {ProfiledSpanBar} from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -349,7 +349,7 @@ class SpanTree extends Component<PropType> {
         }
 
         acc.spanTree.push(
-          <SpanBar
+          <ProfiledSpanBar
             key={key}
             organization={organization}
             event={waterfallModel.event}

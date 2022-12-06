@@ -49,6 +49,7 @@ export type SearchEventParameters = {
     visibility: string;
   };
   'search.saved_search_open_create_modal': OpenEvent;
+  'search.saved_search_sidebar_toggle_clicked': {open: boolean};
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
   'search.shortcut_used': SearchEventBase & {
@@ -91,4 +92,6 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.pin': 'Search: Pin',
   'search.saved_search_create': 'Search: Saved Search Created',
   'search.saved_search_open_create_modal': 'Search: Saved Search Modal Opened',
+  'search.saved_search_sidebar_toggle_clicked':
+    'Search: Saved Search Sidebar Toggle Clicked',
 };
