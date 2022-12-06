@@ -44,12 +44,29 @@ class VroomTimeout(Exception):
     max_retries=5,
     acks_late=True,
 )
-def process_profile(
+def process_profile_task(
     profile: Profile,
     key_id: Optional[int],
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    profile = process_profile(profile, key_id)
+
+    if not profile:
+        return
+
+    _initialize_publisher()
+    _insert_eventstream_call_tree(profile=profile)
+    _insert_eventstream_profile(profile=profile)
+
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
+
+
+def process_profile(
+    profile: Profile,
+    project: Optional[Project],
+    key_id: Optional[int],
+) -> None:
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
@@ -160,11 +177,7 @@ def process_profile(
         )
         return
 
-    _initialize_publisher()
-    _insert_eventstream_call_tree(profile=profile)
-    _insert_eventstream_profile(profile=profile)
-
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
+    return profile
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])

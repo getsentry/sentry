@@ -687,9 +687,9 @@ def metrics_billing_consumer(**options):
 @batching_kafka_options("ingest-profiles")
 @configuration
 def profiles_consumer(**options):
-    from sentry.profiles.consumer import get_profiles_consumer
+    from sentry.profiles.consumers import get_profiles_process_consumer
 
-    get_profiles_consumer(**options).run()
+    get_profiles_process_consumer(**options).run()
 
 
 @run.command("ingest-replay-recordings")
