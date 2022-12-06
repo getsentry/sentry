@@ -375,10 +375,19 @@ def fetch_key_error_groups(ctx):
     group_id_to_group_history = {g.group_id: g for g in group_history}
 
     for project_ctx in ctx.projects.values():
-        project_ctx.key_errors = [
-            (group_id_to_group[group_id], group_id_to_group_history.get(group_id, None), count)
-            for group_id, count in project_ctx.key_errors
-        ]
+        # note Snuba might have groups that have since been deleted
+        # we should just ignore those
+        project_ctx.key_errors = filter(
+            lambda x: x[0] is not None,
+            [
+                (
+                    group_id_to_group.get(group_id),
+                    group_id_to_group_history.get(group_id, None),
+                    count,
+                )
+                for group_id, count in project_ctx.key_errors
+            ],
+        )
 
 
 def project_key_transactions(ctx, project):
@@ -647,7 +656,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
         )
         # Calculate total
         (
@@ -755,6 +764,13 @@ def render_template_context(ctx, user):
         def all_key_errors():
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_errors:
+                    # TODO(Steve): Remove debug logging for Sentry
+                    if ctx.organization.slug == "sentry":
+                        logger.info(
+                            "render_template_context.key_error: %s",
+                            group,
+                            extra={"group_id": group.id, "user_id": user.id},
+                        )
                     yield {
                         "count": count,
                         "group": group,
@@ -844,8 +860,8 @@ def send_email(ctx, user, dry_run=False, email_override=None):
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/new.txt",
-        html_template="sentry/emails/reports/new.html",
+        template="sentry/emails/reports/body.txt",
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context=template_ctx,
         headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},

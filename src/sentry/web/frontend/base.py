@@ -26,6 +26,7 @@ from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
+    ApiOrganizationSummary,
     ApiUserOrganizationContext,
     organization_service,
 )
@@ -84,12 +85,8 @@ class OrganizationMixin:
             if not is_implicit:
                 self.active_organization = None
                 return
-            active_organization = ApiUserOrganizationContext(
-                user_id=request.user.id,
-                organization=backup_organization,
-                member=organization_service.check_membership_by_id(
-                    organization_id=backup_organization.id, user_id=request.user.id
-                ),
+            active_organization = organization_service.get_organization_by_id(
+                id=backup_organization.id, user_id=request.user.id
             )
 
         if active_organization and active_organization.member:
@@ -99,11 +96,11 @@ class OrganizationMixin:
 
     def _lookup_organizations(
         self, is_implicit: bool, organization_slug: str | None, request: Request
-    ) -> tuple[ApiUserOrganizationContext | None, ApiOrganization | None]:
+    ) -> tuple[ApiUserOrganizationContext | None, ApiOrganizationSummary | None]:
         active_organization: ApiUserOrganizationContext | None = self._try_superuser_org_lookup(
             organization_slug, request
         )
-        backup_organization: ApiOrganization | None = None
+        backup_organization: ApiOrganizationSummary | None = None
         if active_organization is None:
             organizations = organization_service.get_organizations(
                 user_id=request.user.id, scope=None, only_visible=True
@@ -121,11 +118,11 @@ class OrganizationMixin:
         self,
         is_implicit: bool,
         organization_slug: str,
-        organizations: list[ApiOrganization],
+        organizations: list[ApiOrganizationSummary],
         request: Request,
     ) -> ApiUserOrganizationContext | None:
         try:
-            backup_org: ApiOrganization | None = next(
+            backup_org: ApiOrganizationSummary | None = next(
                 o for o in organizations if o.slug == organization_slug
             )
         except StopIteration:
@@ -137,11 +134,8 @@ class OrganizationMixin:
             backup_org = None
 
         if backup_org is not None:
-            membership = organization_service.check_membership_by_id(
-                organization_id=backup_org.id, user_id=request.user.id
-            )
-            return ApiUserOrganizationContext(
-                user_id=request.user.id, organization=backup_org, member=membership
+            return organization_service.get_organization_by_id(
+                id=backup_org.id, user_id=request.user.id
             )
         return None
 
@@ -214,6 +208,9 @@ class OrganizationMixin:
         if self.active_organization:
             current_org_slug = self.active_organization.organization.slug
             url = Organization.get_url(current_org_slug)
+            if using_customer_domain:
+                url_prefix = generate_organization_url(request.subdomain)
+                url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:

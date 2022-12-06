@@ -26,7 +26,8 @@ describe('ProcessingIssueHint', function () {
         orgId={orgId}
         projectId={projectId}
         showProject={showProject}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
     container = result.container;
   }

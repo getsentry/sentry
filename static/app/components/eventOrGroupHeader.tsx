@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
@@ -15,6 +13,8 @@ import space from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
 
@@ -22,7 +22,7 @@ import EventTitleError from './eventTitleError';
 
 type Size = 'small' | 'normal';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   data: Event | Group | GroupTombstone;
   organization: Organization;
   className?: string;
@@ -46,7 +46,6 @@ function EventOrGroupHeader({
   data,
   index,
   organization,
-  params,
   query,
   onClick,
   className,
@@ -56,8 +55,10 @@ function EventOrGroupHeader({
   size = 'normal',
   grouping = false,
   source,
-  ...props
 }: Props) {
+  const params = useParams();
+  const location = useLocation();
+
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
   function getTitleChildren() {
@@ -102,7 +103,6 @@ function EventOrGroupHeader({
 
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
-    const {location} = props;
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
@@ -142,7 +142,7 @@ function EventOrGroupHeader({
     return <span {...commonEleProps}>{getTitleChildren()}</span>;
   }
 
-  const location = getLocation(data);
+  const eventLocation = getLocation(data);
   const message = getMessage(data);
 
   return (
@@ -150,7 +150,7 @@ function EventOrGroupHeader({
       <Title size={size} hasGroupingTreeUI={hasGroupingTreeUI}>
         {getTitle()}
       </Title>
-      {location && <Location size={size}>{location}</Location>}
+      {eventLocation && <Location size={size}>{eventLocation}</Location>}
       {message && (
         <StyledTagAndMessageWrapper size={size}>
           {message && <Message>{message}</Message>}
@@ -246,7 +246,7 @@ const GroupLevel = styled('div')<{level: Level}>`
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 `;
 
-export default withRouter(withOrganization(EventOrGroupHeader));
+export default withOrganization(EventOrGroupHeader);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;

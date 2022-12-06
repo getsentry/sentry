@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
 import {Organization, Project} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -8,7 +9,6 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 
 type Options = {
   organization: Organization;
@@ -17,17 +17,30 @@ type Options = {
   transactionNames?: string | string[];
 };
 
+type CountState = Record<string, undefined | number>;
+
 function useReplaysCount({groupIds, transactionNames, organization, project}: Options) {
   const api = useApi();
-  const location = useLocation();
 
-  const [replayCounts, setReplayCounts] = useState<Record<string, undefined | number>>(
-    {}
-  );
+  const [replayCounts, setReplayCounts] = useState<CountState>({});
+
+  const zeroCounts = useMemo(() => {
+    const ids = toArray(groupIds || []);
+    const names = toArray(transactionNames || []);
+    return [...ids, ...names].reduce<CountState>((record, key) => {
+      record[key] = 0;
+      return record;
+    }, {});
+  }, [groupIds, transactionNames]);
 
   const [condition, fieldName] = useMemo(() => {
     if (groupIds === undefined && transactionNames === undefined) {
       throw new Error('Missing groupId or transactionName in useReplaysCount()');
+    }
+    if (groupIds !== undefined && transactionNames !== undefined) {
+      throw new Error(
+        'Unable to query both groupId and transactionName simultaneously in useReplaysCount()'
+      );
     }
     if (groupIds && groupIds.length) {
       return [`issue.id:[${toArray(groupIds).join(',')}]`, 'issue.id'];
@@ -43,18 +56,15 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
 
   const eventView = useMemo(
     () =>
-      EventView.fromNewQueryWithLocation(
-        {
-          id: '',
-          name: `Errors within replay`,
-          version: 2,
-          fields: ['count_unique(replayId)', String(fieldName)],
-          query: `!replayId:"" ${condition}`,
-          projects: [],
-        },
-        location
-      ),
-    [location, condition, fieldName]
+      EventView.fromSavedQuery({
+        id: '',
+        name: `Errors within replay`,
+        version: 2,
+        fields: ['count_unique(replayId)', String(fieldName)],
+        query: `!replayId:"" ${condition}`,
+        projects: [Number(project?.id)],
+      }),
+    [project?.id, condition, fieldName]
   );
 
   const fetchReplayCount = useCallback(async () => {
@@ -65,20 +75,20 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
       const [data] = await doDiscoverQuery<TableData>(
         api,
         `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location)
+        eventView.getEventsAPIPayload({query: {}} as Location<any>)
       );
 
       const counts = data.data.reduce((obj, record) => {
-        const key = record[fieldName];
-        const val = record['count_unique(replayId)'];
+        const key = record[fieldName] as string;
+        const val = record['count_unique(replayId)'] as number;
         obj[key] = val;
         return obj;
-      }, {});
+      }, zeroCounts);
       setReplayCounts(counts);
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, location, organization.slug, condition, fieldName, eventView]);
+  }, [api, organization.slug, condition, fieldName, zeroCounts, eventView]);
 
   useEffect(() => {
     const hasSessionReplay =

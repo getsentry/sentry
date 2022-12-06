@@ -1,6 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
@@ -8,6 +6,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import withProjects from 'sentry/utils/withProjects';
 import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
@@ -39,14 +38,15 @@ type DataType = {
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: PerformanceWidgetProps) {
+  const location = useLocation();
   const {projects} = useProjects();
 
   const {
     eventView: _eventView,
     ContainerActions,
-    location,
     organization,
     withStaticFilters,
+    InteractiveTitle,
   } = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
@@ -77,7 +77,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         <TrendsDiscoverQuery
           {...provided}
           eventView={provided.eventView}
-          location={props.location}
+          location={location}
           trendChangeType={trendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
@@ -98,6 +98,12 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...rest}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
+      location={location}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => {
         return (
@@ -117,7 +123,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                 {t('View All')}
               </Button>
             </div>
-            <ContainerActions {...provided.widgetData.chart} />
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
         );
       }}
@@ -158,7 +164,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
                 const trendsTarget = trendsTargetRoute({
                   organization: props.organization,
-                  location: props.location,
+                  location,
                   initialConditions,
                   additionalQuery: {
                     trendFunction: trendFunctionField,
@@ -176,7 +182,12 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     {!withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
                       />
                     )}
                   </Fragment>
@@ -192,4 +203,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const TrendsChart = withRouter(withProjects(Chart));
+const TrendsChart = withProjects(Chart);

@@ -160,18 +160,17 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__produced_message_offsets = {}
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        position = Position(message.next_offset, message.timestamp)
         self.__producer.produce(
             topic=self.__producer_topic,
             key=None,
             value=message.payload.value,
-            on_delivery=partial(self.callback, partition=message.partition, position=position),
+            on_delivery=partial(self.callback, committable=message.committable),
             headers=message.payload.headers,
         )
 
-    def callback(self, error: Any, message: Any, partition: Partition, position: Position) -> None:
+    def callback(self, error: Any, message: Any, committable: Mapping[Partition, Position]) -> None:
         if message and error is None:
-            self.__produced_message_offsets[partition] = position
+            self.__produced_message_offsets.update(committable)
         if error is not None:
             raise Exception(error.str())
 

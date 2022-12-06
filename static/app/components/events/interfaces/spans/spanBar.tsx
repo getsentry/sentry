@@ -2,6 +2,7 @@ import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
@@ -52,6 +53,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
+import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import {
@@ -142,7 +144,7 @@ type SpanBarState = {
   showDetail: boolean;
 };
 
-class SpanBar extends Component<SpanBarProps, SpanBarState> {
+export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
@@ -461,6 +463,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
+            PerformanceInteraction.startInteraction('SpanTreeToggle', 1000 * 10);
             this.props.toggleSpanTree();
           }}
         >
@@ -1063,4 +1066,4 @@ const StyledIconWarning = styled(IconWarning)`
 
 const Regroup = styled('span')``;
 
-export default SpanBar;
+export const ProfiledSpanBar = withProfiler(SpanBar);

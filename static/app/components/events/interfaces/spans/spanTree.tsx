@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
@@ -11,7 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import SpanBar from './spanBar';
+import {ProfiledSpanBar} from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -348,7 +349,7 @@ class SpanTree extends Component<PropType> {
         }
 
         acc.spanTree.push(
-          <SpanBar
+          <ProfiledSpanBar
             key={key}
             organization={organization}
             event={waterfallModel.event}
@@ -459,4 +460,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default withScrollbarManager(SpanTree);
+export default withProfiler(withScrollbarManager(SpanTree));
