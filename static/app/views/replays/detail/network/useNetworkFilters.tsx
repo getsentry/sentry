@@ -13,7 +13,7 @@ export type FilterFields = {
 };
 
 type Options = {
-  networkSpans: NetworkSpan[];
+  networkSpans: undefined | NetworkSpan[];
 };
 
 type Return = {

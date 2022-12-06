@@ -300,7 +300,7 @@ class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
         request: Request,
         organization: Organization,
         date_filter_optional: bool = False,
-        project_ids: set[int] | None = None,
+        project_ids: list[int] | set[int] | None = None,
     ) -> dict[str, Any]:
         """
         Extracts common filter parameters from the request and returns them
@@ -347,7 +347,9 @@ class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
             raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
-            projects = self.get_projects(request, organization, project_ids)  # type: ignore[arg-type]
+            if isinstance(project_ids, list):
+                project_ids = set(project_ids)
+            projects = self.get_projects(request, organization, project_ids=project_ids)
         except ValueError:
             raise ParseError(detail="Invalid project ids")
 

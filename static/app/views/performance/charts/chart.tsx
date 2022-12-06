@@ -13,7 +13,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -76,7 +76,7 @@ function Chart({
   chartColors,
   isLineChart,
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
   const theme = useTheme();
 
   if (!data || data.length <= 0) {

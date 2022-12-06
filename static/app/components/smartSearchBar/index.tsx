@@ -1,7 +1,6 @@
 import {Component, createRef, VFC} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -46,6 +45,8 @@ import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import DropdownMenuControl from '../dropdownMenuControl';
 import {MenuItemProps} from '../dropdownMenuItem';
@@ -1231,11 +1232,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         value: searches.query,
         type: ItemType.RECENT_SEARCH,
       }));
-    } catch (e) {
-      Sentry.captureException(e);
+    } catch {
+      return [];
     }
-
-    return [];
   };
 
   getReleases = debounce(
@@ -1931,7 +1930,7 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
   }
 }
 
-export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
+export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
 export {SmartSearchBar, Props as SmartSearchBarProps};
 
