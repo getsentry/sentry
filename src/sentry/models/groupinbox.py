@@ -122,10 +122,7 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
 
 
 def get_inbox_details(group_list):
-    return get_inbox_details_from_ids([g.id for g in group_list])
-
-
-def get_inbox_details_from_ids(group_ids):
+    group_ids = [g.id for g in group_list]
     group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
     inbox_stats = {
         gi.group_id: {
