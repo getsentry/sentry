@@ -120,12 +120,7 @@ export function generateTraceLink(dateSelection) {
 }
 
 export function generateProfileLink() {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    _query: Query,
-    _spanId?: string
-  ): LocationDescriptor => {
+  return (organization: Organization, tableRow: TableDataRow): LocationDescriptor => {
     return generateProfileFlamechartRoute({
       orgSlug: organization.slug,
       profileId: `${tableRow.profileId}`,

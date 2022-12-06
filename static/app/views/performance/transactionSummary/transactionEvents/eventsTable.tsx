@@ -31,6 +31,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -218,9 +219,14 @@ class EventsTable extends Component<Props, State> {
     }
 
     if (field === 'profileId') {
-      const target: LocationDescriptor | null = dataRow.profileId
-        ? null // @TODO
-        : null;
+      const target: LocationDescriptor | null =
+        dataRow.profileId && projectSlug
+          ? generateProfileFlamechartRoute({
+              orgSlug: organization.slug,
+              profileId: `${dataRow.profileId}`,
+              projectSlug,
+            })
+          : null;
 
       return (
         <CellAction
