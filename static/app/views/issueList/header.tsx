@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -99,7 +100,7 @@ function IssueListHeader({
   displayReprocessingTab,
   selectedProjectIds,
 }: IssueListHeaderProps) {
-  const [isSavedSearchesOpen, onToggleSavedSearches] = useSyncedLocalStorageState(
+  const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
@@ -113,6 +114,15 @@ function IssueListHeader({
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
+
+  function onSavedSearchesToggleClicked() {
+    const newOpenState = !isSavedSearchesOpen;
+    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
+      organization,
+      open: newOpenState,
+    });
+    setIsSavedSearchesOpen(newOpenState);
+  }
 
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
@@ -155,7 +165,7 @@ function IssueListHeader({
             <Button
               size="sm"
               icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
-              onClick={() => onToggleSavedSearches(!isSavedSearchesOpen)}
+              onClick={onSavedSearchesToggleClicked}
             >
               {isSavedSearchesOpen ? t('Hide Searches') : t('Saved Searches')}
             </Button>
