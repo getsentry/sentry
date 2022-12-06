@@ -18,7 +18,7 @@ class ConditionActivityType(Enum):
 
 @dataclass
 class ConditionActivity:
-    group_id: str
+    group_id: int
     type: ConditionActivityType
     timestamp: datetime
     data: Dict[str, Any] = field(default_factory=dict)
