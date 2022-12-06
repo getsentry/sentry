@@ -146,8 +146,8 @@ def record_first_event(project, event, **kwargs):
 
     # Check for the event url
     for tag in event.tags:
-        if tag.key == "url":
-            url = tag.value
+        if tag[0] == "url":
+            url = tag[1]
             break
 
     # Check if an event contains a minified stack trace
