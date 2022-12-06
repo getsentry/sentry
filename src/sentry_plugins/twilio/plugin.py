@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import phonenumbers
@@ -47,7 +48,9 @@ def clean_phone(phone):
 #      in theory only cleaned data would make it to the plugin via the form,
 #      and cleaned numbers are deduped already.
 def split_sms_to(data):
-    phone_numbers = set(data.split(","))
+    # we use regex below to split the string since we allow any whitespace, comma, or combination of the two
+    # as a delimeter
+    phone_numbers = set(re.split(r"[,\s]+", data))
     stripped_phone_numbers = {num.strip() for num in phone_numbers}
     return stripped_phone_numbers
 

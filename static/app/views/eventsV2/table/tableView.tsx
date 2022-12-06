@@ -282,11 +282,7 @@ function TableView(props: TableViewProps) {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(
-      columnKey,
-      tableData.meta,
-      !organization.features.includes('discover-frontend-use-events-endpoint')
-    );
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -584,11 +580,9 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {isLoading, error, location, tableData, eventView, organization} = props;
+  const {isLoading, error, location, tableData, eventView} = props;
 
-  const columnOrder = eventView.getColumns(
-    organization.features.includes('discover-frontend-use-events-endpoint')
-  );
+  const columnOrder = eventView.getColumns(true);
   const columnSortBy = eventView.getSorts();
 
   const prependColumnWidths = eventView.hasAggregateField()
