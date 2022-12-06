@@ -1,5 +1,5 @@
 import {EventOrGroupType} from 'sentry/types';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext';
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
 
 export type DiscoverEventParameters = {
   'discover_v2.add_equation': {};

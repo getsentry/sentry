@@ -50,9 +50,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
+import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
+import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {ContextType, QuickContextHoverWrapper} from './quickContext';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
