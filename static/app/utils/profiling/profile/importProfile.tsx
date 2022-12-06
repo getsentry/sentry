@@ -6,7 +6,6 @@ import {
   isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
-  isNodeProfile,
   isSampledProfile,
   isSchema,
   isSentrySampledProfile,
@@ -43,8 +42,7 @@ export function importProfile(
     | Profiling.Schema
     | JSSelfProfiling.Trace
     | ChromeTrace.ProfileType
-    | Profiling.SentrySampledProfile
-    | [Profiling.NodeProfile, {}], // this is hack so that we distinguish between typescript and node profiles
+    | Profiling.SentrySampledProfile,
   traceID: string
 ): ProfileGroup {
   const transaction = Sentry.startTransaction({
@@ -53,15 +51,6 @@ export function importProfile(
   });
 
   try {
-    if (isNodeProfile(input)) {
-      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-      if (transaction) {
-        transaction.setTag('profile.type', 'nodejs');
-      }
-
-      return importNodeProfile(input[0], traceID, {transaction});
-    }
-
     if (isJSProfile(input)) {
       // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
       if (transaction) {
@@ -245,23 +234,6 @@ function importSchema(
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)
     ),
-  };
-}
-
-function importNodeProfile(
-  input: Profiling.NodeProfile,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  const frameIndex = createFrameIndex('web', input.frames);
-
-  return {
-    traceID,
-    transactionID: null,
-    name: input.name,
-    activeProfileIndex: 0,
-    metadata: {},
-    profiles: [importSingleProfile(input, frameIndex, options)],
   };
 }
 
