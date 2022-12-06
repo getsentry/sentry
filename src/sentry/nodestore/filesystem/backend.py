@@ -1,5 +1,7 @@
 import os
 
+from django.conf import settings
+
 from sentry.nodestore.base import NodeStorage
 
 
