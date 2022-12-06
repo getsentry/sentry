@@ -80,7 +80,7 @@ def test_distribution():
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "source,txname,feature,expected",
+    "source,txname,feature_enabled,expected",
     [
         ("url", "/a/b/c", True, 1),
         ("route", "/", True, 0),
@@ -90,9 +90,9 @@ def test_distribution():
     ],
 )
 def test_record_transactions(
-    mocked_record, default_organization, source, txname, feature, expected
+    mocked_record, default_organization, source, txname, feature_enabled, expected
 ):
-    with Feature({"organizations:transaction-name-clusterer": feature}):
+    with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
         project = Project(id=111, name="project", organization_id=default_organization.id)
         event = Event(
             project.id,
