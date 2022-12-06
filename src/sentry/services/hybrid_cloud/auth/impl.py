@@ -3,8 +3,10 @@ from __future__ import annotations
 import base64
 import dataclasses
 from typing import List, Mapping
+from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import IntegrityError, transaction
 from django.db.models import Count, F
 
 from sentry import roles
@@ -13,6 +15,7 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, AuthIdentity, AuthProvider, OrganizationMember, User
 from sentry.services.hybrid_cloud.auth import (
+    ApiAuthIdentity,
     ApiAuthProvider,
     ApiAuthProviderFlags,
     ApiAuthState,
@@ -216,6 +219,49 @@ class DatabaseBackedAuthService(AuthService):
                 flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
             ).values_list("organization_id", flat=True)
         )
+
+    def _serialize_auth_identity(self, auth_identity: AuthIdentity) -> ApiAuthIdentity:
+        return ApiAuthIdentity(
+            id=auth_identity.id,
+            user_id=auth_identity.user_id,
+            provider_id=auth_identity.auth_provider_id,
+            ident=auth_identity.ident,
+        )
+
+    def provision_user_from_sso(
+        self, *, auth_provider: ApiAuthProvider, identity_data: Mapping[str, Any]
+    ) -> ApiAuthIdentity:
+        from django.conf import settings
+
+        user = User.objects.create(
+            username=uuid4().hex,
+            email=identity_data["email"],
+            name=identity_data.get("name", "")[:200],
+        )
+
+        if settings.TERMS_URL and settings.PRIVACY_URL:
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+
+        try:
+            with transaction.atomic():
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=auth_provider,
+                    user=user,
+                    ident=identity_data["id"],
+                    data=identity_data.get("data", {}),
+                )
+        except IntegrityError:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider_id=auth_provider.id, ident=identity_data["id"]
+            )
+            auth_identity.update(user=user, data=identity_data.get("data", {}))
+
+        user.send_confirm_emails(is_new_user=True)
+
+        return self._serialize_auth_identity(auth_identity)
+
+    def attach_identity(self) -> ApiAuthIdentity:
+        pass
 
 
 class FakeRequestDict:

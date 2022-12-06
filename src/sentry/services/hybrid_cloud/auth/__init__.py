@@ -50,6 +50,18 @@ class AuthService(InterfaceWithLifecycle):
         """
         pass
 
+    @abc.abstractmethod
+    def provision_user_from_sso(
+        self, *, auth_provider: ApiAuthProvider, identity_data: Mapping[str, Any]
+    ) -> APIUser:
+        """Create a new user profile in response to an SSO login."""
+        pass
+
+    @abc.abstractmethod
+    def attach_identity(self) -> ApiAuthIdentity:
+        """Attach a new auth identity to an existing user."""
+        pass
+
 
 def impl_with_db() -> AuthService:
     from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService

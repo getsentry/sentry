@@ -4,13 +4,12 @@ import logging
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Collection, Dict, Mapping, Sequence, Tuple, cast
-from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -35,6 +34,7 @@ from sentry.models import AuthIdentity, AuthProvider, Organization, Organization
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.audit import AuditLogMetadata, audit_log_service
+from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, auth_service
 from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, email_service
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
@@ -590,30 +590,13 @@ class AuthIdentityHandler:
         self.request.session.set_test_cookie()
         return None if is_new_account else self.user, "auth-confirm-identity"
 
-    def handle_new_user(self) -> AuthIdentity:
-        user = User.objects.create(
-            username=uuid4().hex,
-            email=self.identity["email"],
-            name=self.identity.get("name", "")[:200],
+    def handle_new_user(self) -> ApiAuthIdentity:
+        auth_identity = auth_service.provision_user_from_sso(
+            auth_provider=self.auth_provider, identity_data=self.identity
         )
 
-        if settings.TERMS_URL and settings.PRIVACY_URL:
-            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-
-        try:
-            with transaction.atomic():
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user=user,
-                    ident=self.identity["id"],
-                    data=self.identity.get("data", {}),
-                )
-        except IntegrityError:
-            auth_identity = self._get_auth_identity(ident=self.identity["id"])
-            auth_identity.update(user=user, data=self.identity.get("data", {}))
-
-        user.send_confirm_emails(is_new_user=True)
         provider = self.auth_provider.provider if self.auth_provider else None
+        user = User.objects.get(id=auth_identity.user_id)  # TODO: Can change signal interface?
         user_signup.send_robust(
             sender=self.handle_new_user,
             user=user,
