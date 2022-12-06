@@ -6,10 +6,8 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
@@ -431,7 +429,6 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-@mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 5)
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
     default_project,
 ):
@@ -449,7 +446,9 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         )
         release_ids.append(release.id)
 
-    boosted_releases = [[release_ids[0], ts - BOOSTED_RELEASE_TIMEOUT * 2]]
+    # We mark the first release (1.0) as expired.
+    time_to_adoption = Platform(default_project.platform).time_to_adoption
+    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
     for release_id in release_ids[1:]:
         boosted_releases.append([release_id, ts])
 
@@ -516,7 +515,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["2.0"]},
                         {
                             "op": "eq",
                             "name": "trace.environment",
@@ -537,7 +536,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
                         {
                             "op": "eq",
                             "name": "trace.environment",
@@ -558,7 +557,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
                         {
                             "op": "eq",
                             "name": "trace.environment",
@@ -579,7 +578,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
                         {
                             "op": "eq",
                             "name": "trace.environment",
@@ -600,7 +599,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
                         {
                             "op": "eq",
                             "name": "trace.environment",
@@ -609,6 +608,27 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     ],
                 },
                 "id": 1504,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1505,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",

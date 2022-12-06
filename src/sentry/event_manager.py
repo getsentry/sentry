@@ -53,11 +53,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (
-    TooManyBoostedReleasesException,
-    add_boosted_release,
-    observe_release,
-)
+from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -893,40 +889,35 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 ):
                     with sentry_sdk.start_span(
                         op="event_manager.dynamic_sampling_observe_latest_release"
-                    ) as span, metrics.timer(
-                        "event_manager.dynamic_sampling_observe_latest_release"
-                    ) as metrics_tags:
+                    ) as span:
                         try:
-                            environment = _extract_latest_release_data(data)
-                            release_observed_in_last_24h = observe_release(
-                                project_id, release.id, environment
+                            latest_release_params = LatestReleaseParams(
+                                release=release,
+                                project=projects[project_id],
+                                environment=_get_environment_from_transaction(data),
                             )
-                            if not release_observed_in_last_24h:
+
+                            def on_release_boosted() -> None:
                                 span.set_tag(
                                     "dynamic_sampling.observe_release_status",
-                                    f"New release observed {release.id}",
+                                    "(release, environment) pair observed and boosted",
                                 )
-                                metrics_tags[
-                                    "dynamic_sampling.observe_release_status"
-                                ] = f"New release observed {release.id}"
-                                add_boosted_release(project_id, release.id, environment)
+                                span.set_data("release", latest_release_params.release.id)
+                                span.set_data("environment", latest_release_params.environment)
+
                                 schedule_invalidate_project_config(
-                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                    project_id=project_id,
+                                    trigger="dynamic_sampling:boost_release",
                                 )
-                        except TooManyBoostedReleasesException:
-                            span.set_tag(
-                                "dynamic_sampling.observe_release_status",
-                                "Too many boosted releases",
-                            )
-                            metrics_tags[
-                                "dynamic_sampling.observe_release_status"
-                            ] = "Too many boosted releases"
-                            pass
+
+                            LatestReleaseBias(
+                                latest_release_params=latest_release_params
+                            ).observe_release(on_boosted_release_added=on_release_boosted)
                         except Exception:
                             sentry_sdk.capture_exception()
 
 
-def _extract_latest_release_data(data: EventDict) -> Optional[str]:
+def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
     environment = data.get("environment", None)
     # We handle the case in which the users sets the empty string as environment, for us that
     # is equal to having no environment at all.
