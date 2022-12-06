@@ -62,6 +62,12 @@ function mockRequests(orgSlug: Organization['slug']) {
       },
     },
   });
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/releases/',
+    body: [],
+  });
+
   return {eventsMock};
 }
 

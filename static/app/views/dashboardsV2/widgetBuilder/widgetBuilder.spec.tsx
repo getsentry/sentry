@@ -253,6 +253,11 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -1038,8 +1043,6 @@ describe('WidgetBuilder', function () {
       params: {orgId: 'org-slug', widgetIndex: '0'},
       query: {statsPeriod: '90d'},
     });
-
-    expect(await screen.findByTestId('page-filter-timerange-selector')).toBeEnabled();
 
     userEvent.click(screen.getByText('Update Widget'));
 

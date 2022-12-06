@@ -19,9 +19,13 @@ const mockWidgetAsQueryParams = {
   defaultTitle: 'Default title',
   defaultWidgetQuery: '',
   displayType: DisplayType.LINE,
-  environment: [],
-  project: [],
+  end: undefined,
+  environment: undefined,
+  project: [1],
   source: DashboardWidgetSource.DISCOVERV2,
+  start: undefined,
+  statsPeriod: '1h',
+  utc: undefined,
 };
 
 describe('add to dashboard modal', () => {
@@ -95,6 +99,11 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders with the widget title and description', async function () {
     render(
       <AddToDashboardModal
@@ -120,7 +129,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByText('Select Dashboard')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'This is a preview of how the widget will appear in your dashboard.'
+        /This is a preview of how the widget will appear in your dashboard./
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add + Stay in Discover'})).toBeDisabled();
