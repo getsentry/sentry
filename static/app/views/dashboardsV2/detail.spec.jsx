@@ -77,7 +77,7 @@ describe('Dashboards > Detail', function () {
         body: {data: [], meta: {}},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         method: 'GET',
         body: [],
       });
@@ -331,7 +331,7 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         method: 'GET',
         body: [],
       });

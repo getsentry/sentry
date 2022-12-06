@@ -828,6 +828,10 @@ const Canvas = styled('canvas')`
   height: 100%;
   user-select: none;
   position: absolute;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 // loosely based spreadsheet navigation

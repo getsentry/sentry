@@ -6,15 +6,10 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-import ReplayContent from './replayContent';
+import ReplayPreview from './replayPreview';
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
-
-const mockStartedAt = 'Sep 22, 2022 4:58:39 PM UTC';
-const mockFinishedAt = 'Sep 22, 2022 5:00:03 PM UTC';
-
-const mockReplayDuration = 84; // seconds
 
 const mockEvent = {
   ...TestStubs.Event(),
@@ -35,13 +30,7 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
-  replayRecord: {
-    startedAt: new Date(mockStartedAt),
-    finishedAt: new Date(mockFinishedAt),
-    duration: mockReplayDuration,
-  },
-});
+const replayReaderParams = TestStubs.ReplayReaderParams({});
 const mockReplay = ReplayReader.factory(replayReaderParams);
 
 // Mock useReplayData hook to return the mocked replay data
@@ -92,7 +81,7 @@ const render: typeof baseRender = children => {
   );
 };
 
-describe('ReplayContent', () => {
+describe('ReplayPreview', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
     (useReplayData as jest.Mock).mockImplementationOnce(() => {
@@ -103,7 +92,7 @@ describe('ReplayContent', () => {
     });
 
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
@@ -123,35 +112,33 @@ describe('ReplayContent', () => {
       };
     });
 
-    expect(() =>
-      render(
-        <ReplayContent
-          orgSlug={mockOrgSlug}
-          replaySlug={mockReplaySlug}
-          event={mockEvent}
-        />
-      )
-    ).toThrow();
-  });
-
-  it('Should render details button when there is a replay', () => {
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
       />
     );
 
-    const detailButtons = screen.getAllByLabelText('View Full Replay');
-    // Expect the details buttons to have the correct href
-    expect(detailButtons[0]).toHaveAttribute('href', mockButtonHref);
-    expect(detailButtons[1]).toHaveAttribute('href', mockButtonHref);
+    expect(screen.getByTestId('replay-error')).toBeVisible();
+  });
+
+  it('Should render details button when there is a replay', () => {
+    render(
+      <ReplayPreview
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        event={mockEvent}
+      />
+    );
+
+    const detailButton = screen.getByLabelText('Open Replay');
+    expect(detailButton).toHaveAttribute('href', mockButtonHref);
   });
 
   it('Should render all its elements correctly', () => {
     render(
-      <ReplayContent
+      <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}

@@ -55,7 +55,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.user_report import UserReportNotification
 
@@ -404,6 +404,25 @@ def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
     spans, matched_problem = get_span_and_problem(event)
     return perf_to_email_html(spans, matched_problem)
+
+
+def get_generic_data(event: GroupEvent) -> Any:
+    """Get data about a generic issue type to populate alert emails."""
+    generic_evidence = event.occurrence.evidence_display
+
+    if not generic_evidence:
+        return ""
+
+    context = {}
+    for row in generic_evidence:
+        context[row.name] = row.value
+
+    return generic_email_html(context)
+
+
+def generic_email_html(context: Any) -> Any:
+    """Format issue evidence into a (stringified) HTML table for emails"""
+    return render_to_string("sentry/emails/generic_table.html", {"data": context})
 
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:
