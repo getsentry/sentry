@@ -7,19 +7,19 @@ import space from 'sentry/styles/space';
 type Props = {
   content: ReactNode;
   expandedIndex: number;
-  items: (() => ReactNode)[];
+  headers: (() => ReactNode)[];
   setExpandedIndex: (index: number) => void;
 };
 
 export default function Accordion({
   content,
-  items,
+  headers,
   expandedIndex,
   setExpandedIndex,
 }: Props) {
   return (
     <AccordionContainer>
-      {items.map((item, index) => (
+      {headers.map((header, index) => (
         <AccordionItem
           isExpanded={index === expandedIndex}
           currentIndex={index}
@@ -27,7 +27,7 @@ export default function Accordion({
           content={content}
           setExpandedIndex={setExpandedIndex}
         >
-          {item()}
+          {header()}
         </AccordionItem>
       ))}
     </AccordionContainer>

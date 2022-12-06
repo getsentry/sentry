@@ -366,7 +366,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              items={getItems(provided)}
+              headers={getItems(provided)}
               content={
                 <DurationChart
                   {...provided.widgetData.chart}

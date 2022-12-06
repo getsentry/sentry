@@ -279,7 +279,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              items={getItems(provided)}
+              headers={getItems(provided)}
               content={
                 <_VitalChart
                   {...provided.widgetData.chart}
