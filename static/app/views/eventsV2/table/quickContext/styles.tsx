@@ -12,7 +12,6 @@ export const ContextHeader = styled('h6')`
   color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
   margin: 0;
 `;
 
