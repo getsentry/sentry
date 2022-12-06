@@ -17,8 +17,6 @@ from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording_no
 
 logger = logging.getLogger("sentry.replays")
 
-COMMIT_FREQUENCY_SEC = 1
-
 
 class RecordingProcessorStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
@@ -46,5 +44,5 @@ def run(message: Message[KafkaPayload]) -> None:
         message_dict = msgpack.unpackb(message.payload.value)
         ingest_recording_not_chunked(cast(RecordingMessage, message_dict), transaction)
     except Exception:
-        logger.exception("Failed to process message")
+        logger.exception("Failed to process recording.")
         transaction.finish()
