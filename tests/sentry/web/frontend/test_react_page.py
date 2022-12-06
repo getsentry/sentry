@@ -89,3 +89,65 @@ class ReactPageViewTest(TestCase):
             resp = self.client.get(path)
             assert resp.status_code == 302
             assert resp.url == f"/auth/login/{org.slug}/"
+
+    def test_redirect_to_customer_domain(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+
+        self.login_as(user)
+
+        with self.feature({"organizations:customer-domains": False}):
+            assert "activeorg" not in self.client.session
+
+            response = self.client.get(reverse("sentry-organization-issue-list", args=[org.slug]))
+            assert response.status_code == 200
+            assert self.client.session["activeorg"]
+
+        with self.feature({"organizations:customer-domains": True}):
+
+            # Redirect to customer domain
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302)
+            ]
+
+            response = self.client.get(reverse("issues"), follow=True)
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+
+            response = self.client.get("/", follow=True)
+            assert response.status_code == 200
+            # TODO(alberto): follow up with patch to make /issues/ the default whenever customer domain feature is
+            #                enabled.
+            assert response.redirect_chain == [
+                (f"/organizations/{org.slug}/issues/", 302),
+                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302),
+            ]
+
+            # No redirect if customer domain is already being used
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[org.slug]),
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+            response = self.client.get(
+                reverse("issues"),
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]

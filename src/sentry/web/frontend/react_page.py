@@ -1,12 +1,31 @@
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
+from django.http import HttpResponseRedirect
 from django.middleware.csrf import get_token as get_csrf_token
+from django.urls import resolve
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
+from sentry.api.utils import generate_organization_url
 from sentry.models import Project
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
+from sentry.utils.http import query_string
 from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.web.helpers import render_to_response
+
+
+def resolve_redirect_url(request, org_slug, user_id=None):
+    org_context = organization_service.get_organization_by_slug(
+        slug=org_slug, only_visible=False, user_id=user_id
+    )
+    if org_context and features.has("organizations:customer-domains", org_context.organization):
+        redirect_url = generate_organization_url(org_slug)
+        qs = query_string(request)
+        redirect_url = f"{redirect_url}{request.path}{qs}"
+        return redirect_url
+    return None
 
 
 class ReactMixin:
@@ -27,6 +46,27 @@ class ReactMixin:
         # template tag, but in this case, we don't need a form on the
         # page. So there's no point in rendering a random `<input>` field.
         get_csrf_token(request)
+
+        if request.subdomain is None:
+            matched_url = resolve(request.path)
+            if "organization_slug" in matched_url.kwargs:
+                org_slug = matched_url.kwargs["organization_slug"]
+                redirect_url = resolve_redirect_url(
+                    request=request, org_slug=org_slug, user_id=None
+                )
+                if redirect_url:
+                    return HttpResponseRedirect(redirect_url)
+
+            user = getattr(request, "user", None) or None
+            if user is not None and not isinstance(user, AnonymousUser):
+                session = getattr(request, "session", None)
+                last_active_org = (session.get("activeorg", None) or None) if session else None
+                if last_active_org:
+                    redirect_url = resolve_redirect_url(
+                        request=request, org_slug=last_active_org, user_id=user.id
+                    )
+                    if redirect_url:
+                        return HttpResponseRedirect(redirect_url)
 
         return render_to_response("sentry/base-react.html", context=context, request=request)
 

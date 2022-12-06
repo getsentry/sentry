@@ -52,7 +52,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
-    DUPLICATE_SPANS_HASH = "dupes_hash"  # Have to stay within tag key length limits
     DUPLICATE_SPANS = "duplicates"
     SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
@@ -67,8 +66,6 @@ class DetectorType(Enum):
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
-    # both duplicate spans hash and duplicate spans are mapped to the same group type
-    DetectorType.DUPLICATE_SPANS_HASH: GroupType.PERFORMANCE_DUPLICATE_SPANS,
     DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
     DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
     DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
@@ -271,13 +268,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
                 "allowed_span_ops": ["db", "http"],
             }
         ],
-        DetectorType.DUPLICATE_SPANS_HASH: [
-            {
-                "count": 5,
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["http"],
-            },
-        ],
         DetectorType.SEQUENTIAL_SLOW_SPANS: [
             {
                 "count": 3,
@@ -350,7 +340,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     detectors = {
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
         DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
         DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
@@ -614,53 +603,6 @@ class DuplicateSpanDetector(PerformanceDetector):
                 spans_involved = self.duplicate_spans_involved[fingerprint]
                 self.stored_problems[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved
-                )
-
-
-class DuplicateSpanHashDetector(PerformanceDetector):
-    """
-    Broadly check for duplicate spans.
-    Uses the span grouping strategy hash to potentially detect duplicate spans more accurately.
-    """
-
-    __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_problems")
-
-    settings_key = DetectorType.DUPLICATE_SPANS_HASH
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.duplicate_spans_involved = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duplicate_count_threshold = settings.get("count")
-        duplicate_duration_threshold = settings.get("cumulative_duration")
-
-        hash = span.get("hash", None)
-        if not hash:
-            return
-
-        self.cumulative_durations[hash] = (
-            self.cumulative_durations.get(hash, timedelta(0)) + span_duration
-        )
-
-        if hash not in self.duplicate_spans_involved:
-            self.duplicate_spans_involved[hash] = []
-
-        self.duplicate_spans_involved[hash] += [span_id]
-        duplicate_spans_counts = len(self.duplicate_spans_involved[hash])
-
-        if not self.stored_problems.get(hash, False):
-            if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
-                hash
-            ] >= timedelta(milliseconds=duplicate_duration_threshold):
-                spans_involved = self.duplicate_spans_involved[hash]
-                self.stored_problems[hash] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved, hash
                 )
 
 
@@ -977,6 +919,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     @classmethod
+    def is_event_eligible(cls, event):
+        trace_op = event.get("contexts", {}).get("trace", {}).get("op")
+        if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
+            return False
+
+        return True
+
+    @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
@@ -994,7 +944,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         # Ignore anything that looks like an asset
         data = span.get("data") or {}
-        parsed_url = urlparse(data.get("url") or "")
+        url = data.get("url") or ""
+        if type(url) is dict:
+            url = url.get("pathname") or ""
+
+        parsed_url = urlparse(str(url))
+
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css"]:
             return False

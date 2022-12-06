@@ -40,6 +40,8 @@ let mockedGroup = TestStubs.Group({
     name: 'ingest',
     type: 'team',
   },
+  count: 2500000,
+  userCount: 64000,
 });
 
 const mockEventView = EventView.fromSavedQuery({
@@ -100,7 +102,13 @@ const mockedReleaseWithHealth = TestStubs.Release({
   authors: [mockedUser1, mockedUser2],
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
@@ -250,7 +258,7 @@ describe('Quick Context', function () {
       ).toBeInTheDocument();
     });
 
-    it('Renders ignored Issue status context when data is loaded', async () => {
+    it('Renders ignored issue status context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
@@ -266,7 +274,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-ignored-icon')).toBeInTheDocument();
     });
 
-    it('Renders resolved Issue status context when data is loaded', async () => {
+    it('Renders resolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'resolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -282,7 +290,7 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     });
 
-    it('Renders unresolved Issue status context when data is loaded', async () => {
+    it('Renders unresolved issue status context', async () => {
       mockedGroup = {...mockedGroup, status: 'unresolved'};
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
@@ -299,7 +307,23 @@ describe('Quick Context', function () {
       expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
     });
 
-    it('Renders assigned To context when data is loaded', async () => {
+    it('Renders event and user counts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        method: 'GET',
+        body: mockedGroup,
+      });
+      renderQuickContextContent();
+
+      userEvent.hover(screen.getByText('Text from Child'));
+
+      expect(await screen.findByText(/Events/i)).toBeInTheDocument();
+      expect(screen.getByText(/2.5m/i)).toBeInTheDocument();
+      expect(screen.getByText(/Users/i)).toBeInTheDocument();
+      expect(screen.getByText(/64k/i)).toBeInTheDocument();
+    });
+
+    it('Renders assigned to context', async () => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/',
         method: 'GET',
