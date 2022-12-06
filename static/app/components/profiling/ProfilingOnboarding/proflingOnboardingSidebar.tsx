@@ -2,8 +2,7 @@ import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import CompactSelect from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -21,7 +20,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,16 +41,24 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
   const pageFilters = usePageFilters();
 
-  const {supported: supportedProjects} = useMemo(
+  const {supported: supportedProjects, unsupported: unsupportedProjects} = useMemo(
     () => splitProjectsByProfilingSupport(projects),
     [projects]
   );
 
   useEffect(() => {
-    if (supportedProjects.length <= 0) {
+    // we'll only ever select an unsupportedProject if they do not have a supported project in their project
+    if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
+      if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
+        setCurrentProject(unsupportedProjects[0]);
+        return;
+      }
+
+      setCurrentProject(
+        unsupportedProjects.find(p => p.id === String(pageFilters.selection.projects[0]))
+      );
       return;
     }
-
     // if it's My Projects or All Projects, pick the first supported project
     if (
       pageFilters.selection.projects.length === 0 ||
@@ -72,28 +79,56 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
         return;
       }
     }
-  }, [pageFilters.selection.projects, supportedProjects]);
+  }, [pageFilters.selection.projects, supportedProjects, unsupportedProjects]);
 
-  if (!isActive || !hasProjectAccess || !currentProject) {
+  const projectSelectOptions = useMemo(() => {
+    const supportedProjectItems: SelectValue<Project>[] = supportedProjects.map(
+      project => {
+        return {
+          key: project.id,
+          value: project,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+        };
+      }
+    );
+
+    const unsupportedProjectItems: SelectValue<Project>[] = unsupportedProjects.map(
+      project => {
+        return {
+          key: project.id,
+          value: project,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+          disabled: true,
+        };
+      }
+    );
+    return [
+      {
+        label: t('Supported'),
+        options: supportedProjectItems,
+        value: {} as any,
+      },
+      {
+        label: t('Unsupported'),
+        options: unsupportedProjectItems,
+        value: {},
+      },
+    ];
+  }, [supportedProjects, unsupportedProjects]);
+
+  if (!isActive || !hasProjectAccess) {
     return null;
   }
-
-  const items: MenuItemProps[] = supportedProjects.map(project => {
-    return {
-      key: project.id,
-      label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
-      onAction: function switchProject() {
-        setCurrentProject(project);
-      },
-    };
-  });
 
   return (
     <TaskSidebar orientation={orientation} collapsed={collapsed} hidePanel={hidePanel}>
       <TaskSidebarList>
         <Heading>{t('Profile Code')}</Heading>
-        <DropdownMenuControl
-          items={items}
+        <CompactSelect
           triggerLabel={
             <StyledIdBadge
               project={currentProject}
@@ -102,37 +137,73 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
               disableLink
             />
           }
-          triggerProps={{'aria-label': currentProject.slug}}
+          onChange={option => setCurrentProject(option.value)}
+          triggerProps={{'aria-label': currentProject?.slug}}
+          options={projectSelectOptions}
           position="bottom-end"
         />
-        <OnboardingContent currentProject={currentProject} />
+        {currentProject && (
+          <OnboardingContent
+            currentProject={currentProject}
+            isSupported={supportedProjects.includes(currentProject)}
+          />
+        )}
       </TaskSidebarList>
     </TaskSidebar>
   );
 }
 
-function OnboardingContent({currentProject}: {currentProject: Project}) {
-  const currentPlatform = platforms.find(p => p.id === currentProject.platform);
+function OnboardingContent({
+  currentProject,
+  isSupported,
+}: {
+  currentProject: Project;
+  isSupported: boolean;
+}) {
+  const currentPlatform = platforms.find(p => p.id === currentProject?.platform);
   const api = useApi();
   const organization = useOrganization();
   const [received, setReceived] = useState(false);
   const previousProject = usePrevious(currentProject);
   useEffect(() => {
+    if (!currentProject || !previousProject) {
+      return;
+    }
     if (previousProject.id !== currentProject.id) {
       setReceived(false);
     }
-  }, [previousProject.id, currentProject.id]);
+  }, [currentProject, previousProject]);
 
   const docKeysMap = useMemo(() => makeDocKeyMap(currentPlatform?.id), [currentPlatform]);
 
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     docKeys: docKeysMap ? Object.values(docKeysMap) : [],
     project: currentProject,
-    isPlatformSupported: true,
+    isPlatformSupported: isSupported,
   });
 
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (!isSupported) {
+    // this content will only be presented if the org only has one project and its not supported
+    // in these scenarios we will auto-select the unsupported project and render this message
+    return (
+      <Fragment>
+        <div>
+          {tct(
+            'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            {platform: currentPlatform?.name || currentProject.slug}
+          )}
+        </div>
+        <div>
+          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+            {t('Go to Sentry Documentation')}
+          </Button>
+        </div>
+      </Fragment>
+    );
   }
 
   if (!currentPlatform || !docKeysMap || !hasOnboardingContents) {
