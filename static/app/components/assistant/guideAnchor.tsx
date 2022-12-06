@@ -322,10 +322,5 @@ const StepCount = styled('div')`
 `;
 
 const StyledHovercard = styled(Hovercard)`
-  ${HovercardBody} {
-    background-color: ${theme.purple300};
-    margin: -1px;
-    border-radius: ${theme.borderRadius};
-    width: 300px;
-  }
+  background-color: ${theme.purple300};
 `;
