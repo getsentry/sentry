@@ -1,8 +1,8 @@
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
-from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import (
@@ -89,12 +89,6 @@ def mock_should_demote_symbolication():
 @pytest.fixture
 def mock_submit_symbolicate():
     with mock.patch("sentry.tasks.symbolication.submit_symbolicate", wraps=submit_symbolicate) as m:
-        yield m
-
-
-@pytest.fixture
-def mock_manager_save():
-    with mock.patch("sentry.event_manager.EventManager.save") as m:
         yield m
 
 
@@ -228,9 +222,20 @@ def test_should_demote_symbolication_always_and_never(default_project):
         assert not should_demote_symbolication(default_project.id)
 
 
+@pytest.fixture
+def mock_processing_store():
+    with mock.patch("sentry.eventstore.processing.base.store", wraps=submit_symbolicate) as m:
+        yield m
+
+
 @pytest.mark.django_db
+@patch("sentry.event_manager.EventManager.save", return_value=None)
 def test_submit_symbolicate_queue_switch(
-    default_project, mock_should_demote_symbolication, mock_submit_symbolicate, mock_manager_save
+    self,
+    default_project,
+    mock_should_demote_symbolication,
+    mock_submit_symbolicate,
+    mock_event_processing_store,
 ):
     data = {
         "project": default_project.id,
@@ -239,18 +244,18 @@ def test_submit_symbolicate_queue_switch(
         "event_id": EVENT_ID,
         "extra": {"foo": "bar"},
     }
-    cache_key = event_processing_store.store(data)
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:1"
+
     is_low_priority = mock_should_demote_symbolication(default_project.id)
     assert is_low_priority
-    mock_manager_save.return_value = None
     with TaskRunner():
         mock_submit_symbolicate(
             is_low_priority=is_low_priority,
             from_reprocessing=False,
-            cache_key=cache_key,
+            cache_key="e:1",
             event_id=EVENT_ID,
             start_time=0,
             data=data,
         )
-        event_processing_store.delete(data)
     assert mock_submit_symbolicate.call_count == 4
