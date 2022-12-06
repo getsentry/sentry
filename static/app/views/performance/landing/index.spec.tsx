@@ -110,6 +110,17 @@ describe('Performance > Landing > Index', function () {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
