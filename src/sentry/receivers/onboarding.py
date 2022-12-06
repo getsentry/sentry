@@ -145,7 +145,7 @@ def record_first_event(project, event, **kwargs):
         return
 
     # Check for the event url
-    url = event.data.get("request").url
+    url = event.data.request.get("url")
 
     if not url:
         for tag in event.tags:
