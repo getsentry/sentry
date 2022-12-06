@@ -20,7 +20,7 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 type Props = {
   customDropdownButton: (config: {
@@ -65,7 +65,7 @@ function EnvironmentSelector({
   customLoadingIndicator,
   disabled,
 }: Props) {
-  const router = useRouter();
+  const routes = useRoutes();
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
@@ -97,7 +97,7 @@ function EnvironmentSelector({
 
     analytics('environmentselector.toggle', {
       action: willRemove ? 'removed' : 'added',
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -118,7 +118,7 @@ function EnvironmentSelector({
 
     analytics('environmentselector.update', {
       count: selectedEnvs.length,
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -127,7 +127,7 @@ function EnvironmentSelector({
 
   const handleQuickSelect = (item: Item) => {
     analytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
