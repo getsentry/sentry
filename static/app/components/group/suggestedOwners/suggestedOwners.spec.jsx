@@ -162,4 +162,27 @@ describe('SuggestedOwners', function () {
     expect(await screen.findByText('Suspect Release')).toBeInTheDocument();
     expect(screen.getByText('last committed')).toBeInTheDocument();
   });
+
+  it('hides when there are no suggestions', async () => {
+    Client.addMockResponse({
+      url: `${endpoint}/committers/`,
+      body: {
+        committers: [],
+      },
+    });
+    Client.addMockResponse({
+      url: `${endpoint}/owners/`,
+      body: {owners: [], rules: []},
+    });
+    const {container} = render(
+      <SuggestedOwners project={project} group={group} event={event} />,
+      {
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
 });
