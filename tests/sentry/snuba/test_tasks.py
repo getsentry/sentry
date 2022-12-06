@@ -446,6 +446,7 @@ class BuildSnqlQueryTest(TestCase):
         environment=None,
         granularity=None,
         aggregate_kwargs=None,
+        use_none_clauses=False,
     ):
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
@@ -483,8 +484,8 @@ class BuildSnqlQueryTest(TestCase):
             select=select,
             where=expected_conditions,
             groupby=[],
-            having=[],
-            orderby=[],
+            having=None if use_none_clauses else [],
+            orderby=None if use_none_clauses else [],
         )
         if granularity is not None:
             expected_query = expected_query.set_granularity(granularity)
@@ -588,13 +589,13 @@ class BuildSnqlQueryTest(TestCase):
         perf_indexer_record(self.organization.id, "release")
         perf_indexer_record(self.organization.id, version)
         expected_conditions = [
+            Condition(Column("org_id"), Op.EQ, self.organization.id),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(
                 Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")),
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
             ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
-            Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
 
@@ -607,6 +608,7 @@ class BuildSnqlQueryTest(TestCase):
             entity_extra_fields={"org_id": self.organization.id},
             aggregate_kwargs={"metric_id": metric_id},
             granularity=60,
+            use_none_clauses=True,
         )
 
     def test_user_query(self):

@@ -176,7 +176,7 @@ class EntitySubscriptionTestCase(TestCase):
             [
                 Function(
                     "uniqIf",
-                    [
+                    parameters=[
                         Column("value"),
                         Function("equals", [Column("metric_id"), metric_id]),
                     ],
@@ -184,11 +184,11 @@ class EntitySubscriptionTestCase(TestCase):
                 ),
                 Function(
                     "uniqIf",
-                    [
+                    parameters=[
                         Column("value"),
                         Function(
                             "and",
-                            [
+                            parameters=[
                                 Function("equals", [Column("metric_id"), metric_id]),
                                 Function(
                                     "equals", [Column(session_status), session_status_crashed]
@@ -237,11 +237,11 @@ class EntitySubscriptionTestCase(TestCase):
             [
                 Function(
                     "sumIf",
-                    [
+                    parameters=[
                         Column("value"),
                         Function(
                             "and",
-                            [
+                            parameters=[
                                 Function("equals", [Column("metric_id"), metric_id]),
                                 Function("equals", [Column(session_status), session_status_init]),
                             ],
@@ -251,11 +251,11 @@ class EntitySubscriptionTestCase(TestCase):
                 ),
                 Function(
                     "sumIf",
-                    [
+                    parameters=[
                         Column("value"),
                         Function(
                             "and",
-                            [
+                            parameters=[
                                 Function("equals", [Column("metric_id"), metric_id]),
                                 Function(
                                     "equals", [Column(session_status), session_status_crashed]
@@ -329,13 +329,19 @@ class EntitySubscriptionTestCase(TestCase):
 
         assert snql_query.query.select == [
             Function(
-                function="quantilesIf(0.95)",
+                "arrayElement",
                 parameters=[
-                    Column(name="value"),
                     Function(
-                        function="equals",
-                        parameters=[Column(name="metric_id"), metric_id],
+                        "quantilesIf(0.95)",
+                        parameters=[
+                            Column("value"),
+                            Function(
+                                "equals",
+                                parameters=[Column("metric_id"), metric_id],
+                            ),
+                        ],
                     ),
+                    1,
                 ],
                 alias="percentile_transaction_duration__95",
             )

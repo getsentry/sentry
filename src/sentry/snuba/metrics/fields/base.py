@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -375,6 +375,23 @@ class RawOp(MetricOperation):
     ) -> SnubaDataType:
         return data
 
+    def _wrap_quantiles(self, function: Function, alias: str) -> Function:
+        # In case we have a percentile we want to take the first element of the array. This is done because we are
+        # using quantilesIf instead of quantileIf, therefore we have an array as a result.
+        if self.op in OPERATIONS_PERCENTILES:
+            function = Function(
+                "arrayElement",
+                [
+                    # We remove the alias from the function in order to avoid multiple aliases with the same name.
+                    replace(function, alias=None),
+                    # First element is 1 because ClickHouse arrays are indexed starting from 1.
+                    1,
+                ],
+                alias=alias,
+            )
+
+        return function
+
     def generate_snql_function(
         self,
         entity: MetricEntity,
@@ -388,11 +405,10 @@ class RawOp(MetricOperation):
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
-        return Function(
-            snuba_function,
-            [Column("value"), aggregate_filter],
-            alias=alias,
-        )
+
+        function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
+
+        return self._wrap_quantiles(function, alias)
 
     def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
         return cast(

@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from unittest import mock
 
@@ -322,24 +322,31 @@ def test_build_snuba_query(mock_now, mock_now2):
 
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
+
+        select_function = Function(
+            OP_TO_SNUBA_FUNCTION[match][alias],
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        resolve_weak(use_case_id, org_id, get_mri(metric_name)),
+                    ],
+                ),
+            ],
+        )
+
+        if alias == "p95":
+            select_function = Function(
+                "arrayElement", [select_function, 1], alias=f"{alias}({metric_name})"
+            )
+        else:
+            select_function = replace(select_function, alias=f"{alias}({metric_name})")
+
         return Query(
             match=Entity(match),
-            select=[
-                Function(
-                    OP_TO_SNUBA_FUNCTION[match][alias],
-                    [
-                        Column("value"),
-                        Function(
-                            "equals",
-                            [
-                                Column("metric_id"),
-                                resolve_weak(use_case_id, org_id, get_mri(metric_name)),
-                            ],
-                        ),
-                    ],
-                    alias=f"{alias}({metric_name})",
-                )
-            ],
+            select=[select_function],
             groupby=[
                 AliasedExpression(
                     Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
@@ -721,10 +728,16 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     ]
 
     select = Function(
-        OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+        "arrayElement",
         [
-            Column("value"),
-            Function("and", conditions),
+            Function(
+                OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+                [
+                    Column("value"),
+                    Function("and", conditions),
+                ],
+            ),
+            1,
         ],
         alias=f"{op}({SessionMetricKey.DURATION.value})",
     )

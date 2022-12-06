@@ -456,6 +456,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=self.offset,
                     limitby=self.limitby,
+                    granularity=self.granularity,
                 ),
                 flags=Flags(turbo=self.turbo),
             )
@@ -782,7 +783,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         snuba_queries, _ = SnubaQueryBuilder(
             projects=self.params.projects,
             metrics_query=transform_mqb_query_to_metrics_query(
-                snuba_request.query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
+                snuba_request.query, is_alerts_query=True
             ),
             use_case_id=UseCaseKey.PERFORMANCE
             if self.is_performance

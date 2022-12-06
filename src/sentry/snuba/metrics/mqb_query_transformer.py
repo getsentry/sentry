@@ -427,7 +427,9 @@ def _get_supported_entities(is_alerts_query: bool) -> Set[str]:
 
 
 def transform_mqb_query_to_metrics_query(
-    query: Query, is_alerts_query: bool = False
+    query: Query,
+    is_alerts_query: bool = False,
+    use_none_clauses: bool = True,
 ) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in _get_supported_entities(is_alerts_query):
@@ -458,5 +460,10 @@ def transform_mqb_query_to_metrics_query(
 
     # This code is just an edge case specific for the team_key_transaction derived operation.
     mq_dict.update(**_transform_team_key_transaction_fake_mri(mq_dict))
+
+    if not use_none_clauses:
+        for key in mq_dict.keys():
+            # TODO: convert None to [].
+            ...
 
     return MetricsQuery(**mq_dict)

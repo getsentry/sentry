@@ -432,7 +432,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def __post_init__(self) -> None:
         super().__post_init__()
 
-        if self.limit is None:
+        # Only if we have a start and end date we want to use the limit.
+        if self.start and self.end and self.limit is None:
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))

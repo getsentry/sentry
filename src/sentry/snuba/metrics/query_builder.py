@@ -69,7 +69,6 @@ from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
-    OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
     DerivedMetricParseException,
@@ -718,7 +717,7 @@ class SnubaQueryBuilder:
             select=select,
             where=where,
             limit=limit,
-            offset=offset or Offset(0),
+            offset=offset or None,
             granularity=rollup,
             orderby=orderby,
         )
@@ -976,8 +975,8 @@ class SnubaResultConverter:
                 # or also from raw_metrics that don't exist in clickhouse yet
                 cleaned_value = default_null_value
             else:
-                if op in OPERATIONS_PERCENTILES:
-                    value = value[0]
+                # if op in OPERATIONS_PERCENTILES:
+                #     value = value[0]
                 cleaned_value = finite_or_none(value)
 
             if bucketed_time is None:
