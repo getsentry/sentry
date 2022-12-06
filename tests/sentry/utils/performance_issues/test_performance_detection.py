@@ -881,6 +881,41 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_does_not_detect_consecutive_db_spans_with_parameterized_query(self):
+        span_duration = 750
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT m.* FROM authors a INNER JOIN books b ON a.book_id = b.id AND b.another_id = 'another_id_123' ORDER BY b.created_at DESC LIMIT 3",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT m.* FROM authors a INNER JOIN books b ON a.book_id = b.id AND b.another_id = 'another_id_456' ORDER BY b.created_at DESC LIMIT 3",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT m.* FROM authors a INNER JOIN books b ON a.book_id = b.id AND b.another_id = 'another_id_789' ORDER BY b.created_at DESC LIMIT 3",
+            ),
+        ]
+        spans = list(
+            map(
+                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
+            )  # ensures spans don't overlap
+        )
+        consecutive_db_event = create_event(
+            spans,
+            "a" * 16,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls([])
+
     def test_does_not_detect_consecutive_db_spans_with_fast_spans(self):
         span_duration = 1
         spans = [
