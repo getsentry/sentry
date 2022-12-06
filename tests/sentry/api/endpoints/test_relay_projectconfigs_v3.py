@@ -8,7 +8,13 @@ from sentry_relay.auth import generate_key_pair
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
+
+paths = (
+    reverse("sentry-api-0-relay-projectconfigs-orgless") + "?version=3",
+    reverse("sentry-api-0-relay-projectconfigs", args=["asdf"]) + "?version=3",
+)
 
 
 @pytest.fixture
@@ -38,9 +44,7 @@ def relay(relay_id, public_key):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None):
-        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=3"
-
+    def inner(full_config, path, public_keys=None):
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
 
@@ -96,11 +100,13 @@ def project_config_get_mock(monkeypatch):
     )
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_return_full_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    path, call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True, path=path)
     assert status_code < 400
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
@@ -108,9 +114,12 @@ def test_return_full_config_if_in_cache(
     }
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_return_partial_config_if_in_cache(
     monkeypatch,
+    path,
     call_endpoint,
     default_projectkey,
     default_project,
@@ -121,7 +130,7 @@ def test_return_partial_config_if_in_cache(
         lambda *args, **kwargs: ProjectConfig(default_project, is_mock_config=True),
     )
 
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint(full_config=False, path=path)
     assert status_code < 400
     expected = {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
@@ -129,12 +138,14 @@ def test_return_partial_config_if_in_cache(
     assert result == expected
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_proj_in_cache_and_another_pending(
-    call_endpoint, default_projectkey, single_mock_proj_cached
+    path, call_endpoint, default_projectkey, single_mock_proj_cached
 ):
     result, status_code = call_endpoint(
-        full_config=True, public_keys=["must_exist", default_projectkey.public_key]
+        full_config=True, path=path, public_keys=["must_exist", default_projectkey.public_key]
     )
     assert status_code < 400
     assert result == {
@@ -143,33 +154,40 @@ def test_proj_in_cache_and_another_pending(
     }
 
 
+@region_silo_test(stable=True)
 @patch("sentry.tasks.relay.build_project_config.delay")
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_enqueue_task_if_config_not_cached_not_queued(
     schedule_mock,
+    path,
     call_endpoint,
     default_projectkey,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True, path=path)
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert schedule_mock.call_count == 1
 
 
+@region_silo_test(stable=True)
 @patch("sentry.tasks.relay.build_project_config.delay")
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
+    path,
     call_endpoint,
     default_projectkey,
     projectconfig_debounced_cache,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True, path=path)
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert task_mock.call_count == 0
 
 
+@region_silo_test(stable=True)
 @patch("sentry.relay.projectconfig_cache.set_many")
 @pytest.mark.django_db
 def test_task_writes_config_into_cache(

@@ -10,9 +10,14 @@ from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, safe
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
+paths = (
+    reverse("sentry-api-0-relay-projectconfigs-orgless"),
+    reverse("sentry-api-0-relay-projectconfigs", args=["asdf"]),
+)
 
 
 def _get_all_keys(config):
@@ -59,9 +64,7 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_project):
-    def inner(full_config, projects=None):
-        path = reverse("sentry-api-0-relay-projectconfigs")
-
+    def inner(full_config, path, projects=None):
         if projects is None:
             projects = [str(default_project.id)]
 
@@ -100,11 +103,13 @@ def no_internal_networks(monkeypatch):
     monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
-    call_endpoint, default_project
+    path, call_endpoint, default_project
 ):
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint(full_config=False, path=path)
 
     assert status_code < 400
 
@@ -117,11 +122,13 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_internal_relays_should_receive_full_configs(
-    call_endpoint, default_project, default_projectkey
+    path, call_endpoint, default_project, default_projectkey
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True, path=path)
 
     assert status_code < 400
 
@@ -165,8 +172,10 @@ def test_internal_relays_should_receive_full_configs(
     )
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
-def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
+@pytest.mark.parametrize("path", paths)
+def test_relays_dyamic_sampling(client, path, call_endpoint, default_project, dyn_sampling_data):
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
@@ -178,7 +187,7 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
             "organizations:dynamic-sampling-deprecated": True,
         }
     ):
-        result, status_code = call_endpoint(full_config=False)
+        result, status_code = call_endpoint(full_config=False, path=path)
         assert status_code < 400
         dynamic_sampling = safe.get_path(
             result, "configs", str(default_project.id), "config", "dynamicSampling"
@@ -186,19 +195,23 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
         assert dynamic_sampling is None
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
-    add_org_key, call_endpoint, no_internal_networks
+    add_org_key, path, call_endpoint, no_internal_networks
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True, path=path)
     assert status_code == 403
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
-    call_endpoint, default_project
+    path, call_endpoint, default_project
 ):
-    result, status_code = call_endpoint(full_config=None)
+    result, status_code = call_endpoint(full_config=None, path=path)
 
     assert status_code < 400
 
@@ -207,14 +220,16 @@ def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_co
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
-    call_endpoint, add_org_key, relay, default_project
+    path, call_endpoint, add_org_key, relay, default_project
 ):
     relay.is_internal = False
     relay.save()
 
-    result, status_code = call_endpoint(full_config=None)
+    result, status_code = call_endpoint(full_config=None, path=path)
 
     assert status_code < 400
 
@@ -223,14 +238,16 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_trusted_external_relays_should_receive_minimal_configs(
-    relay, add_org_key, call_endpoint, default_project, default_projectkey
+    relay, add_org_key, path, call_endpoint, default_project, default_projectkey
 ):
     relay.is_internal = False
     relay.save()
 
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint(full_config=False, path=path)
 
     assert status_code < 400
 
@@ -261,12 +278,14 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "config", "quotas") is None
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_untrusted_external_relays_should_not_receive_configs(
-    call_endpoint, default_project, no_internal_networks
+    path, call_endpoint, default_project, no_internal_networks
 ):
 
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint(full_config=False, path=path)
 
     assert status_code < 400
 
@@ -282,31 +301,35 @@ def projectconfig_cache_set(monkeypatch):
     return calls
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_relay_projectconfig_cache_minimal_config(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
+    path, call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
     """
     When a relay fetches a minimal config, that config should not end up in Redis.
     """
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=False)
+        result, status_code = call_endpoint(full_config=False, path=path)
         assert status_code < 400
 
     assert not projectconfig_cache_set
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_relay_projectconfig_cache_full_config(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
+    path, call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
     """
     When a relay fetches a full config, that config should end up in Redis.
     """
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True)
+        result, status_code = call_endpoint(full_config=True, path=path)
         assert status_code < 400
 
     (http_cfg,) = result["configs"].values()
@@ -322,12 +345,14 @@ def test_relay_projectconfig_cache_full_config(
     assert redis_cfg == http_cfg
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
-def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
+@pytest.mark.parametrize("path", paths)
+def test_relay_nonexistent_project(path, call_endpoint, projectconfig_cache_set, task_runner):
     wrong_id = max(p.id for p in Project.objects.all()) + 1
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
+        result, status_code = call_endpoint(full_config=True, path=path, projects=[wrong_id])
         assert status_code < 400
 
     (http_cfg,) = result["configs"].values()
@@ -336,16 +361,18 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
+@pytest.mark.parametrize("path", paths)
 def test_relay_disabled_project(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
+    path, call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
     default_project.update(status=ObjectStatus.PENDING_DELETION)
 
     wrong_id = default_project.id
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
+        result, status_code = call_endpoint(full_config=True, path=path, projects=[wrong_id])
         assert status_code < 400
 
     (http_cfg,) = result["configs"].values()

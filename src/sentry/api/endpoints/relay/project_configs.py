@@ -31,7 +31,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request, organization_slug: str = None) -> Response:
         with start_transaction(
             op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm()
         ):

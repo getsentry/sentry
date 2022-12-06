@@ -579,9 +579,14 @@ urlpatterns = [
                     name="sentry-api-0-relay-register-response",
                 ),
                 url(
-                    r"^projectconfigs/$",
+                    r"^(?P<organization_slug>[^\/]+)/projectconfigs/$",
                     RelayProjectConfigsEndpoint.as_view(),
                     name="sentry-api-0-relay-projectconfigs",
+                ),
+                url(
+                    r"^projectconfigs/$",
+                    RelayProjectConfigsEndpoint.as_view(),
+                    name="sentry-api-0-relay-projectconfigs-orgless",
                 ),
                 url(
                     r"^projectids/$",
