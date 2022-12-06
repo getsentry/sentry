@@ -1,5 +1,7 @@
 import {act} from 'react-test-renderer';
+import {QueryClientProvider} from '@tanstack/react-query';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -25,11 +27,13 @@ describe('PersistedStore', function () {
     });
     OrganizationStore.onUpdate(org, {replace: true});
     wrapper = ({children}) => (
-      <PersistedStoreProvider>
-        <OrganizationContext.Provider value={org}>
-          {children}
-        </OrganizationContext.Provider>
-      </PersistedStoreProvider>
+      <QueryClientProvider client={makeTestQueryClient()}>
+        <PersistedStoreProvider>
+          <OrganizationContext.Provider value={org}>
+            {children}
+          </OrganizationContext.Provider>
+        </PersistedStoreProvider>
+      </QueryClientProvider>
     );
   });
   afterEach(() => {
@@ -66,6 +70,7 @@ describe('PersistedStore', function () {
     expect(state2).toMatchObject({
       test: 2,
     });
+    await waitForNextUpdate();
     expect(clientStateUpdate).toHaveBeenCalledWith(
       `/organizations/${org.slug}/client-state/onboarding/`,
       expect.objectContaining({
@@ -93,6 +98,7 @@ describe('PersistedStore', function () {
     });
     const [state2] = result.current;
     expect(state2).toBe(DefaultPersistedStore.onboarding);
+    await waitForNextUpdate();
     expect(clientStateDelete).toHaveBeenCalledWith(
       `/organizations/${org.slug}/client-state/onboarding/`,
       expect.objectContaining({

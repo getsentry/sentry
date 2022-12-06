@@ -97,10 +97,7 @@ export function transformFieldsWithStops(props: {
 export function VitalWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
+  const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
@@ -146,7 +143,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
-              useEvents={useEvents}
+              useEvents
             />
           );
         },
@@ -212,6 +209,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       location={location}
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
@@ -226,7 +228,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           [settingToVital[props.chartSetting]]: getVitalDataForListItem(
             listItem,
             vital,
-            !useEvents
+            false
           ),
         };
 
@@ -265,7 +267,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 {t('View All')}
               </Button>
             </div>
-            <ContainerActions {...provided.widgetData.chart} />
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
         );
       }}
@@ -316,7 +318,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
                     listItem,
                     vital,
-                    !useEvents
+                    false
                   ),
                 };
 
