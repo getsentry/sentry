@@ -12,6 +12,8 @@ class FileSystemNodeStorage(NodeStorage):
     """
 
     def __init__(self, path=None):
+        self.path: str = ""
+
         if not settings.DEBUG:
             raise ValueError("FileSystemNodeStorage should only be used in development!")
         if path:
