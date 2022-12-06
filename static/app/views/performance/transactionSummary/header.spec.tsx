@@ -75,7 +75,7 @@ describe('Performance > Transaction Summary Header', function () {
     expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should not render web vitals tab when no', function () {
+  it('should not render web vitals tab when hasWebVitals=no', function () {
     const {project, organization, router, eventView} = initializeData();
 
     MockApiClient.addMockResponse({
@@ -83,16 +83,18 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: true},
     });
 
-    <TransactionHeader
-      eventView={eventView}
-      location={router.location}
-      organization={organization}
-      projects={[project]}
-      projectId={project.id}
-      transactionName="transaction_name"
-      currentTab={Tab.TransactionSummary}
-      hasWebVitals="no"
-    />;
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="no"
+      />
+    );
 
     expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });

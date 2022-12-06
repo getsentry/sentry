@@ -14,12 +14,17 @@ class GroupType(Enum):
     PERFORMANCE_CONSECUTIVE_DB_OP = 1007
     PERFORMANCE_FILE_IO_MAIN_THREAD = 1008
     PERFORMANCE_N_PLUS_ONE_API_CALLS = 1010
+    PROFILE_BLOCKED_THREAD = 2000
 
 
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
+    PROFILE = 3
 
+
+GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+# GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 GROUP_TYPE_TO_CATEGORY = {
     GroupType.ERROR: GroupCategory.ERROR,
@@ -32,6 +37,7 @@ GROUP_TYPE_TO_CATEGORY = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: GroupCategory.PERFORMANCE,
+    GroupType.PROFILE_BLOCKED_THREAD: GroupCategory.PROFILE,
 }
 
 GROUP_TYPE_TO_TEXT = {
@@ -45,7 +51,13 @@ GROUP_TYPE_TO_TEXT = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Calls",
+    GroupType.PROFILE_BLOCKED_THREAD: "Blocked Thread",
 }
+
+
+PERFORMANCE_TYPES = [
+    gt.value for gt, gc in GROUP_TYPE_TO_CATEGORY.items() if gc == GroupCategory.PERFORMANCE
+]
 
 
 def get_category_type_mapping():
