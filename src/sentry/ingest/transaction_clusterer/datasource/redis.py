@@ -26,7 +26,7 @@ add_to_set = redis.load_script("utils/sadd_capped.lua")
 
 
 def _get_redis_key(project: Project) -> str:
-    return f"{REDIS_KEY_PREFIX}{project.organization_id}:{project.id}"
+    return f"{REDIS_KEY_PREFIX}o:{project.organization_id}:p:{project.id}"
 
 
 def get_redis_client() -> Any:
