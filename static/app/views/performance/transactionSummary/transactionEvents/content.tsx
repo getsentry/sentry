@@ -93,7 +93,7 @@ function EventsContent(props: Props) {
   }
 
   if (organization.features.includes('profiling')) {
-    transactionsListTitles.push(t('profile id'));
+    transactionsListTitles.push(t('profile'));
   }
 
   return (
