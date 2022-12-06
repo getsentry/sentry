@@ -9,7 +9,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-function getProjectList(selectedProjects: PageFilters['projects'], projects: Project[]) {
+function getSelectedProjectList(
+  selectedProjects: PageFilters['projects'],
+  projects: Project[]
+) {
   if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
     return projects;
   }
@@ -21,28 +24,28 @@ function getProjectList(selectedProjects: PageFilters['projects'], projects: Pro
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
-export function useShouldShowOnboarding() {
+export function useHaveSelectedProjectsSentAnyReplayEvents() {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  const shouldShowOnboardingPanel = useMemo(() => {
-    const projectList = getProjectList(selection.projects, projects);
-    const hasSentOneReplay = projectList.some(project => project.hasReplays);
-    return !hasSentOneReplay;
+  const orgSentOneOrMoreReplayEvent = useMemo(() => {
+    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+    const hasSentOneReplay = selectedProjects.some(project => project.hasReplays);
+    return hasSentOneReplay;
   }, [selection.projects, projects]);
 
-  return shouldShowOnboardingPanel;
+  return orgSentOneOrMoreReplayEvent;
 }
 
 export function useReplayOnboardingSidebarPanel() {
   const {location} = useRouteContext();
-  const enabled = useShouldShowOnboarding();
+  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
 
   useEffect(() => {
-    if (enabled && location.hash === '#replay-sidequest') {
+    if (hasSentOneReplay && location.hash === '#replay-sidequest') {
       SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
     }
-  }, [enabled, location.hash]);
+  }, [hasSentOneReplay, location.hash]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
@@ -50,5 +53,5 @@ export function useReplayOnboardingSidebarPanel() {
     SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
   }, []);
 
-  return {enabled, activateSidebar};
+  return {hasSentOneReplay, activateSidebar};
 }
