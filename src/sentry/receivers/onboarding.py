@@ -3,7 +3,6 @@ import logging
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
-from sentry.utils.safe import get_path
 
 from sentry import analytics
 from sentry.models import (
@@ -33,6 +32,7 @@ from sentry.signals import (
     transaction_processed,
 )
 from sentry.utils.javascript import has_sourcemap
+from sentry.utils.safe import get_path
 
 
 def try_mark_onboarding_complete(organization_id):
