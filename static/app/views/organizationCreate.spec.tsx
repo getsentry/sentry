@@ -5,8 +5,8 @@ import OrganizationCreate from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
   beforeEach(() => {
-    ConfigStore.get('termsUrl', null);
-    ConfigStore.get('privacyUrl', null);
+    ConfigStore.get('termsUrl');
+    ConfigStore.get('privacyUrl');
   });
 
   afterEach(() => {
