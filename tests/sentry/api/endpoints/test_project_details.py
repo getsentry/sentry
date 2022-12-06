@@ -1185,7 +1185,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        self.universal_ds_flag = "organizations:server-side-sampling"
         self.new_ds_flag = "organizations:dynamic-sampling"
 
 
@@ -1213,7 +1212,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         """
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1232,7 +1230,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1259,7 +1256,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
 
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1308,7 +1304,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         ]
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1336,7 +1331,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         new_biases = []
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1363,7 +1357,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         ]
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
