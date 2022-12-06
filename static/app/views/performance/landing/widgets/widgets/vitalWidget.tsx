@@ -291,9 +291,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               }
             />
           ),
-          // TODO double check this height is fine
-          // looks like it affects the loading sreen height
-          height: props.chartHeight,
+          // accordion items height + chart height
+          height: 120 + props.chartHeight,
           noPadding: true,
         },
       ]

@@ -63,7 +63,9 @@ function AccordionItem({
   );
 }
 
-const StyledLineItem = styled('li')``;
+const StyledLineItem = styled('li')`
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
 
 const AccordionContainer = styled('ul')`
   padding: ${space(1)} 0 0 0;

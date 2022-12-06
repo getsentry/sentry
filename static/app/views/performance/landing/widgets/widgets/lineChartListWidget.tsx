@@ -379,7 +379,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               }
             />
           ),
-          height: props.chartHeight,
+          // accordion items height + chart height
+          height: 120 + props.chartHeight,
           noPadding: true,
         },
       ]
