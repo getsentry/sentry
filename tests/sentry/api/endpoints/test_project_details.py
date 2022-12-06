@@ -468,6 +468,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "feedback:branding": False,
         }
         with self.feature("projects:custom-inbound-filters"):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -550,6 +551,10 @@ class ProjectUpdateTest(APITestCase):
             organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+        ).exists()
+        assert project.get_option("feedback:branding") == "0"
         assert AuditLogEntry.objects.filter(
             organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()

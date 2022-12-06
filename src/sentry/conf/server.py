@@ -957,8 +957,6 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Enable the linked event feature in the issue details breadcrumb.
-    "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
@@ -975,7 +973,7 @@ SENTRY_FEATURES = {
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
-    "organizations:discover-query-builder-as-landing-page": False,
+    "organizations:discover-query-builder-as-landing-page": True,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
