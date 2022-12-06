@@ -53,7 +53,7 @@ class RedisQuota(Quota):
         if key:
             key.project = project
 
-        results = []
+        results = [*self.get_project_abuse_quotas(project.organization)]
 
         with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
             span.set_tag("project.id", project.id)
