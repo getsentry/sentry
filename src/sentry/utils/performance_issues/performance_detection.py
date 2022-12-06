@@ -45,7 +45,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
         [
             r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
             r"\b(?:true|false)\b",  # booleans
-            r"\?|\$1",  # existing parameters
+            r"\?|\$1|%s",  # existing parameters
         ]
     )
 )
