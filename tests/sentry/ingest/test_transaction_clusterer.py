@@ -11,6 +11,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_transaction_names,
     record_transaction_name,
 )
+from sentry.ingest.transaction_clusterer.tasks import run_clusterer
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
@@ -125,3 +126,40 @@ def test_save_rules():
         rules.update(project, [ReplacementRule("bar"), ReplacementRule("zap")])
     project_rules = rules.get(project)
     assert {"bar": "1334318402", "foo": "1334318401", "zap": "1334318402"}
+
+
+@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@pytest.mark.django_db
+def test_run_clusterer_task(default_organization):
+    with Feature({"organizations:transaction-name-clusterer": True}):
+        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+        project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+        for project in (project1, project2):
+            project.save()
+            for i in range(len(project.name)):
+                _store_transaction_name(project, f"/user/tx-{project.name}-{i}")
+                _store_transaction_name(project, f"/org/tx-{project.name}-{i}")
+
+        run_clusterer()
+
+        pr1_rules = rules.get(project1)
+        pr2_rules = rules.get(project2)
+
+        assert set(pr1_rules.keys()) == {"/org/*/**", "/user/*/**"}
+        assert set(pr2_rules.keys()) == {"/org/*/**", "/user/*/**"}
+
+        # add more transactions to the project 1
+        for i in range(6):
+            _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
+            _store_transaction_name(project1, f"/test/path/{i}")
+
+        run_clusterer()
+
+        pr_rules = rules.get(project1)
+        assert pr_rules.keys() == {
+            "/org/*/**",
+            "/user/*/**",
+            "/test/path/*/**",
+            "/users/trans/*/**",
+        }
