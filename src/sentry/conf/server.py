@@ -2504,7 +2504,6 @@ KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
-KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
@@ -2549,8 +2548,6 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
-    # Topic for receiving issue occurrences from Relay
-    KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
     # Topic for receiving metrics from Relay
     KAFKA_INGEST_METRICS: {"cluster": "default"},
     # Topic for indexer translated metrics
