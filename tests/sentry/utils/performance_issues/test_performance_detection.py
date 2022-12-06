@@ -564,7 +564,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_problems(render_blocking_asset_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -578,6 +578,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call(
                     "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_render_blocking_assets_fp",
+                    "6060649d4f8435d88735",
                 ),
                 call(
                     "_pi_render_blocking_assets",
@@ -1008,7 +1012,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     def test_does_not_detect_file_io_main_thread(self):
         file_io_event = EVENTS["file-io-on-main-thread"]
-        file_io_event["spans"][0]["data"]["blocked_ui_thread"] = False
+        file_io_event["spans"][0]["data"]["blocked_main_thread"] = False
         sdk_span_mock = Mock()
 
         _detect_performance_problems(file_io_event, sdk_span_mock)

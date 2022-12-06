@@ -120,12 +120,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     referrer?: string,
     mepSetting?: MEPState | null
   ) => {
-    const shouldUseEvents = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
-    );
-    const url = shouldUseEvents
-      ? `/organizations/${organization.slug}/events/`
-      : `/organizations/${organization.slug}/eventsv2/`;
+    const url = `/organizations/${organization.slug}/events/`;
     return getEventsRequest(
       url,
       api,
@@ -268,21 +263,15 @@ function getEventsTableFieldOptions(
 
 function transformEventsResponseToTable(
   data: TableData | EventsTableData,
-  _widgetQuery: WidgetQuery,
-  organization: Organization
+  _widgetQuery: WidgetQuery
 ): TableData {
   let tableData = data;
-  const shouldUseEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
-  );
   // events api uses a different response format so we need to construct tableData differently
-  if (shouldUseEvents) {
-    const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
-    tableData = {
-      ...data,
-      meta: {...fields, ...otherMeta},
-    } as TableData;
-  }
+  const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
+  tableData = {
+    ...data,
+    meta: {...fields, ...otherMeta},
+  } as TableData;
   return tableData as TableData;
 }
 
@@ -449,15 +438,7 @@ function renderTraceAsLinkable(
   );
 }
 
-export function getCustomEventsFieldRenderer(
-  field: string,
-  meta: MetaType,
-  organization?: Organization
-) {
-  const isAlias = !organization?.features.includes(
-    'discover-frontend-use-events-endpoint'
-  );
-
+export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -484,10 +465,10 @@ export function getCustomEventsFieldRenderer(
           </Container>
         );
       }
-      return getFieldRenderer(field, meta, isAlias)(data, baggage);
+      return getFieldRenderer(field, meta, false)(data, baggage);
     };
   }
-  return getFieldRenderer(field, meta, isAlias);
+  return getFieldRenderer(field, meta, false);
 }
 
 function getEventsRequest(

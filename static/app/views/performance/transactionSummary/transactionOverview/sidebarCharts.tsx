@@ -82,9 +82,6 @@ function SidebarCharts({
 }: Props) {
   const location = useLocation();
   const router = useRouter();
-  const useAggregateAlias = !organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const theme = useTheme();
   return (
     <RelativeBox>
@@ -101,11 +98,7 @@ function SidebarCharts({
           data-test-id="apdex-summary-value"
           isLoading={isLoading}
           error={error}
-          value={
-            totals
-              ? formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
-              : null
-          }
+          value={totals ? formatFloat(totals['apdex()'], 4) : null}
         />
       </ChartLabel>
 
@@ -122,13 +115,7 @@ function SidebarCharts({
           data-test-id="failure-rate-summary-value"
           isLoading={isLoading}
           error={error}
-          value={
-            totals
-              ? formatPercentage(
-                  useAggregateAlias ? totals.failure_rate : totals['failure_rate()']
-                )
-              : null
-          }
+          value={totals ? formatPercentage(totals['failure_rate()']) : null}
         />
       </ChartLabel>
 
@@ -148,7 +135,7 @@ function SidebarCharts({
           value={
             totals
               ? tct('[tpm] tpm', {
-                  tpm: formatFloat(useAggregateAlias ? totals.tpm : totals['tpm()'], 4),
+                  tpm: formatFloat(totals['tpm()'], 4),
                 })
               : null
           }
