@@ -11,7 +11,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
   const {organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({features: ['mobile-screenshot-gallery']}),
+    organization: TestStubs.Organization(),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
       location: {query: {types: 'event.screenshot'}},

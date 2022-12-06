@@ -1,11 +1,11 @@
 {
-  "event_id": "c119e45a9d724b1891df4651ebf9e6db",
+  "event_id": "8ab6e6ebbaa5458687143fe0e19a1d8d",
   "project": 5428559,
   "release": "io.sentry.samples.android@1.1.0+2",
   "dist": "2",
   "platform": "java",
   "message": "",
-  "datetime": "2022-11-21T11:57:38.806589+00:00",
+  "datetime": "2022-11-25T22:43:58.519693+00:00",
   "tags": [
     [
       "device",
@@ -17,7 +17,7 @@
     ],
     [
       "environment",
-      "debug"
+      "release"
     ],
     [
       "isSideLoaded",
@@ -57,13 +57,13 @@
     ]
   ],
   "_metrics": {
-    "bytes.ingested.event": 3725,
-    "bytes.stored.event": 4851
+    "bytes.ingested.event": 3552,
+    "bytes.stored.event": 4685
   },
   "breadcrumbs": {
     "values": [
       {
-        "timestamp": 1669031851.824,
+        "timestamp": 1669416139.706,
         "type": "navigation",
         "category": "ui.lifecycle",
         "level": "info",
@@ -73,7 +73,7 @@
         }
       },
       {
-        "timestamp": 1669031851.942,
+        "timestamp": 1669416139.9,
         "type": "navigation",
         "category": "ui.lifecycle",
         "level": "info",
@@ -83,7 +83,7 @@
         }
       },
       {
-        "timestamp": 1669031851.943,
+        "timestamp": 1669416139.902,
         "type": "session",
         "category": "app.lifecycle",
         "level": "info",
@@ -92,7 +92,7 @@
         }
       },
       {
-        "timestamp": 1669031851.95,
+        "timestamp": 1669416139.903,
         "type": "navigation",
         "category": "app.lifecycle",
         "level": "info",
@@ -101,7 +101,7 @@
         }
       },
       {
-        "timestamp": 1669031851.953,
+        "timestamp": 1669416139.903,
         "type": "navigation",
         "category": "ui.lifecycle",
         "level": "info",
@@ -111,12 +111,12 @@
         }
       },
       {
-        "timestamp": 1669031858.676,
+        "timestamp": 1669416238.454,
         "type": "user",
         "category": "ui.click",
         "level": "info",
         "data": {
-          "view.class": "androidx.appcompat.widget.AppCompatButton",
+          "view.class": "k.e",
           "view.id": "add_attachment"
         }
       }
@@ -125,14 +125,14 @@
   "breakdowns": {
     "span_ops": {
       "total.time": {
-        "value": 94.411134,
+        "value": 17.19904,
         "unit": "millisecond"
       }
     }
   },
   "contexts": {
     "app": {
-      "app_start_time": "2022-11-21T11:57:31.523Z",
+      "app_start_time": "2022-11-25T22:42:19.465Z",
       "app_identifier": "io.sentry.samples.android",
       "app_name": "Sentry sample",
       "app_version": "1.1.0",
@@ -140,7 +140,6 @@
       "permissions": {
         "ACCESS_NETWORK_STATE": "granted",
         "CAMERA": "not_granted",
-        "FOREGROUND_SERVICE": "granted",
         "INTERNET": "granted",
         "READ_EXTERNAL_STORAGE": "not_granted",
         "READ_PHONE_STATE": "not_granted",
@@ -159,7 +158,7 @@
       "screen_density": 2.625,
       "screen_dpi": 420,
       "simulator": true,
-      "boot_time": "2022-11-21T10:57:17.182Z",
+      "boot_time": "2022-11-25T21:17:00.121Z",
       "timezone": "Europe/Vienna",
       "archs": [
         "x86"
@@ -180,18 +179,26 @@
       "type": "os"
     },
     "trace": {
-      "trace_id": "b2a33f3f79fe4a7c8de3426725a045cb",
-      "span_id": "b93d2be92cd64fd5",
+      "trace_id": "e4ab5e05af08473886eb06690f358fbf",
+      "span_id": "e00f26281ba24d3f",
       "op": "ui.action.click",
       "status": "ok",
-      "exclusive_time": 35.177709,
+      "exclusive_time": 49.000024,
       "client_sample_rate": 1,
       "hash": "1ff9a18d6a6b09a8",
       "type": "trace"
     }
   },
   "culprit": "MainActivity.add_attachment",
-  "environment": "debug",
+  "debug_meta": {
+    "images": [
+      {
+        "uuid": "467ade76-6d0b-11ed-a1eb-0242ac120002",
+        "type": "proguard"
+      }
+    ]
+  },
+  "environment": "release",
   "grouping_config": {
     "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxxEkT1-Zm5usVp-aVFFXqaWlNZAQAKGsOFg",
     "id": "newstyle:2019-10-29"
@@ -211,8 +218,8 @@
     "location": "MainActivity.add_attachment",
     "title": "MainActivity.add_attachment"
   },
-  "nodestore_insert": 1669031864.427658,
-  "received": 1669031861.899161,
+  "nodestore_insert": 1669416243.421129,
+  "received": 1669416242.917276,
   "sdk": {
     "name": "sentry.java.android.timber",
     "version": "6.8.0",
@@ -240,42 +247,35 @@
   },
   "spans": [
     {
-      "timestamp": 1669031858.806411,
-      "start_timestamp": 1669031857.712,
-      "exclusive_time": 1094.411134,
-      "description": "1669031858711_file.txt (4.0 kB)",
+      "timestamp": 1669416238.520199,
+      "start_timestamp": 1669416238.503,
+      "exclusive_time": 17.19904,
+      "description": "1669416238502_file.txt (4.0 kB)",
       "op": "file.write",
-      "span_id": "054ba3a374d543eb",
-      "parent_span_id": "b93d2be92cd64fd5",
-      "trace_id": "b2a33f3f79fe4a7c8de3426725a045cb",
+      "span_id": "25cec4d31c2f4acb",
+      "parent_span_id": "e00f26281ba24d3f",
+      "trace_id": "e4ab5e05af08473886eb06690f358fbf",
       "status": "ok",
       "data": {
         "blocked_main_thread": true,
         "call_stack": [
           {
-            "function": "onClick",
+            "filename": "R8$$SyntheticClass",
+            "function": "a",
             "in_app": true,
-            "lineno": 2,
-            "module": "io.sentry.samples.android.MainActivity$$ExternalSyntheticLambda6",
-            "native": false
-          },
-          {
-            "filename": "MainActivity.java",
-            "function": "lambda$onCreate$5$io-sentry-samples-android-MainActivity",
-            "in_app": true,
-            "lineno": 93,
-            "module": "io.sentry.samples.android.MainActivity",
+            "lineno": 69,
+            "module": "org.a.b.g$a",
             "native": false
           }
         ],
-        "file.path": "/data/user/0/io.sentry.samples.android/files/1669031858711_file.txt",
+        "file.path": "/data/user/0/io.sentry.samples.android/files/1669416238502_file.txt",
         "file.size": 4010
       },
-      "hash": "8add714f71a52ef2"
+      "hash": "67650ed457dbcced"
     }
   ],
-  "start_timestamp": 1669031858.677,
-  "timestamp": 1669031858.806589,
+  "start_timestamp": 1669416238.454,
+  "timestamp": 1669416238.519693,
   "title": "MainActivity.add_attachment",
   "transaction": "MainActivity.add_attachment",
   "transaction_info": {
@@ -287,7 +287,7 @@
     "ip_address": "86.56.213.87",
     "geo": {
       "country_code": "AT",
-      "city": "Enns",
+      "city": "Hoersching",
       "region": "Austria"
     }
   },
