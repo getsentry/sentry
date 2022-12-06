@@ -18,21 +18,25 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
   let kindOfMatches;
   if (searchTerm) {
     const [key, value] = searchTerm.split('=');
-    // if (value && Object.keys(hierarchy.meta).includes(key)) {
-    //   match = hierarchy.meta[key].toLowerCase() === value.toLowerCase();
-    //   kindOfMatches =
-    //     value && hierarchy.meta[key].toLowerCase().includes(value.toLowerCase());
-    // }
+    if (value && Object.keys(hierarchy.meta).includes(key)) {
+      match = hierarchy.meta[key].toLowerCase() === value.toLowerCase();
+      kindOfMatches =
+        value && hierarchy.meta[key].toLowerCase().includes(value.toLowerCase());
+    }
 
-    if (key === 'type' && value) {
-      match = value && hierarchy.type.toLowerCase() === value.toLowerCase();
-      kindOfMatches = value && hierarchy.type.toLowerCase().includes(value.toLowerCase());
+    if (key === 'title' && value) {
+      match =
+        hierarchy.title.split(': ')[0].toLowerCase() === value.toLowerCase() ||
+        (value.includes(': ') &&
+          hierarchy.title.toLowerCase().startsWith(value.toLowerCase()));
+      kindOfMatches =
+        value && hierarchy.title.toLowerCase().includes(value.toLowerCase());
     }
   }
 
   return (
     <Fragment>
-      {SEARCH && hierarchy.type === 'UIWindow' && (
+      {SEARCH && hierarchy.title === 'UIWindow: 0x7f893fc0ebd0' && (
         <div style={{display: 'flex'}}>
           <Input
             style={{margin: '18px', marginTop: '0', width: '50%'}}
@@ -75,9 +79,9 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
               background: match ? 'lightgreen' : kindOfMatches ? 'yellow' : 'none',
             }}
           >
-            <strong>{hierarchy.type}</strong>
+            <strong>{hierarchy.title}</strong>
           </div>
-          {/* {hierarchy.meta.frame} */}
+          {hierarchy.meta.frame}
           {hovered && (
             <div
               // onClick={() => alert(JSON.stringify(hierarchy.meta, null, 2) + '\n')}
@@ -92,22 +96,16 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
         {(showData || showingData || showAllData) && (
           <table style={{marginLeft: '18px', borderSpacing: '4px'}}>
             <tr>
-              {Object.keys(hierarchy)
-                .filter(key => key !== 'children')
-                .map(key => (
-                  <td style={{border: '0.5px solid black', padding: '4px'}}>
-                    <strong>{key}</strong>
-                  </td>
-                ))}
+              {Object.keys(hierarchy.meta).map(key => (
+                <td style={{border: '0.5px solid black', padding: '4px'}}>
+                  <strong>{key}</strong>
+                </td>
+              ))}
             </tr>
             <tr>
-              {Object.keys(hierarchy)
-                .filter(key => key !== 'children')
-                .map(value => (
-                  <td style={{border: '0.5px solid black', padding: '4px'}}>
-                    {String(hierarchy[value])}
-                  </td>
-                ))}
+              {Object.values(hierarchy.meta).map(value => (
+                <td style={{border: '0.5px solid black', padding: '4px'}}>{value}</td>
+              ))}
             </tr>
           </table>
         )}
@@ -115,7 +113,7 @@ function ViewHierarchy({hierarchy, searchTerm, showData}) {
         {!collapsed &&
           !!hierarchy.children.length &&
           hierarchy.children.map((child, i) => (
-            <Container key={`${hierarchy.type}-${i}`}>
+            <Container key={`${hierarchy.title}-${i}`}>
               <ViewHierarchy
                 hierarchy={child}
                 searchTerm={searchValue || searchTerm}

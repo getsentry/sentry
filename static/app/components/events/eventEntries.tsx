@@ -53,8 +53,7 @@ import {CommitRow} from '../commitRow';
 
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
-import {mockViewHierarchyData} from './viewHierarchy/mockViewHierarchyData';
-import {parseViewHierarchy} from './viewHierarchy/viewHierarchyParser';
+import mockViewHierarchyData from './viewHierarchy/viewHierarchy.json';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 import ViewHierarchy from './viewHierarchy';
@@ -331,7 +330,6 @@ const EventEntries = ({
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
-  console.log(parseViewHierarchy(mockViewHierarchyData));
   return (
     <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
       {hasErrors && !isLoading && (
@@ -413,7 +411,7 @@ const EventEntries = ({
       {/* <pre>{JSON.stringify(parseViewHierarchy(mockViewHierarchyData), null, 2)}</pre> */}
       <h3 style={{marginLeft: '18px'}}>View Hierarchy</h3>
       <div style={{whiteSpace: 'nowrap', overflow: 'auto'}}>
-        <ViewHierarchy hierarchy={parseViewHierarchy(mockViewHierarchyData)} />
+        <ViewHierarchy hierarchy={mockViewHierarchyData.windows[0]} />
       </div>
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />

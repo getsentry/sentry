@@ -1,0 +1,947 @@
+{
+  "rendering_system": "UIKIT",
+  "windows": [
+    {
+      "type": "UIWindow",
+      "width": 393,
+      "height": 852,
+      "x": 0,
+      "y": 0,
+      "alpha": 1,
+      "visible": true,
+      "children": [
+        {
+          "type": "UITransitionView",
+          "width": 393,
+          "height": 852,
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "visible": true,
+          "children": [
+            {
+              "type": "UIDropShadowView",
+              "width": 393,
+              "height": 852,
+              "x": 0,
+              "y": 0,
+              "alpha": 1,
+              "visible": true,
+              "children": [
+                {
+                  "type": "UILayoutContainerView",
+                  "width": 393,
+                  "height": 852,
+                  "x": 0,
+                  "y": 0,
+                  "alpha": 1,
+                  "visible": true,
+                  "children": [
+                    {
+                      "type": "UINavigationTransitionView",
+                      "width": 393,
+                      "height": 852,
+                      "x": 0,
+                      "y": 0,
+                      "alpha": 1,
+                      "visible": true,
+                      "children": [
+                        {
+                          "type": "UIViewControllerWrapperView",
+                          "width": 393,
+                          "height": 852,
+                          "x": 0,
+                          "y": 0,
+                          "alpha": 1,
+                          "visible": true,
+                          "children": [
+                            {
+                              "type": "UIView",
+                              "width": 393,
+                              "height": 852,
+                              "x": 0,
+                              "y": 0,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "UIStackView",
+                                  "width": 377,
+                                  "height": 616,
+                                  "x": 8,
+                                  "y": 150,
+                                  "alpha": 1,
+                                  "visible": true,
+                                  "children": [
+                                    {
+                                      "type": "UIStackView",
+                                      "width": 377,
+                                      "height": 390,
+                                      "x": 0,
+                                      "y": 0,
+                                      "alpha": 1,
+                                      "visible": true,
+                                      "children": [
+                                        {
+                                          "type": "UIStackView",
+                                          "width": 171.667,
+                                          "height": 390,
+                                          "x": 0,
+                                          "y": 0,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": [
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 0,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 115,
+                                                  "height": 18,
+                                                  "x": 28.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "captureMessageButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 30,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 62,
+                                                  "height": 18,
+                                                  "x": 55,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "uiClickTransactionButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 60,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 133,
+                                                  "height": 18,
+                                                  "x": 19.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 90,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 104,
+                                                  "height": 18,
+                                                  "x": 33.6667,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 120,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 34,
+                                                  "height": 18,
+                                                  "x": 69,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 150,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 88,
+                                                  "height": 18,
+                                                  "x": 41.6667,
+                                                  "y": 6,
+                                                  "alpha": 0.2,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 180,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 64,
+                                                  "height": 18,
+                                                  "x": 54,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 210,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 38,
+                                                  "height": 18,
+                                                  "x": 67,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 240,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 78,
+                                                  "height": 18,
+                                                  "x": 47,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 270,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 82,
+                                                  "height": 18,
+                                                  "x": 45,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 300,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 83,
+                                                  "height": 18,
+                                                  "x": 44.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 330,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 39,
+                                                  "height": 18,
+                                                  "x": 66.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 171.667,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 360,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 68,
+                                                  "height": 18,
+                                                  "x": 52,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "UIStackView",
+                                          "width": 205.333,
+                                          "height": 360,
+                                          "x": 171.667,
+                                          "y": 0,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": [
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 0,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 126,
+                                                  "height": 18,
+                                                  "x": 39.6667,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 30,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 132,
+                                                  "height": 18,
+                                                  "x": 36.6667,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 60,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 139,
+                                                  "height": 18,
+                                                  "x": 33.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "loremIpsumButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 90,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 89,
+                                                  "height": 18,
+                                                  "x": 58.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "testNavigationTransactionButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 120,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 42,
+                                                  "height": 18,
+                                                  "x": 81.6667,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "showNibButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 150,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 65,
+                                                  "height": 18,
+                                                  "x": 70.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "showTableViewButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 180,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 69,
+                                                  "height": 18,
+                                                  "x": 68.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "showSplitViewButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 210,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 64,
+                                                  "height": 18,
+                                                  "x": 70.6667,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "identifier": "useCoreData",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 240,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 69,
+                                                  "height": 18,
+                                                  "x": 68.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 270,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 159,
+                                                  "height": 18,
+                                                  "x": 23.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 300,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 37,
+                                                  "height": 18,
+                                                  "x": 84.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "UIButton",
+                                              "width": 205.333,
+                                              "height": 30,
+                                              "x": 0,
+                                              "y": 330,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "UIButtonLabel",
+                                                  "width": 153,
+                                                  "height": 18,
+                                                  "x": 26.3333,
+                                                  "y": 6,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "UIStackView",
+                                      "width": 377,
+                                      "height": 226,
+                                      "x": 0,
+                                      "y": 390,
+                                      "alpha": 1,
+                                      "visible": true,
+                                      "children": [
+                                        {
+                                          "type": "UILabel",
+                                          "width": 361,
+                                          "height": 20.3333,
+                                          "x": 8,
+                                          "y": 32,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": []
+                                        },
+                                        {
+                                          "type": "UITextField",
+                                          "width": 361,
+                                          "height": 34,
+                                          "x": 8,
+                                          "y": 52.3333,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": [
+                                            {
+                                              "type": "_UITextFieldRoundedRectBackgroundViewNeue",
+                                              "width": 361,
+                                              "height": 34,
+                                              "x": 0,
+                                              "y": 0,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": []
+                                            },
+                                            {
+                                              "type": "_UITextLayoutCanvasView",
+                                              "width": 347,
+                                              "height": 30,
+                                              "x": 7,
+                                              "y": 2,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": [
+                                                {
+                                                  "type": "_UITextLayoutFragmentView",
+                                                  "width": 380,
+                                                  "height": 19,
+                                                  "x": -6,
+                                                  "y": 5.66992,
+                                                  "alpha": 1,
+                                                  "visible": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "UIButton",
+                                          "width": 361,
+                                          "height": 30,
+                                          "x": 8,
+                                          "y": 86.3333,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": [
+                                            {
+                                              "type": "UIButtonLabel",
+                                              "width": 74,
+                                              "height": 18,
+                                              "x": 0,
+                                              "y": 6,
+                                              "alpha": 1,
+                                              "visible": true,
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "UILabel",
+                                          "identifier": "framesStatsLabel",
+                                          "width": 361,
+                                          "height": 20.3333,
+                                          "x": 8,
+                                          "y": 116.333,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": []
+                                        },
+                                        {
+                                          "type": "UILabel",
+                                          "identifier": "breadcrumbLabel",
+                                          "width": 361,
+                                          "height": 81.3333,
+                                          "x": 8,
+                                          "y": 136.667,
+                                          "alpha": 1,
+                                          "visible": true,
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "UINavigationBar",
+                      "identifier": "Sentry Test App (Swift)",
+                      "width": 393,
+                      "height": 44,
+                      "x": 0,
+                      "y": 53.6667,
+                      "alpha": 1,
+                      "visible": true,
+                      "children": [
+                        {
+                          "type": "_UIBarBackground",
+                          "width": 393,
+                          "height": 103,
+                          "x": 0,
+                          "y": -59,
+                          "alpha": 1,
+                          "visible": true,
+                          "children": [
+                            {
+                              "type": "UIVisualEffectView",
+                              "width": 393,
+                              "height": 103,
+                              "x": 0,
+                              "y": 0,
+                              "alpha": 0,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "_UIVisualEffectBackdropView",
+                                  "width": 393,
+                                  "height": 103,
+                                  "x": 0,
+                                  "y": 0,
+                                  "alpha": 1,
+                                  "visible": true,
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "type": "_UIBarBackgroundShadowView",
+                              "width": 393,
+                              "height": 0.333333,
+                              "x": 0,
+                              "y": 103,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "_UIBarBackgroundShadowContentImageView",
+                                  "width": 393,
+                                  "height": 0.333333,
+                                  "x": 0,
+                                  "y": 0,
+                                  "alpha": 0,
+                                  "visible": true,
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "_UINavigationBarContentView",
+                          "width": 393,
+                          "height": 44,
+                          "x": 0,
+                          "y": 0,
+                          "alpha": 1,
+                          "visible": true,
+                          "children": [
+                            {
+                              "type": "_UIButtonBarStackView",
+                              "width": 8,
+                              "height": 44,
+                              "x": 377,
+                              "y": 0,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": []
+                            },
+                            {
+                              "type": "_UINavigationBarTitleControl",
+                              "width": 185.667,
+                              "height": 20.3333,
+                              "x": 103.667,
+                              "y": 11.6667,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "UILabel",
+                                  "width": 185.667,
+                                  "height": 20.3333,
+                                  "x": 0,
+                                  "y": 0,
+                                  "alpha": 1,
+                                  "visible": true,
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "_UIPointerInteractionAssistantEffectContainerView",
+                          "width": 0,
+                          "height": 0,
+                          "x": 0,
+                          "y": 0,
+                          "alpha": 1,
+                          "visible": true,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "UIToolbar",
+                      "identifier": "Toolbar",
+                      "width": 393,
+                      "height": 49,
+                      "x": 0,
+                      "y": 852,
+                      "alpha": 1,
+                      "visible": false,
+                      "children": [
+                        {
+                          "type": "_UIBarBackground",
+                          "width": 393,
+                          "height": 83,
+                          "x": 0,
+                          "y": 0,
+                          "alpha": 1,
+                          "visible": true,
+                          "children": [
+                            {
+                              "type": "UIVisualEffectView",
+                              "width": 393,
+                              "height": 83,
+                              "x": 0,
+                              "y": 0,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "_UIVisualEffectBackdropView",
+                                  "width": 393,
+                                  "height": 83,
+                                  "x": 0,
+                                  "y": 0,
+                                  "alpha": 1,
+                                  "visible": true,
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "type": "_UIBarBackgroundShadowView",
+                              "width": 393,
+                              "height": 0.333333,
+                              "x": 0,
+                              "y": -0.333333,
+                              "alpha": 1,
+                              "visible": true,
+                              "children": [
+                                {
+                                  "type": "_UIBarBackgroundShadowContentImageView",
+                                  "width": 393,
+                                  "height": 0.333333,
+                                  "x": 0,
+                                  "y": 0,
+                                  "alpha": 1,
+                                  "visible": true,
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
