@@ -138,6 +138,7 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+    from sentry.issues.issue_occurrence import IssueOccurrence
 
 logger = logging.getLogger("sentry.events")
 
@@ -428,6 +429,11 @@ class EventManager:
                     project=project, event=jobs[0]["event"], sender=Project
                 )
 
+            return jobs[0]["event"]
+
+        if self._data.get("type") == "platform":
+            job["data"]["project"] = project.id
+            jobs = save_platform_events([job], projects)
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
@@ -1148,6 +1154,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 
         event = job["event"]
         # We only care about `unprocessed` for error events
+        # TODO: Should ignore platform events
         if event.get_event_type() != "transaction" and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
@@ -2429,4 +2436,38 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    return jobs
+
+
+@metrics.wraps("event_manager.save_platform_events")
+def save_platform_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    with metrics.timer("event_manager.save_platform_events.collect_organization_ids"):
+        organization_ids = {project.organization_id for project in projects.values()}
+
+    with metrics.timer("event_manager.save_platform_events.fetch_organizations"):
+        organizations = {
+            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
+        }
+
+    with metrics.timer("event_manager.save_platform_events.set_organization_cache"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
+
+    _pull_out_data(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _get_or_create_group_environment_many(jobs, projects)
+    _get_or_create_release_associated_models(jobs, projects)
+    _get_or_create_group_release_many(jobs, projects)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs)
     return jobs
