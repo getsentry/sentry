@@ -3,7 +3,14 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -109,6 +116,17 @@ describe('Performance > Landing > Index', function () {
           },
         ],
       },
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      body: [],
     });
   });
 
@@ -305,6 +323,21 @@ describe('Performance > Landing > Index', function () {
       );
 
       expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
+    });
+
+    it('extracts free text from the query', async function () {
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-transaction-name-only-search-indexed',
+        ],
+      });
+
+      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+      expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
     });
   });
 });
