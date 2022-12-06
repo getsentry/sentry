@@ -1,6 +1,8 @@
+import datetime
 import os
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.nodestore.base import NodeStorage
 
@@ -31,6 +33,16 @@ class FileSystemNodeStorage(NodeStorage):
 
     def delete(self, id):
         os.remove(self.node_path(id))
+
+    def cleanup(self, cutoff: datetime.datetime):
+        for filename in os.listdir(self.path):
+            path = os.path.join(self.path, filename)
+            creation_datetime = datetime.datetime.fromtimestamp(os.path.getctime(path)).replace(
+                tzinfo=timezone.utc
+            )
+
+            if creation_datetime > cutoff:
+                os.remove(path)
 
     def bootstrap(self):
         try:
