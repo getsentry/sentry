@@ -1,5 +1,5 @@
 import {EventOrGroupType} from 'sentry/types';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext';
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
 
 export type DiscoverEventParameters = {
   'discover_v2.add_equation': {};
@@ -15,6 +15,7 @@ export type DiscoverEventParameters = {
     eventType?: EventOrGroupType;
   };
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
+  'discover_v2.results.toggle_tag_facets': {};
   'discover_v2.saved_query_click': {};
   'discover_v2.set_as_default': {
     source: 'homepage' | 'prebuilt-query' | 'saved-query' | 'context-menu';
@@ -25,6 +26,7 @@ export type DiscoverEventParameters = {
   'discover_v2.tour.close': {duration: number; step: number};
   'discover_v2.tour.start': {};
   'discover_v2.view_saved_queries': {};
+  'discover_v2.y_axis_change': {y_axis_value: string[]};
   'discover_views.add_to_dashboard.confirm': {};
   'discover_views.add_to_dashboard.modal_open': {saved_query: boolean};
 };
@@ -46,6 +48,7 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.view_saved_queries': 'Discoverv2: Click Saved Queries button',
   'discover_v2.set_as_default': 'Discoverv2: Click set as default',
   'discover_v2.remove_default': 'Discoverv2: Click remove default',
+  'discover_v2.results.toggle_tag_facets': 'Discoverv2: Toggle Tag Facets',
   'discover_views.add_to_dashboard.modal_open':
     'Discover2: Add to Dashboard modal opened',
   'discover_views.add_to_dashboard.confirm':
@@ -54,4 +57,5 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.quick_context_add_column': 'Discover2: Add column from Quick Context',
   'discover_v2.quick_context_header_copy':
     'Discover2: Copy value from Quick Context header',
+  'discover_v2.y_axis_change': "Discoverv2: Change chart's y axis",
 };

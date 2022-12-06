@@ -8,15 +8,17 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -32,8 +34,8 @@ import {
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  networkSpans: NetworkSpan[];
-  replayRecord: ReplayRecord;
+  networkSpans: undefined | NetworkSpan[];
+  replayRecord: undefined | ReplayRecord;
 };
 
 type SortDirection = 'asc' | 'desc';
@@ -46,7 +48,7 @@ const cache = new CellMeasurerCache({
 const headerRowHeight = 24;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
-  const startTimestampMs = replayRecord.startedAt.getTime();
+  const startTimestampMs = replayRecord?.startedAt?.getTime() || 0;
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
@@ -290,81 +292,110 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
+          options={getStatusTypes(networkSpans || []).map(value => ({
+            value,
+            label: value,
+          }))}
           size="sm"
           onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
           triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
+          options={getResourceTypes(networkSpans || []).map(value => ({
+            value,
+            label: value,
+          }))}
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
+          isDisabled={!networkSpans || !networkSpans.length}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
-          placeholder={t('Search Network...')}
+          placeholder={t('Search Network Requests')}
           query={searchTerm}
+          disabled={!networkSpans || !networkSpans.length}
         />
       </NetworkFilters>
 
       <NetworkTable ref={networkTableRef}>
-        <AutoSizer>
-          {({width, height}) => (
-            <MultiGrid
-              ref={multiGridRef}
-              columnCount={columns.length}
-              columnWidth={({index}) => {
-                if (index === 1) {
-                  return Math.max(
-                    columns.reduce(
-                      (remaining, _, i) =>
-                        i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
-                      width - scrollBarWidth
-                    ),
-                    200
-                  );
-                }
+        {networkSpans ? (
+          <AutoSizer>
+            {({width, height}) => (
+              <MultiGrid
+                ref={multiGridRef}
+                columnCount={columns.length}
+                columnWidth={({index}) => {
+                  if (index === 1) {
+                    return Math.max(
+                      columns.reduce(
+                        (remaining, _, i) =>
+                          i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
+                        width - scrollBarWidth
+                      ),
+                      200
+                    );
+                  }
 
-                return cache.columnWidth({index});
-              }}
-              deferredMeasurementCache={cache}
-              height={height}
-              overscanRowCount={5}
-              cellRenderer={renderTableRow}
-              rowCount={networkData.length + 1}
-              rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
-              width={width}
-              fixedRowCount={1}
-              onScrollbarPresenceChange={({vertical, size}) => {
-                if (vertical) {
-                  setScrollBarWidth(size);
-                } else {
-                  setScrollBarWidth(0);
+                  return cache.columnWidth({index});
+                }}
+                deferredMeasurementCache={cache}
+                height={height}
+                overscanRowCount={5}
+                cellRenderer={renderTableRow}
+                rowCount={networkData.length + 1}
+                rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+                width={width}
+                fixedRowCount={1}
+                onScrollbarPresenceChange={({vertical, size}) => {
+                  if (vertical) {
+                    setScrollBarWidth(size);
+                  } else {
+                    setScrollBarWidth(0);
+                  }
+                }}
+                noContentRenderer={() =>
+                  networkSpans.length === 0 ? (
+                    <StyledEmptyStateWarning>
+                      <p>{t('No network requests recorded')}</p>
+                    </StyledEmptyStateWarning>
+                  ) : (
+                    <StyledEmptyStateWarning>
+                      <p>{t('No results found')}</p>
+                      <Button
+                        icon={<IconClose color="gray500" size="sm" isCircled />}
+                        onClick={() => setSearchTerm('')}
+                        size="md"
+                      >
+                        {t('Clear filters')}
+                      </Button>
+                    </StyledEmptyStateWarning>
+                  )
                 }
-              }}
-              noContentRenderer={() =>
-                networkSpans.length === 0 ? (
-                  <EmptyStateWarning withIcon={false} small>
-                    {t('No related network requests recorded')}
-                  </EmptyStateWarning>
-                ) : (
-                  <EmptyStateWarning withIcon small>
-                    {t('No results found')}
-                  </EmptyStateWarning>
-                )
-              }
-            />
-          )}
-        </AutoSizer>
+              />
+            )}
+          </AutoSizer>
+        ) : (
+          <Placeholder height="100%" />
+        )}
       </NetworkTable>
     </NetworkContainer>
   );
 }
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;

@@ -127,6 +127,12 @@ def test_allows_eligible_spans(span):
             "hash": "a",
             "data": {"url": "/resource.js"},
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource?graphql=somequery",
+            "hash": "a",
+        },
     ],
 )
 def test_rejects_ineligible_spans(span):
