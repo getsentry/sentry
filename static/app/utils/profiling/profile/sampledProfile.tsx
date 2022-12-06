@@ -31,18 +31,44 @@ export class SampledProfile extends Profile {
 
     for (let i = 0; i < sampledProfile.samples.length; i++) {
       const stack = sampledProfile.samples[i];
-      const weight = sampledProfile.weights[i];
+      let weight = sampledProfile.weights[i];
 
-      profile.appendSampleWithWeight(
-        stack.map(n => {
-          if (!frameIndex[n]) {
-            throw new Error(`Could not resolve frame ${n} in frame index`);
-          }
+      let resolvedStack = stack.map(n => {
+        if (!frameIndex[n]) {
+          throw new Error(`Could not resolve frame ${n} in frame index`);
+        }
 
-          return frameIndex[n];
-        }),
-        weight
-      );
+        return frameIndex[n];
+      });
+
+      if (
+        i > 0 &&
+        resolvedStack[resolvedStack.length - 1]?.name ===
+          '(garbage collector) [native code]'
+      ) {
+        // The next stack we append will be previous stack + gc frame placed on top of it
+        resolvedStack = sampledProfile.samples[i - 1]
+          .map(n => {
+            if (!frameIndex[n]) {
+              throw new Error(`Could not resolve frame ${n} in frame index`);
+            }
+
+            return frameIndex[n];
+          })
+          .concat(resolvedStack[resolvedStack.length - 1]);
+
+        // Now collect all weights of all the consecutive gc frames and skip the samples
+        while (
+          sampledProfile.samples[i + 1] &&
+          frameIndex[
+            sampledProfile.samples[i + 1][sampledProfile.samples[i + 1].length - 1]
+          ]?.name === '(garbage collector) [native code]'
+        ) {
+          weight += sampledProfile.weights[++i];
+        }
+      }
+
+      profile.appendSampleWithWeight(resolvedStack, weight);
     }
 
     return profile.build();
