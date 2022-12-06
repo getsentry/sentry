@@ -39,7 +39,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-type WidgetAsQueryParams = Query & {
+type WidgetAsQueryParams = Query<{
   defaultTableColumns: string[];
   defaultTitle: string;
   defaultWidgetQuery: string;
@@ -50,7 +50,7 @@ type WidgetAsQueryParams = Query & {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-};
+}>;
 
 export type AddToDashboardModalProps = {
   location: Location;
