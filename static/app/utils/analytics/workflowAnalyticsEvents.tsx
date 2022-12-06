@@ -86,6 +86,8 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     rule_id: string;
   };
+  'project_detail.open_discover': {};
+  'project_detail.open_issues': {};
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -128,4 +130,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'project_creation_page.created': 'Project Create: Project Created',
+  'project_detail.open_issues': 'Project Detail: Open issues from project detail',
+  'project_detail.open_discover': 'Project Detail: Open discover from project detail',
 };
