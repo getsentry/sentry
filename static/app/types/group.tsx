@@ -430,6 +430,7 @@ interface GroupFiltered {
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  lastTriggered?: string;
   lifetime?: GroupFiltered;
   sessionCount?: string | null;
 }
