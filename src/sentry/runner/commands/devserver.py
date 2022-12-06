@@ -299,11 +299,11 @@ and run `sentry devservices up kafka zookeeper`.
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
 
-        if occurrence_ingest:
-            daemons += [_get_daemon("occurrences")]
-
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
+
+    if occurrence_ingest:
+        daemons += [_get_daemon("occurrences")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -15,7 +15,9 @@ from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 logger = logging.getLogger(__name__)
 
 
-def create_ingest_occurences_consumer(topic_name, **options):
+def create_ingest_occurences_consumer(
+    topic_name: str, **options: Any
+) -> StreamProcessor[KafkaPayload]:
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
@@ -60,7 +62,7 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
 
 
 class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def create_with_partitions(
