@@ -246,13 +246,16 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "sumIf",
-                    # TODO: maybe add also here the column, aka metric id.
                     required_args=[
-                        fields.MetricArg("if_col"),
-                        fields.MetricArg("if_val"),
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["init", "crashed"]),
                     ],
                     snql_metric_layer=lambda args, alias: Function(
                         "sum_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.metric_key.
                         [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
@@ -290,13 +293,10 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "uniq",
-                    required_args=[
-                        fields.MetricArg("column"),
-                    ],
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniq",
+                        "count_unique",
                         [
-                            Column(self.resolve_metric(args["column"])),
+                            Column(SessionMRI.USER.value),
                         ],
                         alias,
                     ),
@@ -304,19 +304,16 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "uniqIf",
-                    # TODO: maybe add also here the column, aka metric id.
                     required_args=[
-                        fields.ColumnTagArg("if_col"),
-                        fields.FunctionArg("if_val"),
-                    ],
-                    calculated_args=[
-                        {
-                            "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
-                        }
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["crashed"]),
                     ],
                     snql_metric_layer=lambda args, alias: Function(
                         "uniq_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
                         [Column(SessionMRI.USER.value), args["if_col"], args["if_val"]],
                         alias,
                     ),

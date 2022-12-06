@@ -53,7 +53,6 @@ class MetricsQueryBuilder(QueryBuilder):
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
-        generate_snql_via_metrics_layer: False,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -65,10 +64,6 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
-        # Flag to specify whether we want to use the metrics layer's SnubaQueryBuilder to generate alternative snql
-        # for the query. This flag is different from use_metrics_layer because that flag will only signal that the
-        # metrics layer should be used to perform build and execute the query(ies).
-        self.generate_snql_via_metrics_layer = generate_snql_via_metrics_layer
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -434,52 +429,13 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
-    def get_snql_using_metrics_layer(self, snuba_request: Request) -> Request:
-        # We use directly the query builder which is not a good practice, considering that the metrics layer
-        # should hide snql generation.
-        from sentry.snuba.metrics import SnubaQueryBuilder
-        from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
-
-        snuba_queries, _ = SnubaQueryBuilder(
-            projects=self.params.projects,
-            metrics_query=transform_mqb_query_to_metrics_query(
-                snuba_request.query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
-            ),
-            use_case_id=UseCaseKey.PERFORMANCE
-            if self.is_performance
-            else UseCaseKey.RELEASE_HEALTH,
-        ).get_snuba_queries()
-
-        if len(snuba_queries) == 0 or len(snuba_queries) > 1:
-            raise NotImplementedError(
-                "get_snql_query cannot be implemented for MetricsQueryBuilder"
-            )
-
-        # We take only the first query, supposing a single query is generated.
-        entity = list(snuba_queries.keys())[0]
-        # TODO: use a common list between this and the transformer.
-        if entity in {
-            "metrics_counters",
-            "metrics_distributions",
-            "metrics_sets",
-            "generic_metrics_distributions",
-            "generic_metrics_sets",
-        }:
-            snuba_request.query = snuba_queries[entity]["totals"]
-        else:
-            raise NotImplementedError(
-                "get_snql_query cannot be implemented for MetricsQueryBuilder"
-            )
-
-        return snuba_request
-
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
 
         if self.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-            request = Request(
+            return Request(
                 dataset=self.dataset.value,
                 app_id="default",
                 query=Query(
@@ -503,11 +459,6 @@ class MetricsQueryBuilder(QueryBuilder):
                 ),
                 flags=Flags(turbo=self.turbo),
             )
-
-            if self.generate_snql_via_metrics_layer:
-                request = self.get_snql_using_metrics_layer(snuba_request=request)
-
-            return request
 
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
@@ -821,6 +772,56 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
 
     def resolve_granularity(self) -> Granularity:
         return Granularity(self._granularity)
+
+    def _get_snql_using_metrics_layer(self, snuba_request: Request) -> Request:
+        # We use directly the query builder which is not a good practice, considering that the metrics layer
+        # should hide snql generation.
+        from sentry.snuba.metrics import SnubaQueryBuilder
+        from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
+
+        snuba_queries, _ = SnubaQueryBuilder(
+            projects=self.params.projects,
+            metrics_query=transform_mqb_query_to_metrics_query(
+                snuba_request.query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
+            ),
+            use_case_id=UseCaseKey.PERFORMANCE
+            if self.is_performance
+            else UseCaseKey.RELEASE_HEALTH,
+        ).get_snuba_queries()
+
+        if len(snuba_queries) == 0 or len(snuba_queries) > 1:
+            raise NotImplementedError(
+                "get_snql_query cannot be implemented for MetricsQueryBuilder"
+            )
+
+        # We take only the first query, supposing a single query is generated.
+        entity = list(snuba_queries.keys())[0]
+        snuba_request.query = snuba_queries[entity]["totals"]
+
+        # TODO: use a common list between this and the transformer.
+        # if entity in {
+        #     "metrics_counters",
+        #     "metrics_distributions",
+        #     "metrics_sets",
+        #     "generic_metrics_distributions",
+        #     "generic_metrics_sets",
+        # }:
+        #     snuba_request.query = snuba_queries[entity]["totals"]
+        # else:
+        #     raise NotImplementedError(
+        #         "get_snql_query cannot be implemented for MetricsQueryBuilder"
+        #     )
+
+        return snuba_request
+
+    def get_snql_query(self) -> Request:
+        request = super().get_snql_query()
+
+        if self.use_metrics_layer:
+            # Generate through metrics layer
+            request = self._get_snql_using_metrics_layer(request)
+
+        return request
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):

@@ -167,23 +167,32 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.dataset == Dataset.Metrics
         session_status = resolve_tag_key(use_case_id, org_id, "session.status")
         session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
+        metric_id = resolve(use_case_id, org_id, entity_subscription.metric_key.value)
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
         key = lambda func: func.alias
         assert sorted(snql_query.query.select, key=key) == sorted(
             [
-                Function("uniq", parameters=[Column("value")], alias="count"),
-                # TODO: implement this operator in the metrics layer.
                 Function(
                     "uniqIf",
-                    parameters=[
-                        Column(name="value"),
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                    alias="count",
+                ),
+                Function(
+                    "uniqIf",
+                    [
+                        Column("value"),
                         Function(
-                            function="equals",
-                            parameters=[
-                                Column(session_status),
-                                session_status_crashed,
+                            "and",
+                            [
+                                Function("equals", [Column("metric_id"), metric_id]),
+                                Function(
+                                    "equals", [Column(session_status), session_status_crashed]
+                                ),
                             ],
                         ),
                     ],
@@ -193,17 +202,9 @@ class EntitySubscriptionTestCase(TestCase):
             key=key,
         )
         assert snql_query.query.where == [
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
-            Condition(
-                Column("metric_id"),
-                Op.EQ,
-                resolve(
-                    UseCaseKey.RELEASE_HEALTH,
-                    self.organization.id,
-                    entity_subscription.metric_key.value,
-                ),
-            ),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
 
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
@@ -227,7 +228,7 @@ class EntitySubscriptionTestCase(TestCase):
         session_status = resolve_tag_key(use_case_id, org_id, "session.status")
         session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
         session_status_init = resolve_tag_value(use_case_id, org_id, "init")
-        metric_id = resolve(use_case_id, org_id, SessionMRI.SESSION.value)
+        metric_id = resolve(use_case_id, org_id, entity_subscription.metric_key.value)
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -270,11 +271,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snql_query.query.where == [
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("project_id"), Op.IN, [self.project.id]),
-            Condition(
-                Column("metric_id"),
-                Op.IN,
-                [metric_id],
-            ),
+            Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
 
     def test_get_entity_subscription_for_performance_transactions_dataset(self) -> None:

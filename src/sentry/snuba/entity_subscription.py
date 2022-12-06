@@ -346,7 +346,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             skip_time_conditions=True,
             granularity=self.get_granularity(),
             use_metrics_layer=use_metrics_layer,
-            generate_snql_via_metrics_layer=use_metrics_layer,
         )
         extra_conditions = self.get_snql_extra_conditions()
         if environment:
@@ -516,6 +515,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
     def get_snql_extra_conditions(self) -> List[Condition]:
         return [
+            # TODO: check if this needs to be added again.
             # Condition(
             #     Column("metric_id"),
             #     Op.EQ,
@@ -535,6 +535,7 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
+        # TODO: check if this needs to be added again.
         # extra_conditions.append(
         #     Condition(
         #         Column(self.session_status),

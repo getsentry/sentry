@@ -62,6 +62,7 @@ from sentry.snuba.metrics.fields.snql import (
     team_key_transaction_snql,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
+    uniq_if_column_snql,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_private_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -1588,6 +1589,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="sum_if_column",
             can_orderby=True,
             snql_func=sum_if_column_snql,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="uniq_if_column",
+            can_orderby=True,
+            snql_func=uniq_if_column_snql,
             default_null_value=0,
         ),
     ]

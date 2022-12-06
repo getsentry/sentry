@@ -622,3 +622,9 @@ def sum_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_valu
     return operation_if_column_snql(
         "sumIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
     )
+
+
+def uniq_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
+    return operation_if_column_snql(
+        "uniqIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
+    )
