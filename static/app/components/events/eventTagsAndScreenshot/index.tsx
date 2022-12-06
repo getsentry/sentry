@@ -195,6 +195,6 @@ const ScreenshotWrapper = styled('div')`
   }
 `;
 
-const TagWrapper = styled('div')<{hasEventContext: boolean}>`
+const TagWrapper = styled('div')`
   overflow: hidden;
 `;
