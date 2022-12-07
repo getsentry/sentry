@@ -14,10 +14,12 @@ from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
+from sentry import features
+from sentry.app import env
 from sentry.models import Authenticator, Organization, User
-from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
 from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
+from sentry.utils.http import absolute_uri, is_using_customer_domain
 
 logger = logging.getLogger("sentry.auth")
 
@@ -124,6 +126,19 @@ def get_login_url(reset: bool = False) -> str:
             _LOGIN_URL = reverse("sentry-login")
         # ensure type is coerced to string (to avoid lazy proxies)
         _LOGIN_URL = str(_LOGIN_URL)
+
+    request = env.request
+    if request and is_using_customer_domain(request):
+        requesting_org_slug = request.subdomain
+        org_context = organization_service.get_organization_by_slug(
+            slug=requesting_org_slug, only_visible=False, user_id=None
+        )
+        if org_context and features.has("organizations:customer-domains", org_context.organization):
+            from sentry.api.utils import generate_organization_url
+
+            url = reverse("sentry-auth-organization", args=[requesting_org_slug])
+            url_prefix = generate_organization_url(requesting_org_slug)
+            return absolute_uri(url, url_prefix=url_prefix)
     return _LOGIN_URL
 
 
