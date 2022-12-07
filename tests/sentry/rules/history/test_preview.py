@@ -466,10 +466,10 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert result[self.group.id] == [prev_two_hour, prev_hour]
+        assert result[self.group.id] == prev_hour
 
         result = preview(self.project, conditions, [], "all", "all", 180)
-        assert result[self.group.id] == [prev_two_hour]
+        assert result[self.group.id] == prev_two_hour
 
 
 @freeze_time()

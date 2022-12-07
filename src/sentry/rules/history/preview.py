@@ -49,7 +49,7 @@ def preview(
     filter_match: str,
     frequency_minutes: int,
     end: datetime | None = None,
-) -> Dict[int, List[datetime]] | None:
+) -> Dict[int, datetime] | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
@@ -184,11 +184,12 @@ def get_fired_groups(
     start: datetime,
     frequency: timedelta,
     event_map: Dict[str, Any],
-) -> Dict[int, List[datetime]]:
+) -> Dict[int, datetime]:
     """
-    Applies filter objects to the condition activity, returns the group ids of activities that pass the filters
+    Applies filter objects to the condition activity.
+    Returns the group ids of activities that pass the filters and the last fire of each group
     """
-    group_fires = defaultdict(list)
+    group_fires = {}
     for group, activities in group_activity.items():
         last_fire = start - frequency
         for event in activities:
@@ -197,7 +198,7 @@ def get_fired_groups(
             except NotImplementedError:
                 raise PreviewException
             if last_fire <= event.timestamp - frequency and filter_func(passes):
-                group_fires[group].append(event.timestamp)
+                group_fires[group] = event.timestamp
                 last_fire = event.timestamp
 
     return group_fires

@@ -92,5 +92,5 @@ class PreviewSerializer(GroupSerializer):
         result = super().serialize(obj, attrs, user, **kwargs)
         group_id = int(result["id"])
         result["inbox"] = kwargs["inbox_details"].get(group_id)
-        result["lastTriggered"] = kwargs["group_fires"][group_id][-1]
+        result["lastTriggered"] = kwargs["group_fires"][group_id]
         return result
