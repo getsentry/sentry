@@ -24,6 +24,7 @@ from sentry.utils.performance_issues.performance_detection import (
     _detect_performance_problems,
     detect_performance_problems,
     prepare_problem_for_grouping,
+    total_span_time,
 )
 from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 
@@ -1136,3 +1137,121 @@ class EventPerformanceProblemTest(TestCase):
         assert [r.problem if r else None for r in result] == [
             problem for _, problem in all_event_problems
         ] + [None]
+
+
+@pytest.mark.parametrize(
+    "spans, duration",
+    [
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                }
+            ],
+            11,
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+            ],
+            11,
+            id="parallel spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 1.0,
+                    "timestamp": 1.011,
+                },
+            ],
+            22,
+            id="separate spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 0.005,
+                    "timestamp": 0.016,
+                },
+            ],
+            16,
+            id="overlapping spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 0.005,
+                    "timestamp": 0.016,
+                },
+                {
+                    "start_timestamp": 0.015,
+                    "timestamp": 0.032,
+                },
+            ],
+            32,
+            id="multiple overlapping spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 0.011,
+                    "timestamp": 0.022,
+                },
+                {
+                    "start_timestamp": 0.022,
+                    "timestamp": 0.033,
+                },
+            ],
+            33,
+            id="multiple overlapping touching spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "start_timestamp": 0,
+                    "timestamp": 0.011,
+                },
+                {
+                    "start_timestamp": 0.005,
+                    "timestamp": 0.022,
+                },
+                {
+                    "start_timestamp": 0.033,
+                    "timestamp": 0.045,
+                },
+                {
+                    "start_timestamp": 0.045,
+                    "timestamp": 0.055,
+                },
+            ],
+            44,
+            id="multiple overlapping spans with gaps",
+        ),
+    ],
+)
+def test_total_span_time(spans, duration):
+    assert total_span_time(spans) == pytest.approx(duration, 0.01)

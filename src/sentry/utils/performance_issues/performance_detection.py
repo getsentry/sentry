@@ -497,6 +497,29 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return query and not query.endswith("...")
 
 
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
 class PerformanceDetector(ABC):
     """
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
@@ -1431,7 +1454,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
             span_list = [
                 span for span in span_list if "start_timestamp" in span and "timestamp" in span
             ]
-            total_duration = self._total_span_time(span_list)
+            total_duration = total_span_time(span_list)
             settings_for_span = self.settings_for_span(span_list[0])
             if not settings_for_span:
                 return
@@ -1448,22 +1471,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
-
-    def _total_span_time(self, span_list: List[Dict[str, Any]]) -> float:
-        sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
-        total_duration = 0
-        first_item = sorted_span_list[0]
-        current_min = first_item["start_timestamp"]
-        current_max = first_item["timestamp"]
-        for span in sorted_span_list[1:]:
-            if current_min <= span["start_timestamp"] <= current_max:
-                current_max = max(span["timestamp"], current_max)
-            else:
-                total_duration += current_max - current_min
-                current_min = span["start_timestamp"]
-                current_max = span["timestamp"]
-        total_duration += current_max - current_min
-        return total_duration * 1000
 
     def _fingerprint(self, span_list) -> str:
         call_stack_strings = []
