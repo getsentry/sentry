@@ -87,10 +87,11 @@ class TreeClusterer(Clusterer):
 
     def get_rules(self) -> List[ReplacementRule]:
         """Computes the rules for the current tree."""
-        if self._rules is None:
-            self._extract_rules()
-            self._clean_rules()
-            self._sort_rules()
+        self._extract_rules()
+        self._clean_rules()
+        self._sort_rules()
+
+        assert self._rules is not None  # Keep mypy happy
         return self._rules
 
     def _extract_rules(self) -> None:
