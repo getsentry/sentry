@@ -6,6 +6,8 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
+example_base_url = "https://example.com/getsentry/sentry/blob/master"
+
 
 def serialized_provider() -> Mapping[str, Any]:
     """TODO(mgaeta): Make these into fixtures."""
@@ -261,9 +263,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         "get_stacktrace_link",
     )
     def test_munge_android_worked(self, mock_integration):
-        mock_integration.side_effect = [
-            "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
-        ]
+        mock_integration.side_effect = [f"{example_base_url}/usr/src/getsentry/file.java"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -275,11 +275,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         )
         file_path = "usr/src/getsentry/file.java"
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert (
-            response.data["sourceUrl"]
-            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
-        )
-        mock_integration.assert_called_with(self.repo, file_path, "master", None)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @mock.patch.object(
         ExampleIntegration,
@@ -287,9 +283,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
     )
     def test_munge_cocoa_worked(self, mock_integration):
         file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
-        mock_integration.side_effect = [
-            f"https://example.com/getsentry/sentry/blob/master/{file_path}"
-        ]
+        mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -301,13 +295,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
             },
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert (
-            response.data["sourceUrl"]
-            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
-        )
-        mock_integration.assert_called_with(
-            self.repo, "SampleProject/Classes/App Delegate/AppDelegate.swift", "master", None
-        )
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @mock.patch.object(
         ExampleIntegration,
@@ -315,9 +303,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
     )
     def test_munge_flutter_worked(self, mock_integration):
         file_path = "a/b/main.dart"
-        mock_integration.side_effect = [
-            "https://example.com/getsentry/sentry/blob/master/a/b/main.dart"
-        ]
+        mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -330,8 +316,4 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
             },
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert (
-            response.data["sourceUrl"]
-            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
-        )
-        mock_integration.assert_called_with(self.repo, "a/b/main.dart", "master", None)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
