@@ -105,8 +105,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
         problem = get_matched_problem(event)
         return get_span_evidence_value_problem(problem)
 
-    else:
-        return None
+    return None
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
