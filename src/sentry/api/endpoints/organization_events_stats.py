@@ -150,7 +150,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 or (
                     batch_features.get("organizations:mep-rollout-flag", False)
                     and features.has(
-                        "organizations:server-side-sampling",
+                        "organizations:dynamic-sampling",
                         organization=organization,
                         actor=request.user,
                     )

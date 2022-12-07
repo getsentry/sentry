@@ -8,7 +8,7 @@ type QueryKeyEndpointOptions = {
   query?: Record<string, any>;
 };
 
-type QueryKey =
+export type QueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 

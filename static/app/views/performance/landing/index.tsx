@@ -244,11 +244,6 @@ export function PerformanceLanding(props: Props) {
                                   {pageFilters}
                                   <MEPConsumer>
                                     {({metricSettingState}) => {
-                                      const searchQuery =
-                                        metricSettingState === MEPState.metricsOnly
-                                          ? getFreeTextFromQuery(derivedQuery)
-                                          : derivedQuery;
-
                                       return (metricSettingState ===
                                         MEPState.metricsOnly &&
                                         shouldShowTransactionNameOnlySearch) ||
@@ -264,14 +259,14 @@ export function PerformanceLanding(props: Props) {
                                               metricSettingState ?? undefined
                                             );
                                           }}
-                                          query={searchQuery}
+                                          query={getFreeTextFromQuery(derivedQuery)}
                                         />
                                       ) : (
                                         <SearchBar
                                           searchSource="performance_landing"
                                           organization={organization}
                                           projectIds={eventView.project}
-                                          query={searchQuery}
+                                          query={derivedQuery}
                                           fields={generateAggregateFields(
                                             organization,
                                             [...eventView.fields, {field: 'tps()'}],

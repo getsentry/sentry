@@ -45,6 +45,7 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import override_options
+from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -378,6 +379,7 @@ class ActivityMailDebugView(View):
 
 @login_required
 def alert(request):
+    random = get_random(request)
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
@@ -386,6 +388,11 @@ def alert(request):
     group = event.group
 
     rule = Rule(id=1, label="An example rule")
+    notification_reason = (
+        random.randint(0, 1) > 0
+        and f"We notified all members in the {project.get_full_name()} project of this issue"
+        or None
+    )
 
     return MailPreview(
         html_template="sentry/emails/error.html",
@@ -395,6 +402,9 @@ def alert(request):
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
+            "environment": random.randint(0, 1) > 0 and "prod" or None,
+            "notification_reason": notification_reason,
+            "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
         },
     ).render(request)
 
