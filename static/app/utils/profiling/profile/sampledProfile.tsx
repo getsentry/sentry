@@ -43,6 +43,11 @@ export class SampledProfile extends Profile {
 
       if (
         i > 0 &&
+        // We check for size <= 2 because we have so far only seen node profiles
+        // where GC is either marked as the root node or is directly under the root node.
+        // There is a good chance that this logic will at some point live on the backend
+        // and when that happens, we do not want to enter this case as the GC will already
+        // be placed at the top of the previous stack and the new stack length will be > 2
         resolvedStack.length <= 2 &&
         resolvedStack[resolvedStack.length - 1]?.name ===
           '(garbage collector) [native code]'
@@ -61,6 +66,11 @@ export class SampledProfile extends Profile {
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
           sampledProfile.samples[i + 1] &&
+          // We check for size <= 2 because we have so far only seen node profiles
+          // where GC is either marked as the root node or is directly under the root node.
+          // There is a good chance that this logic will at some point live on the backend
+          // and when that happens, we do not want to enter this case as the GC will already
+          // be placed at the top of the previous stack and the new stack length will be > 2
           sampledProfile.samples[i + 1].length <= 2 &&
           frameIndex[
             sampledProfile.samples[i + 1][sampledProfile.samples[i + 1].length - 1]
