@@ -6,6 +6,8 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
+example_base_url = "https://example.com/getsentry/sentry/blob/master"
+
 
 def serialized_provider() -> Mapping[str, Any]:
     """TODO(mgaeta): Make these into fixtures."""
@@ -213,3 +215,105 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+
+@region_silo_test
+class ProjectStacktraceLinkTestMobile(APITestCase):
+    endpoint = "sentry-api-0-project-stacktrace-link"
+
+    def setUp(self):
+        self.integration = Integration.objects.create(provider="example", name="Example")
+        self.integration.add_organization(self.organization, self.user)
+        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
+        self.repo.integration_id = self.integration.id
+        self.repo.provider = "example"
+        self.repo.save()
+
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+        )
+
+        self.login_as(self.user)
+
+    def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
+        return {
+            "defaultBranch": "master",
+            "id": str(code_mapping.id),
+            "integrationId": str(self.integration.id),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "provider": serialized_provider(),
+            "repoId": str(self.repo.id),
+            "repoName": self.repo.name,
+            "sourceRoot": code_mapping.source_root,
+            "stackRoot": code_mapping.stack_root,
+        }
+
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_munge_android_worked(self, mock_integration):
+        mock_integration.side_effect = [f"{example_base_url}/usr/src/getsentry/file.java"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "file.java",
+                "module": "usr.src.getsentry.file",
+                "platform": "java",
+            },
+        )
+        file_path = "usr/src/getsentry/file.java"
+        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_munge_cocoa_worked(self, mock_integration):
+        file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
+        mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "AppDelegate.swift",
+                "absPath": f"/Users/user/code/SwiftySampleProject/{file_path}",
+                "package": "SampleProject",
+                "platform": "cocoa",
+            },
+        )
+        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_munge_flutter_worked(self, mock_integration):
+        file_path = "a/b/main.dart"
+        mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "main.dart",
+                "absPath": f"package:sentry_flutter_example/{file_path}",
+                "package": "sentry_flutter_example",
+                "platform": "other",
+                "sdkName": "sentry.dart.flutter",
+            },
+        )
+        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
