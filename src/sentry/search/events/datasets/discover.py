@@ -268,15 +268,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "group_array",
-                    # setting 10k as arbitraty upper limit for max_size argument, clickhouse limit is 100M
-                    required_args=[NumberRange("max_size", 0, 10000), ColumnTagArg("column")],
+                    required_args=[NumberRange("max_size", 0, 101), ColumnTagArg("column")],
                     snql_aggregate=lambda args, alias: CurriedFunction(
                         "groupArray",
                         [int(args["max_size"])],
                         [args["column"]],
                         alias,
                     ),
-                    default_result_type="string",
+                    default_result_type="string",  # TODO: support array type
                     private=True,
                 ),
                 SnQLFunction(

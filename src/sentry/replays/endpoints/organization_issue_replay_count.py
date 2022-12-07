@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -14,7 +13,8 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.models import Organization
 from sentry.replays.query import query_replays_dataset
 from sentry.search.events.builder import QueryBuilder
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.utils.snuba import Dataset
 
 
 @region_silo_endpoint
@@ -31,19 +31,21 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, params = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response({})
 
         try:
-            replay_id_to_issue_map = _query_discover_for_replay_ids(request, params)
+            replay_id_to_issue_map = _query_discover_for_replay_ids(request, params, snuba_params)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         replay_results = query_replays_dataset(
-            project_ids=params["project_id"],
-            start=params["start"],
-            end=params["end"],
+            project_ids=[p.id for p in snuba_params.projects],
+            start=snuba_params.start,
+            end=snuba_params.end,
             sorting=[],
             where=[
                 Condition(Column("replay_id"), Op.IN, list(replay_id_to_issue_map.keys())),
@@ -64,13 +66,13 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
 
 
 def _query_discover_for_replay_ids(
-    request: Request, params: dict[str, Any]
+    request: Request, params: ParamsType, snuba_params: SnubaParams
 ) -> dict[str, list[int]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
+        snuba_params=snuba_params,
         selected_columns=["group_array(100,replayId)", "issue.id"],
-        groupby_columns=["issue.id"],
         query=request.GET.get("query"),
         limit=25,
         offset=0,
@@ -78,9 +80,7 @@ def _query_discover_for_replay_ids(
     )
     _validate_params(builder)
 
-    snql_query = builder.get_snql_query()
-
-    discover_results = raw_snql_query(snql_query, "api.organization-issue-replay-count")
+    discover_results = builder.run_query("api.organization-issue-replay-count")
 
     replay_id_to_issue_map = defaultdict(list)
 
