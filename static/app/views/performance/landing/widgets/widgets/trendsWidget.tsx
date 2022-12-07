@@ -19,6 +19,7 @@ import {
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
+import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -91,9 +92,119 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, trendChangeType]
   );
 
+  const getItems = provided =>
+    provided.widgetData.chart.transactionsList.map(listItem => () => {
+      const initialConditions = new MutableSearch([]);
+      initialConditions.addFilterValues('transaction', [listItem.transaction]);
+
+      const trendsTarget = trendsTargetRoute({
+        organization: props.organization,
+        location,
+        initialConditions,
+        additionalQuery: {
+          trendFunction: trendFunctionField,
+          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+        },
+      });
+      return (
+        <Fragment>
+          <GrowLink to={trendsTarget}>
+            <Truncate value={listItem.transaction} maxLength={40} />
+          </GrowLink>
+          <RightAlignedCell>
+            <CompareDurations transaction={listItem} />
+          </RightAlignedCell>
+          {!withStaticFilters && (
+            <ListClose
+              setSelectListIndex={setSelectListIndex}
+              onClick={() =>
+                excludeTransaction(listItem.transaction, {
+                  eventView: props.eventView,
+                  location,
+                })
+              }
+            />
+          )}
+        </Fragment>
+      );
+    });
+
   const Queries = {
     chart,
   };
+
+  const Visualizations = organization.features.includes('performance-new-widget-designs')
+    ? [
+        {
+          component: provided => (
+            <Accordion
+              expandedIndex={selectedListIndex}
+              setExpandedIndex={setSelectListIndex}
+              headers={getItems(provided)}
+              content={
+                <TrendsChart
+                  {...provided}
+                  {...rest}
+                  isLoading={provided.widgetData.chart.isLoading}
+                  statsData={provided.widgetData.chart.statsData}
+                  query={eventView.query}
+                  project={eventView.project}
+                  environment={eventView.environment}
+                  start={eventView.start}
+                  end={eventView.end}
+                  statsPeriod={eventView.statsPeriod}
+                  transaction={
+                    provided.widgetData.chart.transactionsList[selectedListIndex]
+                  }
+                  trendChangeType={trendChangeType}
+                  trendFunctionField={trendFunctionField}
+                  disableXAxis
+                  disableLegend
+                />
+              }
+            />
+          ),
+          // accordion items height + chart height
+          height: 120 + props.chartHeight,
+          noPadding: true,
+        },
+      ]
+    : [
+        {
+          component: provided => (
+            <TrendsChart
+              {...provided}
+              {...rest}
+              isLoading={provided.widgetData.chart.isLoading}
+              statsData={provided.widgetData.chart.statsData}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+              transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
+              trendChangeType={trendChangeType}
+              trendFunctionField={trendFunctionField}
+              disableXAxis
+              disableLegend
+            />
+          ),
+          bottomPadding: false,
+          height: props.chartHeight,
+        },
+        {
+          component: provided => (
+            <SelectableList
+              selectedIndex={selectedListIndex}
+              setSelectedIndex={setSelectListIndex}
+              items={getItems(provided)}
+            />
+          ),
+          height: 124,
+          noPadding: true,
+        },
+      ];
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -129,76 +240,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       }}
       EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
-      Visualizations={[
-        {
-          component: provided => (
-            <TrendsChart
-              {...provided}
-              {...rest}
-              isLoading={provided.widgetData.chart.isLoading}
-              statsData={provided.widgetData.chart.statsData}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-              transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-              trendChangeType={trendChangeType}
-              trendFunctionField={trendFunctionField}
-              disableXAxis
-              disableLegend
-            />
-          ),
-          bottomPadding: false,
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.chart.transactionsList.map(listItem => () => {
-                const initialConditions = new MutableSearch([]);
-                initialConditions.addFilterValues('transaction', [listItem.transaction]);
-
-                const trendsTarget = trendsTargetRoute({
-                  organization: props.organization,
-                  location,
-                  initialConditions,
-                  additionalQuery: {
-                    trendFunction: trendFunctionField,
-                    statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
-                  },
-                });
-                return (
-                  <Fragment>
-                    <GrowLink to={trendsTarget}>
-                      <Truncate value={listItem.transaction} maxLength={40} />
-                    </GrowLink>
-                    <RightAlignedCell>
-                      <CompareDurations transaction={listItem} />
-                    </RightAlignedCell>
-                    {!withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                );
-              })}
-            />
-          ),
-          height: 124,
-          noPadding: true,
-        },
-      ]}
+      Visualizations={Visualizations}
     />
   );
 }
