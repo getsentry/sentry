@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment, useCallback} from 'react';
+import {ComponentProps, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -23,6 +23,7 @@ interface Props extends ComponentProps<typeof MessageFormatter> {
   isLast: boolean;
   isOcurring: boolean;
   startTimestampMs: number;
+  style: any;
 }
 function ConsoleMessage({
   breadcrumb,
@@ -32,6 +33,7 @@ function ConsoleMessage({
   isLast,
   isCurrent,
   startTimestampMs = 0,
+  style,
 }: Props) {
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
@@ -46,53 +48,46 @@ function ConsoleMessage({
     [setCurrentHoverTime]
   );
 
-  const timeHandlers = {
-    isActive,
-    isCurrent,
-    isOcurring,
-    hasOccurred,
-  };
+  // const timeHandlers = {
+  //   isActive,
+  //   isCurrent,
+  //   isOcurring,
+  //   hasOccurred,
+  // };
 
   return (
-    <Fragment>
-      <Icon
-        isLast={isLast}
-        level={breadcrumb.level}
-        onMouseOver={handleOnMouseOver}
-        onMouseOut={handleOnMouseOut}
-        {...timeHandlers}
-      >
-        {ICONS[breadcrumb.level]}
-      </Icon>
-      <Message
-        isLast={isLast}
-        level={breadcrumb.level}
-        onMouseOver={handleOnMouseOver}
-        onMouseOut={handleOnMouseOut}
-        aria-current={isCurrent}
-        {...timeHandlers}
-      >
+    <ConsoleMessageItem
+      style={style}
+      isActive={isActive}
+      isCurrent={isCurrent}
+      isLast={isLast}
+      level={breadcrumb.level}
+      hasOccurred={hasOccurred}
+      isOcurring={isOcurring}
+      onMouseOver={handleOnMouseOver}
+      onMouseOut={handleOnMouseOut}
+    >
+      <IconWrapper hasOccurred={hasOccurred}>
+        <Icon>{ICONS[breadcrumb.level]}</Icon>
+      </IconWrapper>
+      <Message aria-current={isCurrent}>
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
         <ViewIssueLink breadcrumb={breadcrumb} />
       </Message>
-      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
+      <ConsoleTimestamp>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <ConsoleTimestampButton
-            onClick={handleOnClick}
-            onMouseOver={handleOnMouseOver}
-            onMouseOut={handleOnMouseOut}
-          >
+          <ConsoleTimestampButton onClick={handleOnClick}>
             {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
           </ConsoleTimestampButton>
         </Tooltip>
       </ConsoleTimestamp>
-    </Fragment>
+    </ConsoleMessageItem>
   );
 }
 
-const Common = styled('div')<{
+const ConsoleMessageItem = styled('div')<{
   isActive: boolean;
   isCurrent: boolean;
   isLast: boolean;
@@ -100,6 +95,12 @@ const Common = styled('div')<{
   hasOccurred?: boolean;
   isOcurring?: boolean;
 }>`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: 0.8em;
+
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
@@ -135,7 +136,7 @@ const Common = styled('div')<{
   }};
 `;
 
-const ConsoleTimestamp = styled(Common)`
+const ConsoleTimestamp = styled('div')`
   padding: ${space(0.25)} ${space(1)};
 `;
 
@@ -144,7 +145,18 @@ const ConsoleTimestampButton = styled('button')`
   border: none;
 `;
 
-const Icon = styled(Common)<{isOcurring?: boolean}>`
+const IconWrapper = styled('div')<{hasOccurred?: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  z-index: 2;
+`;
+
+const Icon = styled('div')<{isOcurring?: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   position: relative;
 
@@ -159,7 +171,8 @@ const Icon = styled(Common)<{isOcurring?: boolean}>`
     background-color: ${p => (p.isOcurring ? p.theme.focus : 'transparent')};
   }
 `;
-const Message = styled(Common)`
+
+const Message = styled('div')`
   padding: ${space(0.25)} 0;
   white-space: pre-wrap;
   word-break: break-word;
