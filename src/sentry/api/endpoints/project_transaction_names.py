@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.utils import get_date_range_from_stats_period
-from sentry.ingest.transaction_clusterer.datasource import fetch_unique_transaction_names
+from sentry.ingest.transaction_clusterer.datasource.snuba import fetch_unique_transaction_names
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 
 
