@@ -41,7 +41,6 @@ type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
 
 type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
-  useEvents?: boolean;
 };
 
 function shouldRefetchData(
@@ -77,16 +76,14 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
 }
 
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
-  const endpoint = props.useEvents ? 'events' : 'eventsv2';
-  const afterFetch = props.useEvents
-    ? (data, _) => {
-        const {fields, ...otherMeta} = data.meta ?? {};
-        return {
-          ...data,
-          meta: {...fields, ...otherMeta},
-        };
-      }
-    : undefined;
+  const endpoint = 'events';
+  const afterFetch = (data, _) => {
+    const {fields, ...otherMeta} = data.meta ?? {};
+    return {
+      ...data,
+      meta: {...fields, ...otherMeta},
+    };
+  };
 
   return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
     route: endpoint,
