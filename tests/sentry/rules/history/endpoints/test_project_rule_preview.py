@@ -4,9 +4,10 @@ from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import Group, GroupInbox, GroupInboxReason
+from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.activity import ActivityType
 
 
 @freeze_time()
@@ -141,3 +142,41 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                     if int(preview_group["id"]) == group.id:
                         assert preview_group["inbox"]["reason"] == reason.value
                         break
+
+    def test_last_triggered(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        prev_two_hour = timezone.now() - timedelta(hours=2)
+        for time in (prev_hour, prev_two_hour):
+            Activity.objects.create(
+                project=self.project,
+                group=self.group,
+                type=ActivityType.SET_REGRESSION.value,
+                datetime=time,
+            )
+
+        with self.feature(self.features):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=60,
+            )
+            assert resp.data[0]["lastTriggered"] == prev_hour
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=180,
+            )
+            assert resp.data[0]["lastTriggered"] == prev_two_hour
