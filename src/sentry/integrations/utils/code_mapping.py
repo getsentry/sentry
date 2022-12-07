@@ -40,7 +40,7 @@ class UnsupportedFrameFilename(Exception):
 def get_extension(file_path: str) -> str:
     extension = ""
     if file_path:
-        ext_period = file_path.find(".")
+        ext_period = file_path.rfind(".")
         if ext_period >= 1:  # e.g. f.py
             extension = file_path.rsplit(".")[-1]
 

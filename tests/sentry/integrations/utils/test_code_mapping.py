@@ -47,11 +47,16 @@ class TestRepoFiles(TestCase):
         ]:
             assert should_include(file) is False
 
-    def test_get_extension(self):
-        assert get_extension("") == ""
-        assert get_extension(None) == ""
-        assert get_extension("f.py") == "py"
-        assert get_extension("f.xx") == "xx"
+
+def test_get_extension():
+    assert get_extension("") == ""
+    assert get_extension(None) == ""
+    assert get_extension("f.py") == "py"
+    assert get_extension("f.xx") == "xx"
+    assert get_extension("./app/utils/handleXhrErrorResponse.tsx") == "tsx"
+    assert get_extension("[native code]") == ""
+    assert get_extension("/foo/bar/baz") == ""
+    assert get_extension("/gtm.js") == "js"
 
 
 class TestFrameFilename(TestCase):
@@ -80,7 +85,7 @@ class TestFrameFilename(TestCase):
 def test_buckets_logic():
     stacktraces = [
         "[native code]",  # Garbage
-        "/crowdfunding/stninians-nursery/admin",  # no extension
+        "/foo/bar/baz",  # no extension
         "app://foo.js",
         "./app/utils/handleXhrErrorResponse.tsx",
         "getsentry/billing/tax/manager.py",
@@ -89,9 +94,9 @@ def test_buckets_logic():
     ]
     buckets = stacktrace_buckets(stacktraces)
     assert buckets == {
+        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "NO_TOP_DIR": [FrameFilename("/gtm.js"), FrameFilename("ssl.py")],
         "app:": [FrameFilename("app://foo.js")],
-        # "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
     }
 
