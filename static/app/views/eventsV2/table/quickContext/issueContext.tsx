@@ -17,6 +17,7 @@ import {Event, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,
@@ -24,7 +25,7 @@ import {
   ContextRow,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs, NoContext} from './utils';
+import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const statusTitle = t('Issue Status');

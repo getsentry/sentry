@@ -14,14 +14,16 @@ import {ReleaseWithHealth, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,
   ContextHeader,
   ContextRow,
+  ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs, NoContext} from './utils';
+import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -92,7 +94,7 @@ function ReleaseContext(props: BaseContextProps) {
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
           <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
-            {getCommitAuthorTitle()}
+            <ContextTitle>{getCommitAuthorTitle()}</ContextTitle>
           </ReleaseAuthorsTitle>
           <ReleaseAuthorsBody>
             {data.commitCount === 0 ? (
@@ -110,7 +112,9 @@ function ReleaseContext(props: BaseContextProps) {
     data &&
     data.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
-        <ContextHeader>{t('Last Commit')}</ContextHeader>
+        <ContextHeader>
+          <ContextTitle>{t('Last Commit')}</ContextTitle>
+        </ContextHeader>
         <DataSection>
           <Panel>
             <QuickContextCommitRow commit={data.lastCommit} />
@@ -124,19 +128,25 @@ function ReleaseContext(props: BaseContextProps) {
       <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
         <ContextRow>
           <div>
-            <ContextHeader>{t('Created')}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('Created')}</ContextTitle>
+            </ContextHeader>
             <ReleaseBody>
               <TimeSince date={data.dateCreated} />
             </ReleaseBody>
           </div>
           <div>
-            <ContextHeader>{t('Last Event')}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('Last Event')}</ContextTitle>
+            </ContextHeader>
             <ReleaseBody>
               {data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
             </ReleaseBody>
           </div>
           <div>
-            <ContextHeader>{t('New Issues')}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('New Issues')}</ContextTitle>
+            </ContextHeader>
             <ContextBody>{data.newGroups}</ContextBody>
           </div>
         </ContextRow>
