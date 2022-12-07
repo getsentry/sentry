@@ -43,7 +43,7 @@ class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
     ) -> None:
         for message in messages:
             key_id, profile = message
-            process_profile.s(profile=profile, key_id=key_id).apply_async()
+            process_profile.s(profile=profile, key_id=key_id).apply_async(compression="brotli")
 
     def shutdown(self) -> None:
         pass

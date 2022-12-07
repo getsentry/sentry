@@ -3,7 +3,7 @@
 beautifulsoup4>=4.7.1
 boto3>=1.22.12
 botocore>=1.25.12
-celery>=4.4.7
+celery[brotli]>=4.4.7
 click>=8.0.4
 confluent-kafka>=1.9.2
 croniter>=0.3.37
