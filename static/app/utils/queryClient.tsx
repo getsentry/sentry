@@ -62,7 +62,11 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
     | UseQueryOptions<TQueryFnData, TError, TData>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError> {
-  const api = useApi();
+  // XXX: We need to set persistInFlight to disable query cancellation on unmount.
+  // The current implementation of our API client does not reject on query
+  // cancellation, which causes React Query to never update from the isLoading state.
+  // This matches the library default as well: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
+  const api = useApi({persistInFlight: true});
 
   const [path, endpointOptions] = queryKey;
 
