@@ -6,12 +6,12 @@ import Confirm from 'sentry/components/confirm';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 
 function DeleteButton() {
   const api = useApi();
-  const router = useRouter();
+  const navigate = useNavigate();
   const params = useParams();
 
   const orgSlug = params.orgId;
@@ -25,7 +25,7 @@ function DeleteButton() {
           method: 'DELETE',
         }
       );
-      router.replace(`/organizations/${orgSlug}/replays/`);
+      navigate(`/organizations/${orgSlug}/replays/`, {replace: true});
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);
