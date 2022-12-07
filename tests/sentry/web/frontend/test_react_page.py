@@ -155,7 +155,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
-    def test_doest_notredirect_to_customer_domain_for_unsupported_paths(self):
+    def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)
