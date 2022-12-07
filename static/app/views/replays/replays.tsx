@@ -97,7 +97,7 @@ function Replays({location}: Props) {
                 href="https://docs.sentry.io/platforms/javascript/session-replay/"
                 external
               >
-                {t('See Readme')}
+                {t('Read Docs')}
               </Button>
             </ReplayOnboardingPanel>
           )}
