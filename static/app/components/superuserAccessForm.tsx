@@ -74,8 +74,12 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      this.handleSuccess();
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError(err);
+      }
     }
   };
 
