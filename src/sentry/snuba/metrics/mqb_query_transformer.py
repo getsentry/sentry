@@ -176,7 +176,7 @@ def _transform_groupby(query_groupby):
     return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
 
 
-def _get_mq_dict_params_from_where(query_where):
+def _get_mq_dict_params_from_where(query_where, is_alerts_query):
     mq_dict = {}
     where = []
     for condition in query_where:
@@ -193,7 +193,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name in FILTERABLE_TAGS:
+            elif (condition.lhs.name in FILTERABLE_TAGS) or is_alerts_query:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
@@ -429,7 +429,6 @@ def _get_supported_entities(is_alerts_query: bool) -> Set[str]:
 def transform_mqb_query_to_metrics_query(
     query: Query,
     is_alerts_query: bool = False,
-    use_none_clauses: bool = True,
 ) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
     if query.match.name not in _get_supported_entities(is_alerts_query):
@@ -455,15 +454,10 @@ def transform_mqb_query_to_metrics_query(
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
         "is_alerts_query": is_alerts_query,
-        **_get_mq_dict_params_from_where(query.where),
+        **_get_mq_dict_params_from_where(query.where, is_alerts_query),
     }
 
     # This code is just an edge case specific for the team_key_transaction derived operation.
     mq_dict.update(**_transform_team_key_transaction_fake_mri(mq_dict))
-
-    if not use_none_clauses:
-        for key in mq_dict.keys():
-            # TODO: convert None to [].
-            ...
 
     return MetricsQuery(**mq_dict)

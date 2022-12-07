@@ -775,6 +775,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         conditions = self.metric_object.generate_filter_snql_conditions(
             org_id=org_id, use_case_id=use_case_id
         )
+
         return self.metric_operation.generate_snql_function(
             alias=alias,
             aggregate_filter=conditions,

@@ -26,8 +26,10 @@ from sentry.models import Environment
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
+    resolve,
     resolve_tag_key,
     resolve_tag_value,
+    resolve_tag_values,
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -299,6 +301,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
+        # If we are using any metrics-based dataset, we will enable the use of metrics layer and also the snql
+        # generation through it.
+        self.use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
 
     @abstractmethod
     def get_snql_aggregations(self) -> List[str]:
@@ -318,6 +323,23 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
+    def _get_environment_condition(self, environment_name):
+        environment_column = (
+            "environment"
+            if self.use_metrics_layer
+            else resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")
+        )
+        environment = (
+            environment_name
+            if self.use_metrics_layer
+            else resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, environment_name)
+        )
+        return Condition(
+            Column(environment_column),
+            Op.EQ,
+            environment,
+        )
+
     def build_query_builder(
         self,
         query: str,
@@ -332,10 +354,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
 
-        # If we are using any metrics-based dataset, we will enable the use of metrics layer and also the snql
-        # generation through it.
-        use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
-
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
@@ -345,17 +363,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
-            use_metrics_layer=use_metrics_layer,
+            use_metrics_layer=self.use_metrics_layer,
         )
         extra_conditions = self.get_snql_extra_conditions()
+
         if environment:
-            extra_conditions.append(
-                Condition(
-                    Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
-                )
-            )
+            extra_conditions.append(self._get_environment_condition(environment.name))
+
         qb.add_conditions(extra_conditions)
 
         return qb
@@ -393,14 +407,6 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
     query_type = SnubaQuery.Type.CRASH_RATE
     dataset = Dataset.Metrics
     metric_key: SessionMRI
-
-    def __init__(
-        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
-    ):
-        super().__init__(aggregate, time_window, extra_fields)
-        self.session_status = resolve_tag_key(
-            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
-        )
 
     def get_granularity(self) -> int:
         # Both time_window and granularity are in seconds
@@ -514,14 +520,16 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return aggregated_results
 
     def get_snql_extra_conditions(self) -> List[Condition]:
-        return [
-            # TODO: check if this needs to be added again.
-            # Condition(
-            #     Column("metric_id"),
-            #     Op.EQ,
-            #     resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
-            # )
-        ]
+        if not self.use_metrics_layer:
+            return [
+                Condition(
+                    Column("metric_id"),
+                    Op.EQ,
+                    resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
+                )
+            ]
+
+        return []
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
@@ -535,14 +543,18 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
-        # TODO: check if this needs to be added again.
-        # extra_conditions.append(
-        #     Condition(
-        #         Column(self.session_status),
-        #         Op.IN,
-        #         resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
-        #     )
-        # )
+
+        if not self.use_metrics_layer:
+            extra_conditions.append(
+                Condition(
+                    Column(
+                        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status")
+                    ),
+                    Op.IN,
+                    resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
+                )
+            )
+
         return extra_conditions
 
 

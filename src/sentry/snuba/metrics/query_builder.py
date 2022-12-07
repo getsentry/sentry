@@ -666,7 +666,10 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self) -> List[Column]:
+    def _build_groupby(self) -> Optional[List[Column]]:
+        if self._metrics_query.groupby is None:
+            return None
+
         groupby_cols = []
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
