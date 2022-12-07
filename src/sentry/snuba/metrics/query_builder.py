@@ -873,6 +873,7 @@ class SnubaQueryBuilder:
             ]
             orderby = self._build_orderby()
 
+            # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
