@@ -43,7 +43,7 @@ type Props = {
   lockedMessageSubject?: string;
 
   /**
-   * Max character length for the dropdown title. Default is 20. This number
+   * Max character length for the dropdown title. Default is 25. This number
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
@@ -80,7 +80,7 @@ type Props = {
 
 function ProjectPageFilter({
   specificProjectSlugs,
-  maxTitleLength = 30,
+  maxTitleLength = 25,
   resetParamsOnChange = [],
   disabled,
   ...otherProps

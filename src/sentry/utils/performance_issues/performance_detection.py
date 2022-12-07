@@ -13,16 +13,22 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
+from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
+
+
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -32,7 +38,17 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+CONTAINS_PARAMETER_REGEX = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"\b(?:true|false)\b",  # booleans
+            r"\?|\$1|%s",  # existing parameters
+        ]
+    )
+)
 
 
 class DetectorType(Enum):
@@ -242,6 +258,15 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "n_plus_one_db_duration_threshold": options.get(
                 "performance.issues.n_plus_one_db.duration_threshold"
             ),
+            "render_blocking_fcp_min": options.get(
+                "performance.issues.render_blocking_assets.fcp_minimum_threshold"
+            ),
+            "render_blocking_fcp_max": options.get(
+                "performance.issues.render_blocking_assets.fcp_maximum_threshold"
+            ),
+            "render_blocking_fcp_ratio": options.get(
+                "performance.issues.render_blocking_assets.fcp_ratio_threshold"
+            ),
         }
     )
 
@@ -273,10 +298,9 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
-            "fcp_minimum_threshold": 2000.0,  # ms
-            "fcp_maximum_threshold": 10000.0,  # ms
-            "fcp_ratio_threshold": 0.25,
-            "allowed_span_ops": ["resource.link", "resource.script"],
+            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
+            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
+            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
         },
         DetectorType.N_PLUS_ONE_SPANS: [
             {
@@ -311,7 +335,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "duration_threshold": 5,  # ms
             "concurrency_threshold": 5,  # ms
-            "count": 5,
+            "count": 10,
             "allowed_span_ops": ["http.client"],
         },
     }
@@ -763,15 +787,22 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return
 
         op = span.get("op", None)
-        allowed_span_ops = self.settings.get("allowed_span_ops")
-        if op not in allowed_span_ops:
+        if op not in ["resource.link", "resource.script"]:
             return False
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
             fingerprint = fingerprint_span(span)
             if span_id and fingerprint:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
+                self.stored_problems[fingerprint] = PerformanceProblem(
+                    fingerprint=fingerprint,
+                    op=op,
+                    desc=span.get("description") or "",
+                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    offender_span_ids=[span_id],
+                    parent_span_ids=[],
+                    cause_span_ids=[],
+                )
 
         # If we visit a span that starts after FCP, then we know we've already
         # seen all possible render-blocking resource spans.
@@ -927,7 +958,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
-        # Ignore anything that looks like an asset
+        # GraphQL URLs have complicated queries in them. Until we parse those
+        # queries to check for what's duplicated, we can't tell what is being
+        # duplicated. Ignore them for now
+        if "graphql" in description:
+            return False
+
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
         if type(url) is dict:
@@ -936,7 +974,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parsed_url = urlparse(str(url))
 
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
             return False
 
         return True
@@ -1024,6 +1062,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _validate_and_store_performance_problem(self):
         independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
+        if not len(independent_db_spans):
+            return
+
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
@@ -1076,8 +1117,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         for span in spans[1:]:
             query: str = span.get("description", None)
             if (
-                query and contains_complete_query(span) and "WHERE" not in query.upper()
-            ):  # TODO - use better regex
+                query
+                and contains_complete_query(span)
+                and "WHERE" not in query.upper()
+                and not CONTAINS_PARAMETER_REGEX.search(query)
+            ):
                 independent_spans.append(span)
         return independent_spans
 
@@ -1357,6 +1401,51 @@ class FileIOMainThreadDetector(PerformanceDetector):
         self.most_recent_start_time = {}
         self.most_recent_hash = {}
         self.stored_problems = {}
+        self.mapper = None
+        self._prepare_deobfuscation()
+
+    def _prepare_deobfuscation(self):
+        event = self._event
+        if "debug_meta" in event:
+            images = event["debug_meta"].get("images", [])
+            project_id = event.get("project")
+            if not isinstance(images, list):
+                return
+            if project_id is not None:
+                project = Project.objects.get_from_cache(id=project_id)
+            else:
+                return
+
+            for image in images:
+                if image.get("type") == "proguard":
+                    uuid = image.get("uuid")
+                    dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                        project, [uuid], features=["mapping"]
+                    )
+                    debug_file_path = dif_paths.get(uuid)
+                    if debug_file_path is None:
+                        return
+
+                    mapper = ProguardMapper.open(debug_file_path)
+                    if not mapper.has_line_info:
+                        return
+                    self.mapper = mapper
+                    return
+
+    def _deobfuscate_module(self, module: str) -> str:
+        if self.mapper is not None:
+            return self.mapper.remap_class(module)
+        else:
+            return module
+
+    def _deobfuscate_function(self, frame):
+        if self.mapper is not None and "module" in frame and "function" in frame:
+            functions = self.mapper.remap_frame(
+                frame["module"], frame["function"], frame.get("lineno") or 0
+            )
+            return ".".join([func.method for func in functions])
+        else:
+            return frame.get("function", "")
 
     def visit_span(self, span: Span):
         if self._is_file_io_on_main_thread(span):
@@ -1378,12 +1467,12 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 )
 
     def _fingerprint(self, span) -> str:
-        call_stack = ".".join(
-            [
-                f"{item.get('module', '')}.{item.get('function', '')}"
-                for item in span.get("data", {}).get("call_stack", [])
-            ]
-        ).encode("utf8")
+        call_stack_strings = []
+        for item in span.get("data", {}).get("call_stack", []):
+            module = self._deobfuscate_module(item.get("module", ""))
+            function = self._deobfuscate_function(item)
+            call_stack_strings.append(f"{module}.{function}")
+        call_stack = ".".join(call_stack_strings).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 
@@ -1392,7 +1481,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
         if data is None:
             return False
         # doing is True since the value can be any type
-        return data.get("blocked_ui_thread", False) is True
+        return data.get("blocked_main_thread", False) is True
 
 
 # Reports metrics and creates spans for detection
