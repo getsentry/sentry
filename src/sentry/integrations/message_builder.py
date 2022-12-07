@@ -51,7 +51,7 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
             title = obj.occurrence.issue_title
         else:
             event = group.get_latest_event()
-            if event.occurrence is not None:
+            if event is not None and event.occurrence is not None:
                 title = event.occurrence.issue_title
 
     # Explicitly typing to satisfy mypy.
