@@ -155,6 +155,42 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
+    def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        with self.feature({"organizations:customer-domains": True}):
+
+            url_name = "sentry-organization-create"
+            url_name_is_non_customer_domain = any(
+                fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
+            )
+            assert (
+                url_name_is_non_customer_domain
+            ), "precondition missing. org-create should be non-customer-domain"
+
+            # Induce last active org.
+            assert "activeorg" not in self.client.session
+            response = self.client.get(
+                reverse(
+                    "sentry-organization-issue-list",
+                    args=[org.slug],
+                ),
+                HTTP_HOST=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 200
+            assert self.client.session["activeorg"]
+
+            # No redirect to customer domain if path is not meant to be accessed in customer domain context.
+            # There should be no redirect to the last active org.
+            response = self.client.get(
+                reverse(url_name),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
     def test_non_customer_domain_url_names(self):
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
