@@ -17,4 +17,48 @@ describe('Frame', () => {
       ).toBe(true);
     });
   });
+  describe('pulls package from path for web|node platforms', () => {
+    it('file in node modules', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'Foo',
+            path: '/usr/code/node_modules/file.js',
+            line: undefined,
+            column: undefined,
+          },
+          'node'
+        ).image
+      ).toBe(undefined);
+    });
+    it('scoped module', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'Foo',
+            path: '/usr/code/node_modules/@sentry/profiling-node/file.js',
+            line: undefined,
+            column: undefined,
+          },
+          'node'
+        ).image
+      ).toBe('@sentry/profiling-node');
+    });
+    it('module', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'Foo',
+            path: '/usr/code/node_modules/sentry/profiling-node/file.js',
+            line: undefined,
+            column: undefined,
+          },
+          'node'
+        ).image
+      ).toBe('sentry');
+    });
+  });
 });

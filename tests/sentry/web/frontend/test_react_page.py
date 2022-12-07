@@ -194,3 +194,12 @@ class ReactPageViewTest(TestCase):
 
                 assert response.status_code == 302
                 assert response["Location"] == f"http://testserver{path}"
+
+    def test_handles_unknown_url_name(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        response = self.client.get(f"/settings/{org.slug}/projects/albertos-apples/keys/")
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")

@@ -96,9 +96,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
     <CodeMappingButtonContainer columnQuantity={2}>
       <StyledLink to={`/settings/${organization.slug}/integrations/`}>
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-        {t(
-          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
-        )}
+        {t('Add the GitHub or GitLab integration to jump straight to your source code')}
       </StyledLink>
       <CloseButton type="button" priority="link" onClick={dismissPrompt}>
         <IconClose size="xs" aria-label={t('Close')} />
