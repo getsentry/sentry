@@ -4,7 +4,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 
 
-def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) -> None:
+def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) -> IssueOccurrence:
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -13,3 +13,4 @@ def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) ->
 
     # TODO: Create/update issue
     # TODO: Write occurrence and event eventstream
+    return occurrence
