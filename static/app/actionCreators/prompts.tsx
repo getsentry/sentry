@@ -94,7 +94,7 @@ export const makePromptsCheckQueryKey = ({
   projectId,
 }: PromptCheckParams): QueryKey => [
   '/prompts-activity/',
-  {query: {feature, organizationId, projectId}},
+  {query: {feature, organization_id: organizationId, project_id: projectId}},
 ];
 
 /**
