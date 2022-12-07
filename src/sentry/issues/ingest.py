@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 
 
-def save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Optional[Event] = None
-) -> None:
+def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) -> None:
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
+    if occurrence.event_id != event.event_id:
+        raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
     occurrence.save()
 
     # TODO: Create/update issue
