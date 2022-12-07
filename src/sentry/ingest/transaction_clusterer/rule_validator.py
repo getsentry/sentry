@@ -9,9 +9,7 @@ class RuleValidator:
         self._char_domain: Set[str] = set(char_domain) if char_domain else set("*/")
 
     def is_valid(self) -> bool:
-        if self._is_all_stars():
-            return False
-        return True
+        return not self._is_all_stars()
 
     def _is_all_stars(self) -> bool:
         return set(self._rule) <= self._char_domain
