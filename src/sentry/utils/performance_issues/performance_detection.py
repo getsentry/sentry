@@ -333,7 +333,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 5,  # ms
+            "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
