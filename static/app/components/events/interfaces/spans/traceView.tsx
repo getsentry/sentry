@@ -24,6 +24,7 @@ type Props = {
 
 function TraceView(props: Props) {
   const traceViewRef = createRef<HTMLDivElement>();
+  const traceViewHeaderRef = createRef<HTMLDivElement>();
   const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
   const minimapInteractiveRef = createRef<HTMLDivElement>();
 
@@ -34,6 +35,7 @@ function TraceView(props: Props) {
 
         return (
           <TraceViewHeader
+            traceViewHeaderRef={traceViewHeaderRef}
             organization={props.organization}
             minimapInteractiveRef={minimapInteractiveRef}
             dragProps={dragProps}
@@ -99,6 +101,7 @@ function TraceView(props: Props) {
                                     <CustomerProfiler id="SpanTree">
                                       <SpanTree
                                         traceViewRef={traceViewRef}
+                                        traceViewHeaderRef={traceViewHeaderRef}
                                         dragProps={dragProps}
                                         organization={organization}
                                         waterfallModel={waterfallModel}
