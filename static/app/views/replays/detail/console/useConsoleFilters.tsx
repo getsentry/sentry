@@ -9,24 +9,24 @@ import {isBreadcrumbLogLevel, isBreadcrumbTypeDefault} from 'sentry/types/breadc
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {sortBySeverity} from 'sentry/views/replays/detail/console/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 const ISSUE_CATEGORY = 'issue';
 type BreadcrumbType = BreadcrumbLevelType | typeof ISSUE_CATEGORY;
+type Item = Extract<Crumb, BreadcrumbTypeDefault>;
 
 export type FilterFields = {
   f_c_logLevel: string[];
   f_c_search: string;
 };
 
-type Item = Extract<Crumb, BreadcrumbTypeDefault>;
-
 type Options = {
   breadcrumbs: Crumb[];
 };
 
 type Return = {
-  getOptions: () => {label: string; value: string}[];
+  getLogLevels: () => {label: string; value: string}[];
   items: Item[];
   logLevel: BreadcrumbType[];
   searchTerm: string;
@@ -51,22 +51,6 @@ const FILTERS = {
       .toLowerCase()
       .includes(searchTerm),
 };
-
-function sortBySeverity(a: string, b: string) {
-  const levels = {
-    issue: 0,
-    fatal: 1,
-    error: 2,
-    warning: 3,
-    info: 4,
-    debug: 5,
-    trace: 6,
-  };
-
-  const aRank = levels[a] ?? 10;
-  const bRank = levels[b] ?? 10;
-  return aRank - bRank;
-}
 
 function optionValueToLabel(value: string) {
   return (
@@ -98,7 +82,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
     [typeDefaultCrumbs, logLevel, searchTerm]
   );
 
-  const getOptions = useCallback(
+  const getLogLevels = useCallback(
     () =>
       Array.from(
         new Set(
@@ -129,7 +113,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   );
 
   return {
-    getOptions,
+    getLogLevels,
     items,
     logLevel,
     searchTerm,

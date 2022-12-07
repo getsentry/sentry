@@ -6,7 +6,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-import useDomFilters, {FilterFields} from './useNetworkFilters';
+import useNetworkFilters, {FilterFields} from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -16,40 +16,46 @@ const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
   typeof browserHistory.push
 >;
 
+const NavSpan = {
+  id: '0',
+  timestamp: 1663131080555.4,
+  op: 'navigation.navigate',
+  description: 'http://localhost:3000/',
+  startTimestamp: 1663131080.5554,
+  endTimestamp: 1663131080.6947,
+  data: {
+    size: 1334,
+  },
+};
+
+const LinkSpan = {
+  id: '1',
+  timestamp: 1663131080576.7,
+  op: 'resource.link',
+  description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
+  startTimestamp: 1663131080.5767,
+  endTimestamp: 1663131080.5951,
+  data: {
+    size: 300,
+  },
+};
+
+const ScriptSpan = {
+  id: '2',
+  timestamp: 1663131080577.0998,
+  op: 'resource.script',
+  description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
+  startTimestamp: 1663131080.5770998,
+  endTimestamp: 1663131080.5979,
+  data: {
+    size: 300,
+  },
+};
+
 const networkSpans: NetworkSpan[] = [
-  {
-    id: '0',
-    timestamp: 1663131080555.4,
-    op: 'navigation.navigate',
-    description: 'http://localhost:3000/',
-    startTimestamp: 1663131080.5554,
-    endTimestamp: 1663131080.6947,
-    data: {
-      size: 1334,
-    },
-  },
-  {
-    id: '1',
-    timestamp: 1663131080576.7,
-    op: 'resource.link',
-    description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
-    startTimestamp: 1663131080.5767,
-    endTimestamp: 1663131080.5951,
-    data: {
-      size: 300,
-    },
-  },
-  {
-    id: '2',
-    timestamp: 1663131080577.0998,
-    op: 'resource.script',
-    description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
-    startTimestamp: 1663131080.5770998,
-    endTimestamp: 1663131080.5979,
-    data: {
-      size: 300,
-    },
-  },
+  NavSpan,
+  LinkSpan,
+  ScriptSpan,
   {
     id: '3',
     timestamp: 1663131080641,
@@ -120,7 +126,7 @@ const networkSpans: NetworkSpan[] = [
   },
 ];
 
-describe('useDomFilters', () => {
+describe('useNetworkFilters', () => {
   beforeEach(() => {
     mockBrowserHistoryPush.mockReset();
   });
@@ -144,7 +150,7 @@ describe('useDomFilters', () => {
         query: {f_n_type: TYPE_FILTER, f_n_status: STATUS_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(useDomFilters, {
+    const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
 
@@ -186,7 +192,9 @@ describe('useDomFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
     expect(result.current.items.length).toEqual(9);
   });
 
@@ -198,7 +206,9 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -210,7 +220,9 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
     expect(result.current.items.length).toEqual(3);
   });
 
@@ -222,7 +234,9 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -236,7 +250,72 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
     expect(result.current.items.length).toEqual(1);
+  });
+
+  describe('getResourceTypes', () => {
+    it('should return a sorted list of BreadcrumbType', () => {
+      const spans = [NavSpan, LinkSpan, ScriptSpan];
+
+      const {result} = reactHooks.renderHook(useNetworkFilters, {
+        initialProps: {networkSpans: spans},
+      });
+
+      expect(result.current.getResourceTypes()).toStrictEqual([
+        {label: 'fetch', value: 'fetch'},
+        {label: 'link', value: 'link'},
+        {label: 'navigation.navigate', value: 'navigation.navigate'},
+        {label: 'script', value: 'script'},
+      ]);
+    });
+
+    it('should deduplicate BreadcrumbType', () => {
+      const spans = [NavSpan, LinkSpan, ScriptSpan, LinkSpan];
+      const {result} = reactHooks.renderHook(useNetworkFilters, {
+        initialProps: {networkSpans: spans},
+      });
+
+      expect(result.current.getResourceTypes()).toStrictEqual([
+        {label: 'fetch', value: 'fetch'},
+        {label: 'link', value: 'link'},
+        {label: 'navigation.navigate', value: 'navigation.navigate'},
+        {label: 'script', value: 'script'},
+      ]);
+    });
+  });
+
+  describe('getStatusTypes', () => {
+    it('should return a sorted list of BreadcrumbType', () => {
+      const {result} = reactHooks.renderHook(useNetworkFilters, {
+        initialProps: {networkSpans},
+      });
+
+      expect(result.current.getStatusTypes()).toStrictEqual([
+        {
+          label: '200',
+          value: '200',
+        },
+        {label: '404', value: '404'},
+        {label: 'unknown', value: 'unknown'},
+      ]);
+    });
+
+    it('should deduplicate BreadcrumbType', () => {
+      const {result} = reactHooks.renderHook(useNetworkFilters, {
+        initialProps: {networkSpans},
+      });
+
+      expect(result.current.getStatusTypes()).toStrictEqual([
+        {
+          label: '200',
+          value: '200',
+        },
+        {label: '404', value: '404'},
+        {label: 'unknown', value: 'unknown'},
+      ]);
+    });
   });
 });

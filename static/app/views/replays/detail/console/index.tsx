@@ -9,6 +9,7 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
@@ -52,7 +53,14 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     : null;
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({listRef, deps: [items]});
+  const {cache} = useVirtualizedList({
+    cellMeasurer: {
+      fixedWidth: true,
+      minHeight: 24,
+    },
+    ref: listRef,
+    deps: [items],
+  });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = items[index];
@@ -66,6 +74,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleLogRow
+          hasOccurred={
+            currentTime < relativeTimeInMs(item.timestamp || 0, startTimestampMs)
+          }
           isCurrent={item.id === current?.id}
           isHovered={item.id === hovered?.id}
           breadcrumb={item}
@@ -87,19 +98,19 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
-                overscanRowCount={5}
-                rowCount={items.length}
                 noRowsRenderer={() => (
                   <NoRowRenderer
-                    unfilteredItems={breadcrumbs}
                     clearSearchTerm={clearSearchTerm}
+                    unfilteredItems={breadcrumbs}
                   >
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
+                overscanRowCount={5}
+                ref={listRef}
+                rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}

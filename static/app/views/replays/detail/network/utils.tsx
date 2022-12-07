@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -8,6 +9,30 @@ export interface ISortConfig {
 }
 
 export const UNKNOWN_STATUS = 'unknown';
+
+export const ROW_HEIGHT = {
+  header: 24,
+  body: 28,
+};
+
+export const COLUMNS = [
+  {
+    key: 'status',
+    label: t('Status'),
+    field: 'status',
+    sortFn: row => row.data.statusCode,
+  },
+  {key: 'path', label: t('Path'), field: 'description'},
+  {key: 'type', label: t('Type'), field: 'op'},
+  {key: 'size', label: t('Size'), field: 'size', sortFn: row => row.data.size},
+  {
+    key: 'duration',
+    label: t('Duration'),
+    field: 'duration',
+    sortFn: row => row.endTimestamp - row.startTimestamp,
+  },
+  {key: 'timestamp', label: t('Timestamp'), field: 'startTimestamp'},
+];
 
 export function sortNetwork(
   network: NetworkSpan[],
@@ -40,17 +65,3 @@ export function sortNetwork(
     return valueB > valueA ? 1 : -1;
   });
 }
-
-export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
-  Array.from(
-    new Set(networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')))
-  ).sort();
-
-export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
-  Array.from(
-    new Set(
-      networkSpans
-        .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
-        .map(String)
-    )
-  ).sort();

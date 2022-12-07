@@ -85,6 +85,8 @@ describe('getDuration()', function () {
 describe('formatSecondsToClock', function () {
   it('should format durations', function () {
     expect(formatSecondsToClock(0)).toBe('00:00');
+    expect(formatSecondsToClock(0.001)).toBe('00:00.001');
+    expect(formatSecondsToClock(0.01)).toBe('00:00.010');
     expect(formatSecondsToClock(0.1)).toBe('00:00.100');
     expect(formatSecondsToClock(1)).toBe('00:01');
     expect(formatSecondsToClock(2)).toBe('00:02');
@@ -99,6 +101,8 @@ describe('formatSecondsToClock', function () {
 
   it('should format negative durations', function () {
     expect(formatSecondsToClock(-0)).toBe('00:00');
+    expect(formatSecondsToClock(-0.001)).toBe('00:00.001');
+    expect(formatSecondsToClock(-0.01)).toBe('00:00.010');
     expect(formatSecondsToClock(-0.1)).toBe('00:00.100');
     expect(formatSecondsToClock(-1)).toBe('00:01');
     expect(formatSecondsToClock(-2)).toBe('00:02');

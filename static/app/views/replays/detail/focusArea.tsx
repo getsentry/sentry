@@ -28,8 +28,8 @@ function FocusArea({}: Props) {
     case 'network':
       return (
         <NetworkList
-          replayRecord={replay?.getReplay()}
           networkSpans={replay?.getNetworkSpans()}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime() || 0}
         />
       );
     case 'trace':
