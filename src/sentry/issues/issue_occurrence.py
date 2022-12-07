@@ -20,7 +20,7 @@ class IssueEvidenceData(TypedDict):
 
 class IssueOccurrenceData(TypedDict):
     id: str
-    event_id: Optional[str]
+    event_id: str
     fingerprint: Sequence[str]
     issue_title: str
     subtitle: str
@@ -103,7 +103,7 @@ class IssueOccurrence:
         return cls(
             data["id"],
             # We'll always have an event id when loading an issue occurrence
-            data["event_id"],  # type: ignore
+            data["event_id"],
             data["fingerprint"],
             data["issue_title"],
             data["subtitle"],
