@@ -431,10 +431,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRule = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
-      const incompatibleRule = findIncompatibleRules(this.state.rule);
+      const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
+      if (conditionIndices !== null || filterIndices !== null) {
+        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
+          organization: this.props.organization,
+        });
+      }
       this.setState({
-        incompatibleConditions: incompatibleRule.conditionIndices,
-        incompatibleFilters: incompatibleRule.filterIndices,
+        incompatibleConditions: conditionIndices,
+        incompatibleFilters: filterIndices,
       });
     }
   }, 500);
@@ -491,9 +496,17 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       })
       .then(() => {
         addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: true,
+        });
       })
       .catch(() => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: false,
+        });
       })
       .finally(() => {
         this.setState({sendingNotification: false});

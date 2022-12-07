@@ -47,6 +47,8 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     type: string;
   };
+  'edit_alert_rule.incompatible_rule': {};
+  'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
   'issue_alert_rule_details.viewed': {rule_id: number};
@@ -100,6 +102,8 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
+  'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
+  'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
