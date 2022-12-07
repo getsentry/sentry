@@ -3,13 +3,32 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
 
-from dateutil.parser import parse as parse_date
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.types.issues import GroupType
+from sentry.utils.dates import parse_timestamp
+
+
+class IssueEvidenceData(TypedDict):
+    name: str
+    value: str
+    important: bool
+
+
+class IssueOccurrenceData(TypedDict):
+    id: str
+    event_id: Optional[str]
+    fingerprint: Sequence[str]
+    issue_title: str
+    subtitle: str
+    resource_id: str | None
+    evidence_data: Mapping[str, Any]
+    evidence_display: Sequence[IssueEvidenceData]
+    type: int
+    detection_time: float
 
 
 @dataclass(frozen=True)
@@ -22,7 +41,7 @@ class IssueEvidence:
 
     def to_dict(
         self,
-    ) -> Mapping[str, str | bool]:
+    ) -> IssueEvidenceData:
         return {
             "name": self.name,
             "value": self.value,
@@ -65,7 +84,7 @@ class IssueOccurrence:
 
     def to_dict(
         self,
-    ) -> Mapping[str, Any]:
+    ) -> IssueOccurrenceData:
         return {
             "id": self.id,
             "event_id": self.event_id,
@@ -76,14 +95,15 @@ class IssueOccurrence:
             "evidence_data": self.evidence_data,
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
             "type": self.type.value,
-            "detection_time": self.detection_time.isoformat(),
+            "detection_time": self.detection_time.timestamp(),
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> IssueOccurrence:
+    def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
         return cls(
             data["id"],
-            data["event_id"],
+            # We'll always have an event id when loading an issue occurrence
+            data["event_id"],  # type: ignore
             data["fingerprint"],
             data["issue_title"],
             data["subtitle"],
@@ -94,7 +114,7 @@ class IssueOccurrence:
                 for evidence in data["evidence_display"]
             ],
             GroupType(data["type"]),
-            parse_date(data["detection_time"]),
+            cast(datetime, parse_timestamp(data["detection_time"])),
         )
 
     @property
