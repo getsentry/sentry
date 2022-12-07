@@ -144,6 +144,8 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
+    url = None
+
     # Check for the event url
     for key, value in event.tags:
         if key == "url":
