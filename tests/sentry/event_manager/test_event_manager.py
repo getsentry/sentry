@@ -2853,7 +2853,6 @@ class ReleaseIssueTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:server-side-sampling")
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):

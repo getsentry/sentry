@@ -57,17 +57,19 @@ class ReactMixin:
         get_csrf_token(request)
 
         url_name = request.resolver_match.url_name
+        url_is_non_customer_domain = (
+            any(fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES) if url_name else False
+        )
+
         # If a customer domain is being used, and if a non-customer domain url_name is encountered, we redirect the user
         # to sentryUrl.
-        if is_using_customer_domain(request) and any(
-            fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
-        ):
+        if is_using_customer_domain(request) and url_is_non_customer_domain:
             redirect_url = options.get("system.url-prefix")
             qs = query_string(request)
             redirect_url = f"{redirect_url}{request.path}{qs}"
             return HttpResponseRedirect(redirect_url)
 
-        if request.subdomain is None:
+        if request.subdomain is None and not url_is_non_customer_domain:
             matched_url = resolve(request.path)
             if "organization_slug" in matched_url.kwargs:
                 org_slug = matched_url.kwargs["organization_slug"]
