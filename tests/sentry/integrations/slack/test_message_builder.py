@@ -187,6 +187,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
             ],
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
+            "info",  # add a level value of info
         )
         # TODO use Dan's OccurrenceTestMixin once merged
         occurrence.save()
@@ -199,7 +200,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
         assert attachments["title"] == occurrence.issue_title
         assert attachments["text"] == occurrence.evidence_display[0].value
         assert attachments["fallback"] == f"[{self.project.slug}] {occurrence.issue_title}"
-        assert attachments["color"] == "#E03E2F"  # red for error level
+        assert attachments["color"] == "#2788CE"  # blue for info level
 
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
