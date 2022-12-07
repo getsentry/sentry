@@ -79,6 +79,8 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "pending": obj.is_pending,
             "expired": obj.token_expired,
             "flags": {
+                "idp:provisioned": bool(getattr(obj.flags, "idp:provisioned")),
+                "idp:role-restricted": bool(getattr(obj.flags, "idp:role-restricted")),
                 "sso:linked": bool(getattr(obj.flags, "sso:linked")),
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
                 "member-limit:restricted": bool(getattr(obj.flags, "member-limit:restricted")),
