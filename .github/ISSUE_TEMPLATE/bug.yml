@@ -32,7 +32,7 @@ body:
     attributes:
       label: DSN
       placeholder: https://{tag}@o{ORG_ID}.ingest.sentry.io/{PROJECT_ID}
-      description: This is an easy way to give us your org ID (non-PII).
+      description: If on SaaS, what is your DSN? This is an easy way to give us your org ID (non-PII).
     validations:
       required: false
   - type: textarea
