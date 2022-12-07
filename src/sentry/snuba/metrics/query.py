@@ -282,11 +282,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
         start: Optional[datetime] = None,
         interval: Optional[int] = None,
     ) -> int:
-        if interval is None and end is not None:
-            range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
+        if interval is None and end:
+            range_in_sec = (end - start).total_seconds() if start else to_timestamp(end)
             denominator = granularity
         else:
-            assert start is not None and end is not None and interval > 0  # type:ignore
+            assert start and end and interval > 0  # type:ignore
 
             start_in_seconds = start.timestamp()
             end_in_seconds = end.timestamp()
@@ -360,7 +360,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
-        if self.include_series and self.start and self.end:
+        if self.start and self.end and self.include_series:
             intervals_len = self.calculate_intervals_len(
                 start=self.start,
                 end=self.end,
