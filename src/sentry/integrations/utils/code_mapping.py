@@ -77,11 +77,11 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
+        # XXX: Using regexes would be better
         if not frame_file_path or frame_file_path.find("<") > -1:
             raise UnsupportedFrameFilename
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
-        # XXX: Using regexes would be better
         if not self.extension:
             raise UnsupportedFrameFilename
         if self.frame_type() == "packaged":

@@ -64,8 +64,10 @@ def test_buckets_logic():
         "<anonymous>",  # Garbage
         "<frozen importlib._bootstrap>",
         "[native code]",
+        "O$t",
         "/foo/bar/baz",  # no extension
         "README",  # no extension
+        "backburner.js",
         "app://foo.js",
         "./app/utils/handleXhrErrorResponse.tsx",
         "getsentry/billing/tax/manager.py",
