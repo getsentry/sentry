@@ -3,7 +3,7 @@ from typing import Any, Dict, MutableMapping, Optional, Sequence, Tuple, cast
 import msgpack
 from confluent_kafka import Message
 
-from sentry.profiles.task import process_profile
+from sentry.profiles.task import process_profile_task
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
@@ -43,7 +43,7 @@ class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
     ) -> None:
         for message in messages:
             key_id, profile = message
-            process_profile.s(profile=profile, key_id=key_id).apply_async()
+            process_profile_task.s(profile=profile, key_id=key_id).apply_async()
 
     def shutdown(self) -> None:
         pass

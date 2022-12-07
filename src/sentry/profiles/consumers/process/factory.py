@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Dict, Mapping, cast
+from typing import Mapping
 
 import msgpack
 import sentry_sdk
@@ -7,8 +7,8 @@ from arroyo.backends.kafka import KafkaProducer
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.produce import ProduceAndCommit
-from arroyo.processing.strategies.run_task import RunTaskInThreads, TPayload, TResult
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.processing.strategies.run_task import RunTaskInThreads
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.models import Project
@@ -29,17 +29,14 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     chunks.
     """
 
-    def process_message(self, message: Message[TPayload]) -> TResult:
-        message = msgpack.unpackb(message.payload.value, use_list=False)
-        if not message["payload"]:
-            return None
-
-        profile = cast(Dict[str, Any], json.loads(message["payload"]))
+    def process_message(self, message: Message[KafkaPayload]) -> KafkaPayload:
+        message_dict = msgpack.unpackb(message.payload.value, use_list=False)
+        profile = json.loads(message_dict["payload"])
         profile.update(
             {
-                "organization_id": message["organization_id"],
-                "project_id": message["project_id"],
-                "received": message["received"],
+                "organization_id": message_dict["organization_id"],
+                "project_id": message_dict["project_id"],
+                "received": message_dict["received"],
             }
         )
 
@@ -67,7 +64,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]

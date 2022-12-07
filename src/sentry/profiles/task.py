@@ -50,7 +50,7 @@ def process_profile_task(
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
-    profile = process_profile(profile, key_id)
+    profile = process_profile(profile=profile, project=project, key_id=key_id)
 
     if not profile:
         return
@@ -62,11 +62,12 @@ def process_profile_task(
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
 
 
+@metrics.wraps("process_profile")
 def process_profile(
     profile: Profile,
-    project: Optional[Project],
+    project: Project,
     key_id: Optional[int],
-) -> None:
+) -> Optional[Profile]:
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
@@ -87,7 +88,7 @@ def process_profile(
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return
+                return None
 
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
@@ -128,7 +129,7 @@ def process_profile(
             key_id=key_id,
             reason="failed-symbolication",
         )
-        return
+        return None
 
     try:
         if _should_deobfuscate(profile):
@@ -138,7 +139,7 @@ def process_profile(
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return
+                return None
 
             _deobfuscate(profile=profile, project=project)
     except Exception as e:
@@ -150,7 +151,7 @@ def process_profile(
             key_id=key_id,
             reason="failed-deobfuscation",
         )
-        return
+        return None
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -165,7 +166,7 @@ def process_profile(
             key_id=key_id,
             reason="failed-normalization",
         )
-        return
+        return None
 
     if not _insert_vroom_profile(profile=profile):
         _track_outcome(
@@ -175,7 +176,7 @@ def process_profile(
             key_id=key_id,
             reason="failed-vroom-insertion",
         )
-        return
+        return None
 
     return profile
 
