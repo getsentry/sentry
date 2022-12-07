@@ -23,7 +23,7 @@ def create_ingest_occurences_consumer(
         build_kafka_consumer_configuration(
             get_kafka_consumer_cluster_options(settings.KAFKA_TOPICS[topic_name]["cluster"]),
             auto_offset_reset="latest",
-            group_id="test-group",
+            group_id=None,
         )
     )
 
