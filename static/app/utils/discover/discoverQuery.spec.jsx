@@ -175,7 +175,6 @@ describe('DiscoverQuery', function () {
           api={api}
           location={location}
           eventView={eventView}
-          useEvents
         >
           {({tableData, isLoading}) => {
             if (isLoading) {
@@ -208,7 +207,6 @@ describe('DiscoverQuery', function () {
           eventView={eventView}
           limit={3}
           cursor="1:0:1"
-          useEvents
         >
           {({tableData, isLoading}) => {
             if (isLoading) {
@@ -250,7 +248,6 @@ describe('DiscoverQuery', function () {
           location={location}
           eventView={eventView}
           setError={e => (errorValue = e)}
-          useEvents
         >
           {({isLoading}) => {
             if (isLoading) {
@@ -286,7 +283,6 @@ describe('DiscoverQuery', function () {
           location={location}
           eventView={eventView}
           setError={e => (errorValue = e)}
-          useEvents
         >
           {({isLoading}) => {
             if (isLoading) {

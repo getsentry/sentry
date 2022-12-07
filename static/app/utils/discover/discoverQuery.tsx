@@ -55,16 +55,14 @@ function shouldRefetchData(
 }
 
 function DiscoverQuery(props: DiscoverQueryComponentProps) {
-  const endpoint = props.useEvents ? 'events' : 'eventsv2';
-  const afterFetch = props.useEvents
-    ? (data, _) => {
-        const {fields, ...otherMeta} = data.meta ?? {};
-        return {
-          ...data,
-          meta: {...fields, ...otherMeta},
-        };
-      }
-    : undefined;
+  const endpoint = 'events';
+  const afterFetch = (data, _) => {
+    const {fields, ...otherMeta} = data.meta ?? {};
+    return {
+      ...data,
+      meta: {...fields, ...otherMeta},
+    };
+  };
   return (
     <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
       route={endpoint}
