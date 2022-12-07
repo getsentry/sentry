@@ -287,7 +287,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         :auth: required
         """
         if not features.has(
-            "organizations:server-side-sampling", project.organization, actor=request.user
+            "organizations:dynamic-sampling", project.organization, actor=request.user
         ):
             return Response(
                 {

@@ -170,12 +170,9 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
-    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
-
     with Feature(
         {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
+            "organizations:dynamic-sampling": True,
         }
     ):
         result, status_code = call_endpoint(full_config=False)
@@ -183,7 +180,7 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
         dynamic_sampling = safe.get_path(
             result, "configs", str(default_project.id), "config", "dynamicSampling"
         )
-        assert dynamic_sampling is None
+        assert dynamic_sampling == {"rules": []}
 
 
 @pytest.mark.django_db
