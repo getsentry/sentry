@@ -165,6 +165,7 @@ default_manager.add("organizations:slack-overage-notifications", OrganizationFea
 default_manager.add("organizations:symbol-sources", OrganizationFeature)
 default_manager.add("organizations:team-roles", OrganizationFeature, True)
 default_manager.add("organizations:transaction-name-normalize", OrganizationFeature, True)
+default_manager.add("organizations:transaction-name-clusterer", OrganizationFeature, True)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)

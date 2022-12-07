@@ -3,10 +3,9 @@ from typing import Iterable, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
+from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE
 from sentry.models import Project
 from sentry.utils.snuba import raw_snql_query
-
-TRANSACTION_SOURCE = "url"
 
 
 def fetch_unique_transaction_names(
