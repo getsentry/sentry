@@ -32,7 +32,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
+from sentry.utils.auth import get_login_url, is_valid_redirect, make_login_link_with_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
@@ -363,7 +363,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
     def get_no_permission_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")  # type: ignore[no-any-return]
+        return get_login_url()
 
     def get_not_2fa_compliant_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
         return reverse("sentry-account-settings-security")  # type: ignore[no-any-return]
