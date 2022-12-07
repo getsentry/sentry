@@ -54,7 +54,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicates"
-    SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
@@ -68,7 +67,6 @@ class DetectorType(Enum):
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
     DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
-    DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
     DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
@@ -278,13 +276,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
                 "allowed_span_ops": ["db", "http"],
             }
         ],
-        DetectorType.SEQUENTIAL_SLOW_SPANS: [
-            {
-                "count": 3,
-                "cumulative_duration": 1200.0,  # ms
-                "allowed_span_ops": ["db", "http", "ui"],
-            }
-        ],
         DetectorType.SLOW_SPAN: [
             {
                 "duration_threshold": 1000.0,  # ms
@@ -350,7 +341,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
         DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
@@ -654,71 +644,6 @@ class SlowSpanDetector(PerformanceDetector):
             self.stored_problems[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, spans_involved
             )
-
-
-class SequentialSlowSpanDetector(PerformanceDetector):
-    """
-    Checks for unparallelized slower repeated spans, to suggest using futures etc. to reduce response time.
-    This makes some assumptions about span ordering etc. and also removes any spans that have any overlap with the same span op from consideration.
-    """
-
-    __slots__ = ("cumulative_durations", "stored_problems", "spans_involved", "last_span_seen")
-
-    settings_key = DetectorType.SEQUENTIAL_SLOW_SPANS
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.stored_problems = {}
-        self.spans_involved = {}
-        self.last_span_seen = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duration_threshold = settings.get("cumulative_duration")
-        count_threshold = settings.get("count")
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        span_end = timedelta(seconds=span.get("timestamp", 0))
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-
-        self.spans_involved[fingerprint] += [span_id]
-
-        if fingerprint not in self.last_span_seen:
-            self.last_span_seen[fingerprint] = span_end
-            self.cumulative_durations[fingerprint] = span_duration
-            return
-
-        last_span_end = self.last_span_seen[fingerprint]
-        current_span_start = timedelta(seconds=span.get("start_timestamp", 0))
-
-        are_spans_overlapping = current_span_start <= last_span_end
-        if are_spans_overlapping:
-            del self.last_span_seen[fingerprint]
-            self.spans_involved[fingerprint] = []
-            self.cumulative_durations[fingerprint] = timedelta(0)
-            return
-
-        self.cumulative_durations[fingerprint] += span_duration
-        self.last_span_seen[fingerprint] = span_end
-
-        spans_counts = len(self.spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if spans_counts >= count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duration_threshold):
-                spans_involved = self.spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
 
 
 class LongTaskSpanDetector(PerformanceDetector):
