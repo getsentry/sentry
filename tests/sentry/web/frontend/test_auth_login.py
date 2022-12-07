@@ -438,7 +438,7 @@ class AuthLoginCustomerDomainTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
-            HTTP_HOST="albertos-apples.testserver",
+            SERVER_NAME="albertos-apples.testserver",
             follow=True,
         )
         assert resp.status_code == 200
@@ -542,7 +542,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": user.username, "password": "admin", "op": "login"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
                 follow=True,
             )
 
