@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_occurrences_ingest_consumer(
-    consumer_type,
-):
-    return create_ingest_occurences_consumer("occurrences")
+    consumer_type: str,
+) -> StreamProcessor[KafkaPayload]:
+    return create_ingest_occurences_consumer(consumer_type)
 
 
 def create_ingest_occurences_consumer(
