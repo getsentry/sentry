@@ -69,7 +69,7 @@ class ReactMixin:
             redirect_url = f"{redirect_url}{request.path}{qs}"
             return HttpResponseRedirect(redirect_url)
 
-        if request.subdomain is None:
+        if request.subdomain is None and not url_is_non_customer_domain:
             matched_url = resolve(request.path)
             if "organization_slug" in matched_url.kwargs:
                 org_slug = matched_url.kwargs["organization_slug"]
