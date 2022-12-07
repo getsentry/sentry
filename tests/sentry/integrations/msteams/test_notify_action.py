@@ -2,6 +2,7 @@ import re
 import time
 import uuid
 from datetime import datetime
+from unittest import mock
 
 import responses
 
@@ -16,6 +17,23 @@ from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 from sentry.utils.samples import load_data
+
+my_occurrence = IssueOccurrence(
+    uuid.uuid4().hex,
+    uuid.uuid4().hex,
+    ["some-fingerprint"],
+    "something bad happened",
+    "it was bad",
+    "1234",
+    {"Test": 123},
+    [
+        IssueEvidence("Attention", "Very important information!!!", True),
+        IssueEvidence("Evidence 2", "Not important", False),
+        IssueEvidence("Evidence 3", "Nobody cares about this", False),
+    ],
+    GroupType.PROFILE_BLOCKED_THREAD,
+    ensure_aware(datetime.now()),
+)
 
 
 class MsTeamsNotifyActionTest(RuleTestCase):
@@ -74,30 +92,16 @@ class MsTeamsNotifyActionTest(RuleTestCase):
         assert re.match(title_pattern, title_card["text"])
 
     @responses.activate
-    def test_applies_correctly_generic_issue(self):
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=my_occurrence,
+        new_callable=mock.PropertyMock,
+    )
+    def test_applies_correctly_generic_issue(self, occurrence):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         event = event.for_group(event.groups[0])
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Attention", "Very important information!!!", True),
-                IssueEvidence("Evidence 2", "Not important", False),
-                IssueEvidence("Evidence 3", "Nobody cares about this", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-        )
-        occurrence.save()
-        event.occurrence = occurrence
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
@@ -121,11 +125,12 @@ class MsTeamsNotifyActionTest(RuleTestCase):
 
         title_card = attachments[0]["content"]["body"][0]
         description = attachments[0]["content"]["body"][1]
+
         assert (
             title_card["text"]
-            == f"[{occurrence.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            == f"[{my_occurrence.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
         )
-        assert description["text"] == occurrence.evidence_display[0].value
+        assert description["text"] == my_occurrence.evidence_display[0].value
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):

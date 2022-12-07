@@ -51,7 +51,6 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
             title = obj.occurrence.issue_title
         else:
             event = group.get_latest_event()
-            # occurrence doesn't seem to be on the groupevent after being fetched from eventstore
             if event.occurrence is not None:
                 title = event.occurrence.issue_title
 
@@ -91,11 +90,16 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
-    if event and hasattr(event, "occurrence"):
-        if event.occurrence.evidence_display is not None:
-            important = event.occurrence.important_evidence_display
-            if important:
-                return important.value
+    if not event:
+        event = group.get_latest_event()
+
+    if hasattr(event, "occurrence"):
+        if event.occurrence is not None:
+            if event.occurrence.evidence_display is not None:
+                important = event.occurrence.important_evidence_display
+                if important:
+                    return important.value
+
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
