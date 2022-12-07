@@ -349,6 +349,11 @@ def project_key_errors(ctx, project):
         # Set project_ctx.key_errors to be an array of (group_id, count) for now.
         # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
         ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+        if ctx.organization.slug == "sentry":
+            logger.info(
+                "project_key_errors.results",
+                extra={"project_id": project.id, "num_key_errors": len(key_errors)},
+            )
 
 
 # Organization pass. Depends on project_key_errors.

@@ -50,12 +50,12 @@ function Replays({location}: Props) {
   }, [location]);
 
   const {replays, pageLinks, isFetching, fetchError} = useReplayList({
-    organization,
     eventView,
+    location,
+    organization,
   });
 
-  const {enabled: shouldShowOnboardingPanel, activateSidebar} =
-    useReplayOnboardingSidebarPanel();
+  const {hasSentOneReplay, activateSidebar} = useReplayOnboardingSidebarPanel();
 
   return (
     <Fragment>
@@ -69,19 +69,7 @@ function Replays({location}: Props) {
       <PageFiltersContainer>
         <StyledPageContent>
           <ReplaysFilters />
-          {shouldShowOnboardingPanel ? (
-            <ReplayOnboardingPanel>
-              <Button onClick={activateSidebar} priority="primary">
-                {t('Get Started')}
-              </Button>
-              <Button
-                href="https://github.com/getsentry/sentry-replay/blob/main/README.md"
-                external
-              >
-                {t('See Readme')}
-              </Button>
-            </ReplayOnboardingPanel>
-          ) : (
+          {hasSentOneReplay ? (
             <Fragment>
               <ReplayTable
                 isFetching={isFetching}
@@ -100,6 +88,18 @@ function Replays({location}: Props) {
                 }}
               />
             </Fragment>
+          ) : (
+            <ReplayOnboardingPanel>
+              <Button onClick={activateSidebar} priority="primary">
+                {t('Get Started')}
+              </Button>
+              <Button
+                href="https://docs.sentry.io/platforms/javascript/session-replay/"
+                external
+              >
+                {t('Read Docs')}
+              </Button>
+            </ReplayOnboardingPanel>
           )}
         </StyledPageContent>
       </PageFiltersContainer>

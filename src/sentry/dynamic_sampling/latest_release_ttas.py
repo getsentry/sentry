@@ -131,7 +131,7 @@ DEFAULT_TTA = 3600
 
 @dataclass(frozen=True)
 class Platform:
-    name: Optional[str]
+    name: Optional[str] = None
 
     @property
     def time_to_adoption(self) -> int:

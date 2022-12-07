@@ -18,6 +18,17 @@ from sentry.utils.json import JSONData
 logger = logging.getLogger("sentry.integrations.github")
 
 
+class GithubRateLimitInfo:
+    def __init__(self, info: Dict[str, int]) -> None:
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
+
+    def next_window(self) -> str:
+        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+
+
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
 
@@ -69,6 +80,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         # Explicitly typing to satisfy mypy.
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
+
+    # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
+    def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
+        """This gives information of the current rate limit"""
+        # There's more but this is good enough
+        assert specific_resource in ("core", "search", "graphql")
+        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:

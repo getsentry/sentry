@@ -8,6 +8,8 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
+const SEGMENTS_PER_PAGE = 50;
+
 type State = {
   attachments: undefined | unknown[];
 
@@ -92,19 +94,40 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAllAttachments = useCallback(async () => {
-    const rootUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download`;
-    let next: ParsedHeader = {
-      href: rootUrl,
-      results: true,
-      cursor: '',
-    };
+    const rootUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download&per_page=${SEGMENTS_PER_PAGE}`;
+    const firstFourCursors = [
+      `${SEGMENTS_PER_PAGE}:0:1`,
+      `${SEGMENTS_PER_PAGE}:1:0`,
+      `${SEGMENTS_PER_PAGE}:2:0`,
+      `${SEGMENTS_PER_PAGE}:3:0`,
+    ];
+    const firstFourUrls = firstFourCursors.map(cursor => `${rootUrl}&cursor=${cursor}`);
 
-    const responses: any = [];
+    const parallelResponses = await Promise.allSettled(
+      firstFourUrls.map(url =>
+        api.requestPromise(url, {
+          includeAllArgs: true,
+        })
+      )
+    );
+
+    const responses: any = parallelResponses.map(resp =>
+      resp.status === 'fulfilled' ? resp.value[0] : []
+    );
+
+    const lastResponse = parallelResponses[firstFourCursors.length - 1];
+    const [_lastData, _lastTextStatus, lastResp] =
+      lastResponse.status === 'fulfilled' ? lastResponse.value : [];
+
+    let next: ParsedHeader = lastResp
+      ? parseLinkHeader(lastResp.getResponseHeader('Link') ?? '').next
+      : {href: rootUrl, results: true, cursor: ''};
+
     // TODO(replay): It would be good to load the first page of results then
     // start to render the UI while the next N pages continue to get fetched in
     // the background.
     while (next.results) {
-      const url = rootUrl + '&cursor=' + next.cursor;
+      const url = `${rootUrl}&cursor=${next.cursor}`;
 
       const [data, _textStatus, resp] = await api.requestPromise(url, {
         includeAllArgs: true,

@@ -1,3 +1,5 @@
+from fnmatch import fnmatch
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponseRedirect
@@ -6,14 +8,21 @@ from django.urls import resolve
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.utils import generate_organization_url
 from sentry.models import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
-from sentry.utils.http import query_string
+from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.web.helpers import render_to_response
+
+# url names that should only be accessible from a non-customer domain hostname.
+NON_CUSTOMER_DOMAIN_URL_NAMES = [
+    "sentry-organization-create",
+    "sentry-admin-overview",
+    "sentry-account-*",
+]
 
 
 def resolve_redirect_url(request, org_slug, user_id=None):
@@ -46,6 +55,19 @@ class ReactMixin:
         # template tag, but in this case, we don't need a form on the
         # page. So there's no point in rendering a random `<input>` field.
         get_csrf_token(request)
+
+        url_name = request.resolver_match.url_name
+        url_is_non_customer_domain = (
+            any(fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES) if url_name else False
+        )
+
+        # If a customer domain is being used, and if a non-customer domain url_name is encountered, we redirect the user
+        # to sentryUrl.
+        if is_using_customer_domain(request) and url_is_non_customer_domain:
+            redirect_url = options.get("system.url-prefix")
+            qs = query_string(request)
+            redirect_url = f"{redirect_url}{request.path}{qs}"
+            return HttpResponseRedirect(redirect_url)
 
         if request.subdomain is None:
             matched_url = resolve(request.path)
