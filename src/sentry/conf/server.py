@@ -676,7 +676,13 @@ CELERY_QUEUES = [
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
-    Queue("profiles.process", routing_key="profiles.process"),
+    Queue(
+        "profiles.process",
+        routing_key="profiles.process",
+        queue_arguments={
+            "x-max-length-bytes": 34359738368,  # 32GiB
+        },
+    ),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
