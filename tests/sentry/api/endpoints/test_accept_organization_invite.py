@@ -26,17 +26,17 @@ class AcceptInviteTest(TestCase):
 
     def _get_paths(self, args):
         return (
-            reverse("sentry-api-0-accept-organization-invite-orgless", args=args),
+            reverse("sentry-api-0-accept-organization-invite", args=args),
             reverse(
-                "sentry-api-0-accept-organization-invite",
+                "sentry-api-0-accept-organization-invite-with-org",
                 args=[self.organization.slug] + args,
             ),
         )
 
     def _get_urls(self):
         return (
-            "sentry-api-0-accept-organization-invite-orgless",
             "sentry-api-0-accept-organization-invite",
+            "sentry-api-0-accept-organization-invite-with-org",
         )
 
     def _get_path(self, url, args):
@@ -351,7 +351,9 @@ class AcceptInviteTest(TestCase):
             organization=self.organization,
         )
 
-        path = reverse("sentry-api-0-accept-organization-invite", args=["asdf", om.id, om.token])
+        path = reverse(
+            "sentry-api-0-accept-organization-invite-with-org", args=["asdf", om.id, om.token]
+        )
 
         resp = self.client.get(path)
         assert resp.status_code == 400
