@@ -73,9 +73,6 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         detector = FileIOMainThreadDetector(self.settings, event)
         run_detector_on_data(detector, event)
         problem = list(detector.stored_problems.values())[0]
-        assert detector._total_span_time(
-            detector.parent_to_blocked_span["b93d2be92cd64fd5"]
-        ) == pytest.approx(16, 0.01)
         assert problem.offender_span_ids == ["054ba3a374d543eb", "054ba3a3a4d543ab"]
 
     def test_parallel_spans_not_detected_when_total_too_short(self):
@@ -92,9 +89,6 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         detector = FileIOMainThreadDetector(self.settings, event)
         run_detector_on_data(detector, event)
         problem = list(detector.stored_problems.values())[0]
-        assert detector._total_span_time(
-            detector.parent_to_blocked_span["b93d2be92cd64fd5"]
-        ) == pytest.approx(16, 0.01)
         assert problem.offender_span_ids == [
             "054ba3a374d543eb",
             "054ba3a3a4d543ab",
