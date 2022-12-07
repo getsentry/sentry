@@ -172,7 +172,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
-  incompatibleRule: boolean = false;
+  trackIncompatibleAnalytics: boolean = false;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -434,10 +434,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
       const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
       if (
-        !this.incompatibleRule &&
+        !this.trackIncompatibleAnalytics &&
         (conditionIndices !== null || filterIndices !== null)
       ) {
-        this.incompatibleRule = true;
+        this.trackIncompatibleAnalytics = true;
         trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
           organization: this.props.organization,
         });
