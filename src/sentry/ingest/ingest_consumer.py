@@ -442,6 +442,4 @@ def get_ingest_consumer(
 def get_occurrences_ingest_consumer(
     consumer_type,
 ):
-    topic_name = ConsumerType.get_topic_name(consumer_type)
-
-    return create_ingest_occurences_consumer(topic_name)
+    return create_ingest_occurences_consumer("occurrences")
