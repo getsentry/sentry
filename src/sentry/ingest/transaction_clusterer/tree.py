@@ -86,20 +86,12 @@ class TreeClusterer(Clusterer):
                 node = node.setdefault(part, Node())
 
     def get_rules(self) -> List[ReplacementRule]:
-        """Returns the computed rules.
-
-        If no rules have been computed, computes them. If you add input after
-        the rules have been computed, you must recompute them manually.
-        """
-        if self._rules is None:
-            self.compute_rules()
-        return self._rules
-
-    def compute_rules(self) -> None:
         """Computes the rules for the current tree."""
-        self._extract_rules()
-        self._clean_rules()
-        self._sort_rules()
+        if self._rules is None:
+            self._extract_rules()
+            self._clean_rules()
+            self._sort_rules()
+        return self._rules
 
     def _extract_rules(self) -> None:
         """Merge high-cardinality nodes in the graph and extract rules"""
