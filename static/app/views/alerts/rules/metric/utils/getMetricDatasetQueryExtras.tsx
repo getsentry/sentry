@@ -17,9 +17,7 @@ export function getMetricDatasetQueryExtras({
   organization: Organization;
   location?: Location;
 }) {
-  const hasMetricDataset =
-    organization.features.includes('metrics-performance-alerts') ||
-    organization.features.includes('mep-rollout-flag');
+  const hasMetricDataset = organization.features.includes('mep-rollout-flag');
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';
 
