@@ -355,7 +355,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         <OrganizationRoleSelect
           enforceAllowed={false}
           enforceRetired={hasTeamRoles}
-          disabled={!canEdit}
+          disabled={!canEdit || member.flags['idp:role-restricted']}
           roleList={member.roles}
           roleSelected={member.role}
           setSelected={slug => this.setState({member: {...member, role: slug}})}

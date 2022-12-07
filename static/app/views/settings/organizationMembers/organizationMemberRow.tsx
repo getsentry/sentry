@@ -110,7 +110,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    const canRemoveMember = canRemoveMembers && !isCurrentUser;
+    const canRemoveMember =
+      canRemoveMembers && !isCurrentUser && !flags['idp:provisioned'];
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user && user.has2fa;
@@ -210,13 +211,26 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               </Confirm>
             )}
 
-            {showLeaveButton && !memberCanLeave && (
+            {showLeaveButton && !memberCanLeave && !flags['idp:provisioned'] && (
               <Button
                 size="sm"
                 icon={<IconClose size="xs" />}
                 disabled
                 title={t(
                   'You cannot leave this organization as you are the only organization owner.'
+                )}
+              >
+                {t('Leave')}
+              </Button>
+            )}
+
+            {showLeaveButton && !memberCanLeave && flags['idp:provisioned'] && (
+              <Button
+                size="sm"
+                icon={<IconClose size="xs" />}
+                disabled
+                title={t(
+                  'You cannot leave this organization as your role has been idp-provisioned.'
                 )}
               >
                 {t('Leave')}

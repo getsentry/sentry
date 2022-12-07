@@ -12,6 +12,8 @@ describe('OrganizationMemberRow', function () {
     pending: false,
     flags: {
       'sso:linked': false,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
     },
     user: {
       id: '',
@@ -23,6 +25,10 @@ describe('OrganizationMemberRow', function () {
   const currentUser = {
     id: '2',
     email: 'currentUser@email.com',
+    flags: {
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
+    },
   };
 
   const defaultProps = {
@@ -225,6 +231,34 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
+  describe('IDP flags permissions', function () {
+    member.flags['idp:provisioned'] = true;
+    it('current user cannot leave if idp:provisioned', function () {
+      const props = {
+        ...defaultProps,
+        member: {
+          ...member,
+          email: 'currentUser@email.com',
+        },
+      };
+
+      render(
+        <OrganizationMemberRow
+          {...props}
+          memberCanLeave={!member.flags['idp:provisioned']}
+        />
+      );
+
+      expect(leaveButton()).toBeDisabled();
+    });
+
+    it('cannot remove member if member is idp:provisioned', function () {
+      render(<OrganizationMemberRow {...defaultProps} />);
+
+      expect(removeButton()).toBeDisabled();
+    });
+  });
+
   describe('Not Current User', function () {
     const props = {
       ...defaultProps,
@@ -237,12 +271,16 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('has Remove disabled button when `canRemoveMembers` is false', function () {
+      member.flags['idp:provisioned'] = false;
+
       render(<OrganizationMemberRow {...props} />);
 
       expect(removeButton()).toBeDisabled();
     });
 
     it('has Remove button when `canRemoveMembers` is true', function () {
+      member.flags['idp:provisioned'] = false;
+
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
