@@ -169,4 +169,110 @@ describe('SampledProfile', () => {
 
     expect(profile.minFrameDuration).toBe(0.5);
   });
+
+  it('places garbage collector calls on top of previous stack for node', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 3],
+      samples: [
+        [0, 1],
+        [0, 2],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: '(garbage collector)'},
+      ])
+    );
+
+    // GC gets places on top of the previous stack and the weight is updated
+    expect(profile.appendOrderTree.children[0].children[0].frame.name).toBe(
+      'f1 [native code]'
+    );
+    // The total weight of the previous top is now the weight of the GC call + the weight of the previous top
+    expect(profile.appendOrderTree.children[0].children[0].frame.totalWeight).toBe(4);
+    expect(profile.appendOrderTree.children[0].children[0].children[0].frame.name).toBe(
+      '(garbage collector) [native code]'
+    );
+    // The self weight of the GC call is only the weight of the GC call
+    expect(
+      profile.appendOrderTree.children[0].children[0].children[0].frame.selfWeight
+    ).toBe(3);
+  });
+
+  it('does not place garbage collector calls on top of previous stack for node', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 2],
+      samples: [
+        [0, 1, 3],
+        [0, 1, 2],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: '(garbage collector)'},
+        {name: 'f2'},
+      ])
+    );
+
+    expect(profile.appendOrderTree.children[0].children[0].children.length).toBe(2);
+    expect(profile.appendOrderTree.children[0].children[0].children[0].frame.name).toBe(
+      'f2 [native code]'
+    );
+    expect(profile.appendOrderTree.children[0].children[0].children[1].frame.name).toBe(
+      '(garbage collector) [native code]'
+    );
+  });
+
+  it('merges consecutive garbage collector calls on top of previous stack for node', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 2, 2, 2],
+      samples: [
+        [0, 1],
+        [0, 2],
+        [0, 2],
+        [0, 2],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: '(garbage collector)'},
+      ])
+    );
+
+    // There are no other children than the GC call meaning merge happened
+    expect(profile.appendOrderTree.children[0].children[0].children[1]).toBe(undefined);
+    expect(
+      profile.appendOrderTree.children[0].children[0].children[0].frame.selfWeight
+    ).toBe(6);
+  });
 });
