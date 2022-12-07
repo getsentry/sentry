@@ -62,6 +62,12 @@ function mockRequests(orgSlug: Organization['slug']) {
       },
     },
   });
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/releases/',
+    body: [],
+  });
+
   return {eventsMock};
 }
 
@@ -161,11 +167,7 @@ describe('VisualizationStep', function () {
         context: routerContext,
         organization: {
           ...organization,
-          features: [
-            ...organization.features,
-            'server-side-sampling',
-            'mep-rollout-flag',
-          ],
+          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
       }
     );

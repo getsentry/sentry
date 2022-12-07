@@ -72,14 +72,7 @@ export default function getConfiguration({
           title: t('Dynamic Sampling'),
           show: () => {
             const orgFeatures = organization?.features ?? [];
-            if (
-              orgFeatures.includes('server-side-sampling') &&
-              orgFeatures.includes('dynamic-sampling')
-            ) {
-              return true;
-            }
-
-            return false;
+            return orgFeatures.includes('dynamic-sampling');
           },
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"

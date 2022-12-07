@@ -33,10 +33,14 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class UnsupportedFrameFilename(Exception):
+    pass
+
+
 def get_extension(file_path: str) -> str:
     extension = ""
     if file_path:
-        ext_period = file_path.find(".")
+        ext_period = file_path.rfind(".")
         if ext_period >= 1:  # e.g. f.py
             extension = file_path.rsplit(".")[-1]
 
@@ -73,8 +77,13 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
+        # XXX: Using regexes would be better
+        if not frame_file_path or frame_file_path.find("<") > -1:
+            raise UnsupportedFrameFilename
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
+        if not self.extension:
+            raise UnsupportedFrameFilename
         if self.frame_type() == "packaged":
             self._packaged_logic(frame_file_path)
         else:
@@ -120,28 +129,34 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
+    buckets: Dict[str, List[FrameFilename]] = {}
+    for stacktrace_frame_file_path in stacktraces:
+        try:
+            frame_filename = FrameFilename(stacktrace_frame_file_path)
+            # Any files without a top directory will be grouped together
+            bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
+
+            if not buckets.get(bucket_key):
+                buckets[bucket_key] = []
+            buckets[bucket_key].append(frame_filename)
+
+        except UnsupportedFrameFilename:
+            logger.info(
+                "Frame's filepath not supported.",
+                extra={"frame_file_path": stacktrace_frame_file_path},
+            )
+        except Exception:
+            logger.exception("Unable to split stacktrace path into buckets")
+
+    return buckets
+
+
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
-
-    def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
-        buckets: Dict[str, List[FrameFilename]] = {}
-        for stacktrace_frame_file_path in stacktraces:
-            try:
-                frame_filename = FrameFilename(stacktrace_frame_file_path)
-                # Any files without a top directory will be grouped together
-                bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
-
-                if not buckets.get(bucket_key):
-                    buckets[bucket_key] = []
-                buckets[bucket_key].append(frame_filename)
-
-            except Exception:
-                logger.exception("Unable to split stacktrace path into buckets")
-                continue
-        return buckets
 
     def process_stackframes(self, buckets: Dict[str, List[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
@@ -168,7 +183,7 @@ class CodeMappingTreesHelper:
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: Dict[str, List[FrameFilename]] = self.stacktrace_buckets(stacktraces)
+        buckets: Dict[str, List[FrameFilename]] = stacktrace_buckets(stacktraces)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings

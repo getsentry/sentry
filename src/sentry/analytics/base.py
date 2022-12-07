@@ -33,5 +33,3 @@ class Analytics(Service, abc.ABC):
     def setup(self) -> None:
         # Load default event types
         import sentry.analytics.events  # NOQA
-
-        pass
