@@ -6,6 +6,7 @@ enum Tab {
   Spans = 'spans',
   Anomalies = 'anomalies',
   Replays = 'replays',
+  Profiling = 'profiling',
 }
 
 export default Tab;
