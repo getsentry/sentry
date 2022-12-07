@@ -59,6 +59,28 @@ def test_get_extension():
     assert get_extension("/gtm.js") == "js"
 
 
+def test_buckets_logic():
+    stacktraces = [
+        "<anonymous>",  # Garbage
+        "<frozen importlib._bootstrap>",
+        "[native code]",
+        "/foo/bar/baz",  # no extension
+        "README",  # no extension
+        "app://foo.js",
+        "./app/utils/handleXhrErrorResponse.tsx",
+        "getsentry/billing/tax/manager.py",
+        "/gtm.js",  # Top source; starts with backslash
+        "ssl.py",
+    ]
+    buckets = stacktrace_buckets(stacktraces)
+    assert buckets == {
+        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
+        "NO_TOP_DIR": [FrameFilename("/gtm.js"), FrameFilename("ssl.py")],
+        "app:": [FrameFilename("app://foo.js")],
+        "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
+    }
+
+
 class TestFrameFilename(TestCase):
     def test_frame_filename_package_and_more_than_one_level(self):
         ff = FrameFilename("getsentry/billing/tax/manager.py")
@@ -80,25 +102,6 @@ class TestFrameFilename(TestCase):
     def test_frame_filename_repr(self):
         path = "getsentry/billing/tax/manager.py"
         assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
-
-
-def test_buckets_logic():
-    stacktraces = [
-        "[native code]",  # Garbage
-        "/foo/bar/baz",  # no extension
-        "app://foo.js",
-        "./app/utils/handleXhrErrorResponse.tsx",
-        "getsentry/billing/tax/manager.py",
-        "/gtm.js",  # Top source; starts with backslash
-        "ssl.py",
-    ]
-    buckets = stacktrace_buckets(stacktraces)
-    assert buckets == {
-        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
-        "NO_TOP_DIR": [FrameFilename("/gtm.js"), FrameFilename("ssl.py")],
-        "app:": [FrameFilename("app://foo.js")],
-        "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
-    }
 
 
 class TestDerivedCodeMappings(TestCase):
