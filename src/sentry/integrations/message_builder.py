@@ -93,18 +93,15 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     if not event:
         event = group.get_latest_event()
 
-    if hasattr(event, "occurrence"):
-        if event.occurrence is not None:
-            if event.occurrence.evidence_display is not None:
-                important = event.occurrence.important_evidence_display
-                if important:
-                    return important.value
+    if hasattr(event, "occurrence") and event.occurrence is not None:
+        if event.occurrence.evidence_display is not None:
+            important = event.occurrence.important_evidence_display
+            if important:
+                return important.value
 
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
-        if not event:
-            event = group.get_latest_event()
         problem = get_matched_problem(event)
         return get_span_evidence_value_problem(problem)
 

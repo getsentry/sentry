@@ -20,6 +20,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware, to_timestamp
@@ -88,7 +89,7 @@ def build_test_message(
 
 
 @region_silo_test
-class BuildGroupAttachmentTest(TestCase):
+class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
 
@@ -166,7 +167,7 @@ class BuildGroupAttachmentTest(TestCase):
         assert "title_link" not in attachments
 
     def test_build_group_generic_issue_attachment(self):
-
+        """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -187,6 +188,7 @@ class BuildGroupAttachmentTest(TestCase):
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
+        # TODO use Dan's OccurrenceTestMixin once merged
         occurrence.save()
         event.occurrence = occurrence
 
@@ -196,11 +198,23 @@ class BuildGroupAttachmentTest(TestCase):
 
         assert attachments["title"] == occurrence.issue_title
         assert attachments["text"] == occurrence.evidence_display[0].value
+        assert attachments["fallback"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
         attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
+
+    def test_build_performance_issue(self):
+        event = self.create_performance_issue()
+        with self.feature("organizations:performance-issues"):
+            attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert attachments["title"] == "N+1 Query"
+        assert (
+            attachments["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
