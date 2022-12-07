@@ -851,7 +851,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [
             ...defaultOrgFeatures,
             'dashboards-mep',
-            'server-side-sampling',
+            'dynamic-sampling',
             'mep-rollout-flag',
           ],
         });
@@ -903,7 +903,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [
             ...defaultOrgFeatures,
             'dashboards-mep',
-            'server-side-sampling',
+            'dynamic-sampling',
             'mep-rollout-flag',
           ],
         });
