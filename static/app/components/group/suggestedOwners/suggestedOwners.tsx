@@ -28,8 +28,8 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  codeowners: CodeOwner[];
-  eventOwners: {owners: Array<Actor>; rules: Rules};
+  codeowners: CodeOwner[] | null;
+  eventOwners: {owners: Array<Actor>; rules: Rules} | null;
 } & AsyncComponent['state'];
 
 class SuggestedOwners extends AsyncComponent<Props, State> {
@@ -108,8 +108,8 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       source: 'suspectCommit',
     }));
 
-    this.state.eventOwners.owners.forEach(owner => {
-      const matchingRule = findMatchedRules(this.state.eventOwners.rules || [], owner);
+    this.state.eventOwners?.owners.forEach(owner => {
+      const matchingRule = findMatchedRules(this.state.eventOwners?.rules || [], owner);
       const normalizedOwner: OwnerList[0] = {
         actor: owner,
         rules: matchingRule,
@@ -162,19 +162,25 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     }
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {organization, group} = this.props;
+    const {loading} = this.state;
     const owners = this.getOwnerList();
 
-    return owners.length > 0 ? (
+    return (
       <SuggestedAssignees
         group={group}
         organization={organization}
         owners={owners}
         projectId={group.project.id}
         onAssign={this.handleAssign}
+        loading={loading}
       />
-    ) : null;
+    );
   }
 }
 
