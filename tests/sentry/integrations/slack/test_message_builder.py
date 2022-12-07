@@ -199,6 +199,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
         assert attachments["title"] == occurrence.issue_title
         assert attachments["text"] == occurrence.evidence_display[0].value
         assert attachments["fallback"] == f"[{self.project.slug}] {occurrence.issue_title}"
+        assert attachments["color"] == "#E03E2F"  # red for error level
 
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -215,6 +216,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
+        assert attachments["color"] == "#2788CE"  # blue for info level
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
