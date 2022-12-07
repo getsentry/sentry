@@ -64,6 +64,7 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   showInboxTime?: boolean;
+  showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
@@ -89,6 +90,7 @@ function BaseGroupRow({
   useFilteredStats = false,
   useTintRow = true,
   narrowGroups = false,
+  showLastTriggered = false,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
@@ -298,6 +300,8 @@ function BaseGroupRow({
   const secondaryCount = group.filtered ? group.count : undefined;
   const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
   const secondaryUserCount = group.filtered ? group.userCount : undefined;
+  // preview stats
+  const lastTriggeredDate = group.lastTriggered;
 
   const showSecondaryPoints = Boolean(
     withChart && group && group.filtered && statsPeriod && useFilteredStats
@@ -415,6 +419,17 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
+  const lastTriggered = !defined(lastTriggeredDate) ? (
+    <Placeholder height="18px" />
+  ) : (
+    <TimeSince
+      tooltipTitle={t('Last Triggered')}
+      date={lastTriggeredDate}
+      suffix={t('ago')}
+      shorten
+    />
+  );
+
   const issueStreamAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
@@ -482,6 +497,7 @@ function BaseGroupRow({
               onAssign={trackAssign}
             />
           </AssigneeWrapper>
+          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
         </Fragment>
       )}
     </Wrapper>

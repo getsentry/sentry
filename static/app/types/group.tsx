@@ -430,6 +430,8 @@ interface GroupFiltered {
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  // for issue alert previews, the last time a group triggered a rule
+  lastTriggered?: string;
   lifetime?: GroupFiltered;
   sessionCount?: string | null;
 }
