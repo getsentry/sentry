@@ -93,16 +93,16 @@ function ReleaseContext(props: BaseContextProps) {
     return (
       data && (
         <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ReleaseAuthorsTitle data-test-id="quick-context-release-author-header">
+          <ContextHeader data-test-id="quick-context-release-author-header">
             <ContextTitle>{getCommitAuthorTitle()}</ContextTitle>
-          </ReleaseAuthorsTitle>
-          <ReleaseAuthorsBody>
+          </ContextHeader>
+          <ContextBody>
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
             ) : (
               <StyledAvatarList users={data.authors} maxVisibleAvatars={10} />
             )}
-          </ReleaseAuthorsBody>
+          </ContextBody>
         </ReleaseContextContainer>
       )
     );
@@ -165,16 +165,6 @@ function ReleaseContext(props: BaseContextProps) {
     </Wrapper>
   );
 }
-
-const ReleaseAuthorsTitle = styled(ContextHeader)`
-  max-width: 200px;
-  text-align: right;
-`;
-
-const ReleaseAuthorsBody = styled(ContextBody)`
-  justify-content: left;
-  margin: 0;
-`;
 
 const StyledAvatarList = styled(AvatarList)`
   margin: 0 ${space(0.75)};

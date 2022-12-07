@@ -11,7 +11,7 @@ export const ContextContainer = styled('div')`
 export const ContextHeader = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0;
+  margin-bottom: ${space(0.75)};
 `;
 
 export const ContextTitle = styled('h6')`
@@ -20,7 +20,6 @@ export const ContextTitle = styled('h6')`
 `;
 
 export const ContextBody = styled('div')`
-  margin: ${space(1)} 0 0;
   width: 100%;
   text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};

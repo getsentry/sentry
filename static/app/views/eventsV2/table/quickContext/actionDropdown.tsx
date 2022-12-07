@@ -22,13 +22,6 @@ export enum ContextValueType {
   DURATION = 'duration',
 }
 
-enum QueryUpdateActions {
-  ADD = 'add',
-  EXCLUDE = 'exclude',
-  SHOW_MORE_THAN = 'show-more-than',
-  SHOW_LESS_THAN = 'show-less-than',
-}
-
 const addFieldAsColumn = (
   fieldName: string,
   organization: Organization,
@@ -51,38 +44,16 @@ const addFieldAsColumn = (
   });
 };
 
-function handleQueryUpdate(
-  actionType: QueryUpdateActions,
+function updateQuery(
+  newFilters: MutableSearch,
   location: Location,
-  eventView: EventView,
-  queryKey: string,
-  value: React.ReactText | string[],
+  queryKey,
   organization: Organization
 ) {
   trackAdvancedAnalyticsEvent('discover_v2.quick_context_update_query', {
     organization,
     queryKey,
   });
-
-  const oldFilters = eventView?.query || '';
-  const newFilters = new MutableSearch(oldFilters);
-
-  switch (actionType) {
-    case QueryUpdateActions.SHOW_MORE_THAN:
-      newFilters.setFilterValues(queryKey, [`>${value}`]);
-      break;
-    case QueryUpdateActions.SHOW_LESS_THAN:
-      newFilters.setFilterValues(queryKey, [`<${value}`]);
-      break;
-    case QueryUpdateActions.ADD:
-      addToFilter(newFilters, queryKey, value);
-      break;
-    case QueryUpdateActions.EXCLUDE:
-      excludeFromFilter(newFilters, queryKey, value);
-      break;
-    default:
-      break;
-  }
 
   browserHistory.push({
     ...location,
@@ -118,37 +89,28 @@ function ActionDropDown(props: Props) {
     });
   }
 
+  const oldFilters = eventView?.query || '';
+  const newFilters = new MutableSearch(oldFilters);
+
   if (
     contextValueType === ContextValueType.NUMBER ||
     contextValueType === ContextValueType.DURATION
   ) {
     menuItems.push(
       {
-        key: 'show-more-than',
+        key: 'show-greater-than',
         label: t('Show values greater than'),
         onAction: () => {
-          handleQueryUpdate(
-            QueryUpdateActions.SHOW_MORE_THAN,
-            location,
-            eventView,
-            queryKey,
-            value,
-            organization
-          );
+          newFilters.setFilterValues(queryKey, [`>${value}`]);
+          updateQuery(newFilters, location, queryKey, organization);
         },
       },
       {
         key: 'show-less-than',
         label: t('Show values less than'),
         onAction: () => {
-          handleQueryUpdate(
-            QueryUpdateActions.SHOW_LESS_THAN,
-            location,
-            eventView,
-            queryKey,
-            value,
-            organization
-          );
+          newFilters.setFilterValues(queryKey, [`<${value}`]);
+          updateQuery(newFilters, location, queryKey, organization);
         },
       }
     );
@@ -158,28 +120,16 @@ function ActionDropDown(props: Props) {
         key: 'add-to-filter',
         label: t('Add to filter'),
         onAction: () => {
-          handleQueryUpdate(
-            QueryUpdateActions.ADD,
-            location,
-            eventView,
-            queryKey,
-            value,
-            organization
-          );
+          addToFilter(newFilters, queryKey, value);
+          updateQuery(newFilters, location, queryKey, organization);
         },
       },
       {
         key: 'exclude-from-filter',
         label: t('Exclude from filter'),
         onAction: () => {
-          handleQueryUpdate(
-            QueryUpdateActions.EXCLUDE,
-            location,
-            eventView,
-            queryKey,
-            value,
-            organization
-          );
+          excludeFromFilter(newFilters, queryKey, value);
+          updateQuery(newFilters, location, queryKey, organization);
         },
       }
     );
@@ -193,11 +143,11 @@ function ActionDropDown(props: Props) {
           {...triggerProps}
           aria-label={t('Quick Context Action Menu')}
           data-test-id="quick-context-action-trigger"
+          borderless
           size="zero"
           onClick={e => {
             e.stopPropagation();
             e.preventDefault();
-
             triggerProps.onClick?.(e);
           }}
           icon={<IconEllipsis size="xs" />}
