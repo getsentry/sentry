@@ -12,6 +12,7 @@ from sentry.integrations.utils.code_mapping import (
     filter_source_code_files,
     get_extension,
     should_include,
+    stacktrace_buckets,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -23,6 +24,8 @@ with open(
 
 
 class TestRepoFiles(TestCase):
+    """These evaluate which files should be included as part of a repo."""
+
     def test_filter_source_code_files(self):
         source_code_files = filter_source_code_files(sentry_files)
 
@@ -44,11 +47,63 @@ class TestRepoFiles(TestCase):
         ]:
             assert should_include(file) is False
 
-    def test_get_extension(self):
-        assert get_extension("") == ""
-        assert get_extension(None) == ""
-        assert get_extension("f.py") == "py"
-        assert get_extension("f.xx") == "xx"
+
+def test_get_extension():
+    assert get_extension("") == ""
+    assert get_extension(None) == ""
+    assert get_extension("f.py") == "py"
+    assert get_extension("f.xx") == "xx"
+    assert get_extension("./app/utils/handleXhrErrorResponse.tsx") == "tsx"
+    assert get_extension("[native code]") == ""
+    assert get_extension("/foo/bar/baz") == ""
+    assert get_extension("/gtm.js") == "js"
+
+
+def test_buckets_logic():
+    stacktraces = [
+        "<anonymous>",  # Garbage
+        "<frozen importlib._bootstrap>",
+        "[native code]",
+        "O$t",
+        "/foo/bar/baz",  # no extension
+        "README",  # no extension
+        "backburner.js",
+        "app://foo.js",
+        "./app/utils/handleXhrErrorResponse.tsx",
+        "getsentry/billing/tax/manager.py",
+        "/gtm.js",  # Top source; starts with backslash
+        "ssl.py",
+    ]
+    buckets = stacktrace_buckets(stacktraces)
+    assert buckets == {
+        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
+        "NO_TOP_DIR": [FrameFilename("/gtm.js"), FrameFilename("ssl.py")],
+        "app:": [FrameFilename("app://foo.js")],
+        "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
+    }
+
+
+class TestFrameFilename(TestCase):
+    def test_frame_filename_package_and_more_than_one_level(self):
+        ff = FrameFilename("getsentry/billing/tax/manager.py")
+        assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
+        assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
+
+    def test_frame_filename_package_and_no_levels(self):
+        ff = FrameFilename("root/bar.py")
+        assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
+        assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
+        assert ff.dir_path == ""
+
+    def test_frame_filename_no_package(self):
+        ff = FrameFilename("foo.py")
+        assert ff.root == ""
+        assert ff.dir_path == ""
+        assert ff.file_name == "foo.py"
+
+    def test_frame_filename_repr(self):
+        path = "getsentry/billing/tax/manager.py"
+        assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
 
 
 class TestDerivedCodeMappings(TestCase):
@@ -75,42 +130,6 @@ class TestDerivedCodeMappings(TestCase):
                 source_path="src/sentry_plugins/",
             ),
         ]
-
-    def test_frame_filename_package_and_more_than_one_level(self):
-        ff = FrameFilename("getsentry/billing/tax/manager.py")
-        assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
-        assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
-
-    def test_frame_filename_package_and_no_levels(self):
-        ff = FrameFilename("root/bar.py")
-        assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
-        assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
-        assert ff.dir_path == ""
-
-    def test_frame_filename_no_package(self):
-        ff = FrameFilename("foo.py")
-        assert ff.root == ""
-        assert ff.dir_path == ""
-        assert ff.file_name == "foo.py"
-
-    def test_frame_filename_repr(self):
-        path = "getsentry/billing/tax/manager.py"
-        assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
-
-    def test_buckets_logic(self):
-        stacktraces = [
-            "app://foo.js",
-            "./app/utils/handleXhrErrorResponse.tsx",
-            "getsentry/billing/tax/manager.py",
-            "ssl.py",
-        ]
-        buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
-        assert buckets == {
-            "NO_TOP_DIR": [FrameFilename("ssl.py")],
-            "app:": [FrameFilename("app://foo.js")],
-            "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
-            "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
-        }
 
     def test_package_also_matches(self):
         repo_tree = RepoTree(self.foo_repo, files=["apostello/views/base.py"])
