@@ -303,7 +303,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.time_window = time_window
         # If we are using any metrics-based dataset, we will enable the use of metrics layer and also the snql
         # generation through it.
-        self.use_metrics_layer = False
+        self.use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
 
     @abstractmethod
     def get_snql_aggregations(self) -> List[str]:
