@@ -1,0 +1,43 @@
+name: Self-hosted Sentry end to end tests
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+    self-hosted-end-to-end:
+      runs-on: ubuntu-20.04
+      # temporary, remove once we are confident the action is working
+      continue-on-error: true
+      timeout-minutes: 30
+      steps:
+        - name: Pull the test image
+          id: image_pull
+          env:
+            SENTRY_TEST_IMAGE: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
+          run: |
+            echo "We poll for the Sentry Docker image that the GCB build produces until it succeeds or this job times out."
+            if [[ -z "$SENTRY_TEST_IMAGE" ]]; then
+                echo "The SENTRY_TEST_IMAGE needs to be set" 1>&2
+                exit 1
+            fi
+            echo "Polling for $SENTRY_TEST_IMAGE"
+            until docker pull "$SENTRY_TEST_IMAGE" 2>/dev/null; do
+                sleep 10
+            done
+            echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
+        # TODO: push the image here
+        - name: Run Sentry self-hosted e2e CI
+          uses: getsentry/action-self-hosted-e2e-tests@5bbd3d6725bbe4bf5cc12f8a3291ce87df6a891f
+          with:
+            project_name: sentry
+            local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
+            docker_repo: docker.io/getsentry/sentry
