@@ -11,13 +11,11 @@ class DynamicSamplingFeatureMultiplexer:
     def __init__(self, project: "Project"):
         # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive
         # sampling enabled
-        self.current_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling", project.organization
-        )
+        self.dynamic_sampling = features.has("organizations:dynamic-sampling", project.organization)
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
-        return self.current_dynamic_sampling and options.get("dynamic-sampling:enabled-biases")
+        return self.dynamic_sampling and options.get("dynamic-sampling:enabled-biases")
 
     @staticmethod
     def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
