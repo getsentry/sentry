@@ -80,7 +80,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
     def test_parallel_spans_not_detected_when_total_too_short(self):
         event = EVENTS["file-io-on-main-thread-with-parallel-spans"]
-        event["spans"][0]["timestamp"] = 1669031858.15
+        event["spans"][1]["timestamp"] = 1669031858.015
 
         detector = FileIOMainThreadDetector(self.settings, event)
         run_detector_on_data(detector, event)
