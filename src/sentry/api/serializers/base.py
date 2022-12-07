@@ -93,7 +93,7 @@ class Serializer:
         """See documentation for `serialize`."""
         if obj is None:
             return None
-        return self.serialize(obj, attrs, user, **kwargs)
+        return self._serialize(obj, attrs, user, **kwargs)
 
     def get_attrs(self, item_list: List[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
         """
@@ -105,6 +105,15 @@ class Serializer:
         :returns A mapping of items from the `item_list` to an Object.
         """
         return {}
+
+    def _serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Optional[MutableMapping[str, JSONData]]:
+        try:
+            return self.serialize(obj, attrs, user, **kwargs)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
     def serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
