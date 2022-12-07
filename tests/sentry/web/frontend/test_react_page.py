@@ -183,7 +183,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert self.client.session["activeorg"]
 
-            # No redirect if customer domain if path is not meant to be accessed in customer domain context.
+            # No redirect to customer domain if path is not meant to be accessed in customer domain context.
             # There should be no redirect to the last active org.
             response = self.client.get(
                 reverse(url_name),
