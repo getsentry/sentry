@@ -105,6 +105,15 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
   );
 }
 
+export function isMobileLanguage(event: Event) {
+  return (
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform))
+  );
+}
+
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
@@ -134,11 +143,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
-  const isMobile =
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform));
+  const isMobile = isMobileLanguage(event);
 
   const query = {
     file: frame.filename,

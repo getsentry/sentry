@@ -2,13 +2,16 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  isMobileLanguage,
+  StacktraceLink,
+} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Frame, Organization, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
@@ -18,7 +21,6 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import {StacktraceLink} from './stacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -55,11 +57,8 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  const isMobile =
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform));
+  const isMobile = isMobileLanguage(event);
+
   if (
     !hasContextSource &&
     !hasContextVars &&
@@ -80,7 +79,6 @@ const Context = ({
     return (
       <ErrorBoundary customComponent={null}>
         <StacktraceLink
-          key={0}
           line={frame.function ? frame.function : ''}
           frame={frame}
           event={event}
