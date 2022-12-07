@@ -279,9 +279,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
             response.data["sourceUrl"]
             == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
         )
-        mock_integration.assert_called_with(
-            self.repo, file_path, "master", None
-        )
+        mock_integration.assert_called_with(self.repo, file_path, "master", None)
 
     @mock.patch.object(
         ExampleIntegration,
