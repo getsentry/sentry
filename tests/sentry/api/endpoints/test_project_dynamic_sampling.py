@@ -130,7 +130,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
     def test_permission(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.status_code == 403
 
@@ -143,7 +143,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
     def test_response_when_no_transactions_are_available_in_last_month(self, mock_query):
         self.login_as(self.user)
         mock_query.side_effect = [{"data": [{"count()": 0}]}, {"data": []}]
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "projectBreakdown": None,
@@ -178,7 +178,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "detail": "Way too many projects in the distributed trace's project breakdown"
@@ -368,7 +368,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             trace_ids=["6503ee33b7bc43aead1facaa625a5dba"] * 2,
         )
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
@@ -490,7 +490,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             trace_ids=["6503ee33b7bc43aead1facaa625a5dba", "7633ee33b7bc43aead1facaa625a5dba"],
         )
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
@@ -589,7 +589,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             trace_ids=["6503ee33b7bc43aead1facaa625a5dba"] * 2,
         )
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
@@ -672,7 +672,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             trace_ids=["6503ee33b7bc43aead1facaa625a5dba"] * 2,
         )
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
@@ -780,7 +780,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             trace_ids=["6503ee33b7bc43aead1facaa625a5dba"] * 2,
         )
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
@@ -881,7 +881,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
         requested_sample_size = 2
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
@@ -948,7 +948,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
         requested_sample_size = 2
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
@@ -1009,7 +1009,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
         requested_sample_size = 2
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
@@ -1059,7 +1059,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
         requested_sample_size = 3
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
@@ -1111,7 +1111,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
         requested_sample_size = 2
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
@@ -1139,7 +1139,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
 
         requested_sample_size = 2
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
             assert response_data["projectBreakdown"] is None
