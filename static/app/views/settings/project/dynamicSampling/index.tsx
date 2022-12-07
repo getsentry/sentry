@@ -16,15 +16,12 @@ export default function DynamicSamplingContainer({project}: Props) {
 
   return (
     <Feature
-      features={['server-side-sampling', 'dynamic-sampling']}
+      features={['dynamic-sampling']}
       organization={organization}
       renderDisabled={() => (
         <FeatureDisabled
           alert={PanelAlert}
-          features={[
-            'organizations:server-side-sampling',
-            'organizations:dynamic-sampling',
-          ]}
+          features={['organizations:dynamic-sampling']}
           featureName={t('Dynamic Sampling')}
         />
       )}

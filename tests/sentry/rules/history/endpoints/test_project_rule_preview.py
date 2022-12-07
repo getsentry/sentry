@@ -4,7 +4,7 @@ from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import Group
+from sentry.models import Group, GroupInbox, GroupInboxReason
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -110,3 +110,34 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 )
 
             assert parse_datetime(resp["endpoint"]) == endpoint
+
+    def test_inbox_reason(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        group_reason = []
+        for reason in GroupInboxReason:
+            group = Group.objects.create(
+                project=self.project, first_seen=prev_hour, data={"metadata": {"title": "title"}}
+            )
+            GroupInbox.objects.create(group=group, project=self.project, reason=reason.value)
+            group_reason.append((group, reason))
+
+        with self.feature(self.features):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+            )
+
+            for (group, reason) in group_reason:
+                assert any([int(g["id"]) == group.id for g in resp.data])
+
+                for preview_group in resp.data:
+                    if int(preview_group["id"]) == group.id:
+                        assert preview_group["inbox"]["reason"] == reason.value
+                        break

@@ -19,7 +19,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
@@ -125,19 +125,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   }, [fetchIssuesCount]);
 
   function handleOpenInIssuesClick() {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.open_issues',
-      eventName: 'Project Detail: Open issues from project detail',
-      organization_id: parseInt(organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('project_detail.open_issues', {organization});
   }
 
   function handleOpenInDiscoverClick() {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.open_discover',
-      eventName: 'Project Detail: Open discover from project detail',
-      organization_id: parseInt(organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('project_detail.open_discover', {organization});
   }
 
   function handleFetchSuccess(groupListState, cursorHandler) {
