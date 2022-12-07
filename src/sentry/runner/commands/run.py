@@ -566,7 +566,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @run.command("occurrences-ingest-consumer")
 @configuration
 def occurrences_ingest_consumer():
-    from sentry.ingest.ingest_consumer import get_occurrences_ingest_consumer
+    from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
     consumer_type = "occurrences"

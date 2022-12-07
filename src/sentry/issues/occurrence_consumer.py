@@ -15,6 +15,12 @@ from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 logger = logging.getLogger(__name__)
 
 
+def get_occurrences_ingest_consumer(
+    consumer_type,
+):
+    return create_ingest_occurences_consumer("occurrences")
+
+
 def create_ingest_occurences_consumer(
     topic_name: str, **options: Any
 ) -> StreamProcessor[KafkaPayload]:

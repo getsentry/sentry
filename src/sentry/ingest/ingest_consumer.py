@@ -28,7 +28,6 @@ from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.issues.occurrence_consumer import create_ingest_occurences_consumer
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.signals import event_accepted
@@ -433,13 +432,6 @@ def get_ingest_consumer(
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
     topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
-
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )
-
-
-def get_occurrences_ingest_consumer(
-    consumer_type,
-):
-    return create_ingest_occurences_consumer("occurrences")
