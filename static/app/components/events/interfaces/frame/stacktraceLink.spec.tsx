@@ -65,8 +65,8 @@ describe('StacktraceLink', function () {
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
-          organizationId: org.id,
-          projectId: project.id,
+          organization_id: org.id,
+          project_id: project.id,
         },
       })
     );

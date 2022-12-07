@@ -23,6 +23,7 @@ import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurement
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
+import {isProfilingSupportedForProject} from '../../../components/profiling/ProfilingOnboarding/util';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import Tab from './tabs';
@@ -71,6 +72,11 @@ function TransactionHeader({
 
   const hasSessionReplay =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+
+  const hasProfiling =
+    project &&
+    organization.features.includes('profiling') &&
+    isProfilingSupportedForProject(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -209,6 +215,10 @@ function TransactionHeader({
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
+              </Item>
+              <Item key={Tab.Profiling} textValue={t('Profiling')} hidden={!hasProfiling}>
+                {t('Profiling')}
+                <FeatureBadge type="beta" noTooltip />
               </Item>
             </TabList>
           );
