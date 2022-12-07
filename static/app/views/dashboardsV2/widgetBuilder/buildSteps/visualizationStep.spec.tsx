@@ -9,8 +9,8 @@ import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 jest.unmock('lodash/debounce');
 
 function mockRequests(orgSlug: Organization['slug']) {
-  const eventsv2Mock = MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/eventsv2/`,
+  const eventsMock = MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/events/`,
     method: 'GET',
     statusCode: 200,
     body: {
@@ -62,7 +62,7 @@ function mockRequests(orgSlug: Organization['slug']) {
       },
     },
   });
-  return {eventsv2Mock};
+  return {eventsMock};
 }
 
 describe('VisualizationStep', function () {
@@ -81,7 +81,7 @@ describe('VisualizationStep', function () {
   });
 
   it('debounce works as expected and requests are not triggered often', async function () {
-    const {eventsv2Mock} = mockRequests(organization.slug);
+    const {eventsMock} = mockRequests(organization.slug);
 
     jest.useFakeTimers();
 
@@ -113,20 +113,20 @@ describe('VisualizationStep', function () {
       }
     );
 
-    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
 
     userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc');
     act(() => {
       jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
     });
 
-    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(2));
   });
 
   it('displays stored data alert', async function () {
     mockRequests(organization.slug);
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       statusCode: 200,
       body: {
@@ -161,11 +161,7 @@ describe('VisualizationStep', function () {
         context: routerContext,
         organization: {
           ...organization,
-          features: [
-            ...organization.features,
-            'server-side-sampling',
-            'mep-rollout-flag',
-          ],
+          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
       }
     );
@@ -174,7 +170,7 @@ describe('VisualizationStep', function () {
   });
 
   it('uses release from URL params when querying', async function () {
-    const {eventsv2Mock} = mockRequests(organization.slug);
+    const {eventsMock} = mockRequests(organization.slug);
     render(
       <WidgetBuilder
         route={{}}
@@ -210,8 +206,8 @@ describe('VisualizationStep', function () {
     );
 
     await waitFor(() =>
-      expect(eventsv2Mock).toHaveBeenCalledWith(
-        '/organizations/org-slug/eventsv2/',
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({query: ' release:v1 '}),
         })

@@ -72,13 +72,34 @@ def process_profile(
                 )
                 return
 
-            modules, stacktraces = _prepare_frames_from_profile(profile)
+            raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
                 profile_id=event_id,
-                modules=modules,
-                stacktraces=stacktraces,
+                modules=raw_modules,
+                stacktraces=raw_stacktraces,
             )
+
+            try:
+                raw_counts = [len(stacktrace["frames"]) for stacktrace in raw_stacktraces]
+                counts = [len(stacktrace["frames"]) for stacktrace in stacktraces]
+                if len(raw_counts) != len(counts) or any(a > b for a, b in zip(raw_counts, counts)):
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_context(
+                            "profile_stacktraces",
+                            {
+                                "raw_stacktraces_count": raw_counts,
+                                "raw_stacktraces": raw_stacktraces,
+                                "stacktraces_count": counts,
+                                "stacktraces": stacktraces,
+                            },
+                        )
+                        sentry_sdk.capture_message(
+                            "Symbolicator returned less stacks than expected"
+                        )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)

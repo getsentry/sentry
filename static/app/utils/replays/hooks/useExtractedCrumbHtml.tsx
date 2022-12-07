@@ -25,7 +25,7 @@ export type Extraction = {
 };
 
 type HookOpts = {
-  replay: ReplayReader;
+  replay: null | ReplayReader;
 };
 
 const requestIdleCallback =
@@ -49,6 +49,9 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   useEffect(() => {
     requestIdleCallback(
       () => {
+        if (!replay) {
+          return () => {};
+        }
         let isMounted = true;
 
         const domRoot = document.createElement('div');
