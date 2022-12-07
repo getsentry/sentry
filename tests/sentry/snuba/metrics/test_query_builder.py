@@ -17,7 +17,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Offset,
     Op,
     Or,
     OrderBy,
@@ -376,7 +375,7 @@ def test_build_snuba_query(mock_now, mock_now2):
             # totals: MAX_POINTS // (90d * 24h)
             # series: totals * (90d * 24h)
             limit=Limit(4) if not extra_groupby else Limit(8640),
-            offset=Offset(0),
+            offset=None,
             granularity=query_definition.granularity,
         )
 
@@ -545,7 +544,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     ),
                 ],
                 limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -575,7 +574,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     ),
                 ],
                 limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -649,7 +648,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
@@ -677,7 +676,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(72),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 
@@ -766,7 +765,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             ),
         ],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
@@ -795,7 +794,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             ),
         ],
         limit=Limit(72),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 

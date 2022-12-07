@@ -877,10 +877,10 @@ class SnubaQueryBuilder:
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                groupby=groupby,
-                orderby=orderby,
+                groupby=groupby,  # Empty group by is set to None.
+                orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,
-                offset=self._metrics_query.offset,
+                offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
                 intervals_len=len(
                     list(

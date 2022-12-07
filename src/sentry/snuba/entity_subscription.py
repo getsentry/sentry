@@ -323,7 +323,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    def _get_environment_condition(self, environment_name):
+    def _get_environment_condition(self, environment_name: str) -> Condition:
         environment_column = (
             "environment"
             if self.use_metrics_layer
