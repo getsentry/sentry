@@ -43,6 +43,7 @@ export class SampledProfile extends Profile {
 
       if (
         i > 0 &&
+        resolvedStack.length <= 2 &&
         resolvedStack[resolvedStack.length - 1]?.name ===
           '(garbage collector) [native code]'
       ) {
@@ -60,6 +61,7 @@ export class SampledProfile extends Profile {
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
           sampledProfile.samples[i + 1] &&
+          sampledProfile.samples[i + 1].length <= 2 &&
           frameIndex[
             sampledProfile.samples[i + 1][sampledProfile.samples[i + 1].length - 1]
           ]?.name === '(garbage collector) [native code]'
