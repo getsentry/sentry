@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -25,7 +27,9 @@ class AcceptOrganizationInvite(Endpoint):
     def get_helper(self, request: Request, member_id: int, token: str) -> ApiInviteHelper:
         return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
 
-    def get(self, request: Request, member_id: int, token: str) -> Response:
+    def get(
+        self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
+    ) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:
@@ -33,6 +37,10 @@ class AcceptOrganizationInvite(Endpoint):
 
         organization_member = helper.om
         organization = organization_member.organization
+
+        if organization_slug:
+            if organization_slug != organization.slug:
+                return self.respond_invalid()
 
         if (
             not helper.member_pending
@@ -102,7 +110,9 @@ class AcceptOrganizationInvite(Endpoint):
 
         return response
 
-    def post(self, request: Request, member_id: int, token: str) -> Response:
+    def post(
+        self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
+    ) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:
@@ -120,6 +130,13 @@ class AcceptOrganizationInvite(Endpoint):
             )
         else:
             response = Response(status=status.HTTP_204_NO_CONTENT)
+
+        organization_member = helper.om
+        organization = organization_member.organization
+
+        if organization_slug:
+            if organization_slug != organization.slug:
+                return self.respond_invalid()
 
         helper.accept_invite()
         remove_invite_details_from_session(request)

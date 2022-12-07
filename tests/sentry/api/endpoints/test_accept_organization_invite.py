@@ -14,13 +14,35 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
+
+    def _get_paths(self, args):
+        return (
+            reverse("sentry-api-0-accept-organization-invite-orgless", args=args),
+            reverse(
+                "sentry-api-0-accept-organization-invite",
+                args=[self.organization.slug] + args,
+            ),
+        )
+
+    def _get_urls(self):
+        return (
+            "sentry-api-0-accept-organization-invite-orgless",
+            "sentry-api-0-accept-organization-invite",
+        )
+
+    def _get_path(self, url, args):
+        if url == self._get_urls()[0]:
+            return reverse(url, args=args)
+        return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -36,31 +58,32 @@ class AcceptInviteTest(TestCase):
         assert session_invite_token is None
         assert session_invite_member_id is None
 
-    def _enroll_user_in_2fa(self):
+    def _enroll_user_in_2fa(self, user):
         interface = TotpInterface()
-        interface.enroll(self.user)
-        assert Authenticator.objects.user_has_2fa(self.user)
+        interface.enroll(user)
+        assert Authenticator.objects.user_has_2fa(user)
 
     def test_invalid_member_id(self):
-        resp = self.client.get(reverse("sentry-api-0-accept-organization-invite", args=[1, 2]))
-        assert resp.status_code == 400
+        for path in self._get_paths([1, 2]):
+            resp = self.client.get(path)
+            assert resp.status_code == 400
 
     def test_invalid_token(self):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(reverse("sentry-api-0-accept-organization-invite", args=[om.id, 2]))
-        assert resp.status_code == 400
+        for path in self._get_paths([om.id, 2]):
+            resp = self.client.get(path)
+            assert resp.status_code == 400
 
     def test_invite_not_pending(self):
         user = self.create_user(email="test@gmail.com")
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization, user=user
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 400
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 400
 
     def test_invite_unapproved(self):
         om = OrganizationMember.objects.create(
@@ -69,20 +92,18 @@ class AcceptInviteTest(TestCase):
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 400
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 400
 
     def test_needs_authentication(self):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        assert resp.data["needsAuthentication"]
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert resp.data["needsAuthentication"]
 
     def test_not_needs_authentication(self):
         self.login_as(self.user)
@@ -90,11 +111,10 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        assert not resp.data["needsAuthentication"]
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert not resp.data["needsAuthentication"]
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
@@ -105,30 +125,29 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        assert resp.data["needs2fa"]
 
-        self._assert_pending_invite_details_in_session(om)
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert resp.data["needs2fa"]
+
+            self._assert_pending_invite_details_in_session(om)
 
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()
-        self._enroll_user_in_2fa()
+        self._enroll_user_in_2fa(self.user)
 
         self.login_as(self.user)
 
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        assert not resp.data["needs2fa"]
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert not resp.data["needs2fa"]
 
-        self._assert_pending_invite_details_not_in_session(resp)
+            self._assert_pending_invite_details_not_in_session(resp)
 
     def test_user_can_use_sso(self):
         AuthProvider.objects.create(organization=self.organization, provider="google")
@@ -137,37 +156,42 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        assert resp.data["needsSso"]
-        assert resp.data["hasAuthProvider"]
-        assert resp.data["ssoProvider"] == "Google"
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert resp.data["needsSso"]
+            assert resp.data["hasAuthProvider"]
+            assert resp.data["ssoProvider"] == "Google"
 
     def test_can_accept_while_authenticated(self):
-        self.login_as(self.user)
+        urls = self._get_urls()
+        user = self.create_user("boo@example.com")
+        users = [self.user, user]
 
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+        for i, url in enumerate(urls):
+            self.login_as(users[i])
+            om = OrganizationMember.objects.create(
+                email="newuser" + str(i) + "@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.post(path)
+            assert resp.status_code == 204
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.email is None
-        assert om.user == self.user
+            om = OrganizationMember.objects.get(id=om.id)
+            assert om.email is None
+            assert om.user == users[i]
 
-        ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
-        )
+            ale = AuditLogEntry.objects.filter(
+                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+            ).order_by("-datetime")[0]
 
-        assert ale.actor == self.user
-        assert ale.target_object == om.id
-        assert ale.target_user == self.user
-        assert ale.data
+            assert ale.actor == users[i]
+            assert ale.target_object == om.id
+            assert ale.target_user == users[i]
+            assert ale.data
 
     def test_cannot_accept_expired(self):
         self.login_as(self.user)
@@ -178,14 +202,14 @@ class AcceptInviteTest(TestCase):
         OrganizationMember.objects.filter(id=om.id).update(
             token_expires_at=om.token_expires_at - timedelta(days=31)
         )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 400
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.is_pending, "should not have been accepted"
-        assert om.token, "should not have been accepted"
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.post(path)
+            assert resp.status_code == 400
+
+            om = OrganizationMember.objects.get(id=om.id)
+            assert om.is_pending, "should not have been accepted"
+            assert om.token, "should not have been accepted"
 
     def test_cannot_accept_unapproved_invite(self):
         self.login_as(self.user)
@@ -197,10 +221,9 @@ class AcceptInviteTest(TestCase):
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 400
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.post(path)
+            assert resp.status_code == 400
 
         om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
@@ -208,61 +231,74 @@ class AcceptInviteTest(TestCase):
         assert om.token
 
     def test_member_already_exists(self):
-        self.login_as(self.user)
+        urls = self._get_urls()
+        user = self.create_user("boo@example.com")
+        users = [self.user, user]
 
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+        for i, url in enumerate(urls):
+            self.login_as(users[i])
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.email is None
-        assert om.user == self.user
+            om = OrganizationMember.objects.create(
+                email="newuser" + str(i) + "@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.post(path)
+            assert resp.status_code == 204
 
-        om2 = OrganizationMember.objects.create(
-            email="newuser1@example.com",
-            role="member",
-            token="abcd",
-            organization=self.organization,
-        )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om2.id, om2.token])
-        )
-        assert resp.status_code == 400
-        assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            om = OrganizationMember.objects.get(id=om.id)
+            assert om.email is None
+            assert om.user == users[i]
+
+            om2 = OrganizationMember.objects.create(
+                email="newuser3@example.com",
+                role="member",
+                token="abcd",
+                organization=self.organization,
+            )
+            path = self._get_path(url, [om2.id, om2.token])
+            resp = self.client.post(path)
+            assert resp.status_code == 400
+            assert not OrganizationMember.objects.filter(id=om2.id).exists()
 
     def test_can_accept_when_user_has_2fa(self):
-        self._require_2fa_for_organization()
-        self._enroll_user_in_2fa()
+        urls = self._get_urls()
+        user = self.create_user("boo@example.com")
+        users = [self.user, user]
 
-        self.login_as(self.user)
+        for i, url in enumerate(urls):
+            self._require_2fa_for_organization()
+            self._enroll_user_in_2fa(users[i])
 
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
+            self.login_as(users[i])
 
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+            om = OrganizationMember.objects.create(
+                email="newuser" + str(i) + "@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
 
-        self._assert_pending_invite_details_not_in_session(resp)
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.post(path)
+            assert resp.status_code == 204
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.email is None
-        assert om.user == self.user
+            self._assert_pending_invite_details_not_in_session(resp)
 
-        ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
-        )
+            om = OrganizationMember.objects.get(id=om.id)
+            assert om.email is None
+            assert om.user == users[i]
 
-        assert ale.actor == self.user
-        assert ale.target_object == om.id
-        assert ale.target_user == self.user
-        assert ale.data
+            ale = AuditLogEntry.objects.filter(
+                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+            ).order_by("-datetime")[0]
+
+            assert ale.actor == users[i]
+            assert ale.target_object == om.id
+            assert ale.target_user == users[i]
+            assert ale.data
 
     def test_cannot_accept_when_user_needs_2fa(self):
         self._require_2fa_for_organization()
@@ -273,30 +309,52 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 400
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.post(path)
+            assert resp.status_code == 400
 
     def test_2fa_cookie_deleted_after_accept(self):
-        self._require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        urls = self._get_urls()
+        user = self.create_user("boo@example.com")
+        users = [self.user, user]
 
+        for i, url in enumerate(urls):
+            self._require_2fa_for_organization()
+            self.assertFalse(Authenticator.objects.user_has_2fa(users[i]))
+
+            self.login_as(users[i])
+
+            om = OrganizationMember.objects.create(
+                email="newuser" + str(i) + "@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            self._assert_pending_invite_details_in_session(om)
+
+            self._enroll_user_in_2fa(users[i])
+            resp = self.client.post(path)
+            assert resp.status_code == 204
+
+            self._assert_pending_invite_details_not_in_session(resp)
+
+    def test_mismatched_org_slug(self):
         self.login_as(self.user)
 
         om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
+            email="newuser@example.com",
+            role="member",
+            token="abc",
+            organization=self.organization,
         )
-        resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 200
-        self._assert_pending_invite_details_in_session(om)
 
-        self._enroll_user_in_2fa()
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+        path = reverse("sentry-api-0-accept-organization-invite", args=["asdf", om.id, om.token])
 
-        self._assert_pending_invite_details_not_in_session(resp)
+        resp = self.client.get(path)
+        assert resp.status_code == 400
+
+        resp = self.client.post(path)
+        assert resp.status_code == 400

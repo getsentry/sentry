@@ -239,6 +239,7 @@ class OrganizationMember(Model):
     def generate_token(self):
         return uuid4().hex + uuid4().hex
 
+    # TODO: does this need to be updated?
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
             return None

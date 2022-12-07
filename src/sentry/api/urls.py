@@ -660,9 +660,14 @@ urlpatterns = [
     ),
     # Organization invite
     url(
-        r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
+    ),
+    url(
+        r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        AcceptOrganizationInvite.as_view(),
+        name="sentry-api-0-accept-organization-invite-orgless",
     ),
     # Monitors
     url(
