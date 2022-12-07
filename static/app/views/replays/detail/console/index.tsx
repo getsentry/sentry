@@ -8,18 +8,17 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
-import ConsoleFilters from 'sentry/views/replays/detail/console/filters';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 
 interface Props {
   breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
@@ -32,10 +31,31 @@ const cache = new CellMeasurerCache({
 });
 
 function Console({breadcrumbs, startTimestampMs}: Props) {
-  const {currentTime} = useReplayContext();
-  const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
-
+  const {currentTime, currentHoverTime} = useReplayContext();
   let listRef: ReactVirtualizedList | null = null;
+
+  const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
+  const {items, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
+
+  const current = getPrevReplayEvent({
+    items,
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
+
+  const hovered = currentHoverTime
+    ? getPrevReplayEvent({
+        items,
+        targetTimestampMs: startTimestampMs + currentHoverTime,
+        allowEqual: true,
+        allowExact: true,
+      })
+    : null;
+
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
   useEffect(() => {
     // Restart cache when items changes
@@ -43,12 +63,10 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       cache.clearAll();
       listRef?.forceUpdateGrid();
     }
-  }, [filterProps.items, listRef]);
+  }, [items, listRef]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const breadcrumb = filterProps.items[index];
-    const hasOccurred =
-      currentTime >= relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
+    const item = items[index];
 
     return (
       <CellMeasurer
@@ -59,14 +77,14 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleMessage
-          style={style}
-          isActive={false} // closestUserAction?.id === breadcrumb.id}
-          isCurrent={false} // currentUserAction?.id === breadcrumb.id}
-          isOcurring={false} // isOcurring(breadcrumb, closestUserAction)}
+          isCurrent={item.id === current?.id}
+          isHovered={item.id === hovered?.id}
+          breadcrumb={item}
+          onClickTimestamp={() => handleClick(item)}
+          onMouseEnter={() => handleMouseEnter(item)}
+          onMouseLeave={() => handleMouseLeave(item)}
           startTimestampMs={startTimestampMs}
-          isLast={index === breadcrumbs!.length - 1}
-          breadcrumb={breadcrumb}
-          hasOccurred={hasOccurred}
+          style={style}
         />
       </CellMeasurer>
     );
@@ -86,25 +104,15 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
-                rowCount={filterProps.items.length}
-                noRowsRenderer={() =>
-                  breadcrumbs.length === 0 ? (
-                    <StyledEmptyStateWarning>
-                      <p>{t('No console logs recorded')}</p>
-                    </StyledEmptyStateWarning>
-                  ) : (
-                    <StyledEmptyStateWarning>
-                      <p>{t('No results found')}</p>
-                      <Button
-                        icon={<IconClose color="gray500" size="sm" isCircled />}
-                        onClick={() => filterProps.setSearchTerm('')}
-                        size="md"
-                      >
-                        {t('Clear filters')}
-                      </Button>
-                    </StyledEmptyStateWarning>
-                  )
-                }
+                rowCount={items.length}
+                noRowsRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={breadcrumbs}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No console logs recorded')}
+                  </NoRowRenderer>
+                )}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
@@ -118,15 +126,6 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     </ConsoleContainer>
   );
 }
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
 
 const ConsoleContainer = styled(FluidHeight)`
   height: 100%;

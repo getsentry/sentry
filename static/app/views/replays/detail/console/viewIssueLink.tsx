@@ -11,9 +11,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  className?: string;
 };
 
-function ViewIssueLink({breadcrumb}: Props) {
+function ViewIssueLink({breadcrumb, className}: Props) {
   const organization = useOrganization();
 
   const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
@@ -26,6 +27,7 @@ function ViewIssueLink({breadcrumb}: Props) {
   };
   return (
     <StyledHovercard
+      className={className}
       body={
         <ShortIdBreadrcumb>
           <ProjectBadge
@@ -56,10 +58,7 @@ const ShortIdBreadrcumb = styled('div')`
   align-items: center;
 `;
 
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
+const StyledShortId = styled(ShortId)``;
 
 const StyledHovercard = styled(
   ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
