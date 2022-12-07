@@ -60,6 +60,16 @@ describe('StacktraceLink', function () {
       })
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
+    expect(promptActivity).toHaveBeenCalledWith(
+      '/prompts-activity/',
+      expect.objectContaining({
+        query: {
+          feature: 'stacktrace_link',
+          organizationId: org.id,
+          projectId: project.id,
+        },
+      })
+    );
     expect(analyticsSpy).toHaveBeenCalledTimes(1);
   });
 
