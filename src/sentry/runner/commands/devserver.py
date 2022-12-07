@@ -35,6 +35,7 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=transactions_group",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
     "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
@@ -91,6 +92,11 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
 @click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
+    "--occurrence-ingest/--no-occurrence-ingest",
+    default=False,
+    help="Run ingest services for occurrences.",
+)
+@click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
 @click.option(
@@ -123,6 +129,7 @@ def devserver(
     watchers: bool,
     workers: bool,
     ingest: bool,
+    occurrence_ingest: bool,
     experimental_spa: bool,
     styleguide: bool,
     prefix: bool,
@@ -294,6 +301,9 @@ and run `sentry devservices up kafka zookeeper`.
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
+
+    if occurrence_ingest:
+        daemons += [_get_daemon("occurrences")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
