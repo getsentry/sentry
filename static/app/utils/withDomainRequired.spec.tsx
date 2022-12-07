@@ -61,14 +61,48 @@ describe('normalizeUrl', function () {
       ],
     ];
     for (const [input, expected] of cases) {
+      result = normalizeUrl(input);
+      expect(result).toEqual(expected);
+
       result = normalizeUrl(input, location);
       expect(result).toEqual(expected);
+
+      result = normalizeUrl(input, {forceCustomerDomain: false});
+      expect(result).toEqual(expected);
+
+      result = normalizeUrl(input, location, {forceCustomerDomain: false});
+      expect(result).toEqual(expected);
+    }
+
+    // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
+    window.__initialData.customerDomain = null;
+    for (const [input, expected] of cases) {
+      result = normalizeUrl(input, {forceCustomerDomain: true});
+      expect(result).toEqual(expected);
+
+      result = normalizeUrl(input, location, {forceCustomerDomain: true});
+      expect(result).toEqual(expected);
+    }
+
+    // No effect if customerDomain isn't defined
+    window.__initialData.customerDomain = null;
+    for (const [input, _expected] of cases) {
+      result = normalizeUrl(input);
+      expect(result).toEqual(input);
+
+      result = normalizeUrl(input, location);
+      expect(result).toEqual(input);
     }
   });
 
   it('replaces pathname in objects', function () {
     const location = TestStubs.location();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
+    expect(result.pathname).toEqual('/settings/organization/');
+
+    result = normalizeUrl({pathname: '/settings/acme/'}, location, {
+      forceCustomerDomain: false,
+    });
     expect(result.pathname).toEqual('/settings/organization/');
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
@@ -94,6 +128,25 @@ describe('normalizeUrl', function () {
       location
     );
     expect(result.pathname).toEqual('/issues');
+
+    // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
+    window.__initialData.customerDomain = null;
+    result = normalizeUrl({pathname: '/settings/acme/'}, location, {
+      forceCustomerDomain: true,
+    });
+    expect(result.pathname).toEqual('/settings/organization/');
+
+    result = normalizeUrl(
+      {
+        pathname: '/organizations/albertos-apples/issues',
+        query: {q: 'all'},
+      },
+      location,
+      {
+        forceCustomerDomain: true,
+      }
+    );
+    expect(result.pathname).toEqual('/issues');
   });
 
   it('replaces pathname in function callback', function () {
@@ -109,6 +162,22 @@ describe('normalizeUrl', function () {
       return '/organizations/a-long-slug/discover/';
     }
     result = normalizeUrl(stringCallback, location);
+    expect(result).toEqual('/discover/');
+
+    // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
+    window.__initialData.customerDomain = null;
+
+    function objectCallback2(_loc: Location): LocationDescriptorObject {
+      return {pathname: '/settings/'};
+    }
+    result = normalizeUrl(objectCallback2, location, {forceCustomerDomain: true});
+    // @ts-ignore
+    expect(result.pathname).toEqual('/settings/');
+
+    function stringCallback2(_loc: Location): LocationDescriptor {
+      return '/organizations/a-long-slug/discover/';
+    }
+    result = normalizeUrl(stringCallback2, location, {forceCustomerDomain: true});
     expect(result).toEqual('/discover/');
   });
 
