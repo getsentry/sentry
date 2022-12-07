@@ -47,7 +47,7 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
         group = getattr(obj, "group", obj)
         if group.issue_category == GroupCategory.PERFORMANCE:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
-        elif hasattr(obj, "occurrence"):
+        elif hasattr(obj, "occurrence") and obj.occurrence is not None:
             title = obj.occurrence.issue_title
         else:
             event = group.get_latest_event()
