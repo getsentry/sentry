@@ -184,6 +184,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 # If we failed to munge we should keep the original outcome
                 if munging_outcome:
                     outcome = munging_outcome
+                    scope.set_tag("stacktrace_link.munged", True)
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
                 matched_code_mappings.append(current_config)

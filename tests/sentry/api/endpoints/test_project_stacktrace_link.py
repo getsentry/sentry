@@ -260,7 +260,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         ExampleIntegration,
         "get_stacktrace_link",
     )
-    def test_file_not_found_munge_frame_android(self, mock_integration):
+    def test_munge_android_worked(self, mock_integration):
         mock_integration.side_effect = [
             "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
         ]
@@ -273,29 +273,31 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
                 "platform": "java",
             },
         )
+        file_path = "usr/src/getsentry/file.java"
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert (
             response.data["sourceUrl"]
-            == "https://example.com/getsentry/sentry/blob/master/usr/src/getsentry/file.java"
+            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
         )
         mock_integration.assert_called_with(
-            self.repo, "usr/src/getsentry/file.java", "master", None
+            self.repo, file_path, "master", None
         )
 
     @mock.patch.object(
         ExampleIntegration,
         "get_stacktrace_link",
     )
-    def test_file_not_found_munge_frame_cocoa(self, mock_integration):
+    def test_munge_cocoa_worked(self, mock_integration):
+        file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
         mock_integration.side_effect = [
-            "https://example.com/getsentry/sentry/blob/master/SampleProject/Classes/App Delegate/AppDelegate.swift"
+            f"https://example.com/getsentry/sentry/blob/master/{file_path}"
         ]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             qs_params={
                 "file": "AppDelegate.swift",
-                "absPath": "/Users/gszeto/code/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
+                "absPath": f"/Users/user/code/SwiftySampleProject/{file_path}",
                 "package": "SampleProject",
                 "platform": "cocoa",
             },
@@ -303,7 +305,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert (
             response.data["sourceUrl"]
-            == "https://example.com/getsentry/sentry/blob/master/SampleProject/Classes/App Delegate/AppDelegate.swift"
+            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
         )
         mock_integration.assert_called_with(
             self.repo, "SampleProject/Classes/App Delegate/AppDelegate.swift", "master", None
@@ -313,7 +315,8 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         ExampleIntegration,
         "get_stacktrace_link",
     )
-    def test_file_not_found_munge_frame_flutter(self, mock_integration):
+    def test_munge_flutter_worked(self, mock_integration):
+        file_path = "a/b/main.dart"
         mock_integration.side_effect = [
             "https://example.com/getsentry/sentry/blob/master/a/b/main.dart"
         ]
@@ -322,7 +325,7 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
             self.project.slug,
             qs_params={
                 "file": "main.dart",
-                "absPath": "package:sentry_flutter_example/a/b/main.dart",
+                "absPath": f"package:sentry_flutter_example/{file_path}",
                 "package": "sentry_flutter_example",
                 "platform": "other",
                 "sdkName": "sentry.dart.flutter",
@@ -331,6 +334,6 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert (
             response.data["sourceUrl"]
-            == "https://example.com/getsentry/sentry/blob/master/a/b/main.dart"
+            == f"https://example.com/getsentry/sentry/blob/master/{file_path}"
         )
         mock_integration.assert_called_with(self.repo, "a/b/main.dart", "master", None)
