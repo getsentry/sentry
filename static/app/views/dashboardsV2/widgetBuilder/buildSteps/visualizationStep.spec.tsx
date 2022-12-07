@@ -161,11 +161,7 @@ describe('VisualizationStep', function () {
         context: routerContext,
         organization: {
           ...organization,
-          features: [
-            ...organization.features,
-            'server-side-sampling',
-            'mep-rollout-flag',
-          ],
+          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
       }
     );
