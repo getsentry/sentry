@@ -1441,7 +1441,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         self, settings: Dict[str, Any], initial_spans: Optional[Sequence[Span]] = None
     ) -> None:
         self.settings = settings
-        self.recent_spans = initial_spans.copy() if initial_spans else []
+        self.recent_spans = initial_spans or []
 
     def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
         # Can't be a potential MN+1 without at least 2 previous spans.
