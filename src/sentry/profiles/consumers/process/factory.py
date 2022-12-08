@@ -45,7 +45,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.__produce_call_tree(profile)
 
-        return KafkaPayload(key=None, value=json.dumps(profile), headers=[])
+        return KafkaPayload(key=None, value=json.dumps(profile, use_rapid_json=True), headers=[])
 
     def __produce_call_tree(self, profile: Profile) -> None:
         try:

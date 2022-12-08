@@ -631,7 +631,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         if response.status == 204:
             profile["call_trees"] = {}
         elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data)["call_trees"]
+            profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
         elif response.status == 429:
             raise VroomTimeout
         else:
