@@ -50,6 +50,7 @@ export type PerformanceEventParameters = {
     widget_type?: string;
   };
   'performance_views.landingv3.widget.switch': {
+    is_new_menu: boolean;
     from_default?: boolean;
     from_widget?: string;
     to_widget?: string;
