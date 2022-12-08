@@ -1,7 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
+import MemberListStore from 'sentry/stores/memberListStore';
 
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
@@ -10,6 +11,7 @@ describe('GroupSidebar', function () {
   let tagsMock;
 
   beforeEach(function () {
+    MemberListStore.loadInitialData([]);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {committers: []},
@@ -60,6 +62,10 @@ describe('GroupSidebar', function () {
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
     });
   });
 
@@ -173,7 +179,7 @@ describe('GroupSidebar', function () {
     });
   });
 
-  it('renders participants and viewers', () => {
+  it('renders participants and viewers', async () => {
     const users = [
       TestStubs.User({
         id: '2',
@@ -201,6 +207,7 @@ describe('GroupSidebar', function () {
       />,
       {organization: org}
     );
+    await act(tick);
 
     expect(screen.getByText('Participants (2)')).toBeInTheDocument();
     expect(screen.getByText('Viewers (2)')).toBeInTheDocument();

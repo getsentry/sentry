@@ -167,6 +167,10 @@ const mockGroupApis = (
     url: '/projects/org-slug/project-slug/',
     body: project,
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/users/',
+    body: [],
+  });
 };
 
 describe('groupEventDetails', () => {

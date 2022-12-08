@@ -258,10 +258,8 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
-        <Feature organization={organization} features={['issue-details-owners']}>
-          <OwnedBy group={group} project={project} organization={organization} />
-          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
-        </Feature>
+        <OwnedBy group={group} project={project} organization={organization} />
+        <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
