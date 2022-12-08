@@ -4,7 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
-FEATURES = ("organizations:discover-query", "organizations:discover-query-builder-as-landing-page")
+FEATURES = ("organizations:discover-query",)
 
 
 class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
