@@ -1,7 +1,7 @@
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.issues.utils import OccurrenceTestMixin
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
