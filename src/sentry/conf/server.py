@@ -970,12 +970,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -988,8 +984,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable metrics baseline in discover
-    "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
     "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1089,14 +1083,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget library
-    "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": True,
-    # Enables usage of custom measurements in dashboard widgets
-    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1191,10 +1179,6 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
-    # Enable the mobile screenshot gallery in the attachments tab
-    "organizations:mobile-screenshot-gallery": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
     # Enable tag improvements in the issue details page

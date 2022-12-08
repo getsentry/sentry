@@ -72,11 +72,11 @@ def _query_discover_for_replay_ids(
         dataset=Dataset.Discover,
         params=params,
         snuba_params=snuba_params,
-        selected_columns=["group_array(100,replayId)", "issue.id"],
+        selected_columns=["group_uniq_array(100,replayId)", "issue.id"],
         query=request.GET.get("query"),
         limit=25,
         offset=0,
-        functions_acl=["group_array"],
+        functions_acl=["group_uniq_array"],
     )
     _validate_params(builder)
 
@@ -85,7 +85,7 @@ def _query_discover_for_replay_ids(
     replay_id_to_issue_map = defaultdict(list)
 
     for row in discover_results["data"]:
-        for replay_id in row["group_array_100_replayId"]:
+        for replay_id in row["group_uniq_array_100_replayId"]:
             replay_id_to_issue_map[replay_id].append(row["issue.id"])
 
     return replay_id_to_issue_map
