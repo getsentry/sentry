@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   openInviteMembersModal,
@@ -265,5 +265,33 @@ describe('TeamMembers', function () {
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
     expect(contributors).toHaveLength(2);
+  });
+
+  it('cannot add members if idp:provisioned', function () {
+    const me = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+      flags: {
+        'idp:provisioned': true,
+      },
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [...members, me],
+    });
+
+    render(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team.slug}}
+        organization={organization}
+      />
+    );
+
+    waitFor(() => {
+      expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
+    });
   });
 });
