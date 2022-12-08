@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
-import type {Color} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
@@ -206,10 +206,10 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
                         <SubText
                           color={
                             totals.percentChange === 0
-                              ? 'gray300'
+                              ? 'subText'
                               : totals.percentChange > 0
-                              ? 'red300'
-                              : 'green300'
+                              ? 'errorText'
+                              : 'successText'
                           }
                         >
                           {formatPercentage(
@@ -270,6 +270,6 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

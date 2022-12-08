@@ -9,9 +9,11 @@ export class Frame extends WeightedNode {
   readonly line?: number;
   readonly column?: number;
   readonly is_application: boolean;
+  readonly path?: string;
   readonly image?: string;
   readonly resource?: string;
   readonly threadId?: number;
+  readonly inline?: boolean;
 
   static Root = new Frame(
     {
@@ -34,6 +36,7 @@ export class Frame extends WeightedNode {
     this.is_application = !!frameInfo.is_application;
     this.image = frameInfo.image;
     this.threadId = frameInfo.threadId;
+    this.path = frameInfo.path;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
@@ -56,6 +59,25 @@ export class Frame extends WeightedNode {
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (this.line === undefined && this.column === undefined) {
         this.name += ` ${t('[native code]')}`;
+      }
+
+      // Doing this on the frontend while we figure out how to do this on the backend/client properly
+      // @TODO Our old node.js incorrectly sends file instead of path (fixed in SDK, but not all SDK's are upgraded :rip:)
+      const pathOrFile = this.path || this.file;
+      if (this.image === undefined && pathOrFile) {
+        const match =
+          /node_modules\/(?<maybeScopeOrPackage>.*)\/(?<maybeFileOrPackage>.*)\//.exec(
+            pathOrFile
+          );
+        if (match?.groups) {
+          const {maybeScopeOrPackage, maybeFileOrPackage} = match.groups;
+
+          if (maybeScopeOrPackage.startsWith('@')) {
+            this.image = `${maybeScopeOrPackage}/${maybeFileOrPackage}`;
+          } else {
+            this.image = match.groups.maybeScopeOrPackage;
+          }
+        }
       }
     }
 

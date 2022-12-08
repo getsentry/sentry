@@ -33,7 +33,7 @@ type FirstIssue = null | boolean | Group;
 export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-  eventType: 'error' | 'transaction' | 'replay';
+  eventType: 'error' | 'transaction' | 'replay' | 'profile';
   organization: Organization;
   project: Project;
   disabled?: boolean;
@@ -54,6 +54,8 @@ function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) 
       return resp.firstTransactionEvent;
     case 'replay':
       return resp.hasReplays;
+    case 'profile':
+      return resp.hasProfiles;
     default:
       return null;
   }

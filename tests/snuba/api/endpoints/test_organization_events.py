@@ -4957,6 +4957,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
+    def test_count_if_array_field(self):
+        data = self.load_data(platform="javascript")
+        data["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=data, project_id=self.project.id)
+        query = {
+            "field": [
+                "count_if(stack.filename, equals, raven.js)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_if(stack.filename, equals, raven.js)"] == 1
+
     def test_count_if_measurements_cls(self):
         data = self.transaction_data.copy()
         data["measurements"] = {"cls": {"value": 0.5}}
@@ -5528,3 +5543,86 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert set(fields) == data_keys
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
+
+    def test_readable_device_name(self):
+        data = self.load_data(
+            timestamp=before_now(minutes=1),
+        )
+        data["tags"] = {"device": "iPhone14,3"}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["device"],
+            "query": "",
+            "project": [self.project.id],
+            "readable": True,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["device"] == "iPhone14,3"
+        assert data[0]["readable"] == "iPhone 13 Pro Max"
+
+    def test_http_status_code(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"http.status_code": "200"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "contexts": {"response": {"status_code": 400}},
+            },
+            project_id=project2.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "http.status_code"],
+            "query": "",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        result = {r["http.status_code"] for r in data}
+        assert result == {"200", "400"}
+
+    def test_http_status_code_context_priority(self):
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"http.status_code": "200"},
+                "contexts": {"response": {"status_code": 400}},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "http.status_code"],
+            "query": "",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http.status_code"] == "400"

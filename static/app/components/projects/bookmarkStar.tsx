@@ -42,7 +42,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       priority="link"
       className={className}
       icon={
-        <IconStar color={isBookmarked ? 'yellow300' : 'subText'} isSolid={isBookmarked} />
+        <IconStar color={isBookmarked ? 'yellow400' : 'subText'} isSolid={isBookmarked} />
       }
     />
   );

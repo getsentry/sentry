@@ -241,14 +241,17 @@ function FlamegraphZoomView({
   }, [dispatch, lastInteraction, previousInteraction, flamegraphView]);
 
   useEffect(() => {
+    flamegraphRenderer?.setSearchResults(flamegraphSearch.results);
+  }, [flamegraphRenderer, flamegraphSearch.results]);
+
+  useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
       flamegraphRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphState.search.results
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
       );
     };
 
@@ -258,13 +261,7 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [
-    flamegraphCanvas,
-    flamegraphRenderer,
-    flamegraphState.search.results,
-    scheduler,
-    flamegraphView,
-  ]);
+  }, [flamegraphCanvas, flamegraphRenderer, scheduler, flamegraphView]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !textRenderer || !gridRenderer) {
@@ -493,11 +490,12 @@ function FlamegraphZoomView({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          flamegraphState.profiles.selectedRoot &&
-          hoveredNode === flamegraphState.profiles.selectedRoot
+          selectedFramesRef.current?.length === 1 &&
+          selectedFramesRef.current[0] === hoveredNode
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
+          canvasPoolManager.dispatch('show in table view', [hoveredNode]);
         }
 
         dispatch({
@@ -508,20 +506,12 @@ function FlamegraphZoomView({
           hoveredNode ? [hoveredNode] : null,
           'selected',
         ]);
-        dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
       setStartPanVector(null);
     },
-    [
-      configSpaceCursor,
-      flamegraphState.profiles.selectedRoot,
-      dispatch,
-      hoveredNode,
-      canvasPoolManager,
-      lastInteraction,
-    ]
+    [configSpaceCursor, dispatch, hoveredNode, canvasPoolManager, lastInteraction]
   );
 
   const onMouseDrag = useCallback(
@@ -795,6 +785,7 @@ function FlamegraphZoomView({
       />
       <FlamegraphOptionsContextMenu
         contextMenu={contextMenu}
+        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
@@ -837,6 +828,10 @@ const Canvas = styled('canvas')`
   height: 100%;
   user-select: none;
   position: absolute;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 // loosely based spreadsheet navigation

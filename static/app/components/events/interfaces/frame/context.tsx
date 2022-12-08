@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  isMobileLanguage,
+  StacktraceLink,
+} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,7 +21,6 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import StacktraceLink from './stacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -54,7 +57,15 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  const isMobile = isMobileLanguage(event);
+
+  if (
+    !hasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly &&
+    !isMobile
+  ) {
     return emptySourceNotation ? (
       <div className="empty-context">
         <StyledIconFlag size="xs" />
@@ -63,11 +74,29 @@ const Context = ({
     ) : null;
   }
 
+  // Temporarily allow mobile platforms to make API call and "show" stacktrace link
+  if (isMobile) {
+    return (
+      <ErrorBoundary customComponent={null}>
+        <StacktraceLink
+          line={frame.function ? frame.function : ''}
+          frame={frame}
+          event={event}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   const contextLines = isExpanded
     ? frame.context
     : frame.context.filter(l => l[0] === frame.lineNo);
 
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
+  const hasStacktraceLink =
+    frame.inApp &&
+    !!frame.filename &&
+    isExpanded &&
+    organization?.features.includes('integrations-stacktrace-link');
 
   return (
     <Wrapper
@@ -84,6 +113,8 @@ const Context = ({
         contextLines.map((line, index) => {
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
+          const showStacktraceLink = hasStacktraceLink && isActive;
+
           return (
             <StyledContextLine key={index} line={line} isActive={isActive}>
               {hasComponents && (
@@ -96,20 +127,16 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-              {organization?.features.includes('integrations-stacktrace-link') &&
-                isActive &&
-                isExpanded &&
-                frame.inApp &&
-                frame.filename && (
-                  <ErrorBoundary customComponent={null}>
-                    <StacktraceLink
-                      key={index}
-                      lineNo={line[0]}
-                      frame={frame}
-                      event={event}
-                    />
-                  </ErrorBoundary>
-                )}
+              {showStacktraceLink && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceLink
+                    key={index}
+                    line={line[1]}
+                    frame={frame}
+                    event={event}
+                  />
+                </ErrorBoundary>
+              )}
             </StyledContextLine>
           );
         })}

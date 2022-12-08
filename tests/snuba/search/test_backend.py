@@ -2103,6 +2103,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
             test_query(f"{key}:{val}")
 
+    def test_message_negation(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        results = self.make_query(search_filter_query="!message:else")
+
+        with self.feature("organizations:performance-issues"):
+            results2 = self.make_query(search_filter_query="!message:else")
+
+        assert list(results) == list(results2)
+
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
     @property
@@ -2259,6 +2277,136 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             )
         assert list(results) == []
         assert results.hits == 2
+
+    def test_perf_issue_search_message_term_queries_postgres(self):
+        from django.db.models import Q
+
+        from sentry.utils import snuba
+
+        transaction_name = "im a little tea pot"
+
+        tx = self.store_event(
+            data={
+                "level": "info",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "event_id": "e" * 32,
+                "timestamp": iso_format(self.base_datetime),
+                "start_timestamp": iso_format(self.base_datetime),
+                "type": "transaction",
+                "transaction": transaction_name,
+            },
+            project_id=self.project.id,
+        )
+        assert "tea" in tx.search_message
+        created_group = tx.groups[0]
+
+        find_group = Group.objects.filter(
+            Q(type=GroupType.PERFORMANCE_SLOW_SPAN.value, message__icontains="tea")
+        ).first()
+
+        assert created_group == find_group
+        result = snuba.raw_query(
+            dataset=snuba.Dataset.Transactions,
+            start=self.base_datetime - timedelta(hours=1),
+            end=self.base_datetime + timedelta(hours=1),
+            selected_columns=[
+                "event_id",
+                "group_ids",
+                "transaction_name",
+            ],
+            groupby=None,
+            filter_keys={"project_id": [self.project.id], "event_id": [tx.event_id]},
+            referrer="_insert_transaction.verify_transaction",
+        )
+        assert result["data"][0]["transaction_name"] == transaction_name
+        assert result["data"][0]["group_ids"] == [created_group.id]
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="issue.category:performance tea")
+            assert set(results) == {created_group}
+
+            results2 = self.make_query(search_filter_query="tea")
+            assert set(results2) == {created_group}
+
+        assert not self.make_query(search_filter_query="issue.category:performance tea")
+
+    def test_search_message_error_and_perf_issues(self):
+        tx = self.store_event(
+            data={
+                "level": "info",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "event_id": "e" * 32,
+                "timestamp": iso_format(self.base_datetime),
+                "start_timestamp": iso_format(self.base_datetime),
+                "type": "transaction",
+                "transaction": "/api/0/events",
+            },
+            project_id=self.project.id,
+        )
+        perf_issue = tx.groups[0]
+        assert perf_issue
+
+        error = self.store_event(
+            data={
+                "fingerprint": ["another-random-group"],
+                "event_id": "d" * 32,
+                "message": "Uncaught exception on api /api/0/events",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        error_issue = error.group
+        assert error_issue
+
+        assert error_issue != perf_issue
+
+        with self.feature("organizations:performance-issues"):
+            assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
+                perf_issue,
+                error_issue,
+            }
+
+        assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
+
+    def test_compound_message_negation(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "level": "info",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "event_id": "e" * 32,
+                "timestamp": iso_format(self.base_datetime),
+                "start_timestamp": iso_format(self.base_datetime),
+                "type": "transaction",
+                "transaction": "something",
+            },
+            project_id=self.project.id,
+        )
+
+        error_issues_only = self.make_query(search_filter_query="!message:else")
+
+        with self.feature("organizations:performance-issues"):
+            error_and_perf_issues = self.make_query(search_filter_query="!message:else")
+
+        assert set(error_and_perf_issues) > set(error_issues_only)
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

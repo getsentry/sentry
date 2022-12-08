@@ -43,6 +43,7 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import toArray from 'sentry/utils/toArray';
 import {
   FieldValueKind,
   TableColumn,
@@ -251,9 +252,9 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     return [];
   }
   const value = location.query.team;
-  return (Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)]).filter(
-    team => team === 'myteams' || !isNaN(team)
-  );
+  return toArray(value)
+    .map(decodeTeam)
+    .filter(team => team === 'myteams' || !isNaN(team));
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -262,7 +263,7 @@ const decodeProjects = (location: Location): number[] => {
   }
 
   const value = location.query.project;
-  return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
+  return toArray(value).map(i => parseInt(i, 10));
 };
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
@@ -475,7 +476,6 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod, utc} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -486,6 +486,20 @@ class EventView {
       if (fields.length === 0) {
         fields = EventView.getFields(saved);
       }
+
+      const {start, end, statsPeriod, utc} = normalizeDateTimeParams(
+        location.query.start ||
+          location.query.end ||
+          location.query.statsPeriod ||
+          location.query.utc
+          ? location.query
+          : {
+              start: saved.start,
+              end: saved.end,
+              statsPeriod: saved.range,
+              utc: saved.utc,
+            }
+      );
       return new EventView({
         id: id || saved.id,
         name: decodeScalar(location.query.name) || saved.name,
@@ -736,8 +750,8 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(useFullEquationAsKey?: boolean): TableColumn<React.ReactText>[] {
-    return decodeColumnOrder(this.fields, useFullEquationAsKey);
+  getColumns(): TableColumn<React.ReactText>[] {
+    return decodeColumnOrder(this.fields);
   }
 
   getDays(): number {

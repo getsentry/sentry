@@ -124,8 +124,6 @@ def query_replays_dataset(
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Discard short replays (5 seconds by arbitrary decision).
-                Condition(Column("duration"), Op.GTE, 5),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
@@ -149,6 +147,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _strip_uuid_dashes("replay_id", Column("replay_id")),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
+        _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
         Function(
             "toString",
             parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],

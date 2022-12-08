@@ -72,13 +72,34 @@ def process_profile(
                 )
                 return
 
-            modules, stacktraces = _prepare_frames_from_profile(profile)
+            raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
                 profile_id=event_id,
-                modules=modules,
-                stacktraces=stacktraces,
+                modules=raw_modules,
+                stacktraces=raw_stacktraces,
             )
+
+            try:
+                raw_counts = [len(stacktrace["frames"]) for stacktrace in raw_stacktraces]
+                counts = [len(stacktrace["frames"]) for stacktrace in stacktraces]
+                if len(raw_counts) != len(counts) or any(a > b for a, b in zip(raw_counts, counts)):
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_context(
+                            "profile_stacktraces",
+                            {
+                                "raw_stacktraces_count": raw_counts,
+                                "raw_stacktraces": raw_stacktraces,
+                                "stacktraces_count": counts,
+                                "stacktraces": stacktraces,
+                            },
+                        )
+                        sentry_sdk.capture_message(
+                            "Symbolicator returned less stacks than expected"
+                        )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -88,7 +109,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-symbolication",
+            reason="profiling_failed_symbolication",
         )
         return
 
@@ -110,7 +131,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-deobfuscation",
+            reason="profiling_failed_deobfuscation",
         )
         return
 
@@ -125,7 +146,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-normalization",
+            reason="profiling_failed_normalization",
         )
         return
 
@@ -135,7 +156,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-vroom-insertion",
+            reason="profiling_failed_vroom_insertion",
         )
         return
 
@@ -253,7 +274,6 @@ def _process_symbolicator_results(
     profile["debug_meta"]["images"] = modules
 
     if "version" in profile:
-        profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
         return
 
@@ -267,11 +287,14 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
-    if profile["platform"] == "rust":
-        for frame in stacktraces[0]["frames"]:
+    profile["profile"]["frames"] = stacktraces[0]["frames"]
+    if profile["platform"] in SHOULD_SYMBOLICATE:
+        for frame in profile["profile"]["frames"]:
             frame.pop("pre_context", None)
             frame.pop("context_line", None)
             frame.pop("post_context", None)
+
+    if profile["platform"] == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
             # remove top frames related to the profiler (top of the stack)
@@ -571,7 +594,9 @@ def _get_event_instance_for_legacy(profile: Profile) -> Any:
         "platform": profile["platform"],
         "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "release": f"{profile['version_name']} ({profile['version_code']})"
+        if profile["version_code"]
+        else profile["version_name"],
         "retention_days": profile["retention_days"],
         "timestamp": profile["received"],
         "transaction_name": profile["transaction_name"],

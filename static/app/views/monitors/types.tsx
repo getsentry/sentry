@@ -30,6 +30,7 @@ export type Monitor = {
 export type MonitorStat = {
   duration: number;
   error: number;
+  missed: number;
   ok: number;
   ts: number;
 };

@@ -82,6 +82,14 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
         raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
 
 
+def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> bool:
+    try:
+        get_public_name_from_mri(internal_name)
+        return False
+    except InvalidParams:
+        return True
+
+
 def extract_custom_measurement_alias(internal_name: str) -> Optional[str]:
     match = MRI_SCHEMA_REGEX.match(internal_name)
     if (

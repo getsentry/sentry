@@ -55,7 +55,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.user_report import UserReportNotification
 
@@ -240,7 +240,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                     commits[commit["id"]] = commit_data
 
-    return sorted(commits.values(), key=lambda x: float(x["score"]), reverse=True)
+    # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
+    # commits from Commit Context dont have a "score" key
+    return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
 def has_integrations(organization: Organization, project: Project) -> bool:
@@ -402,6 +404,25 @@ def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
     spans, matched_problem = get_span_and_problem(event)
     return perf_to_email_html(spans, matched_problem)
+
+
+def get_generic_data(event: GroupEvent) -> Any:
+    """Get data about a generic issue type to populate alert emails."""
+    generic_evidence = event.occurrence.evidence_display
+
+    if not generic_evidence:
+        return ""
+
+    context = {}
+    for row in generic_evidence:
+        context[row.name] = row.value
+
+    return generic_email_html(context)
+
+
+def generic_email_html(context: Any) -> Any:
+    """Format issue evidence into a (stringified) HTML table for emails"""
+    return render_to_string("sentry/emails/generic_table.html", {"data": context})
 
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:

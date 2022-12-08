@@ -1,6 +1,6 @@
 {% extends "sentry/emails/issue_alert_base.html" %}
 
-{% block performance %}
+{% block table %}
   <div class="performance">
     {% for label, html, _ in transaction_data %}
     <div class="interface">

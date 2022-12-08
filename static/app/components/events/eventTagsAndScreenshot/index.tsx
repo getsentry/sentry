@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
-import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {t, tct, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -16,7 +15,6 @@ import Modal, {modalCss} from './screenshot/modal';
 import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
-import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
@@ -54,7 +52,7 @@ function EventTagsAndScreenshots({
 
   const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
 
-  const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
+  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
@@ -98,6 +96,8 @@ function EventTagsAndScreenshots({
               }
             )
           }
+          attachments={screenshots}
+          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}
@@ -110,27 +110,32 @@ function EventTagsAndScreenshots({
         pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
         query: {...location.query, types: SCREENSHOT_TYPE},
       }}
-    />
+    >
+      {tn('Screenshot', 'Screenshots', screenshots.length)}
+    </Link>
   );
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
+      <TagWrapper>
+        {showTags && (
+          <Tags
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            location={location}
+            hasEventContext={hasEventContext}
+          />
+        )}
+      </TagWrapper>
       {showScreenshot && (
         <div>
           <ScreenshotWrapper>
-            <ScreenshotDataSection
+            <StyledScreenshotDataSection
               data-test-id="screenshot-data-section"
-              title={
-                screenshots.length > 1
-                  ? tct('[current] of [total] [link:screenshots]', {
-                      current: screenshotInFocus + 1,
-                      total: screenshots.length,
-                      link: screenshotLink,
-                    })
-                  : tct('[link:Screenshot]', {
-                      link: screenshotLink,
-                    })
-              }
+              title={tct('[link]', {
+                link: screenshotLink,
+              })}
               description={t(
                 'This image was captured around the time that the event occurred.'
               )}
@@ -141,44 +146,16 @@ function EventTagsAndScreenshots({
                 projectSlug={projectSlug}
                 screenshot={screenshot}
                 onDelete={onDeleteScreenshot}
+                onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
+                onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
+                screenshotInFocus={screenshotInFocus}
+                totalScreenshots={screenshots.length}
                 openVisualizationModal={handleOpenVisualizationModal}
               />
-            </ScreenshotDataSection>
+            </StyledScreenshotDataSection>
           </ScreenshotWrapper>
-          {screenshots.length > 1 && (
-            <Container>
-              {screenshots.map((s, index) => {
-                return (
-                  <IconEllipse
-                    key={`${index}-${s.name}`}
-                    role="button"
-                    aria-label={tct('View [screenshotName]', {screenshotName: s.name})}
-                    data-test-id={`screenshot-icon-${index}`}
-                    inFocus={screenshotInFocus === index}
-                    onClick={() => setScreenshotInFoucs(index)}
-                  />
-                );
-              })}
-            </Container>
-          )}
         </div>
       )}
-      {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
-      <TagWrapper hasEventContext={hasEventContext}>
-        {hasEventContext && (
-          <TagsHighlightWrapper>
-            <TagsHighlight event={event} />
-          </TagsHighlightWrapper>
-        )}
-        {showTags && (
-          <Tags
-            organization={organization}
-            event={event}
-            projectSlug={projectSlug}
-            location={location}
-          />
-        )}
-      </TagWrapper>
     </Wrapper>
   );
 }
@@ -201,18 +178,13 @@ const Wrapper = styled(DataSection)<{
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>
-      p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
+      p.showScreenshot && p.showTags ? 'auto max-content' : '1fr'};
   }
 `;
 
-const VerticalDivider = styled('div')`
-  background: ${p => p.theme.innerBorder};
-  height: 1px;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    height: 100%;
-    width: 1px;
+const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
+  h3 a {
+    color: ${p => p.theme.linkColor};
   }
 `;
 
@@ -223,38 +195,6 @@ const ScreenshotWrapper = styled('div')`
   }
 `;
 
-const TagWrapper = styled('div')<{hasEventContext: boolean}>`
-  padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+const TagWrapper = styled('div')`
   overflow: hidden;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
-  }
-`;
-
-const TagsHighlightWrapper = styled('div')`
-  overflow: hidden;
-  padding: 0 ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 0 ${space(4)};
-  }
-`;
-
-const IconEllipse = styled('div')<{
-  inFocus: boolean;
-}>`
-  width: 6px;
-  height: 6px;
-  cursor: pointer;
-
-  border-radius: 5px;
-  background-color: ${p => (p.inFocus ? p.theme.gray300 : p.theme.gray100)};
-`;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
 `;

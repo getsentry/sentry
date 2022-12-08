@@ -5,9 +5,9 @@ from urllib.parse import urlencode, urlparse
 import brotli
 import urllib3
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse as SentryResponse
 from parsimonious.exceptions import ParseError
-from urllib3.response import HTTPResponse
+from urllib3.response import HTTPResponse as VroomResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
@@ -78,7 +78,7 @@ def get_from_profiling_service(
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
     json_data: Any = None,
-) -> HTTPResponse:
+) -> VroomResponse:
     kwargs: Dict[str, Any] = {"headers": {}}
     if params:
         params = {
@@ -113,9 +113,9 @@ def proxy_profiling_service(
     path: str,
     params: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, str]] = None,
-) -> HttpResponse:
+) -> SentryResponse:
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
-    return HttpResponse(
+    return SentryResponse(
         content=profiling_response.data,
         status=profiling_response.status,
         content_type=profiling_response.headers.get("Content-Type", "application/json"),

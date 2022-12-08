@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from functools import partial
-from typing import TYPE_CHECKING, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, cast
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -14,10 +13,11 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.events import get_direct_hit_response, get_filter_for_group
+from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
@@ -96,20 +96,34 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
         if environments:
             params["environment"] = [env.name for env in environments]
 
-        try:
-            snuba_filter, dataset = get_filter_for_group(
-                request.GET.get("query", None), params, group
-            )
-        except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
-
         full = request.GET.get("full", False)
-        data_fn = partial(
-            eventstore.get_events if full else eventstore.get_unfetched_events,
-            referrer=referrer,
-            filter=snuba_filter,
-            dataset=dataset,
-        )
+
+        def data_fn(offset: int, limit: int) -> Any:
+            try:
+                snuba_query = get_query_builder_for_group(
+                    request.GET.get("query", ""), params, group, limit=limit, offset=offset
+                )
+            except InvalidSearchQuery as e:
+                raise ParseError(detail=str(e))
+            results = snuba_query.run_query(referrer=referrer)
+            results = [
+                Event(
+                    event_id=evt["id"],
+                    project_id=evt["project.id"],
+                    snuba_data={
+                        "event_id": evt["id"],
+                        "group_id": evt["issue.id"],
+                        "project_id": evt["project.id"],
+                        "timestamp": evt["timestamp"],
+                    },
+                )
+                for evt in results["data"]
+            ]
+            if full:
+                eventstore.bind_nodes(results)
+
+            return results
+
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,

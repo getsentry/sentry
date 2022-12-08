@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import isNil from 'lodash/isNil';
 
 import {t} from 'sentry/locale';
@@ -30,10 +31,14 @@ export const useSelectedSavedSearch = (): SavedSearch | null => {
       ? savedSearches?.find(search => search.isPinned)
       : savedSearches?.find(({id}) => id === selectedSearchId);
 
-  return selectedSavedSearch?.isPinned
-    ? {
-        ...selectedSavedSearch,
-        name: PINNED_SEARCH_NAME,
-      }
-    : selectedSavedSearch ?? null;
+  return useMemo(
+    () =>
+      selectedSavedSearch?.isPinned
+        ? {
+            ...selectedSavedSearch,
+            name: PINNED_SEARCH_NAME,
+          }
+        : selectedSavedSearch ?? null,
+    [selectedSavedSearch]
+  );
 };

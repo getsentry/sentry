@@ -6,10 +6,8 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
@@ -119,9 +117,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature(
-        {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
-    ):
+    with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
@@ -211,142 +207,13 @@ def test_project_config_exposed_features_raise_exc(default_project):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("has_dyn_sampling", [False, True])
-@pytest.mark.parametrize("full_config", [False, True])
-def test_project_config_uses_filters_and_sampling_feature(
-    default_project, dyn_sampling_data, has_dyn_sampling, full_config
-):
-    """
-    Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:server-side-sampling" feature enabled.
-    """
-    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": has_dyn_sampling,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project, full_config=full_config)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    if has_dyn_sampling:
-        assert dynamic_sampling == dyn_sampling_data()
-    else:
-        assert dynamic_sampling is None
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("active", [False, True])
-def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
-    default_project, dyn_sampling_data, active
-):
-    """
-    Tests that dynamic sampling information is retrieved only for "active" rules.
-    """
-    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    if active:
-        assert dynamic_sampling == dyn_sampling_data(active)
-    else:
-        assert dynamic_sampling == {"rules": []}
-
-
-@pytest.mark.django_db
-def test_project_config_dynamic_sampling_is_none(default_project):
-    """
-    Tests test check inc-237 that dynamic sampling is None,
-    so it's pass when we have fix and fails when we dont
-    """
-    default_project.update_option("sentry:dynamic_sampling", None)
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    assert dynamic_sampling is None
-
-
-@pytest.mark.django_db
-def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_project):
-    """
-    Tests that dynamic sampling information return correct release instead of alias "latest"
-    """
-    dynamic_sampling_data = {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["latest"]},
-                    ],
-                },
-            },
-            {
-                "sampleRate": 0.1,
-                "type": "trace",
-                "condition": {"op": "and", "inner": []},
-                "active": True,
-                "id": 1,
-            },
-        ]
-    }
-
-    default_project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
-    release = Factories.create_release(
-        project=default_project,
-        version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
-    )
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-    assert dynamic_sampling["rules"][0]["condition"]["inner"] == [
-        {"op": "glob", "name": "trace.release", "value": [release.version]}
-    ]
-    assert dynamic_sampling["rules"][1]["condition"]["inner"] == []
-
-
-@pytest.mark.django_db
 @pytest.mark.parametrize(
-    "ss_sampling,ds_basic,current_ds_data,expected",
+    "ds_basic,expected",
     [
-        # server-side-sampling: True, dynamic-sampling: True
+        # dynamic-sampling: True
         # `dynamic-sampling` flag has the highest precedence
         (
             True,
-            True,
-            {"rules": []},
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
@@ -362,72 +229,20 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             },
         ),
         (
-            True,
-            True,
-            {
-                "rules": [
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    }
-                ]
-            },
-            {
-                "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ]
-            },
-        ),
-        (
-            True,
             False,
-            {"rules": []},
-            {"rules": []},
+            None,
         ),
-        (
-            True,
-            True,
-            {"rules": []},
-            {
-                "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ]
-            },
-        ),
-        (False, False, {"rules": []}, None),
     ],
 )
 def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
-    default_project, ss_sampling, ds_basic, current_ds_data, expected
+    default_project, ds_basic, expected
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    default_project.update_option("sentry:dynamic_sampling", current_ds_data)
     with Feature(
         {
-            "organizations:server-side-sampling": ss_sampling,
             "organizations:dynamic-sampling": ds_basic,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         with mock.patch(
@@ -443,7 +258,6 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-@mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 5)
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
     default_project,
 ):
@@ -461,19 +275,20 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         )
         release_ids.append(release.id)
 
-    boosted_releases = [[release_ids[0], ts - BOOSTED_RELEASE_TIMEOUT * 2]]
+    # We mark the first release (1.0) as expired.
+    time_to_adoption = Platform(default_project.platform).time_to_adoption
+    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
     for release_id in release_ids[1:]:
         boosted_releases.append([release_id, ts])
 
     for release, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            release,
+            f"ds::r:{release}:e:prod",
             timestamp,
         )
     with Feature(
         {
-            "organizations:server-side-sampling": True,
             "organizations:dynamic-sampling": True,
         }
     ):
@@ -527,7 +342,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["2.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1500,
                 "timeRange": {
@@ -541,7 +363,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1501,
                 "timeRange": {
@@ -555,7 +384,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1502,
                 "timeRange": {
@@ -569,7 +405,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1503,
                 "timeRange": {
@@ -583,9 +426,37 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1504,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1505,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
@@ -687,17 +558,15 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
-def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
+def test_has_metric_extraction(default_project, feature_flag, killswitch):
     options = override_options(
         {
             "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
             if killswitch
-            else [],
-            "relay.transaction-metrics-org-sample-rate": org_sample,
+            else []
         }
     )
     feature = Feature(
@@ -707,7 +576,7 @@ def test_has_metric_extraction(default_project, feature_flag, org_sample, killsw
     )
     with feature, options:
         config = get_project_config(default_project)
-        if killswitch or (org_sample == 0.0 and not feature_flag):
+        if killswitch or not feature_flag:
             assert "transactionMetrics" not in config.to_dict()["config"]
         else:
             config = config.to_dict()["config"]["transactionMetrics"]

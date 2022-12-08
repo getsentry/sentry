@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
@@ -29,6 +30,11 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const fields = useMemo(
+    () => getProfilesTableFields(props.project.platform),
+    [props.project]
+  );
+
   const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
     [props.location.query.cursor]
@@ -44,14 +50,18 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.functionsSort]
   );
 
-  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), FIELDS, {
-    key: 'timestamp',
-    order: 'desc',
-  });
+  const sort = formatSort<ProfilingFieldType>(
+    decodeScalar(props.location.query.sort),
+    fields,
+    {
+      key: 'timestamp',
+      order: 'desc',
+    }
+  );
 
-  const profiles = useProfileEvents<FieldType>({
+  const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
-    fields: FIELDS,
+    fields,
     query: props.query,
     sort,
     limit: 5,
@@ -108,7 +118,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         />
       </TableHeader>
       <ProfileEventsTable
-        columns={FIELDS}
+        columns={fields}
         data={profiles.status === 'success' ? profiles.data[0] : null}
         error={profiles.status === 'error' ? t('Unable to load profiles') : null}
         isLoading={profiles.status === 'loading'}
@@ -151,14 +161,34 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 }
 
-const FIELDS = [
+const ALL_FIELDS = [
   'id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
+  'device.arch',
   'profile.duration',
 ] as const;
+
+export type ProfilingFieldType = typeof ALL_FIELDS[number];
+
+export function getProfilesTableFields(platform: Project['platform']) {
+  if (mobile.includes(platform as any)) {
+    return MOBILE_FIELDS;
+  }
+
+  return DEFAULT_FIELDS;
+}
+
+const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
+const DEFAULT_FIELDS: ProfilingFieldType[] = [
+  'id',
+  'timestamp',
+  'release',
+  'device.arch',
+  'profile.duration',
+];
 
 const FILTER_OPTIONS = [
   {
@@ -174,8 +204,6 @@ const FILTER_OPTIONS = [
     value: 'profile.duration',
   },
 ];
-
-type FieldType = typeof FIELDS[number];
 
 const TableHeader = styled('div')`
   display: flex;

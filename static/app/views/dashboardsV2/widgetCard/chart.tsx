@@ -46,7 +46,7 @@ import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget, WidgetType} from '../types';
+import {DisplayType, Widget} from '../types';
 
 import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -201,9 +201,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {containerHeight} = this.state;
     const {location, organization, widget, isMobile, expandNumbers} = this.props;
-    const isAlias =
-      !organization.features.includes('discover-frontend-use-events-endpoint') &&
-      widget.widgetType !== WidgetType.RELEASE;
 
     return tableResults.map(result => {
       const tableMeta = {...result.meta};
@@ -222,7 +219,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
+      const fieldRenderer = getFieldFormatter(field, tableMeta, false);
 
       const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
@@ -398,7 +395,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         valueFormatter: (value: number, seriesName: string) => {
-          const aggregateName = seriesName.split(':').pop()?.trim();
+          const aggregateName = seriesName?.split(':').pop()?.trim();
           if (aggregateName) {
             return timeseriesResultsTypes
               ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])

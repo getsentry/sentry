@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
@@ -10,26 +8,24 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 const SCREENSHOT_TYPE = 'event.screenshot';
 
 type Props = {
   project: Project;
-} & WithRouterProps;
+};
 
 const GroupEventAttachmentsFilter = (props: Props) => {
   const {project} = props;
-  const {query, pathname} = props.location;
+  const {query, pathname} = useLocation();
   const {types} = query;
   const allAttachmentsQuery = omit(query, 'types');
   const onlyCrashReportsQuery = {
     ...query,
     types: crashReportTypes,
   };
-
-  const organization = useOrganization();
 
   const onlyScreenshotQuery = {
     ...query,
@@ -52,16 +48,15 @@ const GroupEventAttachmentsFilter = (props: Props) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        {organization.features.includes('mobile-screenshot-gallery') &&
-          isMobilePlatform(project.platform) && (
-            <Button
-              barId="screenshot"
-              size="sm"
-              to={{pathname, query: onlyScreenshotQuery}}
-            >
-              {t('Screenshots')}
-            </Button>
-          )}
+        {isMobilePlatform(project.platform) && (
+          <Button
+            barId="screenshot"
+            size="sm"
+            to={{pathname, query: onlyScreenshotQuery}}
+          >
+            {t('Screenshots')}
+          </Button>
+        )}
         <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
@@ -77,4 +72,4 @@ const FilterWrapper = styled('div')`
 `;
 
 export {crashReportTypes, SCREENSHOT_TYPE};
-export default withRouter(GroupEventAttachmentsFilter);
+export default GroupEventAttachmentsFilter;

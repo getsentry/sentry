@@ -15,7 +15,7 @@ export default CommandLine;
 
 const Wrapper = styled('code')`
   padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
   background: ${p => p.theme.pink100};
   border: 1px solid ${p => p.theme.pink200};
   font-family: ${p => p.theme.text.familyMono};

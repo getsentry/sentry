@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
@@ -8,7 +8,6 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
@@ -57,16 +56,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
 
-  useEffect(() => {
-    // TODO: remove once we set this flag to true for everyone
-    if (project && !organization.features.includes('auto-capture-page-load-analytics')) {
-      trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
-        organization,
-        project_platforms: getSelectedProjectPlatforms(location, [project]),
-      });
-    }
-  }, [organization, project, location]);
-
   return (
     <Fragment>
       <Layout.Header>
@@ -105,7 +94,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
-            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =

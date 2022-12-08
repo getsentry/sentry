@@ -1,6 +1,5 @@
 import {createRef, Fragment, PureComponent} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {
   AutoSizer,
   CellMeasurer,
@@ -24,6 +23,8 @@ import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -538,7 +539,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
             <GuideAnchor target="images-loaded" position="bottom">
               <Title>{t('Images Loaded')}</Title>
             </GuideAnchor>
-            <QuestionTooltip
+            <StyledQuestionTooltip
               size="xs"
               position="top"
               title={t(
@@ -576,7 +577,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
   }
 }
 
-export const DebugMeta = withRouter(DebugMetaWithRouter);
+export const DebugMeta = withSentryRouter(DebugMetaWithRouter);
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
@@ -638,4 +639,8 @@ const ToggleButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  z-index: 2;
 `;

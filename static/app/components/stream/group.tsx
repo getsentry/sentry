@@ -64,6 +64,7 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   showInboxTime?: boolean;
+  showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
@@ -89,6 +90,7 @@ function BaseGroupRow({
   useFilteredStats = false,
   useTintRow = true,
   narrowGroups = false,
+  showLastTriggered = false,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
@@ -298,6 +300,8 @@ function BaseGroupRow({
   const secondaryCount = group.filtered ? group.count : undefined;
   const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
   const secondaryUserCount = group.filtered ? group.userCount : undefined;
+  // preview stats
+  const lastTriggeredDate = group.lastTriggered;
 
   const showSecondaryPoints = Boolean(
     withChart && group && group.filtered && statsPeriod && useFilteredStats
@@ -415,6 +419,17 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
+  const lastTriggered = !defined(lastTriggeredDate) ? (
+    <Placeholder height="18px" />
+  ) : (
+    <TimeSince
+      tooltipTitle={t('Last Triggered')}
+      date={lastTriggeredDate}
+      suffix={t('ago')}
+      shorten
+    />
+  );
+
   const issueStreamAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
@@ -456,9 +471,7 @@ function BaseGroupRow({
       {hasGuideAnchor && issueStreamAnchor}
 
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper
-          className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
-        >
+        <ChartWrapper narrowGroups={narrowGroups}>
           {!group.filtered?.stats && !group.stats ? (
             <Placeholder height="24px" />
           ) : (
@@ -477,13 +490,14 @@ function BaseGroupRow({
         <Fragment>
           <EventCountsWrapper>{groupCount}</EventCountsWrapper>
           <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
-          <AssigneeWrapper className="hidden-xs hidden-sm">
+          <AssigneeWrapper narrowGroups={narrowGroups}>
             <AssigneeSelector
               id={group.id}
               memberList={memberList}
               onAssign={trackAssign}
             />
           </AssigneeWrapper>
+          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
         </Fragment>
       )}
     </Wrapper>
@@ -641,9 +655,14 @@ const MenuItemText = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 
 const EventCountsWrapper = styled('div')`
@@ -658,10 +677,15 @@ const EventCountsWrapper = styled('div')`
   }
 `;
 
-const AssigneeWrapper = styled('div')`
+const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
 
 // Reprocessing

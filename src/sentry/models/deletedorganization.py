@@ -1,10 +1,10 @@
 from django.db import models
 
-from sentry.db.models import control_silo_with_replication_model, sane_repr
+from sentry.db.models import region_silo_only_model, sane_repr
 from sentry.models.deletedentry import DeletedEntry
 
 
-@control_silo_with_replication_model
+@region_silo_only_model
 class DeletedOrganization(DeletedEntry):
     """
     This model tracks an intent to delete. If an org is marked pending_delete

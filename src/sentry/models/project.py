@@ -143,6 +143,15 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
             ("has_replays", "This Project has sent replays"),
+            ("spike_protection_error_currently_active", "spike_protection_error_currently_active"),
+            (
+                "spike_protection_transaction_currently_active",
+                "spike_protection_transaction_currently_active",
+            ),
+            (
+                "spike_protection_attachment_currently_active",
+                "spike_protection_attachment_currently_active",
+            ),
         ),
         default=10,
         null=True,

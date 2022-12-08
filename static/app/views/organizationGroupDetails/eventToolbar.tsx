@@ -20,6 +20,7 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {TraceLink} from 'sentry/views/organizationGroupDetails/quickTrace/traceLink';
 
 import EventCreatedTooltip from './eventCreatedTooltip';
 import QuickTrace from './quickTrace';
@@ -67,98 +68,104 @@ class GroupEventToolbar extends Component<Props> {
 
     return (
       <Wrapper>
-        <div>
-          <Heading>
-            {t('Event ID')}{' '}
-            <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
-            <LinkContainer>
-              <ExternalLink
-                href={jsonUrl}
-                onClick={() =>
-                  trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
-                    organization,
-                    group_id: parseInt(`${evt.groupID}`, 10),
-                  })
-                }
-              >
-                {'JSON'} (<FileSize bytes={evt.size} />)
-              </ExternalLink>
-            </LinkContainer>
-          </Heading>
-          <Tooltip
-            title={<EventCreatedTooltip event={evt} />}
-            showUnderline
-            disableForVisualTest
-          >
-            <StyledDateTime
-              format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
-              date={getDynamicText({
-                value: evt.dateCreated,
-                fixed: 'Dummy timestamp',
-              })}
+        <HeadingAndNavWrapper>
+          <div>
+            <Heading>
+              {t('Event ID')}{' '}
+              <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
+              <LinkContainer>
+                <ExternalLink
+                  href={jsonUrl}
+                  onClick={() =>
+                    trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                      organization,
+                      group_id: parseInt(`${evt.groupID}`, 10),
+                    })
+                  }
+                >
+                  {'JSON'} (<FileSize bytes={evt.size} />)
+                </ExternalLink>
+              </LinkContainer>
+            </Heading>
+            <Tooltip
+              title={<EventCreatedTooltip event={evt} />}
+              showUnderline
+              disableForVisualTest
+            >
+              <StyledDateTime
+                format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
+                date={getDynamicText({
+                  value: evt.dateCreated,
+                  fixed: 'Dummy timestamp',
+                })}
+              />
+              {isOverLatencyThreshold && <StyledIconWarning color="warningText" />}
+            </Tooltip>
+            <TraceLink event={evt} />
+          </div>
+          <NavigationContainer>
+            {hasReplay && isReplayEnabled ? (
+              <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
+                {t('Replay')}
+              </Button>
+            ) : null}
+            <NavigationButtonGroup
+              hasPrevious={!!evt.previousEventID}
+              hasNext={!!evt.nextEventID}
+              links={[
+                {
+                  pathname: `${baseEventsPath}oldest/`,
+                  query: {...location.query, referrer: 'oldest-event'},
+                },
+                {
+                  pathname: `${baseEventsPath}${evt.previousEventID}/`,
+                  query: {...location.query, referrer: 'previous-event'},
+                },
+                {
+                  pathname: `${baseEventsPath}${evt.nextEventID}/`,
+                  query: {...location.query, referrer: 'next-event'},
+                },
+                {
+                  pathname: `${baseEventsPath}latest/`,
+                  query: {...location.query, referrer: 'latest-event'},
+                },
+              ]}
+              onOldestClick={() => this.handleNavigationClick('oldest')}
+              onOlderClick={() => this.handleNavigationClick('older')}
+              onNewerClick={() => this.handleNavigationClick('newer')}
+              onNewestClick={() => this.handleNavigationClick('newest')}
+              size="sm"
             />
-            {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
-          </Tooltip>
-          <StyledGlobalAppStoreConnectUpdateAlert
-            project={project}
-            organization={organization}
-          />
-          <QuickTrace
-            event={evt}
-            group={group}
-            organization={organization}
-            location={location}
-          />
-        </div>
-        <NavigationContainer>
-          {hasReplay && isReplayEnabled ? (
-            <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
-              {t('Replay')}
-            </Button>
-          ) : null}
-          <NavigationButtonGroup
-            hasPrevious={!!evt.previousEventID}
-            hasNext={!!evt.nextEventID}
-            links={[
-              {
-                pathname: `${baseEventsPath}oldest/`,
-                query: {...location.query, referrer: 'oldest-event'},
-              },
-              {
-                pathname: `${baseEventsPath}${evt.previousEventID}/`,
-                query: {...location.query, referrer: 'previous-event'},
-              },
-              {
-                pathname: `${baseEventsPath}${evt.nextEventID}/`,
-                query: {...location.query, referrer: 'next-event'},
-              },
-              {
-                pathname: `${baseEventsPath}latest/`,
-                query: {...location.query, referrer: 'latest-event'},
-              },
-            ]}
-            onOldestClick={() => this.handleNavigationClick('oldest')}
-            onOlderClick={() => this.handleNavigationClick('older')}
-            onNewerClick={() => this.handleNavigationClick('newer')}
-            onNewestClick={() => this.handleNavigationClick('newest')}
-            size="sm"
-          />
-        </NavigationContainer>
+          </NavigationContainer>
+        </HeadingAndNavWrapper>
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
+        <StyledGlobalAppStoreConnectUpdateAlert
+          project={project}
+          organization={organization}
+        />
       </Wrapper>
     );
   }
 }
 
 const Wrapper = styled(DataSection)`
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
+const HeadingAndNavWrapper = styled('div')`
+  display: flex;
   position: relative;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
   gap: ${space(3)};
-
-  @media (max-width: 767px) {
-    display: none;
-  }
 `;
 
 const EventIdLink = styled(Link)`
@@ -182,8 +189,7 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  margin-top: ${space(0.5)};
-  margin-bottom: ${space(1)};
+  margin: ${space(0.5)} 0;
 `;
 
 const LinkContainer = styled('span')`

@@ -250,9 +250,7 @@ urlpatterns += [
                 ),
                 url(
                     r"^settings/appearance/$",
-                    RedirectView.as_view(
-                        pattern_name="sentry-account-settings-appearance", permanent=False
-                    ),
+                    RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
                 url(
                     r"^settings/identities/$",
@@ -317,7 +315,9 @@ urlpatterns += [
                 ),
                 url(
                     r"^remove/$",
-                    RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
+                    RedirectView.as_view(
+                        pattern_name="sentry-account-close-account", permanent=False
+                    ),
                 ),
                 url(r"^settings/social/", include("social_auth.urls")),
                 url(r"^", generic_react_page_view),
@@ -342,7 +342,7 @@ urlpatterns += [
     url(r"^api/$", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(
         r"^api/applications/$",
-        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False),
+        RedirectView.as_view(pattern_name="sentry-account-api-applications", permanent=False),
     ),
     url(
         r"^api/new-token/$",
@@ -363,11 +363,6 @@ urlpatterns += [
         include(
             [
                 url(r"^account/$", generic_react_page_view, name="sentry-account-settings"),
-                url(
-                    r"^account/$",
-                    generic_react_page_view,
-                    name="sentry-account-settings-appearance",
-                ),
                 url(
                     r"^account/authorizations/$",
                     generic_react_page_view,
@@ -406,20 +401,90 @@ urlpatterns += [
                 url(
                     r"^account/api/applications/$",
                     generic_react_page_view,
-                    name="sentry-api-applications",
+                    name="sentry-account-api-applications",
                 ),
                 url(
                     r"^account/api/auth-tokens/new-token/$",
                     generic_react_page_view,
-                    name="sentry-api-new-auth-token",
+                    name="sentry-account-api-new-auth-token",
                 ),
                 url(r"^account/api/", generic_react_page_view, name="sentry-api"),
                 url(
                     r"^account/close-account/$",
                     generic_react_page_view,
-                    name="sentry-remove-account",
+                    name="sentry-account-close-account",
                 ),
-                url(r"^account/", generic_react_page_view),
+                url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
+                url(
+                    r"^organization/",
+                    react_page_view,
+                    name="sentry-customer-domain-organization-settings",
+                ),
+                url(
+                    r"^projects/",
+                    react_page_view,
+                    name="sentry-customer-domain-projects-settings",
+                ),
+                url(
+                    r"^teams/",
+                    react_page_view,
+                    name="sentry-customer-domain-teams-settings",
+                ),
+                url(
+                    r"^members/",
+                    react_page_view,
+                    name="sentry-customer-domain-members-settings",
+                ),
+                url(
+                    r"^security-and-privacy/",
+                    react_page_view,
+                    name="sentry-customer-domain-security-and-privacy-settings",
+                ),
+                url(
+                    r"^auth/",
+                    react_page_view,
+                    name="sentry-customer-domain-auth-settings",
+                ),
+                url(
+                    r"^audit-log/",
+                    react_page_view,
+                    name="sentry-customer-domain-audit-log-settings",
+                ),
+                url(
+                    r"^relay/",
+                    react_page_view,
+                    name="sentry-customer-domain-relay-settings",
+                ),
+                url(
+                    r"^repos/",
+                    react_page_view,
+                    name="sentry-customer-domain-repos-settings",
+                ),
+                url(
+                    r"^integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-integrations-settings",
+                ),
+                url(
+                    r"^developer-settings/",
+                    react_page_view,
+                    name="sentry-customer-domain-developer-settings-settings",
+                ),
+                url(
+                    r"^billing/",
+                    react_page_view,
+                    name="sentry-customer-domain-billing-settings",
+                ),
+                url(
+                    r"^subscription/",
+                    react_page_view,
+                    name="sentry-customer-domain-subscription-settings",
+                ),
+                url(
+                    r"^legal/",
+                    react_page_view,
+                    name="sentry-customer-domain-legal-settings",
+                ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
@@ -459,19 +524,61 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    # Issues
+    url(r"^issues/", react_page_view, name="issues"),
+    # Alerts
+    url(r"^alerts/", react_page_view, name="alerts"),
+    # Performance
+    url(r"^performance/", react_page_view, name="performance"),
+    # Profiling
+    url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
+    # Dashboards
+    url(r"^dashboard/", react_page_view, name="dashboard"),
+    url(r"^dashboards/", react_page_view, name="dashboards"),
     # Discover
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
     url(r"^join-request/", react_page_view, name="join-request"),
+    # Activity
+    url(r"^activity/", react_page_view, name="activity"),
+    # Stats
+    url(r"^stats/", react_page_view, name="stats"),
+    # Replays
+    url(r"^replays/", react_page_view, name="replays"),
+    # Monitors
+    url(r"^monitors/", react_page_view, name="monitors"),
+    # Releases
+    url(r"^releases/", react_page_view, name="releases"),
+    # User Feedback
+    url(r"^user-feedback/", react_page_view, name="user-feedback"),
+    # Data Export
+    url(r"^data-export/", react_page_view, name="data-export"),
+    # Disabled Member
+    url(
+        r"^disabled-member/",
+        DisabledMemberView.as_view(),
+        name="sentry-customer-domain-organization-disabled-member",
+    ),
+    # Project on-boarding
+    # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
+    url(
+        r"^getting-started/(?P<project_slug>[\w_-]+)/",
+        react_page_view,
+        name="project-getting-started",
+    ),
     # Organizations
     url(r"^(?P<organization_slug>[\w_-]+)/$", react_page_view, name="sentry-organization-home"),
     url(
         r"^organizations/",
         include(
             [
-                url(r"^new/$", generic_react_page_view),
+                url(
+                    r"^new/$",
+                    generic_react_page_view,
+                    name="sentry-organization-create",
+                ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,

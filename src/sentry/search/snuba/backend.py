@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
+from sentry.types.issues import PERFORMANCE_TYPES, GroupType
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -533,6 +534,27 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             queryset_conditions.update(
                 {"issue.type": QCallbackCondition(lambda types: Q(type__in=types))}
             )
+            message_filter = next(
+                (sf for sf in search_filters or () if "message" == sf.key.name), None
+            )
+            if message_filter:
+
+                def _perf_issue_message_condition(query: str) -> Q:
+                    return Q(type__in=PERFORMANCE_TYPES, message__icontains=query)
+
+                queryset_conditions.update(
+                    {
+                        "message": QCallbackCondition(
+                            lambda query: Q(type=GroupType.ERROR.value)
+                            | _perf_issue_message_condition(query)
+                        )
+                        # negation should only apply on the message search icontains, we have to include the
+                        # type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                        if not message_filter.is_negation
+                        else QCallbackCondition(lambda query: _perf_issue_message_condition(query))
+                    }
+                )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]

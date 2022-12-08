@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -114,7 +114,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = timedelta(milliseconds=max_batch_time)
         self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now()
+        self.__last_commit = datetime.now(timezone.utc)
         self.__ready_to_commit: MutableMapping[Partition, Position] = {}
         self.__closed = False
 
@@ -167,14 +167,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             key_id=None,
             outcome=Outcome.ACCEPTED,
             reason=None,
-            timestamp=datetime.fromtimestamp(payload["timestamp"]),
+            timestamp=datetime.now(timezone.utc),
             event_id=None,
             category=DataCategory.TRANSACTION,
             quantity=quantity,
         )
 
     def _mark_commit_ready(self, message: Message[KafkaPayload]) -> None:
-        self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
+        self.__ready_to_commit.update(message.committable)
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._bulk_commit()
@@ -184,7 +184,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return False
         if self.__messages_since_last_commit >= self.__max_batch_size:
             return True
-        if self.__last_commit + self.__max_batch_time <= datetime.now():
+        if self.__last_commit + self.__max_batch_time <= datetime.now(timezone.utc):
             return True
         return False
 
@@ -192,4 +192,4 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit(self.__ready_to_commit)
         self.__ready_to_commit = {}
         self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now()
+        self.__last_commit = datetime.now(timezone.utc)

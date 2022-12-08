@@ -8,7 +8,7 @@ type QueryKeyEndpointOptions = {
   query?: Record<string, any>;
 };
 
-type QueryKey =
+export type QueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 
@@ -20,6 +20,14 @@ type UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnData> 
 // We are not overriding any defaults options for stale time, retries, etc.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
 const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {};
+
+function isQueryFn<TQueryFnData, TError, TData>(
+  queryFnOrQueryOptions?:
+    | reactQuery.QueryFunction<TQueryFnData, QueryKey>
+    | UseQueryOptions<TQueryFnData, TError, TData>
+): queryFnOrQueryOptions is reactQuery.QueryFunction<TQueryFnData, QueryKey> {
+  return typeof queryFnOrQueryOptions === 'function';
+}
 
 /**
  * Wraps React Query's useQuery for consistent usage in the Sentry app.
@@ -35,12 +43,30 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {};
  */
 function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
+  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
+): reactQuery.UseQueryResult<TData, TError>;
+/**
+ * Example usage with custom query function:
+ *
+ * const { data, isLoading, isError } = useQuery<EventsResponse>(['events'], () => api.requestPromise(...))
+ */
+function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+  queryKey: QueryKey,
+  queryFn?: reactQuery.QueryFunction<TQueryFnData, QueryKey>,
+  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
+): reactQuery.UseQueryResult<TData, TError>;
+function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+  queryKey: QueryKey,
   queryFnOrQueryOptions?:
     | reactQuery.QueryFunction<TQueryFnData, QueryKey>
     | UseQueryOptions<TQueryFnData, TError, TData>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
-) {
-  const api = useApi();
+): reactQuery.UseQueryResult<TData, TError> {
+  // XXX: We need to set persistInFlight to disable query cancellation on unmount.
+  // The current implementation of our API client does not reject on query
+  // cancellation, which causes React Query to never update from the isLoading state.
+  // This matches the library default as well: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
+  const api = useApi({persistInFlight: true});
 
   const [path, endpointOptions] = queryKey;
 
@@ -50,10 +76,15 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
       query: endpointOptions?.query,
     });
 
-  const queryFn =
-    typeof queryFnOrQueryOptions === 'function' ? queryFnOrQueryOptions : defaultQueryFn;
+  const queryFn = isQueryFn(queryFnOrQueryOptions)
+    ? queryFnOrQueryOptions
+    : defaultQueryFn;
 
-  return reactQuery.useQuery(queryKey, queryFn, queryOptions);
+  const options =
+    queryOptions ??
+    (isQueryFn(queryFnOrQueryOptions) ? undefined : queryFnOrQueryOptions);
+
+  return reactQuery.useQuery(queryKey, queryFn, options);
 }
 
 // eslint-disable-next-line import/export

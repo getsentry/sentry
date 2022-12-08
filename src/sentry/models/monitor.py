@@ -203,6 +203,7 @@ class Monitor(Model):
                 "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
                 "contexts": {"monitor": get_monitor_context(self)},
                 "fingerprint": ["monitor", str(self.guid), reason],
+                "tags": {"monitor.id": str(self.guid)},
             },
             project=Project(id=self.project_id),
         )

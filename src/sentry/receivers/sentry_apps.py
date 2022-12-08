@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, List, Mapping
 
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
-from sentry.models import (
-    Group,
-    GroupAssignee,
-    Organization,
-    SentryAppInstallation,
-    SentryFunction,
-    Team,
-    User,
-)
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
+from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, app_service
+from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -114,14 +107,13 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = user_service.serialize_users([user.id])[0]
+            data["user"] = user_service.serialize_users(
+                [user.id], detailed=UserSerializeType.SIMPLE
+            )[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
-def installations_to_notify(organization, event):
-    installations = SentryAppInstallation.objects.get_installed_for_organization(
-        organization.id
-    ).select_related("sentry_app")
-
+def installations_to_notify(organization, event) -> List[ApiSentryAppInstallation]:
+    installations = app_service.get_installed_for_organization(organization_id=organization.id)
     return [i for i in installations if event in i.sentry_app.events]
