@@ -8,7 +8,11 @@ import pytz
 from sentry.db.models import Model
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationSettingTypes,
+)
 from sentry.notifications.utils import (
     get_commits,
     get_group_settings_link,
@@ -40,6 +44,7 @@ class AlertRuleNotification(ProjectNotification):
         notification: Notification,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -49,6 +54,7 @@ class AlertRuleNotification(ProjectNotification):
         self.event = event
         self.target_type = target_type
         self.target_identifier = target_identifier
+        self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
         self.template_path = f"sentry/emails/{event.group.issue_category.name.lower()}"
 
@@ -59,6 +65,7 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
             notification_type=self.notification_setting_type,
+            fallthrough_choice=self.fallthrough_choice,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -156,6 +163,9 @@ class AlertRuleNotification(ProjectNotification):
                 "group": self.group.id,
                 "project_id": self.project.id,
                 "organization": self.organization.id,
+                "fallthrough_choice": self.fallthrough_choice.value
+                if self.fallthrough_choice
+                else None,
             },
         )
 

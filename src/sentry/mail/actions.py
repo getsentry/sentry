@@ -1,10 +1,20 @@
+import logging
+
+from sentry import features
 from sentry.eventstore.models import Event
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
-from sentry.notifications.types import ACTION_CHOICES, ActionTargetType
+from sentry.notifications.types import (
+    ACTION_CHOICES,
+    FALLTHROUGH_CHOICES,
+    ActionTargetType,
+    FallthroughChoiceType,
+)
 from sentry.notifications.utils.participants import determine_eligible_recipients
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 class NotifyEmailAction(EventAction):
@@ -18,6 +28,14 @@ class NotifyEmailAction(EventAction):
         super().__init__(*args, **kwargs)
         self.form_fields = {"targetType": {"type": "mailAction", "choices": ACTION_CHOICES}}
 
+        if features.has(
+            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
+        ):
+            NotifyEmailAction.label += (
+                " and if none can be found then send a notification to {fallthroughType}"
+            )
+            self.form_fields["fallthroughType"] = {"type": "choice", "choices": FALLTHROUGH_CHOICES}
+
     def after(self, event, state):
         extra = {"event_id": event.event_id}
         group = event.group
@@ -26,15 +44,36 @@ class NotifyEmailAction(EventAction):
         target_identifier = self.data.get("targetIdentifier", None)
         skip_digests = self.data.get("skipDigests", False)
 
+        fallthrough_type = None
+        if features.has(
+            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
+        ):
+            fallthrough_type = FallthroughChoiceType(self.data["fallthroughType"])
+
         if not determine_eligible_recipients(group.project, target_type, target_identifier, event):
-            extra["group_id"] = group.id
-            self.logger.info("rule.fail.should_notify", extra=extra)
-            return
+            if (
+                features.has(
+                    "organizations:issue-alert-fallback-targeting",
+                    self.project.organization,
+                    actor=None,
+                )
+                and target_type == ActionTargetType.ISSUE_OWNERS
+            ):
+                logger.info("no issue owners found, falling back to %s", fallthrough_type)
+            else:
+                extra["group_id"] = group.id
+                self.logger.info("rule.fail.should_notify", extra=extra)
+                return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
-                event, futures, target_type, target_identifier, skip_digests
+                event,
+                futures,
+                target_type,
+                target_identifier,
+                fallthrough_type,
+                skip_digests,
             )
         )
 
