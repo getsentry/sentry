@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
@@ -115,6 +116,35 @@ def try_path_munging(
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
+    Returns the index in which the new code mapping should be inserted in the code mapping list.
+    User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+    roots.
+
+    `matched_code_matchings`: The list of code mappings
+    `new_code_mapping`: The new code mapping that is being inserted
+    """
+
+    def get_matched_code_mapping_index(self, matched_code_mappings, new_code_mapping):
+        for index, code_mapping in enumerate(matched_code_mappings):
+            regex = r"\w+"
+            if (
+                code_mapping["automatically_generated"]
+                and not new_code_mapping["automatically_generated"]
+            ) or (
+                code_mapping["automatically_generated"]
+                == new_code_mapping["automatically_generated"]
+                and re.match(
+                    code_mapping["config"]["stackRoot"] + regex,
+                    new_code_mapping["config"]["stackRoot"],
+                )
+            ):
+                return index
+        if new_code_mapping["automatically_generated"]:
+            return len(matched_code_mappings)
+        return 0
+
+    """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the
     provider of their choice.
@@ -153,7 +183,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
-        derived = False
         matched_code_mappings = []
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
@@ -164,11 +193,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     result["error"] = "stack_root_mismatch"
                     continue
                 # XXX: The logic above allows all code mappings to be processed
-                if (
-                    filepath.startswith(config.stack_root)
-                    and config.automatically_generated is True
-                ):
-                    derived = True
 
                 outcome = {}
                 munging_outcome = {}
@@ -186,28 +210,45 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {"config": serialize(config, request.user), "outcome": outcome}
-                matched_code_mappings.append(current_config)
-                # use the provider key to be able to split up stacktrace
-                # link metrics by integration type
-                provider = current_config["config"]["provider"]["key"]
-                scope.set_tag("integration_provider", provider)  # e.g. github
+                current_config = {
+                    "config": serialize(config, request.user),
+                    "outcome": outcome,
+                    "automatically_generated": config.automatically_generated,
+                }
+                # Insert code mappings into the list in the order in which they are to be evaluated
+                index = self.get_matched_code_mapping_index(matched_code_mappings, current_config)
+                matched_code_mappings.insert(index, current_config)
 
-                if outcome.get("sourceUrl") and outcome["sourceUrl"]:
-                    result["sourceUrl"] = outcome["sourceUrl"]
-                    # if we found a match, we can break
-                    break
-
-            # Post-processing before exiting scope context
-            found: bool = result["sourceUrl"] is not None
-            scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.auto_derived", derived)
+            found: bool = False
+            derived = False
             if matched_code_mappings:
+                for code_mapping in matched_code_mappings:
+                    if (
+                        filepath.startswith(code_mapping["config"]["stack_root"])
+                        and code_mapping["config"]["automatically_generated"] is True
+                    ):
+                        derived = True
+
+                    if (
+                        code_mapping["outcome"].get("sourceUrl")
+                        and code_mapping["outcome"]["sourceUrl"]
+                    ):
+                        result["matched_code_mappings"] = code_mapping
+                        result["sourceUrl"] = code_mapping["outcome"]["sourceUrl"]
+                        result["config"] = code_mapping["config"]
+                        found = result["sourceUrl"] is not None
+                        # use the provider key to be able to split up stacktrace
+                        # link metrics by integration type
+                        provider = code_mapping["config"]["provider"]["key"]
+                        scope.set_tag("integration_provider", provider)  # e.g. github
+                        # if we found a match, we can break
+                        break
+
                 # Any code mapping that matches and its results will be returned
                 result["matched_code_mappings"] = matched_code_mappings
                 last = matched_code_mappings[-1]
-                result["config"] = last["config"]  # Backwards compatible
                 if not found:
+                    result["config"] = last["config"]  # Backwards compatible
                     result["error"] = last["outcome"]["error"]  # Backwards compatible
                     # When no code mapping have been matched we have not attempted a URL
                     if last["outcome"].get("attemptedUrl"):  # Backwards compatible
@@ -216,6 +257,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
                         scope.set_tag("stacktrace_link.error", "file_not_found")
+
+            # Post-processing before exiting scope context
+            scope.set_tag("stacktrace_link.found", found)
+            scope.set_tag("stacktrace_link.auto_derived", derived)
 
         if result["config"]:
             analytics.record(

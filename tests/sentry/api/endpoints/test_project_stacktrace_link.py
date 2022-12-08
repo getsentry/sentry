@@ -317,3 +317,112 @@ class ProjectStacktraceLinkTestMobile(APITestCase):
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+
+class ProjectStacktraceLinkTestMultipleMatches(APITestCase):
+    endpoint = "sentry-api-0-project-stacktrace-link"
+
+    def setUp(self):
+        self.integration = Integration.objects.create(provider="example", name="Example")
+        self.integration.add_organization(self.organization, self.user)
+        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
+        self.repo.integration_id = self.integration.id
+        self.repo.provider = "example"
+        self.repo.save()
+
+        # Created by the user, not well defined stack root
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by automation, not as well defined stack root
+        self.code_mapping2 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/src/",
+            source_root="",
+            automatically_generated=True,
+        )
+        # Created by the user, well defined stack root
+        self.code_mapping3 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by the user, not as well defined stack root
+        self.code_mapping4 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by automation, well defined stack root
+        self.code_mapping5 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/src/sentry/",
+            source_root="",
+            automatically_generated=True,
+        )
+
+        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+        self.login_as(self.user)
+
+    def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
+        return {
+            "defaultBranch": "master",
+            "id": str(code_mapping.id),
+            "integrationId": str(self.integration.id),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "provider": serialized_provider(),
+            "repoId": str(self.repo.id),
+            "repoName": self.repo.name,
+            "sourceRoot": code_mapping.source_root,
+            "stackRoot": code_mapping.stack_root,
+        }
+
+    def expected_code_mapping(self, code_mapping, sourceUrl) -> Mapping[str, Any]:
+        return {
+            "config": self.expected_configurations(code_mapping),
+            "outcome": {"sourceUrl": sourceUrl},
+            "automatically_generated": code_mapping.automatically_generated,
+        }
+
+    def test_multiple_code_mapping_matches(self):
+        sourceUrl = "https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+        with mock.patch.object(
+            ExampleIntegration,
+            "get_stacktrace_link",
+            return_value=sourceUrl,
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
+            # Assert that the order that the code mappings are in is correct
+            assert response.data["matched_code_mappings"] == [
+                self.expected_code_mapping(self.code_mapping3, sourceUrl),
+                self.expected_code_mapping(self.code_mapping4, sourceUrl),
+                self.expected_code_mapping(self.code_mapping1, sourceUrl),
+                self.expected_code_mapping(self.code_mapping5, sourceUrl),
+                self.expected_code_mapping(self.code_mapping2, sourceUrl),
+            ]
+            # Assert that the best candidate was chosen
+            assert response.data["config"] == self.expected_configurations(self.code_mapping3)
+            assert response.data["sourceUrl"] == sourceUrl
