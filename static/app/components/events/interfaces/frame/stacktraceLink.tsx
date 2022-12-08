@@ -118,8 +118,8 @@ export function isMobileLanguage(event: Event) {
   return (
     isMobilePlatform(event.platform) ||
     (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects[0]?.platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0]?.platform))
+      isMobilePlatform(event.release?.projects?.[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
   );
 }
 
