@@ -69,6 +69,7 @@ def mock_expected_response(
     return {
         "id": replay_id,
         "title": kwargs.pop("title", "Title"),
+        "replayType": kwargs.pop("replay_type", "session"),
         "projectId": str(project_id),
         "urls": urls,
         "errorIds": kwargs.pop("error_ids", ["a3a62ef6ac86415b83c2416fc2f76db1"]),
@@ -134,6 +135,7 @@ def mock_replay(
                     {
                         "type": "replay_event",
                         "replay_id": replay_id,
+                        "replay_type": kwargs.pop("replay_type", "session"),
                         "segment_id": kwargs.pop("segment_id", 0),
                         "tags": tags,
                         "urls": kwargs.pop("urls", []),
