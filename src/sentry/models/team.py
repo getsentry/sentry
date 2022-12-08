@@ -154,10 +154,7 @@ class Team(Model):
     actor = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
     )
-    flags = BitField(
-        flags=(("idp:provisioned", "idp:provisioned")),
-        default=0,
-    )
+    flags = BitField(flags=(("idp:provisioned", "idp:provisioned")), default=0, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
