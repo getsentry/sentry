@@ -1,4 +1,7 @@
 import os
+from collections import defaultdict
+
+from more_itertools import flatten
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
@@ -46,9 +49,8 @@ class EventDataDeletionTask(BaseDeletionTask):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(self, manager, group_id, project_id, **kwargs):
-        self.group_id = group_id
-        self.project_id = project_id
+    def __init__(self, manager, groups, **kwargs):
+        self.groups = groups
         self.last_event = None
         super().__init__(manager, **kwargs)
 
@@ -65,9 +67,16 @@ class EventDataDeletionTask(BaseDeletionTask):
                 ]
             )
 
+        project_groups = defaultdict(list)
+        for group in self.groups:
+            project_groups[group.project_id].append(group.id)
+
+        project_ids = list(project_groups.keys())
+        group_ids = list(flatten(project_groups.values()))
+
         events = eventstore.get_unfetched_events(
             filter=eventstore.Filter(
-                conditions=conditions, project_ids=[self.project_id], group_ids=[self.group_id]
+                conditions=conditions, project_ids=project_ids, group_ids=group_ids
             ),
             limit=self.DEFAULT_CHUNK_SIZE,
             referrer="deletions.group",
@@ -75,14 +84,15 @@ class EventDataDeletionTask(BaseDeletionTask):
         )
         if not events:
             # Remove all group events now that their node data has been removed.
-            eventstream_state = eventstream.start_delete_groups(self.project_id, [self.group_id])
-            eventstream.end_delete_groups(eventstream_state)
+            for project_id, group_ids in project_groups.items():
+                eventstream_state = eventstream.start_delete_groups(project_id, group_ids)
+                eventstream.end_delete_groups(eventstream_state)
             return False
 
         self.last_event = events[-1]
 
         # Remove from nodestore
-        node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
+        node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
@@ -90,35 +100,40 @@ class EventDataDeletionTask(BaseDeletionTask):
         # deletion.
         event_ids = [event.event_id for event in events]
         models.EventAttachment.objects.filter(
-            event_id__in=event_ids, project_id=self.project_id
+            event_id__in=event_ids, project_id__in=project_ids
         ).delete()
         models.UserReport.objects.filter(
-            event_id__in=event_ids, project_id=self.project_id
+            event_id__in=event_ids, project_id__in=project_ids
         ).delete()
 
         return True
 
 
 class GroupDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
-        relations = []
+    def delete_bulk(self, instance_list):
+        """
+        Group deletion operates as a quasi-bulk operation so that we don't flood
+        snuba replacements with deletions per group.
+        """
+        self.mark_deletion_in_progress(instance_list)
 
-        relations.extend(
-            [ModelRelation(m, {"group_id": instance.id}) for m in _GROUP_RELATED_MODELS]
-        )
+        group_ids = [group.id for group in instance_list]
 
-        # Skip EventDataDeletionTask if this is being called from cleanup.py
+        # Remove child relations for all groups first.
+        child_relations = []
+        for model in _GROUP_RELATED_MODELS:
+            child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
+
+        # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
-            relations.extend(
-                [
-                    BaseRelation(
-                        {"group_id": instance.id, "project_id": instance.project_id},
-                        EventDataDeletionTask,
-                    )
-                ]
+            child_relations.append(
+                BaseRelation(params={"groups": instance_list}, task=EventDataDeletionTask)
             )
 
-        return relations
+        self.delete_children(child_relations)
+
+        # Remove group objects with children removed.
+        return self.delete_instance_bulk(instance_list)
 
     def delete_instance(self, instance):
         from sentry import similarity
