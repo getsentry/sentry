@@ -108,7 +108,6 @@ describe('useReplaysCount', () => {
       method: 'GET',
       body: {
         123: 42,
-        456: 0,
       },
     });
 
