@@ -6,6 +6,7 @@ import os
 import random
 import re
 from abc import ABC, abstractmethod
+from collections import deque
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
@@ -1441,7 +1442,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         self, settings: Dict[str, Any], initial_spans: Optional[Sequence[Span]] = None
     ) -> None:
         self.settings = settings
-        self.recent_spans = initial_spans or []
+        self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
     def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
         # Can't be a potential MN+1 without at least 2 previous spans.
@@ -1451,18 +1452,18 @@ class SearchingForMNPlusOne(MNPlusOneState):
 
         # Has an MN pattern begun to repeat itself? If so, transition to the
         # ContinuingMNPlusOne state.
-        for i, recent_span in enumerate(self.recent_spans[:-1]):
+        # Convert the recent_spans deque into a list for slicing. Skip the last
+        # item in the list because that would find an N+1 instead.
+        recent_span_list = list(self.recent_spans)
+        for i, recent_span in enumerate(recent_span_list[:-1]):
             if self._equivalent(span, recent_span):
-                pattern = self.recent_spans[i:]
+                pattern = recent_span_list[i:]
                 if self._is_valid_pattern(pattern):
                     return (ContinuingMNPlusOne(self.settings, pattern, span), None)
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
         self.recent_spans.append(span)
-        max_sequence_length = self.settings["max_sequence_length"]
-        if len(self.recent_spans) > max_sequence_length:
-            self.recent_spans = self.recent_spans[1 : 1 + max_sequence_length]
         return (self, None)
 
     def _is_valid_pattern(self, pattern: Sequence[Span]) -> bool:
