@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -121,11 +121,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     Code mappings with more defined stack trace roots are evaluated before less defined stack trace
     roots.
 
-    `matched_code_matchings`: The list of code mappings
+    `matched_code_mappings`: The list of code mappings
     `new_code_mapping`: The new code mapping that is being inserted
     """
 
-    def get_matched_code_mapping_index(self, matched_code_mappings, new_code_mapping):
+    def get_matched_code_mapping_index(
+        self, matched_code_mappings: List[Dict[str, Any]], new_code_mapping: Dict[str, Any]
+    ) -> int:
         for index, code_mapping in enumerate(matched_code_mappings):
             regex = r"\w+"
             if (
@@ -183,7 +185,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
-        matched_code_mappings = []
+        matched_code_mappings = []  # type: List[Dict[str, Any]]
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
@@ -224,8 +226,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             if matched_code_mappings:
                 for code_mapping in matched_code_mappings:
                     if (
-                        filepath.startswith(code_mapping["config"]["stack_root"])
-                        and code_mapping["config"]["automatically_generated"] is True
+                        filepath.startswith(code_mapping["config"]["stackRoot"])
+                        and code_mapping["automatically_generated"] is True
                     ):
                         derived = True
 
