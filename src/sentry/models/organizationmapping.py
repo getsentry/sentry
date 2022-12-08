@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model
+from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 
 
@@ -32,3 +32,5 @@ class OrganizationMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
+
+    __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
