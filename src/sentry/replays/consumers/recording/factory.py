@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Callable, Dict, Generic, Mapping, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple, cast
 
 import msgpack
 import sentry_sdk
@@ -9,7 +9,8 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTaskInThreads, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Message, Partition, Position, TPayload, TTransformed
+from arroyo.processing.strategies.filter import FilterStep
+from arroyo.types import Message, Partition, Position, TPayload
 from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
@@ -36,73 +37,28 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        commit_strategy = CommitOffsets(commit)
-        store_strategy = RunTaskInThreads(
-            processing_function=store,
-            concurrency=16,
-            max_pending_futures=32,
-            next_step=commit_strategy,
+        return LogExceptionStep(
+            message="Invalid recording specified.",
+            next_step=TransformStep(
+                function=lambda m: msgpack.unpackb(m.payload.value),
+                next_step=TransformStep(
+                    function=initialize_message_context,
+                    next_step=TransformStep(
+                        function=cache_if_chunk,
+                        next_step=FilterStep(
+                            function=lambda m: m.payload.message["type"]
+                            != "replay_recording_chunk",
+                            next_step=RunTaskInThreads(
+                                processing_function=store,
+                                concurrency=16,
+                                max_pending_futures=32,
+                                next_step=CommitOffsets(commit),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
         )
-        deserialize_strategy = TransformStep(deserialize_and_cache_or_pass, store_strategy)
-        return SuppressErrorStep(deserialize_strategy)
-
-
-# Lib.
-
-
-A = TypeVar("A")
-
-
-class Ok(Generic[A]):
-    def __init__(self, inner: A) -> None:
-        self.inner = inner
-
-
-class Done:
-    pass
-
-
-class ConditionallyContinueStrategy(ProcessingStrategy[TPayload]):
-    def __init__(
-        self,
-        func: Callable[[TPayload], Union[Done, Ok[TTransformed]]],
-        next_step: ProcessingStrategy[TTransformed],
-    ) -> None:
-        self.__func = func
-        self.__next_step = next_step
-        self.__closed = False
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self.__closed
-
-        result = self.__func(message)
-        if isinstance(result, Done):
-            return None
-
-        self.__next_step.submit(
-            Message(
-                message.partition,
-                message.offset,
-                result.inner,
-                message.timestamp,
-            )
-        )
-
-    def poll(self) -> None:
-        self.__next_step.poll()
-
-    def close(self) -> None:
-        self.__closed = True
-
-    def terminate(self) -> None:
-        self.__closed = True
-
-        logger.debug("Terminating %r...", self.__next_step)
-        self.__next_step.terminate()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        self.__next_step.close()
-        self.__next_step.join(timeout)
 
 
 @dataclasses.dataclass
@@ -111,64 +67,30 @@ class MessageContext:
     transaction: Transaction
 
 
-class SuppressErrorStep(ProcessingStrategy[TPayload]):
-    def __init__(self, next_step: ProcessingStrategy[Tuple[bytes, Transaction]]) -> None:
-        self.__next_step = next_step
-        self.__closed = False
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self.__closed
-
-        try:
-            self.__next_step.submit(message)
-        except Exception:
-            logger.exception("Invalid recording specified.", extra={"offset": message.offset})
-
-    def poll(self) -> None:
-        try:
-            self.__next_step.poll()
-        except Exception:
-            logger.exception("Invalid recording specified.")
-
-    def close(self) -> None:
-        self.__closed = True
-
-    def terminate(self) -> None:
-        self.__closed = True
-
-        logger.debug("Terminating %r...", self.__next_step)
-        self.__next_step.terminate()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        self.__next_step.close()
-        self.__next_step.join(timeout)
-
-
-def deserialize_and_cache_or_pass(
-    message: Message[KafkaPayload],
-) -> Union[Done, Ok[MessageContext]]:
+def initialize_message_context(message: Message[Dict[str, Any]]) -> MessageContext:
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
         sampled=random.random()
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
+    return MessageContext(message.payload, transaction)
 
-    message_dict = msgpack.unpackb(message.payload.value)
-    assert isinstance(message, dict)
 
-    if message_dict["type"] == "replay_recording_chunk":
+def cache_if_chunk(message: Message[MessageContext]) -> MessageContext:
+    context: MessageContext = message.payload
+    message_dict = context.message
+    message_type = message_dict["type"]
+
+    if message_type == "replay_recording_chunk":
         # Uncompressed recording data will be deserialized as a string instead of bytes.  We
         # encode as bytes to simplify our ingest method.
         if type(message_dict["payload"]) is str:
             message_dict["payload"] = message_dict["payload"].encode("utf-8")
 
-        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction)
+        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), message.transaction)
 
-        # Stop further execution of the pipeline.  This intentionally skips the commit phase.
-        return Done()
-
-    return Ok(MessageContext(message_dict, transaction))
+    return MessageContext(message_dict, message.transaction)
 
 
 def store(message: Message[MessageContext]) -> MessageContext:
@@ -190,3 +112,39 @@ def store(message: Message[MessageContext]) -> MessageContext:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")
 
     return context
+
+
+class LogExceptionStep(ProcessingStrategy[TPayload]):
+    def __init__(
+        self, message: str, next_step: ProcessingStrategy[Tuple[bytes, Transaction]]
+    ) -> None:
+        self.__exception_message = message
+        self.__next_step = next_step
+        self.__closed = False
+
+    def submit(self, message: Message[KafkaPayload]) -> None:
+        assert not self.__closed
+
+        try:
+            self.__next_step.submit(message)
+        except Exception:
+            logger.exception(self.__exception_message)
+
+    def poll(self) -> None:
+        try:
+            self.__next_step.poll()
+        except Exception:
+            logger.exception(self.__exception_message)
+
+    def close(self) -> None:
+        self.__closed = True
+
+    def terminate(self) -> None:
+        self.__closed = True
+
+        logger.debug("Terminating %r...", self.__next_step)
+        self.__next_step.terminate()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.__next_step.close()
+        self.__next_step.join(timeout)
