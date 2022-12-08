@@ -144,12 +144,14 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                   />
                   <Layout.Title>
                     <Title>
-                      <IdBadge
-                        project={project}
-                        avatarSize={28}
-                        hideName
-                        avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                      />
+                      {project ? (
+                        <IdBadge
+                          project={project}
+                          avatarSize={28}
+                          hideName
+                          avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                        />
+                      ) : null}
                       {transaction}
                     </Title>
                   </Layout.Title>
