@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from django.utils import timezone
 
-from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
@@ -50,7 +49,7 @@ def preview(
     filter_match: str,
     frequency_minutes: int,
     end: datetime | None = None,
-) -> BaseQuerySet | None:
+) -> Dict[int, datetime] | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
@@ -62,7 +61,7 @@ def preview(
 
     # all the issue state conditions are mutually exclusive
     if len(issue_state_conditions) > 1 and condition_match == "all":
-        return Group.objects.none()
+        return {}
 
     if end is None:
         end = timezone.now()
@@ -98,11 +97,11 @@ def preview(
             )
 
         frequency = timedelta(minutes=frequency_minutes)
-        group_ids = get_fired_groups(
+        group_fires = get_fired_groups(
             group_activity, filter_objects, filter_func, start, frequency, event_map
         )
 
-        return Group.objects.filter(id__in=group_ids)
+        return group_fires
     except PreviewException:
         return None
 
@@ -185,11 +184,12 @@ def get_fired_groups(
     start: datetime,
     frequency: timedelta,
     event_map: Dict[str, Any],
-) -> Sequence[int]:
+) -> Dict[int, datetime]:
     """
-    Applies filter objects to the condition activity, returns the group ids of activities that pass the filters
+    Applies filter objects to the condition activity.
+    Returns the group ids of activities that pass the filters and the last fire of each group
     """
-    group_ids = set()
+    group_fires = {}
     for group, activities in group_activity.items():
         last_fire = start - frequency
         for event in activities:
@@ -198,11 +198,10 @@ def get_fired_groups(
             except NotImplementedError:
                 raise PreviewException
             if last_fire <= event.timestamp - frequency and filter_func(passes):
-                # XXX: we could break after adding the group, but we may potentially want the times of fires later
-                group_ids.add(group)
+                group_fires[group] = event.timestamp
                 last_fire = event.timestamp
 
-    return list(group_ids)
+    return group_fires
 
 
 def get_top_groups(

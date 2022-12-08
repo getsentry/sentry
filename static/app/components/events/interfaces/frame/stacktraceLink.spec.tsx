@@ -45,7 +45,7 @@ describe('StacktraceLink', function () {
     });
     expect(
       await screen.findByText(
-        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        'Add the GitHub or GitLab integration to jump straight to your source code'
       )
     ).toBeInTheDocument();
     expect(stacktraceLinkMock).toHaveBeenCalledTimes(1);
@@ -65,8 +65,8 @@ describe('StacktraceLink', function () {
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
-          organizationId: org.id,
-          projectId: project.id,
+          organization_id: org.id,
+          project_id: project.id,
         },
       })
     );
@@ -88,7 +88,7 @@ describe('StacktraceLink', function () {
     });
     expect(
       await screen.findByText(
-        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        'Add the GitHub or GitLab integration to jump straight to your source code'
       )
     ).toBeInTheDocument();
 

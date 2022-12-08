@@ -9,11 +9,11 @@ import {Member, User} from 'sentry/types';
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type DisplayName = BaseBadgeProps['displayName'];
 
-type Props = Omit<BaseBadgeProps, 'displayName'> & {
+interface Props extends Omit<BaseBadgeProps, 'displayName'> {
   displayName?: DisplayName;
   member?: Member;
   user?: User;
-};
+}
 
 function getBadge({
   organization,

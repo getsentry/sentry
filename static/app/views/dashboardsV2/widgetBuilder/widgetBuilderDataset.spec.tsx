@@ -261,6 +261,11 @@ describe('WidgetBuilder', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
     TagStore.reset();
   });
 

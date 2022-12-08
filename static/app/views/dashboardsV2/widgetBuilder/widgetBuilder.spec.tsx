@@ -253,6 +253,11 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -1039,8 +1044,6 @@ describe('WidgetBuilder', function () {
       query: {statsPeriod: '90d'},
     });
 
-    expect(await screen.findByTestId('page-filter-timerange-selector')).toBeEnabled();
-
     userEvent.click(screen.getByText('Update Widget'));
 
     await waitFor(() => {
@@ -1064,7 +1067,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       params: {orgId: 'org-slug'},
       query: {statsPeriod: '90d'},
-      orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      orgFeatures: defaultOrgFeatures,
     });
 
     expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
@@ -1098,7 +1101,7 @@ describe('WidgetBuilder', function () {
       },
       params: {orgId: 'org-slug'},
       query: {statsPeriod: '90d'},
-      orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      orgFeatures: defaultOrgFeatures,
     });
 
     await waitFor(() => {
