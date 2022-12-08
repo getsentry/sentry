@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient} from 'sentry/utils/queryClient';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
 
@@ -26,15 +25,7 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-const renderEventContext = (
+const renderActionDropdown = (
   location: Location,
   eventView: EventView,
   queryKey: string,
@@ -58,7 +49,6 @@ const renderEventContext = (
 
 describe('Quick Context Actions', function () {
   afterEach(() => {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 
@@ -69,7 +59,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'title',
@@ -97,7 +87,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -125,7 +115,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -159,7 +149,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'title',
@@ -193,7 +183,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'title',
@@ -229,7 +219,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -265,7 +255,7 @@ describe('Quick Context Actions', function () {
       },
     });
 
-    renderEventContext(
+    renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
