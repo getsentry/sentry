@@ -70,7 +70,7 @@ def derive_code_mappings(
 
     try:
         with lock.acquire():
-            trees = installation.get_trees_for_org(3600 * 3)
+            trees = installation.get_trees_for_org()
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
