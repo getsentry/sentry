@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TypedDict, Optional, Sequence, Mapping, Any
+from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 from django.db import transaction
+
 from sentry import metrics
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
@@ -50,7 +51,6 @@ def save_issue_occurrence(occurrence_data: IssueOccurrenceData):
     # _eventstream_insert_many(jobs)
 
 
-
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_issue_platform(occurrence: IssueOccurrence) -> None:
 
@@ -72,14 +72,14 @@ def _save_aggregate_issue_platform(occurrence: IssueOccurrence) -> None:
     #     dict(job["event_metadata"]),
     # )
     # Detection time or should this be received time of the event?
-    #kwargs["data"]["last_received"] = job["received_timestamp"]
+    # kwargs["data"]["last_received"] = job["received_timestamp"]
 
     # We can probably just assume a single fingerprint for now and expand later if necessary
     group_hash = occurrence.fingerprint[0]
 
-    existing_grouphash = GroupHash.objects.filter(
-        project=project, hash=group_hash
-    ).select_related("group")
+    existing_grouphash = GroupHash.objects.filter(project=project, hash=group_hash).select_related(
+        "group"
+    )
     if not existing_grouphash:
 
         new_grouphashes_count = 1
