@@ -998,6 +998,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             > self.settings.get("span_duration_threshold")
             for span in independent_db_spans
         )
+
         exceeds_total_duration_threshold = exceeds_duration_threshold = self._sum_span_duration(
             self.consecutive_db_spans
         ) > self.settings.get("total_duration_threshold")
@@ -1049,6 +1050,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             ):
                 independent_spans.append(span)
         return independent_spans
+
+    def _calculate_cost(self):
+        pass
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
