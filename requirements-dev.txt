@@ -33,6 +33,7 @@ mypy>=0.982
 types-beautifulsoup4
 types-freezegun
 types-jsonschema
+types-mock
 types-psycopg2
 types-python-dateutil
 types-pytz
