@@ -190,17 +190,6 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
-  const alertLink = isIssueAlert(rule) ? (
-    <Link
-      to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
-    >
-      {rule.name}
-    </Link>
-  ) : (
-    <Link to={`/organizations/${orgId}/alerts/rules/details/${rule.id}/`}>
-      {rule.name}
-    </Link>
-  );
 
   const IssueStatusText: Record<IncidentStatus, string> = {
     [IncidentStatus.CRITICAL]: t('Critical'),
@@ -332,7 +321,17 @@ function RuleListRow({
           </Tooltip>
         </FlexCenter>
         <AlertNameAndStatus>
-          <AlertName>{alertLink}</AlertName>
+          <AlertName>
+            <Link
+              to={
+                isIssueAlert(rule)
+                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
+                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+              }
+            >
+              {rule.name}
+            </Link>
+          </AlertName>
           <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
