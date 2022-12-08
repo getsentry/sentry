@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
@@ -431,46 +432,49 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     if debug_file_id is None or debug_file_id == "":
         return
 
-    dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
-    debug_file_path = dif_paths.get(debug_file_id)
-    if debug_file_path is None:
-        return
+    dif = ProjectDebugFile.objects.find_by_debug_ids(
+        project, [debug_file_id], features=["mapping"]
+    ).first()
 
-    mapper = ProguardMapper.open(debug_file_path)
-    if not mapper.has_line_info:
-        return
+    with tempfile.NamedTemporaryFile() as debug_file:
+        dif.file.save_to(debug_file.name)
+        debug_file.seek(0)
 
-    for method in profile["profile"]["methods"]:
-        mapped = mapper.remap_frame(
-            method["class_name"], method["name"], method["source_line"] or 0
-        )
-        if len(mapped) == 1:
-            new_frame = mapped[0]
-            method.update(
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": new_frame.file,
-                    "source_line": new_frame.line,
-                }
+        mapper = ProguardMapper.open(debug_file.name)
+        if not mapper.has_line_info:
+            return
+
+        for method in profile["profile"]["methods"]:
+            mapped = mapper.remap_frame(
+                method["class_name"], method["name"], method["source_line"] or 0
             )
-        elif len(mapped) > 1:
-            bottom_class = mapped[-1].class_name
-            method["inline_frames"] = [
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": method["source_file"]
-                    if bottom_class == new_frame.class_name
-                    else None,
-                    "source_line": new_frame.line,
-                }
-                for new_frame in mapped
-            ]
-        else:
-            mapped = mapper.remap_class(method["class_name"])
-            if mapped:
-                method["class_name"] = mapped
+            if len(mapped) == 1:
+                new_frame = mapped[0]
+                method.update(
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": new_frame.file,
+                        "source_line": new_frame.line,
+                    }
+                )
+            elif len(mapped) > 1:
+                bottom_class = mapped[-1].class_name
+                method["inline_frames"] = [
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": method["source_file"]
+                        if bottom_class == new_frame.class_name
+                        else None,
+                        "source_line": new_frame.line,
+                    }
+                    for new_frame in mapped
+                ]
+            else:
+                mapped = mapper.remap_class(method["class_name"])
+                if mapped:
+                    method["class_name"] = mapped
 
 
 @metrics.wraps("process_profile.track_outcome")
