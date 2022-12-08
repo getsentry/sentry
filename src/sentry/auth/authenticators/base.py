@@ -14,7 +14,7 @@ class ActivationResult:
 
 
 class ActivationMessageResult(ActivationResult):
-    def __init__(self, message, type="info"):
+    def __init__(self, message: str, type="info"):
         assert type in ("error", "warning", "info")
         self.type = type
         self.message = message
