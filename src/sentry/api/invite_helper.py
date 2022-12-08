@@ -1,4 +1,7 @@
-from typing import Dict, Tuple
+from __future__ import annotations
+
+from logging import Logger
+from typing import Any, Dict, Tuple
 
 from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
@@ -8,6 +11,7 @@ from sentry.models import (
     Authenticator,
     AuthIdentity,
     AuthProvider,
+    Organization,
     OrganizationMember,
     User,
     UserEmail,
@@ -17,26 +21,33 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
 
-def add_invite_details_to_session(request: Request, member_id: int, token: str):
+def add_invite_details_to_session(request: Request, member_id: int, token: str) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token
     request.session["invite_member_id"] = member_id
 
 
-def remove_invite_details_from_session(request):
+def remove_invite_details_from_session(request: Request) -> None:
     """Deletes invite details from the request session"""
     request.session.pop("invite_member_id", None)
     request.session.pop("invite_token", None)
 
 
-def get_invite_details(request) -> Tuple[str, int]:
+def get_invite_details(request: Request) -> Tuple[str, int]:
     """Returns tuple of (token, member_id) from request session"""
     return request.session.get("invite_token", None), request.session.get("invite_member_id", None)
 
 
 class ApiInviteHelper:
     @classmethod
-    def from_session_or_email(cls, request, organization, email, instance=None, logger=None):
+    def from_session_or_email(
+        cls,
+        request: Request,
+        organization: Organization,
+        email: str,
+        instance: Any | None = None,
+        logger: Logger | None = None,
+    ) -> ApiInviteHelper | None:
         """
         Initializes the ApiInviteHelper by locating the pending organization
         member via the currently set pending invite details in the session, or
@@ -61,7 +72,12 @@ class ApiInviteHelper:
         )
 
     @classmethod
-    def from_session(cls, request, instance=None, logger=None):
+    def from_session(
+        cls,
+        request: Request,
+        instance: Any | None = None,
+        logger: Logger | None = None,
+    ) -> ApiInviteHelper | None:
         invite_token, invite_member_id = get_invite_details(request)
 
         if not invite_token or not invite_member_id:
@@ -80,36 +96,43 @@ class ApiInviteHelper:
                 logger.error("Invalid pending invite cookie", exc_info=True)
             return None
 
-    def __init__(self, request, member_id, token, instance=None, logger=None):
-        self.request: Request = request
-        self.member_id: int = member_id
-        self.token: str = token
+    def __init__(
+        self,
+        request: Request,
+        member_id: int,
+        token: str | None,
+        instance: Any | None = None,
+        logger: Logger | None = None,
+    ) -> None:
+        self.request = request
+        self.member_id = member_id
+        self.token = token
         self.instance = instance
         self.logger = logger
-        self.om: OrganizationMember = self.organization_member
+        self.om = self.organization_member
 
-    def handle_success(self):
+    def handle_success(self) -> None:
         member_joined.send_robust(
             member=self.om,
             organization=self.om.organization,
             sender=self.instance if self.instance else self,
         )
 
-    def handle_member_already_exists(self):
+    def handle_member_already_exists(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User already org member",
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
-    def handle_member_has_no_sso(self):
+    def handle_member_has_no_sso(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
-    def handle_invite_not_approved(self):
+    def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
             self.om.delete()
 
@@ -118,36 +141,37 @@ class ApiInviteHelper:
         return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
 
     @property
-    def member_pending(self):
-        return self.om.is_pending
+    def member_pending(self) -> bool:
+        return bool(self.om.is_pending)
 
     @property
-    def invite_approved(self):
-        return self.om.invite_approved
+    def invite_approved(self) -> bool:
+        return bool(self.om.invite_approved)
 
     @property
-    def valid_token(self):
+    def valid_token(self) -> bool:
         if self.token is None:
             return False
         if self.om.token_expired:
             return False
-        return constant_time_compare(self.om.token or self.om.legacy_token, self.token)
+        return bool(constant_time_compare(self.om.token or self.om.legacy_token, self.token))
 
     @property
-    def user_authenticated(self):
-        return self.request.user.is_authenticated
+    def user_authenticated(self) -> bool:
+        return bool(self.request.user.is_authenticated)
 
     @property
-    def member_already_exists(self):
+    def member_already_exists(self) -> bool:
         if not self.user_authenticated:
             return False
 
-        return OrganizationMember.objects.filter(
+        query = OrganizationMember.objects.filter(
             organization=self.om.organization, user=self.request.user
-        ).exists()
+        )
+        return bool(query.exists())
 
     @property
-    def valid_request(self):
+    def valid_request(self) -> bool:
         return (
             self.member_pending
             and self.invite_approved
@@ -156,7 +180,7 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user=None):
+    def accept_invite(self, user: User | None = None) -> OrganizationMember | None:
         om = self.om
 
         if user is None:
@@ -165,7 +189,7 @@ class ApiInviteHelper:
         if self.member_already_exists:
             self.handle_member_already_exists()
             om.delete()
-            return
+            return None
 
         try:
             provider = AuthProvider.objects.get(organization=om.organization)
@@ -177,7 +201,7 @@ class ApiInviteHelper:
             # AuthIdentity has a unique constraint on provider and user
             if not AuthIdentity.objects.filter(auth_provider=provider, user=user).exists():
                 self.handle_member_has_no_sso()
-                return
+                return None
 
         om.set_user(user)
         om.save()
