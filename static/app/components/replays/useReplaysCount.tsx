@@ -25,13 +25,12 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
   const [replayCounts, setReplayCounts] = useState<CountState>({});
 
   const zeroCounts = useMemo(() => {
-    const ids = toArray(groupIds || []);
     const names = toArray(transactionNames || []);
-    return [...ids, ...names].reduce<CountState>((record, key) => {
+    return names.reduce<CountState>((record, key) => {
       record[key] = 0;
       return record;
     }, {});
-  }, [groupIds, transactionNames]);
+  }, [transactionNames]);
 
   const query = useMemo(() => {
     if (groupIds === undefined && transactionNames === undefined) {
