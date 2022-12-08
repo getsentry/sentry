@@ -94,10 +94,10 @@ function Replays({location}: Props) {
                 {t('Get Started')}
               </Button>
               <Button
-                href="https://github.com/getsentry/sentry-replay/blob/main/README.md"
+                href="https://docs.sentry.io/platforms/javascript/session-replay/"
                 external
               >
-                {t('See Readme')}
+                {t('Read Docs')}
               </Button>
             </ReplayOnboardingPanel>
           )}
