@@ -582,7 +582,7 @@ function TableView(props: TableViewProps) {
 
   const {isLoading, error, location, tableData, eventView} = props;
 
-  const columnOrder = eventView.getColumns(true);
+  const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
 
   const prependColumnWidths = eventView.hasAggregateField()
