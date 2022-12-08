@@ -157,8 +157,30 @@ def process_profile_task(
         return
 
     _initialize_producer()
-    _insert_eventstream_call_tree(profile=profile)
-    _insert_eventstream_profile(profile=profile)
+
+    try:
+        _insert_eventstream_call_tree(profile=profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason="failed-to-produce-functions",
+        )
+        return
+
+    try:
+        _insert_eventstream_profile(profile=profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason="failed-to-produce-metadata",
+        )
+        return
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
@@ -521,10 +543,11 @@ def _insert_eventstream_profile(profile: Profile) -> None:
     if _profiles_kafka_producer is None:
         return
 
-    _profiles_kafka_producer.produce(
+    f = _profiles_kafka_producer.produce(
         Topic(name="processed-profiles"),
         KafkaPayload(key=None, value=json.dumps(profile).encode("utf-8"), headers=[]),
     )
+    f.exception()
 
 
 @metrics.wraps("process_profile.insert_eventstream.call_tree")
@@ -556,10 +579,11 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
         # and slower.
         del profile["call_trees"]
 
-    _profiles_kafka_producer.produce(
+    f = _profiles_kafka_producer.produce(
         Topic(name="profiles-call-tree"),
         KafkaPayload(key=None, value=json.dumps(event).encode("utf-8"), headers=[]),
     )
+    f.exception()
 
 
 @metrics.wraps("process_profile.get_event_instance")
