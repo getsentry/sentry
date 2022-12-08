@@ -267,10 +267,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 SnQLFunction(
-                    "group_array",
+                    "group_uniq_array",
                     required_args=[NumberRange("max_size", 0, 101), ColumnTagArg("column")],
                     snql_aggregate=lambda args, alias: CurriedFunction(
-                        "groupArray",
+                        "groupUniqArray",
                         [int(args["max_size"])],
                         [args["column"]],
                         alias,
