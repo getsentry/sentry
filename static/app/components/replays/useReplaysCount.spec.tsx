@@ -77,7 +77,7 @@ describe('useReplaysCount', () => {
     const replayCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issue-replay-count/`,
       method: 'GET',
-      body: {data: []},
+      body: {},
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
