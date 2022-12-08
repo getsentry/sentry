@@ -7,6 +7,7 @@ from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from bitfield import BitField
 from sentry.app import env
 from sentry.db.models import (
     BaseManager,
@@ -152,6 +153,10 @@ class Team(Model):
     )
     actor = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
+    flags = BitField(
+        flags=(("idp:provisioned", "idp:provisioned")),
+        default=0,
     )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
