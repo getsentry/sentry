@@ -82,8 +82,7 @@ function SimpleTableChart({
 
   const meta = metadata ?? {};
   const columns = decodeColumnOrder(
-    fields.map((field, index) => ({field, alias: fieldAliases[index]})),
-    true
+    fields.map((field, index) => ({field, alias: fieldAliases[index]}))
   );
 
   return (
