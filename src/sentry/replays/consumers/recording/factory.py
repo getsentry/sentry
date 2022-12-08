@@ -88,9 +88,9 @@ def cache_if_chunk(message: Message[MessageContext]) -> MessageContext:
         if type(message_dict["payload"]) is str:
             message_dict["payload"] = message_dict["payload"].encode("utf-8")
 
-        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), message.transaction)
+        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), context.transaction)
 
-    return MessageContext(message_dict, message.transaction)
+    return MessageContext(message_dict, context.transaction)
 
 
 def store(message: Message[MessageContext]) -> MessageContext:
