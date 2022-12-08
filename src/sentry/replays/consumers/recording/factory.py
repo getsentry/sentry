@@ -1,7 +1,8 @@
 import dataclasses
+import functools
 import logging
 import random
-from typing import Any, Callable, Dict, Mapping, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Mapping, Optional, cast
 
 import msgpack
 import sentry_sdk
@@ -10,7 +11,7 @@ from arroyo.processing.strategies import RunTaskInThreads, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
-from arroyo.types import Message, Partition, Position, TPayload
+from arroyo.types import Message, Partition, Position, TPayload, TReplaced
 from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
@@ -37,27 +38,28 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return LogExceptionStep(
-            message="Invalid recording specified.",
-            next_step=TransformStep(
-                function=lambda m: msgpack.unpackb(m.payload.value),
-                next_step=TransformStep(
-                    function=initialize_message_context,
-                    next_step=TransformStep(
-                        function=cache_if_chunk,
-                        next_step=FilterStep(
-                            function=lambda m: m.payload.message["type"]
-                            != "replay_recording_chunk",
-                            next_step=RunTaskInThreads(
-                                processing_function=store,
-                                concurrency=16,
-                                max_pending_futures=32,
-                                next_step=CommitOffsets(commit),
-                            ),
-                        ),
-                    ),
+        return Pipeline(
+            steps=[
+                # Catch and log any exceptions that occur during processing.
+                Partial(LogExceptionStep, message="Invalid recording specified."),
+                # Deserialize the msgpack payload.
+                Apply(deserialize),
+                # Initialize a sentry transaction.
+                Apply(init_context),
+                # Cache chunk messages.
+                Apply(cache_chunks),
+                # Remove chunk messages from pipeline.  They should never be committed.
+                Filter(filter_chunks),
+                # Run the capstone messages in a thread-pool.
+                Partial(
+                    RunTaskInThreads,
+                    processing_function=store,
+                    concurrency=16,
+                    max_pending_futures=32,
                 ),
-            ),
+            ],
+            # Batch capstone messages and commit when called.
+            next_pipeline=CommitOffsets(commit),
         )
 
 
@@ -67,7 +69,11 @@ class MessageContext:
     transaction: Transaction
 
 
-def initialize_message_context(message: Message[Dict[str, Any]]) -> MessageContext:
+def deserialize(message: Message[KafkaPayload]) -> Dict[str, Any]:
+    return msgpack.unpackb(message.payload.value)
+
+
+def init_context(message: Message[Dict[str, Any]]) -> MessageContext:
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
@@ -77,7 +83,7 @@ def initialize_message_context(message: Message[Dict[str, Any]]) -> MessageConte
     return MessageContext(message.payload, transaction)
 
 
-def cache_if_chunk(message: Message[MessageContext]) -> MessageContext:
+def cache_chunks(message: Message[MessageContext]) -> MessageContext:
     context: MessageContext = message.payload
     message_dict = context.message
     message_type = message_dict["type"]
@@ -93,13 +99,12 @@ def cache_if_chunk(message: Message[MessageContext]) -> MessageContext:
     return MessageContext(message_dict, context.transaction)
 
 
-def store(message: Message[MessageContext]) -> MessageContext:
-    """Move the recording blob to permanent storage.
+def filter_chunks(message: Message[MessageContext]) -> bool:
+    return message.payload.message["type"] != "replay_recording_chunk"
 
-    This function is threaded.  To ensure processing order guarantees, all pre-requisite tasks
-    need to be completed prior to this function's execution.  You may configure additional
-    pre-requisite logic in the `create_with_partitions` method.
-    """
+
+def store(message: Message[MessageContext]) -> None:
+    """Move the recording blob to permanent storage."""
     context: MessageContext = message.payload
     message_dict = context.message
     message_type = message_dict["type"]
@@ -111,18 +116,21 @@ def store(message: Message[MessageContext]) -> MessageContext:
     else:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")
 
-    return context
+
+# Lib.
 
 
 class LogExceptionStep(ProcessingStrategy[TPayload]):
     def __init__(
-        self, message: str, next_step: ProcessingStrategy[Tuple[bytes, Transaction]]
+        self,
+        message: str,
+        next_step: ProcessingStrategy[TPayload],
     ) -> None:
         self.__exception_message = message
         self.__next_step = next_step
         self.__closed = False
 
-    def submit(self, message: Message[KafkaPayload]) -> None:
+    def submit(self, message: Message[TPayload]) -> None:
         assert not self.__closed
 
         try:
@@ -148,3 +156,36 @@ class LogExceptionStep(ProcessingStrategy[TPayload]):
     def join(self, timeout: Optional[float] = None) -> None:
         self.__next_step.close()
         self.__next_step.join(timeout)
+
+
+def Apply(
+    function: Callable[[Message[TPayload]], TReplaced]
+) -> Callable[[ProcessingStrategy[TReplaced]], TransformStep[TPayload]]:
+    return lambda next_step: TransformStep(function=function, next_step=next_step)
+
+
+def Filter(
+    function: Callable[[Message[TPayload]], bool]
+) -> Callable[[ProcessingStrategy[TPayload]], FilterStep[TPayload]]:
+    return lambda next_step: FilterStep(function=function, next_step=next_step)
+
+
+def Partial(
+    strategy: Callable[[ProcessingStrategy[TReplaced]], ProcessingStrategy[TPayload]],
+    **kwargs: Any,
+) -> Callable[[ProcessingStrategy[TReplaced]], ProcessingStrategy[TPayload]]:
+    return lambda next_step: strategy(next_step=next_step, **kwargs)
+
+
+def Pipeline(
+    steps: List[Callable[[ProcessingStrategy[TPayload]], FilterStep[TReplaced]]],
+    next_pipeline: Optional[ProcessingStrategy[TPayload]] = None,
+) -> ProcessingStrategy[TPayload]:
+    if not steps:
+        raise ValueError("Pipeline misconfigured.  Missing required step functions.")
+
+    return functools.reduce(
+        lambda prev_step, step_fn: step_fn(prev_step),
+        sequence=reversed(steps),
+        initial=next_pipeline,
+    )
