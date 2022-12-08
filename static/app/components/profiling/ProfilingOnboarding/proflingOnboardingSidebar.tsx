@@ -139,12 +139,16 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
         >
           <CompactSelect
             triggerLabel={
-              <StyledIdBadge
-                project={currentProject}
-                avatarSize={16}
-                hideOverflow
-                disableLink
-              />
+              currentProject ? (
+                <StyledIdBadge
+                  project={currentProject}
+                  avatarSize={16}
+                  hideOverflow
+                  disableLink
+                />
+              ) : (
+                t('Select a project')
+              )
             }
             onChange={option => setCurrentProject(option.value)}
             triggerProps={{'aria-label': currentProject?.slug}}
