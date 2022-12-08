@@ -105,15 +105,6 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
   );
 }
 
-export function isMobileLanguage(event: Event) {
-  return (
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects[0].platform))
-  );
-}
-
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
@@ -121,6 +112,15 @@ interface StacktraceLinkProps {
    * The line of code being linked
    */
   line: string;
+}
+
+export function isMobileLanguage(event: Event) {
+  return (
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects?.[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
+  );
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
