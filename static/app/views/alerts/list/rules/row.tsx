@@ -184,8 +184,6 @@ function RuleListRow({
     },
   };
 
-  const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
-
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
@@ -199,7 +197,9 @@ function RuleListRow({
       {rule.name}
     </Link>
   ) : (
-    <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
+    <Link to={`/organizations/${orgId}/alerts/rules/details/${rule.id}/`}>
+      {rule.name}
+    </Link>
   );
 
   const IssueStatusText: Record<IncidentStatus, string> = {
@@ -407,10 +407,6 @@ function RuleListRow({
     </ErrorBoundary>
   );
 }
-
-const TitleLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
-`;
 
 const FlexCenter = styled('div')`
   display: flex;
