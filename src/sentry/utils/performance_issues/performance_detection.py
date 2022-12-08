@@ -319,7 +319,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
-            "minimum_times_repeated": 2,
+            "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
         },
     }
@@ -1494,7 +1494,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
     PerformanceProblem if the detected sequence met our thresholds.
     """
 
-    __slots__ = ("settings", "pattern", "spans", "times_repeated", "pattern_index")
+    __slots__ = ("settings", "pattern", "spans", "pattern_index")
 
     def __init__(self, settings: Dict[str, Any], pattern: Sequence[Span], first_span: Span) -> None:
         self.settings = settings
@@ -1503,7 +1503,6 @@ class ContinuingMNPlusOne(MNPlusOneState):
         # The full list of spans involved in the MN pattern.
         self.spans = pattern.copy()
         self.spans.append(first_span)
-        self.times_repeated = 0
         self.pattern_index = 1
 
     def next(self, span: Span) -> MNPlusOneState:
@@ -1513,14 +1512,14 @@ class ContinuingMNPlusOne(MNPlusOneState):
             self.spans.append(span)
             self.pattern_index += 1
             if self.pattern_index >= len(self.pattern):
-                self.times_repeated += 1
                 self.pattern_index = 0
             return (self, None)
 
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
+        times_occurred = int(len(self.spans) / len(self.pattern))
         self.spans.append(span)
-        start_index = len(self.pattern) * (self.times_repeated + 1)
+        start_index = len(self.pattern) * times_occurred
         return (
             SearchingForMNPlusOne(self.settings, self.spans[start_index:]),
             self._maybe_performance_problem(),
@@ -1530,11 +1529,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
         return self._maybe_performance_problem()
 
     def _maybe_performance_problem(self) -> Optional[PerformanceProblem]:
-        minimum_times_repeated = self.settings["minimum_times_repeated"]
-        if self.times_repeated < minimum_times_repeated:
+        times_occurred = int(len(self.spans) / len(self.pattern))
+        minimum_occurrences_of_pattern = self.settings["minimum_occurrences_of_pattern"]
+        if times_occurred < minimum_occurrences_of_pattern:
             return None
 
-        offender_span_count = len(self.pattern) * (self.times_repeated + 1)
+        offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
         total_duration_threshold = self.settings["total_duration_threshold"]
