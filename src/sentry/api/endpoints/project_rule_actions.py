@@ -62,4 +62,4 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         for callback, futures in rp.grouped_futures.values():
             safe_execute(callback, test_event, futures, _with_transaction=False)
 
-        return Response()
+        return Response(status=200)
