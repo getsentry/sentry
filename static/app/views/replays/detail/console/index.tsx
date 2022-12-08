@@ -32,9 +32,6 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
-  const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({listRef, items});
-
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -54,6 +51,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       })
     : null;
 
+  const listRef = useRef<ReactVirtualizedList>(null);
+  const {cache} = useVirtualizedList({listRef, deps: [items]});
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = items[index];
 
@@ -69,7 +69,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           isCurrent={item.id === current?.id}
           isHovered={item.id === hovered?.id}
           breadcrumb={item}
-          onClickTimestamp={() => handleClick(item)}
+          onClickTimestamp={() => handleClick(item, {changeTabs: false})}
           onMouseEnter={() => handleMouseEnter(item)}
           onMouseLeave={() => handleMouseLeave(item)}
           startTimestampMs={startTimestampMs}
@@ -82,7 +82,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   return (
     <ConsoleContainer>
       <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
-      <ConsoleMessageContainer>
+      <ConsoleLogContainer>
         {breadcrumbs ? (
           <AutoSizer>
             {({width, height}) => (
@@ -109,7 +109,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
-      </ConsoleMessageContainer>
+      </ConsoleLogContainer>
     </ConsoleContainer>
   );
 }
@@ -118,7 +118,7 @@ const ConsoleContainer = styled(FluidHeight)`
   height: 100%;
 `;
 
-const ConsoleMessageContainer = styled('div')`
+const ConsoleLogContainer = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;

@@ -1,11 +1,11 @@
-import {RefObject, useEffect, useMemo} from 'react';
+import {DependencyList, RefObject, useEffect, useMemo} from 'react';
 import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 
 type Opts = {
-  items: unknown[];
+  deps: DependencyList;
   listRef: RefObject<ReactVirtualizedList>;
 };
-function useVirtualizedList({listRef, items}: Opts) {
+function useVirtualizedList({deps, listRef}: Opts) {
   const cache = useMemo(
     () =>
       new CellMeasurerCache({
@@ -19,7 +19,7 @@ function useVirtualizedList({listRef, items}: Opts) {
   useEffect(() => {
     cache.clearAll();
     listRef.current?.forceUpdateGrid();
-  }, [cache, items, listRef]);
+  }, [cache, listRef, deps]);
 
   return {
     cache,

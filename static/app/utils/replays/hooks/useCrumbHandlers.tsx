@@ -43,23 +43,25 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleClick = useCallback(
-    (crumb: Crumb) => {
+    (crumb: Crumb, {changeTabs = true}: {changeTabs: boolean}) => {
       if (crumb.timestamp !== undefined) {
         setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
       }
 
-      switch (crumb.type) {
-        case 'navigation':
-        case 'debug':
-          setActiveTab('network');
-          break;
-        case 'ui':
-          setActiveTab('dom');
-          break;
-        case 'error':
-        default:
-          setActiveTab('console');
-          break;
+      if (changeTabs) {
+        switch (crumb.type) {
+          case 'navigation':
+          case 'debug':
+            setActiveTab('network');
+            break;
+          case 'ui':
+            setActiveTab('dom');
+            break;
+          case 'error':
+          default:
+            setActiveTab('console');
+            break;
+        }
       }
     },
     [setCurrentTime, startTimestampMs, setActiveTab]
