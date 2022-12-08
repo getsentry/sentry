@@ -398,3 +398,14 @@ yarn.lock           @getsentry/owners-js-deps
 
 
 ### End of Growth ###
+
+
+### Issue Platform ###
+
+/src/sentry/issues/
+/src/sentry/search/
+/tests/sentry/issues/
+/tests/sentry/search/
+/tests/snuba/search/
+
+### End of Issue Platform ###
