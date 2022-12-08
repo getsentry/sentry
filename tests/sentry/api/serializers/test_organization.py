@@ -45,7 +45,6 @@ class OrganizationSerializerTest(TestCase):
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
-            "dashboards-top-level-filter",
             "discover-basic",
             "discover-query",
             "discover-query-builder-as-landing-page",
