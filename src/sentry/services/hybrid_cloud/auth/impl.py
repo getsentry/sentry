@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import dataclasses
-from typing import List, Mapping
+from typing import List, Mapping, Tuple
 from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
@@ -27,7 +27,7 @@ from sentry.services.hybrid_cloud.auth import (
     AuthService,
 )
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
@@ -230,7 +230,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def provision_user_from_sso(
         self, *, auth_provider: ApiAuthProvider, identity_data: Mapping[str, Any]
-    ) -> ApiAuthIdentity:
+    ) -> Tuple[APIUser, ApiAuthIdentity]:
         from django.conf import settings
 
         user = User.objects.create(
@@ -258,7 +258,9 @@ class DatabaseBackedAuthService(AuthService):
 
         user.send_confirm_emails(is_new_user=True)
 
-        return self._serialize_auth_identity(auth_identity)
+        serial_user = user_service.serialize_user(user)
+        serial_auth_identity = self._serialize_auth_identity(auth_identity)
+        return serial_user, serial_auth_identity
 
     def attach_identity(self) -> ApiAuthIdentity:
         pass

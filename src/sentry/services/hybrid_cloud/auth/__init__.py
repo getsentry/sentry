@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import contextlib
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Type
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -53,7 +53,7 @@ class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def provision_user_from_sso(
         self, *, auth_provider: ApiAuthProvider, identity_data: Mapping[str, Any]
-    ) -> APIUser:
+    ) -> Tuple[APIUser, ApiAuthIdentity]:
         """Create a new user profile in response to an SSO login."""
         pass
 
@@ -225,6 +225,7 @@ class ApiAuthProvider:
 
 @dataclass
 class ApiAuthIdentity:
+    id: int = -1
     user_id: int = -1
     provider_id: int = -1
     ident: str = ""

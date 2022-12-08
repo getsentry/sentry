@@ -222,7 +222,9 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: AuthIdentity) -> ApiOrganizationMember | None:
+    def _handle_new_membership(
+        self, auth_identity: ApiAuthIdentity
+    ) -> ApiOrganizationMember | None:
         user = auth_identity.user
 
         # If the user is either currently *pending* invite acceptance (as indicated
@@ -591,12 +593,11 @@ class AuthIdentityHandler:
         return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self) -> ApiAuthIdentity:
-        auth_identity = auth_service.provision_user_from_sso(
+        user, auth_identity = auth_service.provision_user_from_sso(
             auth_provider=self.auth_provider, identity_data=self.identity
         )
 
         provider = self.auth_provider.provider if self.auth_provider else None
-        user = User.objects.get(id=auth_identity.user_id)  # TODO: Can change signal interface?
         user_signup.send_robust(
             sender=self.handle_new_user,
             user=user,

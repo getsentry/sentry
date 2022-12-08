@@ -34,7 +34,11 @@ class DatabaseBackedAuditLogService(AuditLogService):
     def log_organization_membership(
         self, *, metadata: AuditLogMetadata, organization_member: ApiOrganizationMember
     ) -> None:
-        user = user_service.get_user(user_id=organization_member.user_id)
+        user_id = organization_member.user_id
+        assert user_id is not None
+        user = user_service.get_user(user_id=user_id)
+        assert user is not None
+
         team_ids = [mt.team_id for mt in organization_member.member_teams]
         team_slugs = list(Team.objects.filter(id__in=team_ids).values_list("slug", flat=True))
 

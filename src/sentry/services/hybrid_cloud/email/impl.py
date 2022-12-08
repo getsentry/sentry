@@ -4,10 +4,10 @@ import abc
 from dataclasses import dataclass
 from typing import Collection, Iterable, Type
 
-from sentry.models import UserEmail
+from sentry.models import User, UserEmail
 from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, EmailService
 from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils import metrics
 
 
@@ -18,7 +18,8 @@ class DatabaseBackedEmailService(EmailService):
         candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
         if not candidates:
             return None
-        return _EmailResolver(email, organization).resolve(candidates)
+        user = _EmailResolver(email, organization).resolve(candidates)
+        return user_service.serialize_user(user)
 
 
 @dataclass
@@ -26,7 +27,7 @@ class _EmailResolver:
     email: str
     organization: ApiOrganization | None
 
-    def resolve(self, candidates: Collection[UserEmail]) -> APIUser:
+    def resolve(self, candidates: Collection[UserEmail]) -> User:
         """Pick the user best matching the email address."""
 
         if not candidates:
@@ -49,7 +50,9 @@ class _EmailResolver:
                 candidates = last_candidates
 
         self.if_inconclusive(candidates)
-        raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
+        raise AmbiguousUserFromEmail(
+            self.email, [user_service.serialize_user(ue.user) for ue in candidates]
+        )
 
     def if_inconclusive(self, remaining_candidates: Collection[UserEmail]) -> None:
         """Hook to call if no step resolves to a single user."""
