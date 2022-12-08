@@ -22,6 +22,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Config, Member, Organization, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -212,6 +213,7 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
+    const currentUser = ConfigStore.get('user');
 
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
@@ -230,6 +232,10 @@ class TeamMembers extends AsyncView<Props, State> {
           </StyledUserListElement>
         ),
       }));
+
+    const currentMember = (orgMembers || []).find(member => () => {
+      return member.id === currentUser.id;
+    });
 
     const menuHeader = (
       <StyledMembersLabel>
@@ -263,9 +269,15 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
+        disabled={currentMember?.flags['idp:provisioned']}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xs" data-test-id="add-member">
+          <DropdownButton
+            isOpen={isOpen}
+            size="xs"
+            data-test-id="add-member"
+            disabled={currentMember?.flags['idp:provisioned']}
+          >
             {t('Add Member')}
           </DropdownButton>
         )}

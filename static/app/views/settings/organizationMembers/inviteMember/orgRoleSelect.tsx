@@ -2,6 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {OrgRole} from 'sentry/types';
@@ -36,7 +37,15 @@ class OrganizationRoleSelect extends Component<Props> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Organization Role')}</PanelHeader>
+        <PanelHeader>
+          <div>
+            {t('Organization Role')}{' '}
+            <QuestionTooltip
+              title="You cannot change the organization role because it has been idp-provisioned."
+              size="xs"
+            />
+          </div>
+        </PanelHeader>
 
         <PanelBody>
           {roleList.map(role => {

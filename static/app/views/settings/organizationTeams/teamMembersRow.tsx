@@ -111,6 +111,21 @@ const RemoveButton = (props: {
     return null;
   }
 
+  if (member.flags['idp:provisioned']) {
+    return (
+      <Button
+        size="xs"
+        disabled
+        icon={<IconSubtract size="xs" isCircled />}
+        onClick={onClick}
+        aria-label={t('Remove')}
+        title={t('You cannot remove this member as their role has been idp-provisioned.')}
+      >
+        {t('Remove')}
+      </Button>
+    );
+  }
+
   return (
     <Button
       size="xs"
