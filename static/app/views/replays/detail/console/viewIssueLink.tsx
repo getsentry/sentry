@@ -37,7 +37,7 @@ function ViewIssueLink({breadcrumb, className}: Props) {
             hideName
             avatarProps={{tooltip: projectSlug}}
           />
-          <StyledShortId to={to} shortId={groupShortId} />
+          <ShortId to={to} shortId={groupShortId} />
         </ShortIdBreadrcumb>
       }
     >
@@ -58,8 +58,6 @@ const ShortIdBreadrcumb = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-const StyledShortId = styled(ShortId)``;
 
 const StyledHovercard = styled(
   ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (

@@ -11,6 +11,7 @@ type TimestampButtonProps = {
   startTimestampMs: number;
   timestampMs: string | number | Date;
 };
+
 function TimestampButton({onClick, startTimestampMs, timestampMs}: TimestampButtonProps) {
   return (
     <Tooltip title={<DateTime date={timestampMs} />}>
