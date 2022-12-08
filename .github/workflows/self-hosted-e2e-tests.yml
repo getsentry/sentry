@@ -13,31 +13,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-    self-hosted-end-to-end:
-      runs-on: ubuntu-20.04
-      # temporary, remove once we are confident the action is working
-      continue-on-error: true
-      timeout-minutes: 30
-      steps:
-        - name: Pull the test image
-          id: image_pull
-          env:
-            SENTRY_TEST_IMAGE: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
-          run: |
-            echo "We poll for the Sentry Docker image that the GCB build produces until it succeeds or this job times out."
-            if [[ -z "$SENTRY_TEST_IMAGE" ]]; then
-                echo "The SENTRY_TEST_IMAGE needs to be set" 1>&2
-                exit 1
-            fi
-            echo "Polling for $SENTRY_TEST_IMAGE"
-            until docker pull "$SENTRY_TEST_IMAGE" 2>/dev/null; do
-                sleep 10
-            done
-            echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
-        # TODO: push the image here
-        - name: Run Sentry self-hosted e2e CI
-          uses: getsentry/action-self-hosted-e2e-tests@fa5b8240848f0e645ac2918c530e60ec8f50e4b8
-          with:
-            project_name: sentry
-            local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
-            docker_repo: docker.io/getsentry/sentry
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
+      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      plugins: ${{ steps.changes.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  self-hosted-end-to-end:
+    if: needs.files-changed.outputs.backend == 'true'
+    runs-on: ubuntu-20.04
+    # temporary, remove once we are confident the action is working
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - name: Pull the test image
+        id: image_pull
+        env:
+          SENTRY_TEST_IMAGE: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
+        run: |
+          echo "We poll for the Sentry Docker image that the GCB build produces until it succeeds or this job times out."
+          if [[ -z "$SENTRY_TEST_IMAGE" ]]; then
+              echo "The SENTRY_TEST_IMAGE needs to be set" 1>&2
+              exit 1
+          fi
+          echo "Polling for $SENTRY_TEST_IMAGE"
+          until docker pull "$SENTRY_TEST_IMAGE" 2>/dev/null; do
+              sleep 10
+          done
+          echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
+      # TODO: push the image here
+      - name: Run Sentry self-hosted e2e CI
+        uses: getsentry/action-self-hosted-e2e-tests@fa5b8240848f0e645ac2918c530e60ec8f50e4b8
+        with:
+          project_name: sentry
+          local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
+          docker_repo: docker.io/getsentry/sentry
