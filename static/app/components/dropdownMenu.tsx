@@ -225,7 +225,7 @@ const MenuWrap = styled('ul')<{hasTitle: boolean}>`
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
 
