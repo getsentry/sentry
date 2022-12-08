@@ -17,6 +17,15 @@ export function MobileView(props: BasePerformanceViewProps) {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
+        <DoubleChartRow
+          {...props}
+          allowedCharts={[
+            PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+            PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+            PerformanceWidgetSetting.MOST_IMPROVED,
+            PerformanceWidgetSetting.MOST_REGRESSED,
+          ]}
+        />
         <TripleChartRow
           {...props}
           allowedCharts={[
@@ -25,15 +34,6 @@ export function MobileView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.WARM_STARTUP_AREA,
             PerformanceWidgetSetting.SLOW_FRAMES_AREA,
             PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
-          ]}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.MOST_SLOW_FRAMES,
-            PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
         />
         <Table

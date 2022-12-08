@@ -38,10 +38,6 @@ export function BackendView(props: BasePerformanceViewProps) {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
-        <TripleChartRow
-          {...props}
-          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
-        />
         <DoubleChartRow
           {...props}
           allowedCharts={[
@@ -50,6 +46,10 @@ export function BackendView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.MOST_IMPROVED,
             PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
+        />
+        <TripleChartRow
+          {...props}
+          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
         />
         <Table
           {...props}
