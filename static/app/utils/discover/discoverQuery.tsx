@@ -55,7 +55,6 @@ function shouldRefetchData(
 }
 
 function DiscoverQuery(props: DiscoverQueryComponentProps) {
-  const endpoint = 'events';
   const afterFetch = (data, _) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
@@ -65,7 +64,7 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
   };
   return (
     <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
-      route={endpoint}
+      route="events"
       shouldRefetchData={shouldRefetchData}
       afterFetch={afterFetch}
       {...props}
@@ -74,7 +73,6 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
 }
 
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
-  const endpoint = 'events';
   const afterFetch = (data, _) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
@@ -84,7 +82,7 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
   };
 
   return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
-    route: endpoint,
+    route: 'events',
     shouldRefetchData,
     afterFetch,
     ...props,
