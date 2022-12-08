@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
 import {Organization, Project} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -8,7 +9,6 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 
 type Options = {
   organization: Organization;
@@ -21,7 +21,6 @@ type CountState = Record<string, undefined | number>;
 
 function useReplaysCount({groupIds, transactionNames, organization, project}: Options) {
   const api = useApi();
-  const location = useLocation();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});
 
@@ -57,18 +56,15 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
 
   const eventView = useMemo(
     () =>
-      EventView.fromNewQueryWithLocation(
-        {
-          id: '',
-          name: `Errors within replay`,
-          version: 2,
-          fields: ['count_unique(replayId)', String(fieldName)],
-          query: `!replayId:"" ${condition}`,
-          projects: [],
-        },
-        location
-      ),
-    [location, condition, fieldName]
+      EventView.fromSavedQuery({
+        id: '',
+        name: `Errors within replay`,
+        version: 2,
+        fields: ['count_unique(replayId)', String(fieldName)],
+        query: `!replayId:"" ${condition}`,
+        projects: [Number(project?.id)],
+      }),
+    [project?.id, condition, fieldName]
   );
 
   const fetchReplayCount = useCallback(async () => {
@@ -79,7 +75,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
       const [data] = await doDiscoverQuery<TableData>(
         api,
         `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location)
+        eventView.getEventsAPIPayload({query: {}} as Location<any>)
       );
 
       const counts = data.data.reduce((obj, record) => {
@@ -92,7 +88,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, location, organization.slug, condition, fieldName, zeroCounts, eventView]);
+  }, [api, organization.slug, condition, fieldName, zeroCounts, eventView]);
 
   useEffect(() => {
     const hasSessionReplay =

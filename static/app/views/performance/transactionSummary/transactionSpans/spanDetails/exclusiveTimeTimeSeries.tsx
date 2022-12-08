@@ -23,7 +23,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
@@ -36,7 +36,7 @@ type Props = {
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
   const location = useLocation();
-  const {router} = useRouteContext();
+  const router = useRouter();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();

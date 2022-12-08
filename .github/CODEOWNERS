@@ -21,6 +21,7 @@
 # Event Ingestion
 /src/sentry/attachments/           @getsentry/owners-ingest
 /src/sentry/api/endpoints/relay/   @getsentry/owners-ingest
+/src/sentry/api/endpoints/project_transaction_names.py @getsentry/owners-ingest
 /src/sentry/coreapi.py             @getsentry/owners-ingest
 /src/sentry/ingest/                @getsentry/owners-ingest
 /src/sentry/interfaces/            @getsentry/owners-ingest
@@ -84,9 +85,10 @@ yarn.lock           @getsentry/owners-js-deps
 /static/images/       @getsentry/design
 /docs-ui/components/  @getsentry/design @getsentry/core-ui
 
-# Frontend
-/static/app/components  	@getsentry/core-ui
-/static/app/views/issueList @getsentry/core-ui
+# Core UI
+/static/app/components  					@getsentry/core-ui
+/static/app/views/issueList 				@getsentry/core-ui
+/static/app/views/organizationGroupDetails 	@getsentry/core-ui
 
 # Owners by product feature
 

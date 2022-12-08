@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
@@ -84,6 +85,7 @@ def run_deletion(deletion_id, first_pass=True):
         logger.info(
             "object.delete.object-missing",
             extra={
+                "deletion_id": deletion_id,
                 "object_id": deletion.object_id,
                 "transaction_id": deletion.guid,
                 "model": deletion.model_name,
@@ -103,6 +105,7 @@ def run_deletion(deletion_id, first_pass=True):
         logger.info(
             "object.delete.aborted",
             extra={
+                "deletion_id": deletion_id,
                 "object_id": deletion.object_id,
                 "transaction_id": deletion.guid,
                 "model": deletion.model_name,
@@ -115,13 +118,24 @@ def run_deletion(deletion_id, first_pass=True):
         actor = deletion.get_actor()
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
-    has_more = task.chunk()
-    if has_more:
-        run_deletion.apply_async(
-            kwargs={"deletion_id": deletion_id, "first_pass": False}, countdown=15
+    try:
+        has_more = task.chunk()
+        if has_more:
+            run_deletion.apply_async(
+                kwargs={"deletion_id": deletion_id, "first_pass": False}, countdown=15
+            )
+        else:
+            deletion.delete()
+    except Exception as err:
+        sentry_sdk.set_context(
+            "deletion",
+            {
+                "id": deletion.id,
+                "model": deletion.model_name,
+                "object_id": deletion.object_id,
+            },
         )
-    else:
-        deletion.delete()
+        sentry_sdk.capture_exception(err)
 
 
 @instrumented_task(

@@ -5,6 +5,7 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DeleteButton from 'sentry/components/replays/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
@@ -31,6 +32,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
+        <ShareButton />
         <DeleteButton />
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>

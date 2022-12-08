@@ -1,12 +1,15 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
@@ -18,17 +21,17 @@ import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFil
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
 }
 
-function Console({breadcrumbs, startTimestampMs = 0}: Props) {
+function Console({breadcrumbs, startTimestampMs}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(containerRef);
 
   const {items, logLevel, searchTerm, getOptions, setLogLevel, setSearchTerm} =
     useConsoleFilters({
-      breadcrumbs,
+      breadcrumbs: breadcrumbs || [],
     });
 
   return (
@@ -42,20 +45,27 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
+          isDisabled={!breadcrumbs || !breadcrumbs.length}
         />
         <SearchBar
           onChange={setSearchTerm}
-          placeholder={t('Search console logs...')}
+          placeholder={t('Search Console Logs')}
           size="sm"
           query={searchTerm}
+          disabled={!breadcrumbs || !breadcrumbs.length}
         />
       </ConsoleFilters>
       <ConsoleMessageContainer ref={containerRef}>
-        <ConsoleContent
-          breadcrumbs={breadcrumbs}
-          items={items}
-          startTimestampMs={startTimestampMs}
-        />
+        {breadcrumbs ? (
+          <ConsoleContent
+            breadcrumbs={breadcrumbs}
+            items={items}
+            setSearchTerm={setSearchTerm}
+            startTimestampMs={startTimestampMs}
+          />
+        ) : (
+          <Placeholder height="100%" />
+        )}
       </ConsoleMessageContainer>
     </ConsoleContainer>
   );
@@ -64,10 +74,16 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
 type ContentProps = {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   items: Extract<Crumb, BreadcrumbTypeDefault>[];
+  setSearchTerm: (term: string) => void;
   startTimestampMs: number;
 };
 
-function ConsoleContent({items, breadcrumbs, startTimestampMs}: ContentProps) {
+function ConsoleContent({
+  items,
+  breadcrumbs,
+  setSearchTerm,
+  startTimestampMs,
+}: ContentProps) {
   const {currentHoverTime, currentTime} = useReplayContext();
 
   const currentUserAction = getPrevReplayEvent({
@@ -109,16 +125,23 @@ function ConsoleContent({items, breadcrumbs, startTimestampMs}: ContentProps) {
 
   if (breadcrumbs.length === 0) {
     return (
-      <EmptyStateWarning withIcon={false} small>
-        {t('No console messages recorded')}
-      </EmptyStateWarning>
+      <StyledEmptyStateWarning>
+        <p>{t('No console logs recorded')}</p>
+      </StyledEmptyStateWarning>
     );
   }
   if (items.length === 0) {
     return (
-      <EmptyStateWarning withIcon small>
-        {t('No results found')}
-      </EmptyStateWarning>
+      <StyledEmptyStateWarning>
+        <p>{t('No results found')}</p>
+        <Button
+          icon={<IconClose color="gray500" size="sm" isCircled />}
+          onClick={() => setSearchTerm('')}
+          size="md"
+        >
+          {t('Clear filters')}
+        </Button>
+      </StyledEmptyStateWarning>
     );
   }
   return (
@@ -143,6 +166,15 @@ function ConsoleContent({items, breadcrumbs, startTimestampMs}: ContentProps) {
     </ConsoleTable>
   );
 }
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
 
 const ConsoleContainer = styled(FluidHeight)`
   height: 100%;

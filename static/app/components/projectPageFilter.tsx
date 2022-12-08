@@ -20,7 +20,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
@@ -43,7 +43,7 @@ type Props = {
   lockedMessageSubject?: string;
 
   /**
-   * Max character length for the dropdown title. Default is 20. This number
+   * Max character length for the dropdown title. Default is 25. This number
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
@@ -80,12 +80,12 @@ type Props = {
 
 function ProjectPageFilter({
   specificProjectSlugs,
-  maxTitleLength = 30,
+  maxTitleLength = 25,
   resetParamsOnChange = [],
   disabled,
   ...otherProps
 }: Props) {
-  const {router} = useRouteContext();
+  const router = useRouter();
 
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
     null

@@ -349,6 +349,11 @@ def project_key_errors(ctx, project):
         # Set project_ctx.key_errors to be an array of (group_id, count) for now.
         # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
         ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+        if ctx.organization.slug == "sentry":
+            logger.info(
+                "project_key_errors.results",
+                extra={"project_id": project.id, "num_key_errors": len(key_errors)},
+            )
 
 
 # Organization pass. Depends on project_key_errors.
@@ -656,7 +661,7 @@ def render_template_context(ctx, user):
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count + item.accepted_transaction_count,
+            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
         )
         # Calculate total
         (
@@ -764,6 +769,13 @@ def render_template_context(ctx, user):
         def all_key_errors():
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_errors:
+                    # TODO(Steve): Remove debug logging for Sentry
+                    if ctx.organization.slug == "sentry":
+                        logger.info(
+                            "render_template_context.key_error: %s",
+                            group,
+                            extra={"group_id": group.id, "user_id": user.id},
+                        )
                     yield {
                         "count": count,
                         "group": group,
@@ -853,8 +865,8 @@ def send_email(ctx, user, dry_run=False, email_override=None):
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/new.txt",
-        html_template="sentry/emails/reports/new.html",
+        template="sentry/emails/reports/body.txt",
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context=template_ctx,
         headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},

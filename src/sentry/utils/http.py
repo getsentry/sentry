@@ -30,10 +30,15 @@ def absolute_uri(url: str | None = None, url_prefix: str | None = None) -> str:
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
-def create_redirect_url(request: Request, redirect_url: str) -> str:
+def query_string(request: Request) -> str:
     qs = request.META.get("QUERY_STRING") or ""
     if qs:
-        qs = "?" + qs
+        qs = f"?{qs}"
+    return qs
+
+
+def create_redirect_url(request: Request, redirect_url: str) -> str:
+    qs = query_string(request)
     return f"{redirect_url}{qs}"
 
 

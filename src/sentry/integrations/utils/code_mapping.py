@@ -33,10 +33,14 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class UnsupportedFrameFilename(Exception):
+    pass
+
+
 def get_extension(file_path: str) -> str:
     extension = ""
     if file_path:
-        ext_period = file_path.find(".")
+        ext_period = file_path.rfind(".")
         if ext_period >= 1:  # e.g. f.py
             extension = file_path.rsplit(".")[-1]
 
@@ -72,11 +76,28 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
-    def __init__(self, stacktrace_frame_file_path: str) -> None:
-        self.full_path = stacktrace_frame_file_path
-        if stacktrace_frame_file_path.find("/") > -1:
-            # XXX: This code assumes that all stack trace frames are part of a module
-            self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
+    def __init__(self, frame_file_path: str) -> None:
+        # XXX: Using regexes would be better
+        if not frame_file_path or frame_file_path.find("<") > -1:
+            raise UnsupportedFrameFilename
+        self.full_path = frame_file_path
+        self.extension = get_extension(frame_file_path)
+        if not self.extension:
+            raise UnsupportedFrameFilename
+        if self.frame_type() == "packaged":
+            self._packaged_logic(frame_file_path)
+        else:
+            self._straight_path_logic(frame_file_path)
+
+    def frame_type(self) -> str:
+        type = "packaged"
+        if self.extension not in ["py"]:
+            type = "straight_path"
+        return type
+
+    def _packaged_logic(self, frame_file_path: str) -> None:
+        if frame_file_path.find("/") > -1:
+            self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
 
             # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
@@ -88,8 +109,18 @@ class FrameFilename:
         else:
             self.root = ""
             self.dir_path = ""
-            self.file_and_dir_path = self.full_path
-            self.file_name = self.full_path
+            self.file_and_dir_path = frame_file_path
+            self.file_name = frame_file_path
+
+    def _straight_path_logic(self, frame_file_path: str) -> None:
+        # XXX: Write unit tests for these
+        # Cases: some/path/foo.tsx or ./some/path/foo.tsx
+        start_at_index = 2 if frame_file_path.startswith("./") else 0
+        backslash_index = frame_file_path.find("/", start_at_index)
+        self.root = frame_file_path[0:backslash_index]  # some or .some
+        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
+        self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
+        self.file_and_dir_path = frame_file_path.replace("./", "")  # some/path/foo.tsx (both)
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -98,28 +129,34 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
+    buckets: Dict[str, List[FrameFilename]] = {}
+    for stacktrace_frame_file_path in stacktraces:
+        try:
+            frame_filename = FrameFilename(stacktrace_frame_file_path)
+            # Any files without a top directory will be grouped together
+            bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
+
+            if not buckets.get(bucket_key):
+                buckets[bucket_key] = []
+            buckets[bucket_key].append(frame_filename)
+
+        except UnsupportedFrameFilename:
+            logger.info(
+                "Frame's filepath not supported.",
+                extra={"frame_file_path": stacktrace_frame_file_path},
+            )
+        except Exception:
+            logger.exception("Unable to split stacktrace path into buckets")
+
+    return buckets
+
+
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
-
-    def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
-        buckets: Dict[str, List[FrameFilename]] = {}
-        for stacktrace_frame_file_path in stacktraces:
-            try:
-                frame_filename = FrameFilename(stacktrace_frame_file_path)
-                # Any files without a top directory will be grouped together
-                bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
-
-                if not buckets.get(bucket_key):
-                    buckets[bucket_key] = []
-                buckets[bucket_key].append(frame_filename)
-
-            except Exception:
-                logger.exception("Unable to split stacktrace path into buckets")
-                continue
-        return buckets
 
     def process_stackframes(self, buckets: Dict[str, List[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
@@ -146,7 +183,7 @@ class CodeMappingTreesHelper:
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: Dict[str, List[FrameFilename]] = self.stacktrace_buckets(stacktraces)
+        buckets: Dict[str, List[FrameFilename]] = stacktrace_buckets(stacktraces)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings
@@ -210,18 +247,27 @@ class CodeMappingTreesHelper:
         return file_matches
 
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
-        """Generate the source path of a code mapping
-        e.g. src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry
-        e.g. src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry
-        e.g. ssl.py -> raise NotImplementedError
-        """
-        if frame_filename.dir_path != "":
-            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
-            return f"{source_path}/"
-        elif frame_filename.root != "":
-            return src_file.rsplit(frame_filename.file_name)[0]
+        """Generate the source code root for a code mapping. It always includes a last backslash"""
+        source_code_root = None
+        if frame_filename.frame_type() == "packaged":
+            if frame_filename.dir_path != "":
+                # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
+                source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+                source_code_root = f"{source_path}/"
+            elif frame_filename.root != "":
+                # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
+                source_code_root = src_file.rsplit(frame_filename.file_name)[0]
+            else:
+                # ssl.py -> raise NotImplementedError
+                raise NotImplementedError("We do not support top level files.")
         else:
-            raise NotImplementedError("We do not support top level files.")
+            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
+            # static/app/foo.tsx (app/foo.tsx) -> static/app/
+            source_code_root = f'{src_file.replace(frame_filename.file_and_dir_path, frame_filename.root.replace("./", ""))}/'
+
+        if source_code_root:
+            assert source_code_root.endswith("/")
+        return source_code_root
 
     def _generate_code_mapping_from_tree(
         self,
@@ -262,14 +308,14 @@ class CodeMappingTreesHelper:
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
 
-    def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
-        """Tries to see if the stacktrace without the root matches the file from the
-        source code. Use existing code mappings to exclude some source files
-        """
-        # Exit early because we should not be processing source files for existing code maps
-        if self._matches_current_code_mappings(src_file, frame_filename):
-            return False
+    def _potential_match_with_transformation(
+        self, src_file: str, frame_filename: FrameFilename
+    ) -> bool:
+        """Determine if the frame filename represents a source code file.
 
+        Languages like Python include the package name at the front of the frame_filename, thus, we need
+        to drop it before we try to match it.
+        """
         match = False
         # For instance:
         #  src_file: "src/sentry/integrations/slack/client.py"
@@ -285,6 +331,29 @@ class CodeMappingTreesHelper:
             match = (
                 split[0].rfind(f"/{frame_filename.root}") > -1 or split[0] == frame_filename.root
             )
+        return match
+
+    def _potential_match_no_transformation(
+        self, src_file: str, frame_filename: FrameFilename
+    ) -> bool:
+        # src_file: static/app/utils/handleXhrErrorResponse.tsx
+        # full_name: ./app/utils/handleXhrErrorResponse.tsx
+        # file_and_dir_path: app/utils/handleXhrErrorResponse.tsx
+        return src_file.rfind(frame_filename.file_and_dir_path) > -1
+
+    def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
+        """Tries to see if the stacktrace without the root matches the file from the
+        source code. Use existing code mappings to exclude some source files
+        """
+        # Exit early because we should not be processing source files for existing code maps
+        if self._matches_current_code_mappings(src_file, frame_filename):
+            return False
+
+        match = False
+        if frame_filename.full_path.endswith(".py"):
+            match = self._potential_match_with_transformation(src_file, frame_filename)
+        else:
+            match = self._potential_match_no_transformation(src_file, frame_filename)
 
         return match
 

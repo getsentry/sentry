@@ -7,6 +7,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
+from sentry.options.manager import FLAG_CREDENTIAL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -21,7 +22,7 @@ register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register("system.rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.event-retention-days", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.secret-key", flags=FLAG_NOSTORE)
+register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -97,7 +98,9 @@ register(
 
 # SMS
 register("sms.twilio-account", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("sms.twilio-token", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "sms.twilio-token", default="", flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
 register("sms.twilio-number", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
     "sms.disallow-new-enrollment",
@@ -187,26 +190,26 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
-register("cloudflare.secret-key", default="")
+register("cloudflare.secret-key", default="", flags=FLAG_CREDENTIAL)
 
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
-register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
-register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
 register("github-app.name", default="")
-register("github-app.webhook-secret", default="")
-register("github-app.private-key", default="")
+register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
+register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
-register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.client-secret", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register(
     "github-login.require-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK
 )
@@ -217,27 +220,27 @@ register("github-login.organization", flags=FLAG_PRIORITIZE_DISK)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # VSTS Integration - with limited scopes
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vsts-limited.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="")
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("vercel.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry")
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
-register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
 register("aws-lambda.account-number", default="943013980633")
 register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
@@ -441,6 +444,54 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
+# BEGIN PROJECT ABUSE QUOTAS
+
+# Example:
+# >>> org = Organization.objects.get(slug='foo')
+# >>> org.update_option("project-abuse-quota.transaction-limit", 42)
+# >>> for q in SubscriptionQuota()._get_abuse_quotas(org): print(q.to_json())
+# {'id': 'pat', 'scope': 'project', 'categories': ['transaction'], 'limit': 420, 'window': 10, 'reasonCode': 'project_abuse_limit'}
+# You can see that for this organization, 42 transactions per second
+# is effectively enforced as 420/s because the rate limiting window is 10 seconds.
+
+# DEPRECATED (only in use by getsentry).
+# Use "project-abuse-quota.window" instead.
+register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
+
+# Relay isn't effective at enforcing 1s windows - 10 seconds has worked well.
+# If the limit is negative, then it means completely blocked.
+# I don't see this value needing to be tweaked on a per-org basis,
+# so for now the org option "project-abuse-quota.window" doesn't do anything.
+register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
+
+# DEPRECATED. Use "project-abuse-quota.error-limit" instead.
+# This is set to 0: don't limit by default, because it is configured in production.
+# The DEPRECATED org option override is "sentry:project-error-limit".
+register("getsentry.rate-limit.project-errors", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+# DEPRECATED. Use "project-abuse-quota.transaction-limit" instead.
+# This is set to 0: don't limit by default, because it is configured in production.
+# The DEPRECATED org option override is "sentry:project-transaction-limit".
+register(
+    "getsentry.rate-limit.project-transactions",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK,
+)
+
+# These are set to 0: don't limit by default.
+# These have yet to be configured in production.
+# For errors and transactions, the above DEPRECATED options take
+# precedence for now, until we decide on values to set for all these.
+# Set the same key as an org option which will override these values for the org.
+# Similarly, for now, the DEPRECATED org options "sentry:project-error-limit"
+# and "sentry:project-transaction-limit" take precedence.
+register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+
+# END PROJECT ABUSE QUOTAS
+
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
@@ -528,6 +579,9 @@ register("performance.issues.file_io_main_thread-creation", default=0.0)
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+register("performance.issues.render_blocking_assets.fcp_minimum_threshold", default=2000.0)
+register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
+register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
