@@ -597,7 +597,10 @@ def invitation(request):
             "email": "foo@example.com",
             "organization": org,
             "url": absolute_uri(
-                reverse("sentry-accept-invite", kwargs={"member_id": om.id, "token": om.token})
+                reverse(
+                    "sentry-accept-invite",
+                    kwargs={"organization_slug": org.slug, "member_id": om.id, "token": om.token},
+                )
             ),
         },
     ).render(request)

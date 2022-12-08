@@ -41,6 +41,8 @@ class AcceptOrganizationInvite(Endpoint):
         if organization_slug:
             if organization_slug != organization.slug:
                 return self.respond_invalid()
+        else:
+            organization_slug = organization.slug
 
         if (
             not helper.member_pending
@@ -81,7 +83,7 @@ class AcceptOrganizationInvite(Endpoint):
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
             url = (
-                reverse("sentry-accept-invite", args=[member_id, token])
+                reverse("sentry-accept-invite", args=[organization_slug, member_id, token])
                 if not auth_provider
                 else "/"
             )

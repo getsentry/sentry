@@ -239,14 +239,17 @@ class OrganizationMember(Model):
     def generate_token(self):
         return uuid4().hex + uuid4().hex
 
-    # TODO: does this need to be updated?
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
             return None
         return absolute_uri(
             reverse(
                 "sentry-accept-invite",
-                kwargs={"member_id": self.id, "token": self.token or self.legacy_token},
+                kwargs={
+                    "organization_slug": self.organization.slug,
+                    "member_id": self.id,
+                    "token": self.token or self.legacy_token,
+                },
             )
         )
 
