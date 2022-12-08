@@ -24,11 +24,26 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="team",
-            name="flags",
-            field=bitfield.models.BitField(
-                ("idp:provisioned", "idp:provisioned"), default=0, null=True
-            ),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_team" ADD COLUMN "flags" bigint NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_team" DROP COLUMN "flags";
+                    """,
+                    hints={"tables": ["sentry_team"]},
+                )
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="team",
+                    name="flags",
+                    field=bitfield.models.BitField(
+                        ("idp:provisioned", "idp:provisioned"), default=0
+                    ),
+                ),
+            ],
+        )
     ]
