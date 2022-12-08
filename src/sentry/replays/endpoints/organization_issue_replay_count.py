@@ -16,6 +16,8 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.utils.snuba import Dataset
 
+MAX_REPLAY_COUNT = 51
+
 
 @region_silo_endpoint
 class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
@@ -59,8 +61,7 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         for row in replay_results["data"]:
             issue_ids = replay_id_to_issue_map[row["replay_id"]]
             for issue_id in issue_ids:
-                # cap count at 50
-                issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, 50)
+                issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, MAX_REPLAY_COUNT)
 
         return self.respond(issue_id_counts)
 
