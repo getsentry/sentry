@@ -66,3 +66,36 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             problem.fingerprint == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
         )
         assert problem.title == "File IO on Main Thread"
+
+    def test_parallel_spans(self):
+        event = EVENTS["file-io-on-main-thread-with-parallel-spans"]
+
+        detector = FileIOMainThreadDetector(self.settings, event)
+        run_detector_on_data(detector, event)
+        problem = list(detector.stored_problems.values())[0]
+        assert problem.offender_span_ids == ["054ba3a374d543eb", "054ba3a3a4d543ab"]
+
+    def test_parallel_spans_not_detected_when_total_too_short(self):
+        event = EVENTS["file-io-on-main-thread-with-parallel-spans"]
+        event["spans"][1]["timestamp"] = 1669031858.015
+
+        detector = FileIOMainThreadDetector(self.settings, event)
+        run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 0
+
+    def test_complicated_structure(self):
+        event = EVENTS["file-io-on-main-thread-with-complicated-structure"]
+
+        detector = FileIOMainThreadDetector(self.settings, event)
+        run_detector_on_data(detector, event)
+        problem = list(detector.stored_problems.values())[0]
+        assert problem.offender_span_ids == [
+            "054ba3a374d543eb",
+            "054ba3a3a4d543ab",
+            "054ba3a3a4d543cd",
+            "054ba3a3a4d543ef",
+            "054ba3a3a4d54ab1",
+            "054ba3a3a4d54ab2",
+            "054ba3a3a4d54ab3",
+            "054ba3a3a4d54ab4",
+        ]

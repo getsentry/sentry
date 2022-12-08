@@ -6,6 +6,7 @@ import os
 import random
 import re
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
@@ -499,6 +500,29 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return True
     else:
         return query and not query.endswith("...")
+
+
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
 
 
 class PerformanceDetector(ABC):
@@ -1327,6 +1351,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
         self.most_recent_hash = {}
         self.stored_problems = {}
         self.mapper = None
+        self.parent_to_blocked_span = defaultdict(list)
         self._prepare_deobfuscation()
 
     def _prepare_deobfuscation(self):
@@ -1374,30 +1399,42 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     def visit_span(self, span: Span):
         if self._is_file_io_on_main_thread(span):
-            settings_for_span = self.settings_for_span(span)
+            parent_span_id = span.get("parent_span_id")
+            self.parent_to_blocked_span[parent_span_id].append(span)
+
+    def on_complete(self):
+        for parent_span_id, span_list in self.parent_to_blocked_span.items():
+            span_list = [
+                span for span in span_list if "start_timestamp" in span and "timestamp" in span
+            ]
+            total_duration = total_span_time(span_list)
+            settings_for_span = self.settings_for_span(span_list[0])
             if not settings_for_span:
                 return
 
-            op, span_id, op_prefix, span_duration, settings = settings_for_span
-            if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
-                fingerprint = self._fingerprint(span)
+            _, _, _, _, settings = settings_for_span
+            if total_duration >= settings["duration_threshold"]:
+                fingerprint = self._fingerprint(span_list)
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
-                    op=span.get("op"),
-                    desc=span.get("description", ""),
-                    parent_span_ids=[span.get("parent_span_id")],
+                    op=span_list[0].get("op"),
+                    desc=span_list[0].get("description", ""),
+                    parent_span_ids=[parent_span_id],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
                     cause_span_ids=[],
-                    offender_span_ids=[span.get("span_id", None)],
+                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span_list) -> str:
         call_stack_strings = []
-        for item in span.get("data", {}).get("call_stack", []):
-            module = self._deobfuscate_module(item.get("module", ""))
-            function = self._deobfuscate_function(item)
-            call_stack_strings.append(f"{module}.{function}")
-        call_stack = ".".join(call_stack_strings).encode("utf8")
+        overall_stack = []
+        for span in span_list:
+            for item in span.get("data", {}).get("call_stack", []):
+                module = self._deobfuscate_module(item.get("module", ""))
+                function = self._deobfuscate_function(item)
+                call_stack_strings.append(f"{module}.{function}")
+            overall_stack.append(".".join(call_stack_strings))
+        call_stack = "-".join(overall_stack).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 
