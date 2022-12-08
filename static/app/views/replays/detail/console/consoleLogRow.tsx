@@ -1,19 +1,16 @@
-import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconFire, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
+import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
+import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-const ICONS = {
-  error: <IconFire size="xs" />,
-  warning: <IconWarning size="xs" />,
-};
-
-interface Props extends ComponentProps<typeof MessageFormatter> {
+type Props = {
+  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   isCurrent: boolean;
   isHovered: boolean;
   onClickTimestamp: any;
@@ -21,7 +18,7 @@ interface Props extends ComponentProps<typeof MessageFormatter> {
   onMouseLeave: any;
   startTimestampMs: number;
   style: any;
-}
+};
 function ConsoleMessage({
   breadcrumb,
   isCurrent,
@@ -33,7 +30,7 @@ function ConsoleMessage({
   style,
 }: Props) {
   return (
-    <ConsoleMessageItem
+    <ConsoleLog
       isCurrent={isCurrent}
       isHovered={isHovered}
       level={breadcrumb.level}
@@ -41,27 +38,31 @@ function ConsoleMessage({
       onMouseLeave={onMouseLeave}
       style={style}
     >
-      <Icon>{ICONS[breadcrumb.level]}</Icon>
+      <Icon level={breadcrumb.level} />
       <Message>
+        {breadcrumbHasIssue(breadcrumb) ? (
+          <IssueLinkWrapper>
+            <ViewIssueLink breadcrumb={breadcrumb} />
+          </IssueLinkWrapper>
+        ) : null}
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
-        <IssueLinkWrapper>
-          <ViewIssueLink breadcrumb={breadcrumb} />
-        </IssueLinkWrapper>
       </Message>
       <TimestampButton
         onClick={onClickTimestamp}
         startTimestampMs={startTimestampMs}
         timestampMs={breadcrumb.timestamp || ''}
       />
-    </ConsoleMessageItem>
+    </ConsoleLog>
   );
 }
 
-const IssueLinkWrapper = styled('div')``;
+const IssueLinkWrapper = styled('div')`
+  float: right;
+`;
 
-const ConsoleMessageItem = styled('div')<{
+const ConsoleLog = styled('div')<{
   isCurrent: boolean;
   isHovered: boolean;
   level: string;
@@ -69,18 +70,13 @@ const ConsoleMessageItem = styled('div')<{
   padding-block: ${space(0.25)};
 
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
   padding: ${space(0.5)} ${space(1)};
 
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
-      : 'inherit'};
-
-  color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].iconColor
       : 'inherit'};
 
   border-bottom: ${p => {
@@ -93,6 +89,11 @@ const ConsoleMessageItem = styled('div')<{
     return `1px solid ${p.theme.innerBorder}`;
   }};
 
+  color: ${p =>
+    ['warning', 'error'].includes(p.level)
+      ? p.theme.alert[p.level].iconColor
+      : 'inherit'};
+
   & ${IssueLinkWrapper} {
     visibility: hidden;
   }
@@ -102,12 +103,16 @@ const ConsoleMessageItem = styled('div')<{
   }
 `;
 
-const Icon = styled('div')``;
+const ICONS = {
+  error: <IconFire size="xs" />,
+  warning: <IconWarning size="xs" />,
+};
+
+function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) {
+  return <span>{ICONS[level]}</span>;
+}
 
 const Message = styled('div')`
-  display: flex;
-  justify-content: space-between;
-
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: pre-wrap;

@@ -15,7 +15,7 @@ import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
-import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
+import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
@@ -76,7 +76,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         parent={parent}
         rowIndex={index}
       >
-        <ConsoleMessage
+        <ConsoleLogRow
           isCurrent={item.id === current?.id}
           isHovered={item.id === hovered?.id}
           breadcrumb={item}

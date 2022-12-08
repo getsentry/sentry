@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
+import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
@@ -17,10 +18,10 @@ type Props = {
 function ViewIssueLink({breadcrumb, className}: Props) {
   const organization = useOrganization();
 
-  const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
-  if (!groupId || !groupShortId || !eventId) {
+  if (!breadcrumbHasIssue(breadcrumb)) {
     return null;
   }
+  const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
 
   const to = {
     pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
