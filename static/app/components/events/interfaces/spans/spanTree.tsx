@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -9,6 +9,7 @@ import {
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 
@@ -50,9 +51,15 @@ type PropType = ScrollbarManagerChildrenProps & {
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
+  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
+};
+
+type StateType = {
+  headerPos: number;
+  spanRows: Array<{spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
 const listRef = React.createRef<ReactVirtualizedList>();
@@ -64,6 +71,13 @@ class SpanTree extends Component<PropType> {
     defaultHeight: ROW_HEIGHT,
     minHeight: ROW_HEIGHT,
   });
+
+  state: StateType = {
+    headerPos: 0,
+    // Stores each visible span row ref along with its its tree depth. This is used to calculate the
+    // horizontal auto-scroll positioning
+    spanRows: [],
+  };
 
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
@@ -659,30 +673,17 @@ class SpanTree extends Component<PropType> {
     }
   }
 
-  renderRow(params: ListRowProps, spanTree: SpanTreeNode[]) {
-    const {index, key, parent, style, columnIndex} = params;
-
+  renderRow(props: ListRowProps, spanTree: SpanTreeNode[]) {
     return (
-      <CellMeasurer
-        key={key}
+      <SpanRow
+        {...props}
+        spanTree={spanTree}
+        spanContextProps={this.props.spanContextProps}
         cache={this.cache}
-        parent={parent}
-        columnIndex={columnIndex}
-        rowIndex={index}
-      >
-        {({measure}) => {
-          return (
-            <div style={style}>
-              {this.renderSpanNode(spanTree[index], {
-                measure,
-                listRef,
-                cellMeasurerCache: this.cache,
-                ...this.props.spanContextProps,
-              })}
-            </div>
-          );
-        }}
-      </CellMeasurer>
+        traceViewHeaderRef={this.props.traceViewHeaderRef}
+        addSpanRowToMap={this.addSpanRowToMap}
+        removeSpanRowFromMap={this.removeSpanRowFromMap}
+      />
     );
   }
 
@@ -697,6 +698,30 @@ class SpanTree extends Component<PropType> {
     };
   }
 
+  addSpanRowToMap = (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => {
+    const spanRowExists = this.state.spanRows.find(
+      ({spanRow: _spanRow}) => _spanRow === spanRow
+    );
+
+    if (spanRowExists) {
+      return;
+    }
+
+    this.setState({spanRows: [...this.state.spanRows, {spanRow, treeDepth}]});
+  };
+
+  removeSpanRowFromMap = (spanRow: React.RefObject<HTMLDivElement>) => {
+    const filteredSpanRows = this.state.spanRows.filter(
+      ({spanRow: _spanRow}) => _spanRow !== spanRow
+    );
+
+    this.setState({spanRows: filteredSpanRows});
+  };
+
+  debouncedOnScroll = debounce(() => {
+    console.log(this.props.traceViewHeaderRef.current?.getBoundingClientRect().bottom);
+  }, 50);
+
   render() {
     const spanTree = this.generateSpanTree();
     const infoMessage = spanTree[spanTree.length - 1];
@@ -710,7 +735,11 @@ class SpanTree extends Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        <WindowScroller>
+        <WindowScroller
+          // NEW PLAN: Use this event, determine the bottom pos of the header. In renderRow, we will calculate the boundingBox and use that
+          // to determine if each row's top is above the header's bot
+          onScroll={this.debouncedOnScroll}
+        >
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>
               {({width}) => (
@@ -725,7 +754,7 @@ class SpanTree extends Component<PropType> {
                   rowHeight={this.cache.rowHeight}
                   rowCount={spanTree.length}
                   rowRenderer={props => this.renderRow(props, spanTree)}
-                  overscanRowCount={10}
+                  // overscanRowCount={0}
                   overscanIndicesGetter={this.overscanIndicesGetter}
                   ref={listRef}
                 />
@@ -736,6 +765,109 @@ class SpanTree extends Component<PropType> {
       </TraceViewContainer>
     );
   }
+}
+
+type SpanRowProps = ListRowProps & {
+  addSpanRowToMap: (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => void;
+  cache: CellMeasurerCache;
+  removeSpanRowFromMap: (spanRow: React.RefObject<HTMLDivElement>) => void;
+  spanContextProps: SpanContext.SpanContextProps;
+  spanTree: SpanTreeNode[];
+  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
+};
+
+function SpanRow(props: SpanRowProps) {
+  const {
+    index,
+    key,
+    parent,
+    style,
+    columnIndex,
+    spanTree,
+    cache,
+    spanContextProps,
+    traceViewHeaderRef,
+    isVisible,
+    addSpanRowToMap,
+    removeSpanRowFromMap,
+  } = props;
+
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  // Keep track of this SpanRow when it is considered visible
+  useEffect(() => {
+    const node = spanTree[index];
+    if (node.type !== SpanTreeNodeType.MESSAGE && rowRef) {
+      isVisible
+        ? addSpanRowToMap(rowRef, node.props.treeDepth)
+        : removeSpanRowFromMap(rowRef);
+    }
+
+    return () => removeSpanRowFromMap(rowRef);
+  }, [isVisible, rowRef]);
+
+  const renderSpanNode = (
+    node: SpanTreeNode,
+    extraProps: {
+      cellMeasurerCache: CellMeasurerCache;
+      listRef: React.RefObject<ReactVirtualizedList>;
+      measure: () => void;
+    } & SpanContext.SpanContextProps
+  ) => {
+    switch (node.type) {
+      case SpanTreeNodeType.SPAN:
+        return (
+          <SpanBar
+            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
+            {...node.props}
+            {...extraProps}
+          />
+        );
+      case SpanTreeNodeType.DESCENDANT_GROUP:
+        return (
+          <SpanDescendantGroupBar
+            key={`${node.props.spanNumber}-span-group`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.SIBLING_GROUP:
+        return (
+          <SpanSiblingGroupBar
+            key={`${node.props.spanNumber}-span-sibling`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.MESSAGE:
+        return node.element;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <CellMeasurer
+      key={key}
+      cache={cache}
+      parent={parent}
+      columnIndex={columnIndex}
+      rowIndex={index}
+    >
+      {({measure}) => {
+        return (
+          <div style={style} ref={rowRef}>
+            {renderSpanNode(spanTree[index], {
+              measure,
+              listRef,
+              cellMeasurerCache: cache,
+              ...spanContextProps,
+            })}
+          </div>
+        );
+      }}
+    </CellMeasurer>
+  );
 }
 
 const TraceViewContainer = styled('div')`
