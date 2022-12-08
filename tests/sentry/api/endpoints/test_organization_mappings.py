@@ -21,42 +21,42 @@ class OrganizationMappingsCreateTest(OrganizationIndexTest):
     def test_valid_params(self):
         data = {
             "slug": "foobar",
-            "organization_id": 1234567,
-            "stripe_id": "blah",
-            "idempotency_key": "blah",
-            "region_name": "de",
+            "organizationId": 1234567,
+            "customerId": "blah",
+            "idempotencyKey": "blah",
+            "regionName": "de",
         }
         response = self.get_success_response(**data)
         mapping = OrganizationMapping.objects.get(slug=response.data["slug"])
-        assert mapping.organization_id == data["organization_id"]
+        assert mapping.organization_id == data["organizationId"]
         assert mapping.slug == data["slug"]
-        assert mapping.stripe_id == data["stripe_id"]
+        assert mapping.customer_id == data["customerId"]
         assert not mapping.verified
 
     def test_valid_double_submit(self):
         data = {
             "slug": "foobar1",
-            "organization_id": 1234567,
-            "stripe_id": "blah",
-            "idempotency_key": "key",
-            "region_name": "de",
+            "organizationId": 1234567,
+            "customerId": "blah",
+            "idempotencyKey": "key",
+            "regionName": "de",
         }
         OrganizationMapping.objects.create(**data)
         response = self.get_success_response(
-            **{**data, "organization_id": 7654321, "region_name": "tz"}
+            **{**data, "organizationId": 7654321, "region_name": "tz"}
         )
         assert response.data["id"]
-        assert response.data["organization_id"] == "7654321"
-        assert response.data["region_name"] == "tz"
+        assert response.data["organizationId"] == "7654321"
+        assert response.data["regionName"] == "tz"
 
     def test_dupe_slug_reservation(self):
-        basedata = {
+        modeldata = {
             "slug": "foobar",
             "organization_id": 1234567,
-            "stripe_id": "blah",
+            "customer_id": "blah",
             "region_name": "de",
         }
-        data1 = {**basedata, "idempotency_key": "key1"}
+        data1 = {**modeldata, "idempotency_key": "key1"}
         OrganizationMapping.objects.create(**data1)
-        data2 = {**basedata, "idempotency_key": "key2"}
+        data2 = {**modeldata, "idempotency_key": "key2"}
         self.get_error_response(status_code=409, **data2)

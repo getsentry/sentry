@@ -12,13 +12,13 @@ from sentry.services.hybrid_cloud.organizationmapping import organization_mappin
 
 
 class OrganizationMappingSerializer(serializers.Serializer):  # type: ignore
-    organization_id = serializers.IntegerField(required=True)
+    organizationId = serializers.IntegerField(required=True)
     slug = serializers.RegexField(
         BaseOrganizationSerializer.slug_regex, max_length=50, required=True
     )
-    stripe_id = serializers.CharField(max_length=255, required=True)
-    idempotency_key = serializers.CharField(max_length=48, required=True)
-    region_name = serializers.CharField(max_length=48, required=True)
+    customerId = serializers.CharField(max_length=255, required=True)
+    idempotencyKey = serializers.CharField(max_length=48, required=True)
+    regionName = serializers.CharField(max_length=48, required=True)
 
 
 @control_silo_endpoint
@@ -36,12 +36,12 @@ class OrganizationMappingsEndpoint(Endpoint):
         ensuring reserved slugs (eventually) accurately reflect the corresponding organization
         records in region silos.
 
-        :pparam string organization_id: the id of the organization we're reserving a slug for
+        :pparam string organizationId: the id of the organization we're reserving a slug for
         :pparam string slug: the slug to reserve
-        :param string stripe_id: a stripe unique identifier
-        :param string idempotency_key: A pseudorandom string that allows requests to be repeated safely.
+        :param string customerId: a stripe unique identifier
+        :param string idempotencyKey: A pseudorandom string that allows requests to be repeated safely.
                     Recommended to be an md5sum(org_id + slug + stripe_id)
-        :param string region_name: The region this organization resides in
+        :param string regionName: The region this organization resides in
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated:
@@ -60,11 +60,11 @@ class OrganizationMappingsEndpoint(Endpoint):
             try:
                 mapping = organization_mapping_service.create(
                     request.user,
-                    result["organization_id"],
+                    result["organizationId"],
                     result["slug"],
-                    result["stripe_id"],
-                    result["idempotency_key"],
-                    result["region_name"],
+                    result["customerId"],
+                    result["idempotencyKey"],
+                    result["regionName"],
                 )
                 return Response(serialize(mapping, request.user), status=201)
             except IntegrityError as e:
