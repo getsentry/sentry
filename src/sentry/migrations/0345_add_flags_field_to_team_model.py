@@ -28,7 +28,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_team" ADD COLUMN "flags" bigint NULL DEFAULT 0;
+                    ALTER TABLE "sentry_team" ADD COLUMN "flags" bigint NOT NULL DEFAULT 0;
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_team" DROP COLUMN "flags";
