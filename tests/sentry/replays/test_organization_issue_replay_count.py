@@ -184,7 +184,7 @@ class OrganizationIssueReplayCountEndpoint(APITestCase, SnubaTestCase, ReplaysSn
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_max_50(self):
+    def test_max_51(self):
         replay_ids = [uuid.uuid4().hex for _ in range(100)]
         for replay_id in replay_ids:
             self.store_replays(
@@ -209,7 +209,7 @@ class OrganizationIssueReplayCountEndpoint(APITestCase, SnubaTestCase, ReplaysSn
             response = self.client.get(self.url, query, format="json")
 
         expected = {
-            event_a.group.id: 50,
+            event_a.group.id: 51,
         }
         assert response.status_code == 200, response.content
         assert response.data == expected
