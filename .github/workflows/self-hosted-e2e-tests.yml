@@ -37,6 +37,8 @@ jobs:
 
   self-hosted-end-to-end:
     if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: self-hosted tests
     runs-on: ubuntu-20.04
     # temporary, remove once we are confident the action is working
     continue-on-error: true
