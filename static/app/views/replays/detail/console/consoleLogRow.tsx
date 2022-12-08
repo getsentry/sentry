@@ -67,8 +67,6 @@ const ConsoleLog = styled('div')<{
   isHovered: boolean;
   level: string;
 }>`
-  padding-block: ${space(0.25)};
-
   display: grid;
   grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
@@ -79,15 +77,13 @@ const ConsoleLog = styled('div')<{
       ? p.theme.alert[p.level].backgroundLight
       : 'inherit'};
 
-  border-bottom: ${p => {
-    if (p.isCurrent) {
-      return `1px solid ${p.theme.purple300}`;
-    }
-    if (p.isHovered) {
-      return `1px solid ${p.theme.purple200}`;
-    }
-    return `1px solid ${p.theme.innerBorder}`;
-  }};
+  border-bottom: 1px solid
+    ${p =>
+      p.isCurrent
+        ? p.theme.purple300
+        : p.isHovered
+        ? p.theme.purple200
+        : p.theme.innerBorder};
 
   color: ${p =>
     ['warning', 'error'].includes(p.level)
