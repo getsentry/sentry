@@ -19,6 +19,7 @@ type Props = {
   startTimestampMs: number;
   style: any;
 };
+
 function ConsoleMessage({
   breadcrumb,
   isCurrent,

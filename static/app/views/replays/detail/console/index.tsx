@@ -1,8 +1,7 @@
-import {useEffect} from 'react';
+import {useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
-  CellMeasurerCache,
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
@@ -19,24 +18,25 @@ import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 interface Props {
   breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
 }
 
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-  minHeight: 24,
-});
-
 function Console({breadcrumbs, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
-  let listRef: ReactVirtualizedList | null = null;
 
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
+
+  const listRef = useRef<ReactVirtualizedList>(null);
+  const {cache} = useVirtualizedList({listRef, items});
+
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
   const current = getPrevReplayEvent({
     items,
@@ -53,17 +53,6 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         allowExact: true,
       })
     : null;
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  useEffect(() => {
-    // Restart cache when items changes
-    if (listRef) {
-      cache.clearAll();
-      listRef?.forceUpdateGrid();
-    }
-  }, [items, listRef]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = items[index];
@@ -98,9 +87,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
+                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
