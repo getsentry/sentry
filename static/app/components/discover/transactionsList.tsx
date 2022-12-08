@@ -277,7 +277,6 @@ class _TransactionsList extends Component<Props> {
         limit={limit}
         cursor={cursor}
         referrer="api.discover.transactions-list"
-        useEvents
       >
         {tableRenderer}
       </DiscoverQuery>

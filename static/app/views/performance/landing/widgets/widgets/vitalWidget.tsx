@@ -144,7 +144,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
-              useEvents
             />
           );
         },

@@ -127,7 +127,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            useEvents
           />
         );
       },

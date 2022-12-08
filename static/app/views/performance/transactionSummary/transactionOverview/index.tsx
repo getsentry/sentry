@@ -92,7 +92,6 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
-    useEvents: true,
   });
 
   const {data: tableData, isLoading, error} = queryData;

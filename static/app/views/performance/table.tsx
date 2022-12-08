@@ -443,7 +443,6 @@ class _Table extends Component<Props, State> {
                   transactionName={transaction}
                   transactionThreshold={transactionThreshold}
                   queryExtras={getMEPQueryParams(value)}
-                  useEvents
                 >
                   {({pageLinks, isLoading, tableData}) => (
                     <Fragment>

@@ -700,14 +700,12 @@ function PerformanceCardTableWrapper({
       eventView={allReleasesEventView}
       orgSlug={organization.slug}
       location={location}
-      useEvents
     >
       {({isLoading, tableData: allReleasesTableData}) => (
         <DiscoverQuery
           eventView={releaseEventView}
           orgSlug={organization.slug}
           location={location}
-          useEvents
         >
           {({isLoading: isReleaseLoading, tableData: thisReleaseTableData}) => (
             <PerformanceCardTable
