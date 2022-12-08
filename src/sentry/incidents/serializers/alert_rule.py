@@ -249,11 +249,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         if (
             not features.has(
-                "organizations:metrics-performance-alerts",
-                self.context["organization"],
-                actor=self.context.get("user", None),
-            )
-            and not features.has(
                 "organizations:mep-rollout-flag",
                 self.context["organization"],
                 actor=self.context.get("user", None),

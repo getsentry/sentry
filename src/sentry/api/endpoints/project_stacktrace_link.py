@@ -170,14 +170,21 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 ):
                     derived = True
 
-                outcome = get_link(config, filepath, ctx["commit_id"])
-                # In some cases the stack root matches and it can either be that we have
-                # an invalid code mapping or that munging is expect it to work
-                if not outcome.get("sourceUrl"):
+                outcome = {}
+                munging_outcome = {}
+                # If the platform is a mobile language, get_link will never get the right URL without munging
+                if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
-                    # If we failed to munge we should keep the original outcome
-                    if munging_outcome:
-                        outcome = munging_outcome
+                if not munging_outcome:
+                    outcome = get_link(config, filepath, ctx["commit_id"])
+                    # In some cases the stack root matches and it can either be that we have
+                    # an invalid code mapping or that munging is expect it to work
+                    if not outcome.get("sourceUrl"):
+                        munging_outcome = try_path_munging(config, filepath, ctx)
+                # If we failed to munge we should keep the original outcome
+                if munging_outcome:
+                    outcome = munging_outcome
+                    scope.set_tag("stacktrace_link.munged", True)
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
                 matched_code_mappings.append(current_config)

@@ -43,6 +43,7 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.php",  # PHP
         "sentry.php.laravel",  # Laravel
         "sentry.php.symfony",  # Symfony
+        "sentry.go",  # Go
     )
 )
 # We want sentry.java, sentry.java.spring, sentry.java.android, sentry.java.android.timber,
@@ -96,7 +97,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         :qparam string end:  specify a date to end at. Format must be iso format
         :auth: required
         """
-        if not features.has("organizations:server-side-sampling", organization, actor=request.user):
+        if not features.has("organizations:dynamic-sampling", organization, actor=request.user):
             return Response(
                 {
                     "detail": [

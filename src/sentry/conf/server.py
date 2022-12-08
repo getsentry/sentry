@@ -970,12 +970,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -1038,6 +1034,8 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Normalize transaction names during ingestion.
     "organizations:transaction-name-normalize": False,
+    # Try to derive normalization rules by clustering transaction names.
+    "organizations:transaction-name-clusterer": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1183,10 +1181,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling (backend + relay)
-    "organizations:server-side-sampling": False,
-    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
-    "organizations:dynamic-sampling-deprecated": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)

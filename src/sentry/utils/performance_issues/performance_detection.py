@@ -6,6 +6,7 @@ import os
 import random
 import re
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
@@ -54,7 +55,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicates"
-    SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
@@ -68,7 +68,6 @@ class DetectorType(Enum):
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
     DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
-    DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
     DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
@@ -278,13 +277,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
                 "allowed_span_ops": ["db", "http"],
             }
         ],
-        DetectorType.SEQUENTIAL_SLOW_SPANS: [
-            {
-                "count": 3,
-                "cumulative_duration": 1200.0,  # ms
-                "allowed_span_ops": ["db", "http", "ui"],
-            }
-        ],
         DetectorType.SLOW_SPAN: [
             {
                 "duration_threshold": 1000.0,  # ms
@@ -333,7 +325,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 5,  # ms
+            "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
@@ -350,7 +342,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
         DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
@@ -511,6 +502,29 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return query and not query.endswith("...")
 
 
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
 class PerformanceDetector(ABC):
     """
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
@@ -654,71 +668,6 @@ class SlowSpanDetector(PerformanceDetector):
             self.stored_problems[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, spans_involved
             )
-
-
-class SequentialSlowSpanDetector(PerformanceDetector):
-    """
-    Checks for unparallelized slower repeated spans, to suggest using futures etc. to reduce response time.
-    This makes some assumptions about span ordering etc. and also removes any spans that have any overlap with the same span op from consideration.
-    """
-
-    __slots__ = ("cumulative_durations", "stored_problems", "spans_involved", "last_span_seen")
-
-    settings_key = DetectorType.SEQUENTIAL_SLOW_SPANS
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.stored_problems = {}
-        self.spans_involved = {}
-        self.last_span_seen = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duration_threshold = settings.get("cumulative_duration")
-        count_threshold = settings.get("count")
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        span_end = timedelta(seconds=span.get("timestamp", 0))
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-
-        self.spans_involved[fingerprint] += [span_id]
-
-        if fingerprint not in self.last_span_seen:
-            self.last_span_seen[fingerprint] = span_end
-            self.cumulative_durations[fingerprint] = span_duration
-            return
-
-        last_span_end = self.last_span_seen[fingerprint]
-        current_span_start = timedelta(seconds=span.get("start_timestamp", 0))
-
-        are_spans_overlapping = current_span_start <= last_span_end
-        if are_spans_overlapping:
-            del self.last_span_seen[fingerprint]
-            self.spans_involved[fingerprint] = []
-            self.cumulative_durations[fingerprint] = timedelta(0)
-            return
-
-        self.cumulative_durations[fingerprint] += span_duration
-        self.last_span_seen[fingerprint] = span_end
-
-        spans_counts = len(self.spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if spans_counts >= count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duration_threshold):
-                spans_involved = self.spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
 
 
 class LongTaskSpanDetector(PerformanceDetector):
@@ -1402,6 +1351,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
         self.most_recent_hash = {}
         self.stored_problems = {}
         self.mapper = None
+        self.parent_to_blocked_span = defaultdict(list)
         self._prepare_deobfuscation()
 
     def _prepare_deobfuscation(self):
@@ -1449,30 +1399,42 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     def visit_span(self, span: Span):
         if self._is_file_io_on_main_thread(span):
-            settings_for_span = self.settings_for_span(span)
+            parent_span_id = span.get("parent_span_id")
+            self.parent_to_blocked_span[parent_span_id].append(span)
+
+    def on_complete(self):
+        for parent_span_id, span_list in self.parent_to_blocked_span.items():
+            span_list = [
+                span for span in span_list if "start_timestamp" in span and "timestamp" in span
+            ]
+            total_duration = total_span_time(span_list)
+            settings_for_span = self.settings_for_span(span_list[0])
             if not settings_for_span:
                 return
 
-            op, span_id, op_prefix, span_duration, settings = settings_for_span
-            if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
-                fingerprint = self._fingerprint(span)
+            _, _, _, _, settings = settings_for_span
+            if total_duration >= settings["duration_threshold"]:
+                fingerprint = self._fingerprint(span_list)
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
-                    op=span.get("op"),
-                    desc=span.get("description", ""),
-                    parent_span_ids=[span.get("parent_span_id")],
+                    op=span_list[0].get("op"),
+                    desc=span_list[0].get("description", ""),
+                    parent_span_ids=[parent_span_id],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
                     cause_span_ids=[],
-                    offender_span_ids=[span.get("span_id", None)],
+                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span_list) -> str:
         call_stack_strings = []
-        for item in span.get("data", {}).get("call_stack", []):
-            module = self._deobfuscate_module(item.get("module", ""))
-            function = self._deobfuscate_function(item)
-            call_stack_strings.append(f"{module}.{function}")
-        call_stack = ".".join(call_stack_strings).encode("utf8")
+        overall_stack = []
+        for span in span_list:
+            for item in span.get("data", {}).get("call_stack", []):
+                module = self._deobfuscate_module(item.get("module", ""))
+                function = self._deobfuscate_function(item)
+                call_stack_strings.append(f"{module}.{function}")
+            overall_stack.append(".".join(call_stack_strings))
+        call_stack = "-".join(overall_stack).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 

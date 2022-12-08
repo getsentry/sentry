@@ -25,6 +25,7 @@ import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -135,6 +136,9 @@ function PageLayout(props: Props) {
           return anomaliesRouteWithQuery(routeQuery);
         case Tab.Replays:
           return replaysRouteWithQuery(routeQuery);
+        case Tab.Profiling: {
+          return profilesRouteWithQuery(routeQuery);
+        }
         case Tab.WebVitals:
           return vitalsRouteWithQuery({
             orgSlug: organization.slug,

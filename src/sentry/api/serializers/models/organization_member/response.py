@@ -32,7 +32,13 @@ class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
 # We must use alternative TypedDict syntax because of dashes/colons in names.
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
-    {"sso:linked": bool, "sso:invalid": bool, "member-limit:restricted": bool},
+    {
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+    },
 )
 
 
