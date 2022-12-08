@@ -5,6 +5,8 @@ from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
+from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
+from arroyo.types import Topic
 from django.conf import settings
 from django.utils import timezone
 from pytz import UTC
@@ -21,12 +23,11 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
 
-processed_profiles_publisher = None
+_profiles_kafka_producer = None
 
 
 class VroomTimeout(Exception):
@@ -46,28 +47,9 @@ class VroomTimeout(Exception):
 )
 def process_profile_task(
     profile: Profile,
-    key_id: Optional[int],
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
-    profile = process_profile(profile=profile, project=project, key_id=key_id)
-
-    if not profile:
-        return
-
-    _initialize_publisher()
-    _insert_eventstream_call_tree(profile=profile)
-    _insert_eventstream_profile(profile=profile)
-
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
-
-
-@metrics.wraps("process_profile")
-def process_profile(
-    profile: Profile,
-    project: Project,
-    key_id: Optional[int],
-) -> Optional[Profile]:
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
@@ -88,7 +70,7 @@ def process_profile(
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return None
+                return
 
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
@@ -126,10 +108,9 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
             reason="failed-symbolication",
         )
-        return None
+        return
 
     try:
         if _should_deobfuscate(profile):
@@ -139,7 +120,7 @@ def process_profile(
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return None
+                return
 
             _deobfuscate(profile=profile, project=project)
     except Exception as e:
@@ -148,10 +129,9 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
             reason="failed-deobfuscation",
         )
-        return None
+        return
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -163,22 +143,24 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
             reason="failed-normalization",
         )
-        return None
+        return
 
     if not _insert_vroom_profile(profile=profile):
         _track_outcome(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
             reason="failed-vroom-insertion",
         )
-        return None
+        return
 
-    return profile
+    _initialize_producer()
+    _insert_eventstream_call_tree(profile=profile)
+    _insert_eventstream_profile(profile=profile)
+
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -492,7 +474,6 @@ def _track_outcome(
     profile: Profile,
     project: Project,
     outcome: Outcome,
-    key_id: Optional[int],
     reason: Optional[str] = None,
 ) -> None:
     if not project.flags.has_profiles:
@@ -506,7 +487,7 @@ def _track_outcome(
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
-        key_id=key_id,
+        key_id=None,
         outcome=outcome,
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
@@ -516,13 +497,13 @@ def _track_outcome(
     )
 
 
-@metrics.wraps("process_profile.initialize_publisher")
-def _initialize_publisher() -> None:
-    global processed_profiles_publisher
+@metrics.wraps("process_profile.initialize_producer")
+def _initialize_producer() -> None:
+    global _profiles_kafka_producer
 
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        processed_profiles_publisher = KafkaPublisher(
+        _profiles_kafka_producer = KafkaProducer(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
         )
 
@@ -537,19 +518,19 @@ def _insert_eventstream_profile(profile: Profile) -> None:
     """
 
     # just a guard as this should always be initialized already
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         return
 
-    processed_profiles_publisher.publish(
-        "processed-profiles",
-        json.dumps(profile),
+    _profiles_kafka_producer.produce(
+        Topic(name="processed-profiles"),
+        KafkaPayload(key=None, value=json.dumps(profile).encode("utf-8"), headers=[]),
     )
 
 
 @metrics.wraps("process_profile.insert_eventstream.call_tree")
 def _insert_eventstream_call_tree(profile: Profile) -> None:
     # just a guard as this should always be initialized already
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         return
 
     # call_trees is empty because of an error earlier, skip aggregation
@@ -575,9 +556,9 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
         # and slower.
         del profile["call_trees"]
 
-    processed_profiles_publisher.publish(
-        "profiles-call-tree",
-        json.dumps(event),
+    _profiles_kafka_producer.produce(
+        Topic(name="profiles-call-tree"),
+        KafkaPayload(key=None, value=json.dumps(event).encode("utf-8"), headers=[]),
     )
 
 
