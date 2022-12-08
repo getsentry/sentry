@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 from uuid import uuid4
 
@@ -21,6 +22,7 @@ import urllib3
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream, GroupStates
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -114,7 +116,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -124,9 +126,10 @@ class SnubaProtocolEventStream(EventStream):
         group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
-        if isinstance(event, GroupEvent):
+        if isinstance(event, GroupEvent) and event.get_event_type() != "platform":
             logger.error(
-                "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+                "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed with "
+                "`platform` events.",
                 exc_info=True,
             )
             return
@@ -163,6 +166,13 @@ class SnubaProtocolEventStream(EventStream):
 
         is_transaction_event = self._is_transaction_event(event)
 
+        occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
+        occurrence_data: MutableMapping[str, Any] = {}
+        if occurrence:
+            occurrence_data = cast(MutableMapping[str, Any], occurrence.to_dict())
+            del occurrence_data["evidence_data"]
+            del occurrence_data["evidence_display"]
+
         self._send(
             project.id,
             "insert",
@@ -181,6 +191,7 @@ class SnubaProtocolEventStream(EventStream):
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
+                    "occurrence_data": occurrence_data,
                 },
                 {
                     "is_new": is_new,
