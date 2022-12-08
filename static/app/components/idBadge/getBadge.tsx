@@ -1,15 +1,14 @@
-import BaseBadge from 'sentry/components/idBadge/baseBadge';
+import type {BaseBadgeProps} from 'sentry/components/idBadge/baseBadge';
 import MemberBadge, {MemberBadgeProps} from 'sentry/components/idBadge/memberBadge';
 import OrganizationBadge, {
   OrganizationBadgeProps,
 } from 'sentry/components/idBadge/organizationBadge';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ProjectBadge, {ProjectBadgeProps} from 'sentry/components/idBadge/projectBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge, {UserBadgeProps} from 'sentry/components/idBadge/userBadge';
 
 import {TeamBadgeProps} from './teamBadge/badge';
 
-type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type DisplayName = BaseBadgeProps['displayName'];
 
 interface AddedBaseBadgeProps {
@@ -35,11 +34,17 @@ interface GetTeamBadgeProps
     TeamBadgeProps,
     AddedBaseBadgeProps {}
 
+interface GetProjectBadgeProps
+  extends Omit<BaseBadgeProps, 'displayName' | 'project'>,
+    ProjectBadgeProps,
+    AddedBaseBadgeProps {}
+
 export type GetBadgeProps =
   | GetOrganizationBadgeProps
-  | GetMemberBadgeProps
+  | GetTeamBadgeProps
+  | GetProjectBadgeProps
   | GetUserBadgeProps
-  | GetTeamBadgeProps;
+  | GetMemberBadgeProps;
 
 function getBadge(props): React.ReactElement | null {
   if (props.organization) {
