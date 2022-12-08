@@ -153,26 +153,6 @@ class TestDerivedCodeMappings(TestCase):
         # We should not derive a code mapping since the package name does not match
         assert cm == []
 
-    def test_no_support_for_toplevel_files(self):
-        file_name = "base.py"
-        ff = FrameFilename(file_name)
-        assert ff.root == ""
-        assert ff.dir_path == ""
-        assert ff.file_and_dir_path == file_name
-        # We create a new tree helper in order to improve the understability of this test
-        cmh = CodeMappingTreesHelper(
-            {self.foo_repo.name: RepoTree(self.foo_repo, files=[file_name])}
-        )
-
-        # We should not derive a code mapping since we do not yet
-        # support stackframes for non-packaged files
-        assert cmh.generate_code_mappings([file_name]) == []
-
-        # Make sure that we raise an error if we hit the code path
-        assert not cmh._potential_match(file_name, ff)
-        with pytest.raises(NotImplementedError):
-            cmh._get_code_mapping_source_path(file_name, ff)
-
     def test_no_matches(self):
         stacktraces = [
             "getsentry/billing/tax/manager.py",
@@ -188,11 +168,6 @@ class TestDerivedCodeMappings(TestCase):
         stacktraces = ["setup.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
-
-        assert logger.info.called_with(
-            "We do not support top level files.",
-            extra={"stackframes": [FrameFilename("setup.py")]},
-        )
 
     def test_no_dir_depth_match(self):
         code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
