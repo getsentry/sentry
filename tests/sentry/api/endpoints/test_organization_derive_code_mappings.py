@@ -32,15 +32,15 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_single_match(self, mock_get_trees_for_org):
         config_data = {
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "stacktrace_root": "stack/root/",
+                "source_path": "source/root/",
             }
         ]
         with patch(
@@ -55,22 +55,22 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org):
         config_data = {
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "stacktrace_root": "stack/root/",
+                "source_path": "source/root/",
             },
             {
                 "filename": "stack/root/file.py",
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "stacktrace_root": "stack/root/",
+                "source_path": "source/root/",
             },
         ]
         with patch(
@@ -85,7 +85,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_get_no_installation(self):
         config_data = {
             "projectId": self.project.id,
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
@@ -94,8 +94,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_post_simple(self):
         config_data = {
             "projectId": self.project.id,
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
+            "stackRoot": "stack/root/",
+            "sourceRoot": "source/root/",
             "defaultBranch": "master",
             "repoName": "getsentry/codemap",
         }
@@ -118,16 +118,16 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 "canAdd": True,
             },
             "integrationId": str(self.integration.id),
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
+            "stackRoot": "stack/root/",
+            "sourceRoot": "source/root/",
             "defaultBranch": "master",
         }
 
     def test_post_no_installation(self):
         config_data = {
             "projectId": self.project.id,
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
+            "stackRoot": "stack/root/",
+            "sourceRoot": "source/root/",
             "defaultBranch": "master",
             "repoName": "name",
         }
@@ -138,8 +138,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_post_existing_code_mapping(self):
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            stack_root="/stack/root",
-            source_root="/source/root/wrong",
+            stack_root="stack/root/",
+            source_root="source/root/wrong",
             default_branch="master",
             repository=self.repo,
             organization_integration=self.organization_integration,
@@ -147,8 +147,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
         config_data = {
             "projectId": self.project.id,
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
+            "stackRoot": "stack/root/",
+            "sourceRoot": "source/root/",
             "defaultBranch": "master",
             "repoName": "name",
         }
@@ -156,6 +156,6 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 201, response.content
 
         new_code_mapping = RepositoryProjectPathConfig.objects.get(
-            project=self.project, stack_root="/stack/root"
+            project=self.project, stack_root="stack/root"
         )
-        assert new_code_mapping.source_root == "/source/root"
+        assert new_code_mapping.source_root == "source/root"
