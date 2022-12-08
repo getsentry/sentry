@@ -68,8 +68,6 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
-            "discover-frontend-use-events-endpoint",
-            "performance-frontend-use-events-endpoint",
             "performance-issues-ingest",
         }
 
