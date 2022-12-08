@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import hashlib
 import logging
 import os
@@ -1538,9 +1537,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_spans = self.spans[:offender_span_count]
 
         total_duration_threshold = self.settings["total_duration_threshold"]
-        total_duration = functools.reduce(
-            lambda a, b: a + b, [get_span_duration(span) for span in offender_spans], timedelta(0)
-        )
+        total_duration = sum(map(get_span_duration, offender_spans), timedelta(0))
         if total_duration < timedelta(milliseconds=total_duration_threshold):
             return None
 
