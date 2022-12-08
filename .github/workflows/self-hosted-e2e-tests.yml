@@ -36,7 +36,7 @@ jobs:
             echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
         # TODO: push the image here
         - name: Run Sentry self-hosted e2e CI
-          uses: getsentry/action-self-hosted-e2e-tests@5bbd3d6725bbe4bf5cc12f8a3291ce87df6a891f
+          uses: getsentry/action-self-hosted-e2e-tests@fa5b8240848f0e645ac2918c530e60ec8f50e4b8
           with:
             project_name: sentry
             local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
