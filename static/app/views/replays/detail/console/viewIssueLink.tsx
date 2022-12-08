@@ -12,10 +12,9 @@ import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  className?: string;
 };
 
-function ViewIssueLink({breadcrumb, className}: Props) {
+function ViewIssueLink({breadcrumb}: Props) {
   const organization = useOrganization();
 
   if (!breadcrumbHasIssue(breadcrumb)) {
@@ -28,7 +27,6 @@ function ViewIssueLink({breadcrumb, className}: Props) {
   };
   return (
     <StyledHovercard
-      className={className}
       body={
         <ShortIdBreadrcumb>
           <ProjectBadge

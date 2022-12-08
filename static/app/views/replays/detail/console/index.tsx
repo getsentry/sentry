@@ -69,7 +69,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           isCurrent={item.id === current?.id}
           isHovered={item.id === hovered?.id}
           breadcrumb={item}
-          onClickTimestamp={() => handleClick(item, {changeTabs: false})}
+          onClickTimestamp={() => handleClick(item)}
           onMouseEnter={() => handleMouseEnter(item)}
           onMouseLeave={() => handleMouseLeave(item)}
           startTimestampMs={startTimestampMs}
