@@ -33,7 +33,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     }, {});
   }, [groupIds, transactionNames]);
 
-  const [condition, fieldName] = useMemo(() => {
+  const query = useMemo(() => {
     if (groupIds === undefined && transactionNames === undefined) {
       throw new Error('Missing groupId or transactionName in useReplaysCount()');
     }
@@ -43,15 +43,20 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
       );
     }
     if (groupIds && groupIds.length) {
-      return [`issue.id:[${toArray(groupIds).join(',')}]`, 'issue.id'];
+      return {
+        field: 'issue.id' as const,
+        conditions: `issue.id:[${toArray(groupIds).join(',')}]`,
+      };
     }
     if (transactionNames && transactionNames.length) {
-      return [
-        `event.type:transaction transaction:[${toArray(transactionNames).join(',')}]`,
-        'transaction',
-      ];
+      return {
+        field: 'transaction' as const,
+        conditions: `event.type:transaction transaction:[${toArray(transactionNames).join(
+          ','
+        )}]`,
+      };
     }
-    return [null, null];
+    return null;
   }, [groupIds, transactionNames]);
 
   const eventView = useMemo(
@@ -60,35 +65,49 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
         id: '',
         name: `Errors within replay`,
         version: 2,
-        fields: ['count_unique(replayId)', String(fieldName)],
-        query: `!replayId:"" ${condition}`,
+        fields: ['count_unique(replayId)', String(query?.field)],
+        query: `!replayId:"" ${query?.conditions}`,
         projects: [Number(project?.id)],
       }),
-    [project?.id, condition, fieldName]
+    [project?.id, query]
   );
 
   const fetchReplayCount = useCallback(async () => {
     try {
-      if (!condition || !fieldName) {
+      if (!query) {
         return;
       }
-      const [data] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload({query: {}} as Location<any>)
-      );
 
-      const counts = data.data.reduce((obj, record) => {
-        const key = record[fieldName] as string;
-        const val = record['count_unique(replayId)'] as number;
-        obj[key] = val;
-        return obj;
-      }, zeroCounts);
-      setReplayCounts(counts);
+      if (query.field === 'issue.id') {
+        const response = await api.requestPromise(
+          `/organizations/${organization.slug}/issue-replay-count/`,
+          {
+            query: {
+              query: query.conditions,
+              statsPeriod: '14d',
+            },
+          }
+        );
+        setReplayCounts({...zeroCounts, ...response});
+      } else {
+        const [data] = await doDiscoverQuery<TableData>(
+          api,
+          `/organizations/${organization.slug}/events/`,
+          eventView.getEventsAPIPayload({query: {}} as Location<any>)
+        );
+
+        const counts = data.data.reduce((obj, record) => {
+          const key = record[query.field] as string;
+          const val = record['count_unique(replayId)'] as number;
+          obj[key] = val;
+          return obj;
+        }, zeroCounts);
+        setReplayCounts(counts);
+      }
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, condition, fieldName, zeroCounts, eventView]);
+  }, [api, organization.slug, query, zeroCounts, eventView]);
 
   useEffect(() => {
     const hasSessionReplay =
