@@ -22,46 +22,11 @@ export enum ContextValueType {
   DURATION = 'duration',
 }
 
-const addFieldAsColumn = (
-  fieldName: string,
-  organization: Organization,
-  location: Location,
-  eventView: EventView
-) => {
-  trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
-    organization,
-    column: fieldName,
-  });
-
-  const oldField = eventView?.fields.map(field => field.field);
-  const newField = toArray(oldField).concat(fieldName);
-  browserHistory.push({
-    ...location,
-    query: {
-      ...location?.query,
-      field: newField,
-    },
-  });
-};
-
-function updateQuery(
-  newFilters: MutableSearch,
-  location: Location,
-  queryKey,
-  organization: Organization
-) {
-  trackAdvancedAnalyticsEvent('discover_v2.quick_context_update_query', {
-    organization,
-    queryKey,
-  });
-
-  browserHistory.push({
-    ...location,
-    query: {
-      ...location?.query,
-      query: newFilters.formatString(),
-    },
-  });
+enum QueryUpdateActions {
+  ADD = 'add',
+  EXCLUDE = 'exclude',
+  SHOW_MORE_THAN = 'show-more-than',
+  SHOW_LESS_THAN = 'show-less-than',
 }
 
 type Props = {
@@ -79,18 +44,67 @@ function ActionDropDown(props: Props) {
   const {location, eventView, queryKey, value, organization, contextValueType, dataRow} =
     props;
 
+  const addAsColumn = () => {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
+      organization,
+      column: queryKey,
+    });
+
+    const oldField = eventView?.fields.map(field => field.field);
+    const newField = toArray(oldField).concat(queryKey);
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location?.query,
+        field: newField,
+      },
+    });
+  };
+
+  function handleQueryUpdate(actionType: QueryUpdateActions) {
+    trackAdvancedAnalyticsEvent('discover_v2.quick_context_update_query', {
+      organization,
+      queryKey,
+    });
+
+    const oldFilters = eventView?.query || '';
+    const newFilters = new MutableSearch(oldFilters);
+
+    switch (actionType) {
+      case QueryUpdateActions.SHOW_MORE_THAN:
+        newFilters.setFilterValues(queryKey, [`>${value}`]);
+        break;
+      case QueryUpdateActions.SHOW_LESS_THAN:
+        newFilters.setFilterValues(queryKey, [`<${value}`]);
+        break;
+      case QueryUpdateActions.ADD:
+        addToFilter(newFilters, queryKey, value);
+        break;
+      case QueryUpdateActions.EXCLUDE:
+        excludeFromFilter(newFilters, queryKey, value);
+        break;
+      default:
+        throw new Error(`Unknown quick context action type. ${actionType}`);
+    }
+
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location?.query,
+        query: newFilters.formatString(),
+      },
+    });
+  }
+
   if (!(queryKey in dataRow)) {
     menuItems.push({
       key: 'add-as-column',
       label: t('Add as column'),
       onAction: () => {
-        addFieldAsColumn(queryKey, organization, location, eventView);
+        addAsColumn();
       },
     });
   }
-
-  const oldFilters = eventView?.query || '';
-  const newFilters = new MutableSearch(oldFilters);
 
   if (
     contextValueType === ContextValueType.NUMBER ||
@@ -98,19 +112,17 @@ function ActionDropDown(props: Props) {
   ) {
     menuItems.push(
       {
-        key: 'show-greater-than',
+        key: 'show-more-than',
         label: t('Show values greater than'),
         onAction: () => {
-          newFilters.setFilterValues(queryKey, [`>${value}`]);
-          updateQuery(newFilters, location, queryKey, organization);
+          handleQueryUpdate(QueryUpdateActions.SHOW_MORE_THAN);
         },
       },
       {
         key: 'show-less-than',
         label: t('Show values less than'),
         onAction: () => {
-          newFilters.setFilterValues(queryKey, [`<${value}`]);
-          updateQuery(newFilters, location, queryKey, organization);
+          handleQueryUpdate(QueryUpdateActions.SHOW_LESS_THAN);
         },
       }
     );
@@ -120,16 +132,14 @@ function ActionDropDown(props: Props) {
         key: 'add-to-filter',
         label: t('Add to filter'),
         onAction: () => {
-          addToFilter(newFilters, queryKey, value);
-          updateQuery(newFilters, location, queryKey, organization);
+          handleQueryUpdate(QueryUpdateActions.ADD);
         },
       },
       {
         key: 'exclude-from-filter',
         label: t('Exclude from filter'),
         onAction: () => {
-          excludeFromFilter(newFilters, queryKey, value);
-          updateQuery(newFilters, location, queryKey, organization);
+          handleQueryUpdate(QueryUpdateActions.EXCLUDE);
         },
       }
     );
