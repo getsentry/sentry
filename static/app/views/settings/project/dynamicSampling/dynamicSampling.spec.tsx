@@ -6,11 +6,7 @@ import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 
 import DynamicSampling from '.';
 
-const ORG_FEATURES = [
-  'server-side-sampling',
-  'dynamic-sampling-deprecated',
-  'dynamic-sampling',
-];
+const ORG_FEATURES = ['dynamic-sampling'];
 
 const dynamicSamplingBiases = [
   {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},

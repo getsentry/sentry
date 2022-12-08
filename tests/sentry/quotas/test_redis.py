@@ -66,6 +66,147 @@ def test_is_rate_limited_script():
 class RedisQuotaTest(TestCase):
     quota = fixture(RedisQuota)
 
+    def test_project_abuse_quotas(self):
+        # These legacy options need to be set, otherwise we'll run into
+        # AssertionError: reject-all quotas cannot be tracked
+        self.get_project_quota.return_value = (100, 10)
+        self.get_organization_quota.return_value = (1000, 10)
+
+        # A negative quota means reject-all.
+        self.organization.update_option("project-abuse-quota.error-limit", -1)
+        quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id is None
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 0
+        assert quotas[0].window is None
+        assert quotas[0].reason_code == "disabled"
+
+        self.organization.update_option("project-abuse-quota.error-limit", 42)
+        quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 420
+        assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
+
+        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
+        self.organization.update_option("project-abuse-quota.attachment-limit", 601)
+        self.organization.update_option("project-abuse-quota.session-limit", 602)
+        with self.feature("organizations:transaction-metrics-extraction"):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[1].id == "pati"
+        assert quotas[1].scope == QuotaScope.PROJECT
+        assert quotas[1].scope_id is None
+        assert quotas[1].categories == {DataCategory.TRANSACTION_INDEXED}
+        assert quotas[1].limit == 6000
+        assert quotas[1].window == 10
+        assert quotas[1].reason_code == "project_abuse_limit"
+
+        assert quotas[2].id == "paa"
+        assert quotas[2].scope == QuotaScope.PROJECT
+        assert quotas[2].scope_id is None
+        assert quotas[2].categories == {DataCategory.ATTACHMENT}
+        assert quotas[2].limit == 6010
+        assert quotas[2].window == 10
+        assert quotas[2].reason_code == "project_abuse_limit"
+
+        assert quotas[3].id == "pas"
+        assert quotas[3].scope == QuotaScope.PROJECT
+        assert quotas[3].scope_id is None
+        assert quotas[3].categories == {DataCategory.SESSION}
+        assert quotas[3].limit == 6020
+        assert quotas[3].window == 10
+        assert quotas[3].reason_code == "project_abuse_limit"
+
+        # Let's set the global option for error limits.
+        # Since we already have an org override for it, it shouldn't change anything.
+        with self.options({"project-abuse-quota.error-limit": 3}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].limit == 420
+        assert quotas[0].window == 10
+
+        # Let's make the org override unlimited.
+        # The global option should kick in.
+        self.organization.update_option("project-abuse-quota.error-limit", 0)
+        with self.options({"project-abuse-quota.error-limit": 3}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].limit == 30
+        assert quotas[0].window == 10
+
+        # Compatibility: preserve previous getsentry behavior.
+
+        # Let's update the deprecated global setting.
+        # It should take precedence over both the new global option and its org override.
+        with self.options({"getsentry.rate-limit.project-errors": 1}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 10
+        assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
+
+        # Let's set the deprecated override for that.
+        self.organization.update_option("sentry:project-error-limit", 2)
+        # Also, let's change the global abuse window.
+        with self.options({"project-abuse-quota.window": 20}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 40
+        assert quotas[0].window == 20
+        assert quotas[0].reason_code == "project_abuse_limit"
+
+    def test_legacy_transaction_quota(self):
+        # These legacy options need to be set, otherwise we'll run into
+        # AssertionError: reject-all quotas cannot be tracked
+        self.get_project_quota.return_value = (100, 10)
+        self.get_organization_quota.return_value = (1000, 10)
+
+        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
+        with self.feature({"organizations:transaction-metrics-extraction": False}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pati"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {DataCategory.TRANSACTION}
+        assert quotas[0].limit == 6000
+        assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
+
     @patcher.object(RedisQuota, "get_project_quota")
     def get_project_quota(self):
         inst = mock.MagicMock()
