@@ -1083,6 +1083,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
