@@ -21,7 +21,7 @@ MERGE_THRESHOLD = 100
 
 @instrumented_task(
     name="sentry.ingest.transaction_clusterer.tasks.run_clusterer",
-    queue="txcluster",
+    queue="transactions.name_clusterer",
     soft_timeout=60 * 60,
     # TODO: set appropriate soft_timeout
 )  # type: ignore
@@ -36,4 +36,4 @@ def run_clusterer(**kwargs: Any) -> None:
                     clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
                     clusterer.add_input(redis.get_transaction_names(project))
                     new_rules = clusterer.get_rules()
-                    rules.update(project, new_rules)
+                    rules.update_rules(project, new_rules)

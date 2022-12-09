@@ -1,5 +1,5 @@
 """ Write transactions into redis sets """
-from typing import Any, Iterable
+from typing import Any, Iterator
 
 import sentry_sdk
 from django.conf import settings
@@ -34,12 +34,12 @@ def get_redis_client() -> Any:
     return redis.redis_clusters.get(cluster_key)
 
 
-def _get_all_keys() -> Iterable[str]:
+def _get_all_keys() -> Iterator[str]:
     client = get_redis_client()
     return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")  # type: ignore
 
 
-def get_active_projects() -> Iterable[Project]:
+def get_active_projects() -> Iterator[Project]:
     """Scan redis for projects and fetch their db models"""
     for key in _get_all_keys():
         project_id = int(key.split(":")[-1])
@@ -53,7 +53,7 @@ def _store_transaction_name(project: Project, transaction_name: str) -> None:
         add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
-def get_transaction_names(project: Project) -> Iterable[str]:
+def get_transaction_names(project: Project) -> Iterator[str]:
     """Return all transaction names stored for the given project"""
     client = get_redis_client()
     redis_key = _get_redis_key(project)

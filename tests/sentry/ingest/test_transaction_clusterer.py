@@ -114,17 +114,17 @@ def test_record_transactions(
 def test_save_rules():
     project = Project(id=111, name="project", organization_id=1)
 
-    project_rules = rules.get(project)
+    project_rules = rules.get_rules(project)
     assert project_rules == {}
 
     with freeze_time("2012-01-14 12:00:01"):
-        rules.update(project, [ReplacementRule("foo"), ReplacementRule("bar")])
-    project_rules = rules.get(project)
+        rules.update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
+    project_rules = rules.get_rules(project)
     assert project_rules == {"foo": "1334318401", "bar": "1334318401"}
 
     with freeze_time("2012-01-14 12:00:02"):
-        rules.update(project, [ReplacementRule("bar"), ReplacementRule("zap")])
-    project_rules = rules.get(project)
+        rules.update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
+    project_rules = rules.get_rules(project)
     assert {"bar": "1334318402", "foo": "1334318401", "zap": "1334318402"}
 
 
@@ -143,8 +143,8 @@ def test_run_clusterer_task(default_organization):
 
         run_clusterer()
 
-        pr1_rules = rules.get(project1)
-        pr2_rules = rules.get(project2)
+        pr1_rules = rules.get_rules(project1)
+        pr2_rules = rules.get_rules(project2)
 
         assert set(pr1_rules.keys()) == {"/org/*/**", "/user/*/**"}
         assert set(pr2_rules.keys()) == {"/org/*/**", "/user/*/**"}
@@ -156,7 +156,7 @@ def test_run_clusterer_task(default_organization):
 
         run_clusterer()
 
-        pr_rules = rules.get(project1)
+        pr_rules = rules.get_rules(project1)
         assert pr_rules.keys() == {
             "/org/*/**",
             "/user/*/**",

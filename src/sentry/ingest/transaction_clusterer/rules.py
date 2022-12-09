@@ -13,20 +13,20 @@ REDIS_KEY_PREFIX_RULES = "txrules:"
 
 
 def _get_rules_key(project: Project) -> str:
-    return f"{REDIS_KEY_PREFIX_RULES}{project.organization_id}:{project.id}"
+    return f"{REDIS_KEY_PREFIX_RULES}o:{project.organization_id}:p:{project.id}"
 
 
 def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def get(project: Project) -> MutableMapping[str, int]:
+def get_rules(project: Project) -> MutableMapping[str, int]:
     client = get_redis_client()
     key = _get_rules_key(project)
     return client.hgetall(key)  # type: ignore
 
 
-def update(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
     new_expiry = _now() + RULE_TTL
 
     client = get_redis_client()
