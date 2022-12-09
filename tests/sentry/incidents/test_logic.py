@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -6,7 +7,7 @@ import responses
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
-from exam import fixture, patcher
+from exam import fixture
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -78,7 +79,10 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 class CreateIncidentTest(TestCase):
-    record_event = patcher("sentry.analytics.base.Analytics.record_event")
+    @pytest.fixture(autouse=True)
+    def _patch_record_event(self):
+        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+            yield
 
     def test_simple(self):
         incident_type = IncidentType.ALERT_TRIGGERED
@@ -133,7 +137,10 @@ class CreateIncidentTest(TestCase):
 
 @freeze_time()
 class UpdateIncidentStatus(TestCase):
-    record_event = patcher("sentry.analytics.base.Analytics.record_event")
+    @pytest.fixture(autouse=True)
+    def _patch_record_event(self):
+        with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+            yield
 
     def get_most_recent_incident_activity(self, incident):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
@@ -307,8 +314,13 @@ class GetCrashRateMetricsIncidentAggregatesTest(
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    send_subscriber_notifications = patcher("sentry.incidents.tasks.send_subscriber_notifications")
-    record_event = patcher("sentry.analytics.base.Analytics.record_event")
+    @pytest.fixture(autouse=True)
+    def _setup_patches(self):
+        with mock.patch(
+            "sentry.incidents.tasks.send_subscriber_notifications"
+        ) as self.send_subscriber_notifications:
+            with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
+                yield
 
     def assert_notifications_sent(self, activity):
         self.send_subscriber_notifications.apply_async.assert_called_once_with(
