@@ -160,7 +160,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     refetch,
   } = useQuery<StacktraceLinkResult>(
     [`/projects/${organization.slug}/${project?.slug}/stacktrace-link/`, {query}],
-    {staleTime: Infinity, retry: 0}
+    {staleTime: Infinity, retry: false}
   );
 
   // Track stacktrace analytics after loaded
