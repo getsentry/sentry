@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0345_add_flags_field_to_team_model"),
+        ("sentry", "0344_add_idp_flags"),
     ]
 
     operations = [

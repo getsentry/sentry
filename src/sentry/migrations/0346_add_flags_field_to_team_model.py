@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0344_add_idp_flags"),
+        ("sentry", "0345_create_organizationmapping"),
     ]
 
     operations = [
