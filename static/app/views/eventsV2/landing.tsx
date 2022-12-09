@@ -2,16 +2,13 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import {stringify} from 'query-string';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
-import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -26,8 +23,6 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import Banner from './banner';
-import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
@@ -183,19 +178,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     });
   };
 
-  renderBanner() {
-    const {location, organization} = this.props;
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
-    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
-
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return null;
-    }
-
-    return <Banner organization={organization} resultsUrl={resultsUrl} />;
-  }
-
   renderActions() {
     const activeSort = this.getActiveSort();
     const {renderPrebuilt, savedQueries} = this.state;
@@ -282,11 +264,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {location, organization} = this.props;
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = organization.features.includes('discover-query-builder-as-landing-page')
-      ? `/organizations/${organization.slug}/discover/homepage/`
-      : eventView.getResultsViewUrlTarget(organization.slug);
+    const {organization} = this.props;
+    const to = `/organizations/${organization.slug}/discover/homepage/`;
 
     return (
       <Feature
@@ -299,17 +278,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {organization.features.includes(
-                    'discover-query-builder-as-landing-page'
-                  ) ? (
-                    this.renderBreadcrumbs()
-                  ) : (
-                    <Title>
-                      <GuideAnchor target="discover_landing_header">
-                        {t('Discover')}
-                      </GuideAnchor>
-                    </Title>
-                  )}
+                  {this.renderBreadcrumbs()}
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
@@ -324,7 +293,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                     {t('Build a new query')}
                   </StyledButton>
                 </StyledPageHeader>
-                {this.renderBanner()}
                 {this.renderActions()}
                 {this.renderComponent()}
               </PageContent>

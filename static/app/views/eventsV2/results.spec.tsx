@@ -1121,11 +1121,7 @@ describe('Results', function () {
       });
 
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1191,11 +1187,7 @@ describe('Results', function () {
         },
       });
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1257,11 +1249,7 @@ describe('Results', function () {
         body: {...TRANSACTION_VIEWS[0], name: ''},
       });
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1322,11 +1310,7 @@ describe('Results', function () {
 
     it('links back to the homepage through the Discover breadcrumb', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1358,11 +1342,7 @@ describe('Results', function () {
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1392,11 +1372,7 @@ describe('Results', function () {
 
     it('allows users to Set As Default on the All Events query', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({

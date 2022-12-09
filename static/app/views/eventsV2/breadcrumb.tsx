@@ -37,21 +37,17 @@ function DiscoverBreadcrumb({
 
   crumbs.push({
     to:
-      organization.features.includes('discover-query-builder-as-landing-page') &&
-      isHomepage &&
-      eventView
+      isHomepage && eventView
         ? eventView.getResultsViewUrlTarget(organization.slug, isHomepage)
         : discoverTarget,
     label: t('Discover'),
   });
 
   if (!isHomepage && eventView && eventView.isValid()) {
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      crumbs.push({
-        to: `/organizations/${organization.slug}/discover/queries/`,
-        label: t('Saved Queries'),
-      });
-    }
+    crumbs.push({
+      to: `/organizations/${organization.slug}/discover/queries/`,
+      label: t('Saved Queries'),
+    });
     crumbs.push({
       to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
       label: eventView.name || '',

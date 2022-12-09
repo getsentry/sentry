@@ -57,10 +57,7 @@ export function eventDetailsRouteWithEventView({
  */
 export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
   if (organization.features.includes('discover-query')) {
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return `/organizations/${organization.slug}/discover/homepage/`;
-    }
-    return getDiscoverQueriesUrl(organization);
+    return `/organizations/${organization.slug}/discover/homepage/`;
   }
   return `/organizations/${organization.slug}/discover/results/`;
 }
