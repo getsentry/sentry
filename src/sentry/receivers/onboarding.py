@@ -158,14 +158,6 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-    url = None
-
-    # Check for the event url
-    for key, value in event.tags:
-        if key == "url":
-            url = value
-            break
-
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
@@ -173,7 +165,7 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
-        url=url,
+        url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
 
