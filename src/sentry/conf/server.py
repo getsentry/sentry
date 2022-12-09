@@ -817,7 +817,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 20 * 60},
     },
     "transaction-name-clusterer": {
-        "task": "sentry.ingest.transaction_clusterer.tasks.run_clusterer",
+        "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
