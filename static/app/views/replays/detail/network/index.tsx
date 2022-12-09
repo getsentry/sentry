@@ -10,12 +10,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconClose} from 'sentry/icons';
@@ -23,6 +22,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
@@ -31,6 +31,7 @@ import {
   ISortConfig,
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -254,11 +255,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
       </Item>,
       <Item key="timestamp" {...columnHandlers} {...columnProps} numeric>
-        <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
-          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
-          </UnstyledButton>
-        </Tooltip>
+        <TimestampButton
+          format="mm:ss.SSS"
+          onClick={() => handleClick(networkStartTimestamp)}
+          startTimestampMs={startTimestampMs}
+          timestampMs={networkStartTimestamp}
+        />
       </Item>,
     ];
 
@@ -287,7 +289,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   return (
     <NetworkContainer>
-      <NetworkFilters>
+      <FiltersGrid>
         <CompactSelect
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
@@ -321,7 +323,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           query={searchTerm}
           disabled={!networkSpans || !networkSpans.length}
         />
-      </NetworkFilters>
+      </FiltersGrid>
 
       <NetworkTable ref={networkTableRef}>
         {networkSpans ? (
@@ -399,17 +401,6 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;
-`;
-
-const NetworkFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
 `;
 
 const Text = styled('p')`
