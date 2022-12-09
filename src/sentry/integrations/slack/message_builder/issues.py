@@ -225,7 +225,7 @@ def get_color(
             return "info"
     if event_for_tags:
         color: str | None = event_for_tags.get_tag("level")
-        if event_for_tags.occurrence is not None and hasattr(event_for_tags.occurrence, "level"):
+        if event_for_tags.occurrence is not None:
             color = event_for_tags.occurrence.level
         if color and color in LEVEL_TO_COLOR.keys():
             return color
