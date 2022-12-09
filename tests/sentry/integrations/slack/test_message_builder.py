@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from typing import Any, Mapping
 
@@ -16,15 +15,15 @@ from sentry.integrations.slack.message_builder.issues import (
     SlackReleaseIssuesMessageBuilder,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils.dates import ensure_aware, to_timestamp
+from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 def build_test_message(
@@ -89,7 +88,7 @@ def build_test_message(
 
 
 @region_silo_test
-class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
+class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
 
@@ -172,25 +171,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         event = event.for_group(event.groups[0])
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Attention", "Very important information!!!", True),
-                IssueEvidence("Evidence 2", "Not important", False),
-                IssueEvidence("Evidence 3", "Nobody cares about this", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-            "info",  # add a level value of info
-        )
-        # TODO use Dan's OccurrenceTestMixin once merged
-        occurrence.save()
+        occurrence = self.build_occurrence(level="info")
+        occurrence.save(project_id=self.project.id)
         event.occurrence = occurrence
 
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
