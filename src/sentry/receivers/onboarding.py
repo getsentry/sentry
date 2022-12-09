@@ -415,7 +415,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
-        url=url,
+        url=dict(event.tags).get("url", None),
     )
 
 
