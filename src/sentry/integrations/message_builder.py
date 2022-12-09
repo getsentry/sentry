@@ -94,10 +94,9 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
         event = group.get_latest_event()
 
     if event is not None and event.occurrence is not None:
-        if event.occurrence.evidence_display is not None:
-            important = event.occurrence.important_evidence_display
-            if important:
-                return important.value
+        important = event.occurrence.important_evidence_display
+        if important:
+            return important.value
 
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
