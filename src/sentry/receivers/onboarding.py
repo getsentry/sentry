@@ -401,7 +401,6 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         )
         return
 
-
     analytics.record(
         "first_event_with_minified_stack_trace_for_project.sent",
         user_id=user.id,
