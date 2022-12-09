@@ -14,7 +14,6 @@ logger.setLevel(logging.INFO)
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
 EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
-NO_TOP_DIR = "NO_TOP_DIR"
 
 
 class Repo(NamedTuple):
@@ -77,13 +76,20 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
-        # XXX: Using regexes would be better
-        if not frame_file_path or frame_file_path.find("<") > -1:
-            raise UnsupportedFrameFilename
+        # Using regexes would be better but this is easier to understand
+        if (
+            not frame_file_path
+            or frame_file_path[0] in ["[", "<", "/"]
+            or frame_file_path.find(" ") > -1
+            or frame_file_path.find("\\") > -1  # Windows support
+            or frame_file_path.find("/") == -1
+        ):
+            raise UnsupportedFrameFilename("Either garbage or will need work to support.")
+
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
         if not self.extension:
-            raise UnsupportedFrameFilename
+            raise UnsupportedFrameFilename("It needs an extension.")
         if self.frame_type() == "packaged":
             self._packaged_logic(frame_file_path)
         else:
@@ -96,25 +102,22 @@ class FrameFilename:
         return type
 
     def _packaged_logic(self, frame_file_path: str) -> None:
-        if frame_file_path.find("/") > -1:
-            self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
+        self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
 
-            # Check that it does have at least a dir
-            if self.file_and_dir_path.find("/") > -1:
-                self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
-            else:
-                # A package name, a file but no dir (e.g. requests/models.py)
-                self.dir_path = ""
-                self.file_name = self.file_and_dir_path
+        # Check that it does have at least a dir
+        if self.file_and_dir_path.find("/") > -1:
+            self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
         else:
-            self.root = ""
+            # A package name, a file but no dir (e.g. requests/models.py)
             self.dir_path = ""
-            self.file_and_dir_path = frame_file_path
-            self.file_name = frame_file_path
+            self.file_name = self.file_and_dir_path
 
     def _straight_path_logic(self, frame_file_path: str) -> None:
-        # XXX: Write unit tests for these
-        # Cases: some/path/foo.tsx or ./some/path/foo.tsx
+        # Cases:
+        # - some/path/foo.tsx
+        # - ./some/path/foo.tsx
+        # - /some/path/foo.js
+
         start_at_index = 2 if frame_file_path.startswith("./") else 0
         backslash_index = frame_file_path.find("/", start_at_index)
         self.root = frame_file_path[0:backslash_index]  # some or .some
@@ -135,7 +138,7 @@ def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]
         try:
             frame_filename = FrameFilename(stacktrace_frame_file_path)
             # Any files without a top directory will be grouped together
-            bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
+            bucket_key = frame_filename.root
 
             if not buckets.get(bucket_key):
                 buckets[bucket_key] = []
@@ -162,12 +165,6 @@ class CodeMappingTreesHelper:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
-            if stackframe_root == NO_TOP_DIR:
-                logger.info(
-                    "We do not support top level files.",
-                    extra={"stackframes": stackframes},
-                )
-                continue
             if not self.code_mappings.get(stackframe_root):
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
