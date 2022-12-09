@@ -167,7 +167,6 @@ function EventsContentWrapper(props: ChildProps) {
       setError={error => setError(error?.message)}
       referrer="api.performance.transaction-summary"
       cursor="0:0:0"
-      useEvents
     >
       {({isLoading: isTotalEventsLoading, tableData: table}) => {
         const totalEventCount: string =
@@ -179,7 +178,6 @@ function EventsContentWrapper(props: ChildProps) {
             orgSlug={organization.slug}
             location={location}
             referrer="api.performance.transaction-events"
-            useEvents
           >
             {({isLoading, tableData}) => {
               if (isTotalEventsLoading || isLoading) {

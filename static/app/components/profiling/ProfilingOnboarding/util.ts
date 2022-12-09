@@ -35,6 +35,10 @@ const platformToDocsPlatform: Record<
   'python-tornado': 'python',
 };
 
+export function isProfilingSupportedForProject(project: Project): boolean {
+  return !!(project.platform && platformToDocsPlatform[project.platform]);
+}
+
 export const profilingOnboardingDocKeys = [
   '0-alert',
   '1-install',

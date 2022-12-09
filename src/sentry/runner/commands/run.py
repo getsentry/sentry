@@ -564,6 +564,18 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
+@run.command("occurrences-ingest-consumer")
+@configuration
+def occurrences_ingest_consumer():
+    from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
+    from sentry.utils import metrics
+
+    consumer_type = "occurrences"
+
+    with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
+        get_occurrences_ingest_consumer(consumer_type).run()
+
+
 @run.command("region-to-control-consumer")
 @log_options()
 @click.option(

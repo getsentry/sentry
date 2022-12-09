@@ -970,12 +970,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -988,8 +984,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable metrics baseline in discover
-    "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
     "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1038,6 +1032,8 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Normalize transaction names during ingestion.
     "organizations:transaction-name-normalize": False,
+    # Try to derive normalization rules by clustering transaction names.
+    "organizations:transaction-name-clusterer": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1087,14 +1083,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget library
-    "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": True,
-    # Enables usage of custom measurements in dashboard widgets
-    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1183,20 +1173,14 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling (backend + relay)
-    "organizations:server-side-sampling": False,
-    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
-    "organizations:dynamic-sampling-deprecated": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
-    # Enable the mobile screenshot gallery in the attachments tab
-    "organizations:mobile-screenshot-gallery": False,
+    # Enable View Hierarchies in issue details page
+    "organizations:mobile-view-hierarchies": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -2510,6 +2494,7 @@ KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
+KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 
 # topic for testing multiple indexer backends in parallel
@@ -2556,6 +2541,7 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
+    KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
