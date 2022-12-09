@@ -15,7 +15,6 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -31,6 +30,7 @@ import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilter
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   replay: null | ReplayReader;
@@ -107,12 +107,11 @@ function DomMutations({replay}: Props) {
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
-              <UnstyledButton onClick={() => handleClick(crumb)}>
-                <PlayerRelativeTime
-                  relativeTimeMs={startTimestampMs}
-                  timestamp={crumb.timestamp}
-                />
-              </UnstyledButton>
+              <TimestampButton
+                onClick={() => handleClick(crumb)}
+                startTimestampMs={startTimestampMs}
+                timestampMs={crumb.timestamp || ''}
+              />
             </MutationDetailsContainer>
             <CodeContainer>
               <HTMLCode code={html} />
@@ -295,13 +294,6 @@ const Title = styled('span')<{hasOccurred?: boolean}>`
   color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  line-height: 0.75;
 `;
 
 const MutationMessage = styled('p')`

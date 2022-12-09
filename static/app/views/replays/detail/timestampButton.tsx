@@ -6,27 +6,35 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type TimestampButtonProps = {
-  onClick: () => void;
+type Props = {
   startTimestampMs: number;
   timestampMs: string | number | Date;
+  className?: string;
+  format?: 'mm:ss' | 'mm:ss.SSS';
+  onClick?: () => void;
 };
 
-function TimestampButton({onClick, startTimestampMs, timestampMs}: TimestampButtonProps) {
+function TimestampButton({
+  className,
+  format = 'mm:ss',
+  onClick,
+  startTimestampMs,
+  timestampMs,
+}: Props) {
   return (
     <Tooltip title={<DateTime date={timestampMs} />}>
-      <StyledButton onClick={onClick}>
+      <StyledButton onClick={onClick} className={className}>
         <IconPlay size="xs" />
-        {showPlayerTime(timestampMs, startTimestampMs)}
+        {showPlayerTime(timestampMs, startTimestampMs, format === 'mm:ss.SSS')}
       </StyledButton>
     </Tooltip>
   );
 }
 
 const StyledButton = styled('button')`
-  background: none;
+  background: transparent;
   border: none;
-  color: ${p => p.theme.subText};
+  color: 'inherit';
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
 
