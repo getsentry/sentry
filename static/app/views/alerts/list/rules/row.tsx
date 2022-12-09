@@ -184,23 +184,12 @@ function RuleListRow({
     },
   };
 
-  const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
-
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
-  const alertLink = isIssueAlert(rule) ? (
-    <Link
-      to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
-    >
-      {rule.name}
-    </Link>
-  ) : (
-    <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
-  );
 
   const IssueStatusText: Record<IncidentStatus, string> = {
     [IncidentStatus.CRITICAL]: t('Critical'),
@@ -332,7 +321,17 @@ function RuleListRow({
           </Tooltip>
         </FlexCenter>
         <AlertNameAndStatus>
-          <AlertName>{alertLink}</AlertName>
+          <AlertName>
+            <Link
+              to={
+                isIssueAlert(rule)
+                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
+                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+              }
+            >
+              {rule.name}
+            </Link>
+          </AlertName>
           <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
@@ -407,10 +406,6 @@ function RuleListRow({
     </ErrorBoundary>
   );
 }
-
-const TitleLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
-`;
 
 const FlexCenter = styled('div')`
   display: flex;
