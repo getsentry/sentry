@@ -40,7 +40,6 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
-from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 from zlib import compress
@@ -859,14 +858,13 @@ class CliTestCase(TestCase):
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
-    def setUp(self):
-        patcher = patch(
+    @pytest.fixture(autouse=True)
+    def _setup_today(self):
+        with mock.patch(
             "django.utils.timezone.now",
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
-        )
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        super().setUp()
+        ):
+            yield
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -1628,7 +1626,7 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
         super().setUp()
         self.drop_replays()
-        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
         patcher.start()
         self.addCleanup(patcher.stop)
 
