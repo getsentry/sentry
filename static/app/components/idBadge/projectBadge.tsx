@@ -10,7 +10,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Project = NonNullable<BaseBadgeProps['project']>;
 
-interface Props
+export interface ProjectBadgeProps
   extends Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> {
   project: Project;
   className?: string;
@@ -37,7 +37,7 @@ const ProjectBadge = ({
   disableLink = false,
   className,
   ...props
-}: Props) => {
+}: ProjectBadgeProps) => {
   const {slug, id} = project;
 
   const badge = (
