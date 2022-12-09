@@ -391,7 +391,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
     has_minified_stack_trace = has_event_minified_stack_trace(event)
 
-    if not has_minified_stack_trace:
+    if not has_event_minified_stack_trace(event):
         return
 
     try:
