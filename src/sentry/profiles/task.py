@@ -108,7 +108,6 @@ def process_profile_task(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=None,
             reason="profiling_failed_symbolication",
         )
         return
@@ -130,7 +129,6 @@ def process_profile_task(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=None,
             reason="profiling_failed_deobfuscation",
         )
         return
@@ -145,7 +143,6 @@ def process_profile_task(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=None,
             reason="profiling_failed_normalization",
         )
         return
@@ -155,7 +152,6 @@ def process_profile_task(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=None,
             reason="profiling_failed_vroom_insertion",
         )
         return
