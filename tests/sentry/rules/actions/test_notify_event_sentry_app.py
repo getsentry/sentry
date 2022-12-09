@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-from exam import before
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
@@ -21,7 +20,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         {"name": "summary", "value": "circle triangle square"},
     ]
 
-    @before
+    @pytest.fixture(autouse=True)
     def create_schema(self):
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 

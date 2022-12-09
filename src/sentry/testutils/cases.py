@@ -61,7 +61,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from exam import Exam, before, fixture
+from exam import Exam, fixture
 from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -173,7 +173,7 @@ class BaseTestCase(Fixtures, Exam):
         assert resp.status_code == 302
         assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
-    @before
+    @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
