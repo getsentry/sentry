@@ -14,7 +14,9 @@ import {
 
 describe('getDuration()', function () {
   it('should format durations', function () {
-    expect(getDuration(0, 2)).toBe('0.00ms');
+    expect(formatSecondsToClock(0)).toBe('00:00');
+    expect(formatSecondsToClock(0.001)).toBe('00:00.001');
+    expect(formatSecondsToClock(0.01)).toBe('00:00.010');
     expect(getDuration(0.1)).toBe('100ms');
     expect(getDuration(0.1, 2)).toBe('100.00ms');
     expect(getDuration(1)).toBe('1 second');
@@ -32,7 +34,9 @@ describe('getDuration()', function () {
   });
 
   it('should format negative durations', function () {
-    expect(getDuration(-0, 2)).toBe('0.00ms');
+    expect(formatSecondsToClock(0)).toBe('00:00');
+    expect(formatSecondsToClock(-0.001)).toBe('00:00.001');
+    expect(formatSecondsToClock(-0.01)).toBe('00:00.010');
     expect(getDuration(-0.1)).toBe('-100ms');
     expect(getDuration(-0.1, 2)).toBe('-100.00ms');
     expect(getDuration(-1)).toBe('-1 second');
