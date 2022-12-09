@@ -8,7 +8,6 @@ import {
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
@@ -16,7 +15,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
 import {IconClose} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -25,8 +23,8 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -40,14 +38,8 @@ function DomMutations({replay}: Props) {
   const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
-  const {
-    getMutationsTypes,
-    items,
-    type: filteredTypes,
-    searchTerm,
-    setType,
-    setSearchTerm,
-  } = useDomFilters({actions});
+  const filterProps = useDomFilters({actions: actions || []});
+  const {items, setSearchTerm} = filterProps;
 
   const currentDomMutation = getPrevReplayEvent({
     items: items.map(mutation => mutation.crumb),
@@ -120,27 +112,9 @@ function DomMutations({replay}: Props) {
 
   return (
     <MutationContainer>
-      <FiltersGrid>
-        <CompactSelect
-          triggerProps={{prefix: t('Event Type')}}
-          triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
-          multiple
-          options={getMutationsTypes()}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={filteredTypes}
-          isDisabled={!replay || !actions.length}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search DOM Events')}
-          query={searchTerm}
-          disabled={!replay || !actions.length}
-        />
-      </FiltersGrid>
+      <DomFilters actions={actions} {...filterProps} />
       <MutationList>
-        {isLoading ? (
+        {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
           <AutoSizer>

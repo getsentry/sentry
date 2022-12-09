@@ -9,21 +9,19 @@ import {
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -55,17 +53,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const multiGridRef = useRef<MultiGrid>(null);
   const networkTableRef = useRef<HTMLDivElement>(null);
 
-  const {
-    getResourceTypes,
-    getStatusTypes,
-    items,
-    status: selectedStatus,
-    type: selectedType,
-    searchTerm,
-    setStatus,
-    setType,
-    setSearchTerm,
-  } = useNetworkFilters({networkSpans: networkSpans || []});
+  const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
+  const {items, searchTerm, setSearchTerm} = filterProps;
 
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
 
@@ -286,36 +275,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   return (
     <NetworkContainer>
-      <FiltersGrid>
-        <CompactSelect
-          triggerProps={{prefix: t('Status')}}
-          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
-          multiple
-          options={getStatusTypes()}
-          size="sm"
-          onChange={selected => setStatus(selected.map(_ => _.value))}
-          value={selectedStatus}
-          isDisabled={!networkSpans || !networkSpans.length}
-        />
-        <CompactSelect
-          triggerProps={{prefix: t('Type')}}
-          triggerLabel={selectedType.length === 0 ? t('Any') : null}
-          multiple
-          options={getResourceTypes()}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={selectedType}
-          isDisabled={!networkSpans || !networkSpans.length}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search Network Requests')}
-          query={searchTerm}
-          disabled={!networkSpans || !networkSpans.length}
-        />
-      </FiltersGrid>
-
+      <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable ref={networkTableRef}>
         {networkSpans ? (
           <AutoSizer>

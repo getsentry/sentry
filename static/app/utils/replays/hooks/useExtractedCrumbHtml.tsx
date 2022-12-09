@@ -44,7 +44,7 @@ const requestIdleCallback =
 
 function useExtractedCrumbHtml({replay}: HookOpts) {
   const [isLoading, setIsLoading] = useState(true);
-  const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
+  const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>();
 
   useEffect(() => {
     requestIdleCallback(
