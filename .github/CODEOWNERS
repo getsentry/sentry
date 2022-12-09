@@ -386,6 +386,7 @@ yarn.lock           @getsentry/owners-js-deps
 
 ### End of Telemetry Experience ###
 
+
 ### Growth ###
 
 /src/sentry/api/endpoints/client_state.py                           @getsentry/growth
@@ -398,3 +399,19 @@ yarn.lock           @getsentry/owners-js-deps
 
 
 ### End of Growth ###
+
+
+### Issue Platform ###
+
+/src/sentry/event_manager.py                        @getsentry/issue-platform
+/src/sentry/issues/                                 @getsentry/issue-platform
+/src/sentry/search/                                 @getsentry/issue-platform
+/src/sentry/tasks/post_process.py                   @getsentry/issue-platform
+/src/sentry/types/issues.py                         @getsentry/issue-platform
+/tests/sentry/event_manager/test_event_manager.py   @getsentry/issue-platform
+/tests/sentry/issues/                               @getsentry/issue-platform
+/tests/sentry/search/                               @getsentry/issue-platform
+/tests/sentry/tasks/test_post_process.py            @getsentry/issue-platform
+/tests/snuba/search/                                @getsentry/issue-platform
+
+### End of Issue Platform ###
