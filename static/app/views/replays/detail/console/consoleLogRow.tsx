@@ -11,6 +11,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  hasOccurred: boolean;
   isCurrent: boolean;
   isHovered: boolean;
   onClickTimestamp: any;
@@ -22,6 +23,7 @@ type Props = {
 
 function ConsoleMessage({
   breadcrumb,
+  hasOccurred,
   isCurrent,
   isHovered,
   onClickTimestamp,
@@ -32,6 +34,7 @@ function ConsoleMessage({
 }: Props) {
   return (
     <ConsoleLog
+      hasOccurred={hasOccurred}
       isCurrent={isCurrent}
       isHovered={isHovered}
       level={breadcrumb.level}
@@ -65,6 +68,7 @@ const IssueLinkWrapper = styled('div')`
 `;
 
 const ConsoleLog = styled('div')<{
+  hasOccurred: boolean;
   isCurrent: boolean;
   isHovered: boolean;
   level: string;
@@ -81,15 +85,13 @@ const ConsoleLog = styled('div')<{
 
   border-bottom: 1px solid
     ${p =>
-      p.isCurrent
-        ? p.theme.purple300
-        : p.isHovered
-        ? p.theme.purple200
-        : p.theme.innerBorder};
+      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
 
   color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].iconColor
+      : p.hasOccurred
+      ? p.theme.gray300
       : 'inherit'};
 
   & ${IssueLinkWrapper} {
