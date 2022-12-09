@@ -1,6 +1,7 @@
 from typing import Any, Mapping
 from unittest import mock
 
+from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
@@ -405,6 +406,26 @@ class ProjectStacktraceLinkTestMultipleMatches(APITestCase):
             "automatically_generated": code_mapping.automatically_generated,
         }
 
+    def test_test_multiple_code_mapping_matches_order(self):
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+
+        configs = [
+            self.code_mapping1,
+            self.code_mapping2,
+            self.code_mapping3,
+            self.code_mapping4,
+            self.code_mapping5,
+        ]
+        expected_config_order = [
+            self.code_mapping3,
+            self.code_mapping4,
+            self.code_mapping1,
+            self.code_mapping5,
+            self.code_mapping2,
+        ]
+        sorted_configs = project_stacktrace_link_endpoint.sort_code_mapping_configs(configs)
+        assert sorted_configs == expected_config_order
+
     def test_multiple_code_mapping_matches(self):
         sourceUrl = "https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         with mock.patch.object(
@@ -415,14 +436,6 @@ class ProjectStacktraceLinkTestMultipleMatches(APITestCase):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )
-            # Assert that the order that the code mappings are in is correct
-            assert response.data["matched_code_mappings"] == [
-                self.expected_code_mapping(self.code_mapping3, sourceUrl),
-                self.expected_code_mapping(self.code_mapping4, sourceUrl),
-                self.expected_code_mapping(self.code_mapping1, sourceUrl),
-                self.expected_code_mapping(self.code_mapping5, sourceUrl),
-                self.expected_code_mapping(self.code_mapping2, sourceUrl),
-            ]
             # Assert that the best candidate was chosen
             assert response.data["config"] == self.expected_configurations(self.code_mapping3)
             assert response.data["sourceUrl"] == sourceUrl
