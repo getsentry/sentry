@@ -109,7 +109,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-symbolication",
+            reason="profiling_failed_symbolication",
         )
         return
 
@@ -131,7 +131,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-deobfuscation",
+            reason="profiling_failed_deobfuscation",
         )
         return
 
@@ -146,7 +146,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-normalization",
+            reason="profiling_failed_normalization",
         )
         return
 
@@ -156,7 +156,7 @@ def process_profile(
             project=project,
             outcome=Outcome.INVALID,
             key_id=key_id,
-            reason="failed-vroom-insertion",
+            reason="profiling_failed_vroom_insertion",
         )
         return
 

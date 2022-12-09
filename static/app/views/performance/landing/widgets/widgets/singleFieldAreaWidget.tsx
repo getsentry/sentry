@@ -96,7 +96,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 eventView={eventView}
                 location={location}
                 queryExtras={getMEPQueryParams(mepSetting)}
-                useEvents
               />
             )}
           </QueryBatchNode>
