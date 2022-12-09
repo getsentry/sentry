@@ -1,8 +1,7 @@
-import {useEffect} from 'react';
+import {useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
-  CellMeasurerCache,
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
@@ -31,22 +30,16 @@ import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/uti
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
   replay: null | ReplayReader;
 };
 
-// The cache is used to measure the height of each row
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-  minHeight: 82,
-});
-
 function DomMutations({replay}: Props) {
   const startTimestampMs = replay?.getReplay()?.startedAt?.getTime() || 0;
   const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  let listRef: ReactVirtualizedList | null = null;
 
   const {
     items,
@@ -66,13 +59,15 @@ function DomMutations({replay}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  useEffect(() => {
-    // Restart cache when items changes
-    if (listRef) {
-      cache.clearAll();
-      listRef?.forceUpdateGrid();
-    }
-  }, [items, listRef]);
+  const listRef = useRef<ReactVirtualizedList>(null);
+  const {cache} = useVirtualizedList({
+    cellMeasurer: {
+      fixedWidth: true,
+      minHeight: 82,
+    },
+    ref: listRef,
+    deps: [items],
+  });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = items[index];
@@ -151,9 +146,7 @@ function DomMutations({replay}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
+                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
