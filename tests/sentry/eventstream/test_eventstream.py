@@ -6,16 +6,18 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 
 from sentry.event_manager import EventManager
+from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class SnubaEventStreamTest(TestCase, SnubaTestCase):
+class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
 
@@ -43,7 +45,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
     def __produce_event(self, *insert_args, **insert_kwargs):
 
-        is_transaction_event = insert_kwargs["event"].get_event_type() == "transaction"
+        event_type = self.kafka_eventstream._get_event_type(insert_kwargs["event"])
 
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
@@ -52,8 +54,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
-        if is_transaction_event:
+        if event_type == EventStreamEventType.Transaction:
             assert produce_kwargs["topic"] == settings.KAFKA_TRANSACTIONS
+            assert produce_kwargs["key"] is None
+        elif event_type == EventStreamEventType.IssuePlatform:
+            assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_ISSUE_PLATFORM
             assert produce_kwargs["key"] is None
         else:
             assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
@@ -70,7 +75,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             self.project.id,
             "insert",
             (payload1, payload2),
-            is_transaction_event=is_transaction_event,
+            event_type=event_type,
         )
 
     def __produce_payload(self, *insert_args, **insert_kwargs):
@@ -202,9 +207,57 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
         assert not self.producer_mock.produce.called
         logger.error.assert_called_with(
-            "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+            "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
+            "associated with an `IssueOccurrence`",
             exc_info=True,
         )
+
+    @patch("sentry.eventstream.insert", autospec=True)
+    def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
+        event = self.__build_transaction_event()
+        event.group_id = self.group.id
+        group_event = event.for_group(self.group)
+        group_event.occurrence = self.build_occurrence()
+
+        insert_args = ()
+        insert_kwargs = {
+            "event": group_event,
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+        }
+        # TODO: Use this once we have a dataset in snuba
+        # self.__produce_event(*insert_args, **insert_kwargs)
+        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
+        producer = self.producer_mock
+        produce_args, produce_kwargs = list(producer.produce.call_args)
+
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_ISSUE_PLATFORM
+        assert produce_kwargs["key"] is None
+        assert version == 2
+        assert type_ == "insert"
+        occurrence_data = group_event.occurrence.to_dict()
+        del occurrence_data["evidence_data"]
+        del occurrence_data["evidence_display"]
+        assert payload1["occurrence_data"] == occurrence_data
+        assert payload1["group_id"] == self.group.id
+
+        # TODO: Query this data and make sure it's present once we have a corresponding dataset in
+        # snuba
+        # result = snuba.raw_query(
+        #     dataset=snuba.Dataset.IssuePlatform,
+        #     start=now - timedelta(days=1),
+        #     end=now + timedelta(days=1),
+        #     selected_columns=["event_id", "group_id", "occurrence_id"],
+        #     groupby=None,
+        #     filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+        # )
+        # assert len(result["data"]) == 1
+        # assert result["data"][0]["group_ids"] == [self.group.id]
 
     @patch("sentry.eventstream.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
@@ -260,3 +313,31 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         assert ("queue", b"post_process_transactions") in headers
         assert body["queue"] == "post_process_transactions"
+
+    @patch("sentry.eventstream.insert", autospec=True)
+    def test_issue_platform_queue(self, mock_eventstream_insert):
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.groups = [self.group]
+        group_event = event.for_group(self.group)
+        group_event.occurrence = self.build_occurrence()
+
+        insert_args = ()
+        group_state = {
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+        }
+        insert_kwargs = {
+            "event": group_event,
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+
+        assert ("queue", b"post_process_issue_platform") in headers
+        assert body["queue"] == "post_process_issue_platform"
