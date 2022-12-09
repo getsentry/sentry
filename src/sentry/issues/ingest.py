@@ -28,7 +28,6 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 )
 # This should probably be configurable per team
 ISSUE_QUOTA = Quota(3600, 60, 5)
-GROUPHASH_IGNORE_LIMIT = 3
 
 logger = logging.getLogger(__name__)
 

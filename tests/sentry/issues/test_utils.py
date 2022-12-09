@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.types.issues import GroupType
 
 
@@ -39,4 +39,11 @@ class OccurrenceTestMixin:
         return kwargs
 
     def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
+        if "evidence_display" in overrides:
+            evidence_display = overrides["evidence_display"]
+            overrides["evidence_display"] = [
+                item.to_dict() if isinstance(item, IssueEvidence) else item
+                for item in evidence_display
+            ]
+
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
