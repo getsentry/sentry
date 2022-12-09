@@ -149,6 +149,8 @@ export interface Config {
     dsn: string;
     release: string;
     whitelistUrls: string[];
+    replaysOnErrorSampleRate?: number;
+    replaysSessionSampleRate?: number;
   };
   singleOrganization: boolean;
   superUserCookieDomain: string | null;

@@ -58,6 +58,11 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
     }),
   ];
 
+  if (sentryConfig.replaysSessionSampleRate || sentryConfig.replaysOnErrorSampleRate) {
+    const {Replay} = require('@sentry/replay');
+    integrations.push(new Replay());
+  }
+
   return integrations;
 }
 
