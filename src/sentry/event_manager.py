@@ -2209,8 +2209,8 @@ def _save_grouphash_and_group(
 def _message_from_metadata(meta: Mapping[str, str]) -> str:
     title = meta.get("title", "")
     location = meta.get("location", "")
-    seperator = ": " if title and location else ""
-    return f"{title}{seperator}{location}"
+    separator = ": " if title and location else ""
+    return f"{title}{separator}{location}"
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
