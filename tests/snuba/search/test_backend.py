@@ -403,7 +403,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.category:performance")
         assert set(results) == {group_3}
@@ -435,12 +435,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "fingerprint": ["put-me-in-group3"],
                 "event_id": "c" * 32,
                 "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "type": GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
             },
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.type:performance_n_plus_one")

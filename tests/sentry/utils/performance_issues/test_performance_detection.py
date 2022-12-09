@@ -896,7 +896,7 @@ class PrepareProblemForGroupingTest(unittest.TestCase):
             n_plus_one_event,
             DetectorType.N_PLUS_ONE_DB_QUERIES,
         ) == PerformanceProblem(
-            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
+            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
             op="db",
             type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
