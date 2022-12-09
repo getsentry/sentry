@@ -8,15 +8,18 @@ export const ContextContainer = styled('div')`
   flex-direction: column;
 `;
 
-export const ContextHeader = styled('h6')`
-  color: ${p => p.theme.subText};
+export const ContextHeader = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0;
+  margin-bottom: ${space(0.75)};
+`;
+
+export const ContextTitle = styled('h6')`
+  color: ${p => p.theme.subText};
+  margin-bottom: 0 !important;
 `;
 
 export const ContextBody = styled('div')`
-  margin: ${space(1)} 0 0;
   width: 100%;
   text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};

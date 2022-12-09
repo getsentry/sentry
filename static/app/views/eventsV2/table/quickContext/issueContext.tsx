@@ -17,17 +17,18 @@ import {Event, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,
   ContextHeader,
   ContextRow,
+  ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs, NoContext} from './utils';
+import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
-  const statusTitle = t('Issue Status');
   const {dataRow, organization} = props;
 
   useEffect(() => {
@@ -71,19 +72,25 @@ function IssueContext(props: BaseContextProps) {
       <IssueContextContainer data-test-id="quick-context-issue-status-container">
         <ContextRow>
           <div>
-            <ContextHeader>{t('Events')}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('Events')}</ContextTitle>
+            </ContextHeader>
             <ContextBody>
               <Count className="count" value={issue.count} />
             </ContextBody>
           </div>
           <div>
-            <ContextHeader>{t('Users')}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('Users')}</ContextTitle>
+            </ContextHeader>
             <ContextBody>
               <Count className="count" value={issue.userCount} />
             </ContextBody>
           </div>
           <div>
-            <ContextHeader>{statusTitle}</ContextHeader>
+            <ContextHeader>
+              <ContextTitle>{t('Issue Status')}</ContextTitle>
+            </ContextHeader>
             <ContextBody>
               {issue.status === 'ignored' ? (
                 <IconMute
@@ -110,7 +117,9 @@ function IssueContext(props: BaseContextProps) {
   const renderAssignee = () =>
     issue && (
       <AssignedToContainer data-test-id="quick-context-assigned-to-container">
-        <ContextHeader>{t('Assigned To')}</ContextHeader>
+        <ContextHeader>
+          <ContextTitle>{t('Assigned To')}</ContextTitle>
+        </ContextHeader>
         <AssignedToBody>
           {issue.assignedTo ? (
             <ActorAvatar
