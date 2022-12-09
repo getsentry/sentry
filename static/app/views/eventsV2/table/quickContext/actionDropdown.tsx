@@ -160,7 +160,7 @@ function ActionDropDown(props: Props) {
             e.preventDefault();
             triggerProps.onClick?.(e);
           }}
-          icon={<IconEllipsis size="xs" />}
+          icon={<IconEllipsis size="sm" />}
         />
       )}
     />
