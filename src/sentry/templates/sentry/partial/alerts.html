@@ -77,7 +77,7 @@
 {% elif show_login_banner %}
   <div class="alert-banner">
     <div class="alert-message">
-      {% elif banner_choice == 0 %}
+      {% if banner_choice == 0 %}
         <a target=”_blank” href="https://www.djangoproject.com">djangoproject.com</a>&nbspidentified an N+1 issue with Sentry performance issues.&nbsp<a target=”_blank” href="https://blog.sentry.io/2022/11/04/how-sentry-uncovered-an-n-1-issue-in-djangoproject/?utm_medium=banner&utm_source=sentry&utm_campaign=login-performance-issue">Learn how</a>.
       {% elif banner_choice == 1 %}
         Get code-level performance insight for iOS, Android, Python and Node applications with Continuous Profiling.&nbsp<a target=”_blank” href="https://sentry.io/for/profiling/?utm_medium=website&utm_source=sentry&utm_campaign=login-profiling">Learn more</a>.
