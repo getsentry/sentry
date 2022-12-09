@@ -34,7 +34,7 @@ function parseInitialState(state?: Record<string, string[] | string | undefined>
 }
 
 export function useColumnFilters<
-  T extends Record<string, string | number>,
+  T extends Record<string, string | number | undefined | any[]>,
   K extends string = Extract<keyof T, string>
 >(data: T[], options: ColumnFiltersOptions<K>) {
   const {columns} = options;
@@ -84,7 +84,7 @@ export function useColumnFilters<
   }, [data.length, columnFilters, filters]);
 
   const filterPredicate = useCallback(
-    (row: T) => {
+    (row: Partial<T>) => {
       let include = true;
       for (const key in filters) {
         const filterValues = filters[key];

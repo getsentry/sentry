@@ -2,7 +2,6 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
@@ -29,9 +28,6 @@ import {
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
@@ -88,9 +84,7 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  loadingReplayIds: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
-  replayIds: null | string[];
   event?: Event;
 };
 
@@ -110,13 +104,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // prevent duplicate analytics
-    this.props.setDisableRouteAnalytics();
     // only track the view if we are loading the event early
     this.fetchData(this.canLoadEventEarly(this.props));
-    if (this.props.organization.features.includes('session-replay-ui')) {
-      this.fetchReplayIds();
-    }
     this.updateReprocessingProgress();
 
     // Fetch environments early - used in GroupEventDetailsContainer
@@ -160,23 +149,22 @@ class GroupDetails extends Component<Props, State> {
     return {
       group: null,
       loading: true,
-      loadingReplayIds: true,
       loadingEvent: true,
       loadingGroup: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
-      replayIds: null,
     };
   }
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {organization, params, location} = this.props;
+    const {params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAdvancedAnalyticsEvent('issue_details.viewed', {
-      organization,
+
+    this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
+    this.props.setRouteAnalyticsParams({
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
       // group properties
@@ -201,6 +189,7 @@ class GroupDetails extends Component<Props, State> {
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      has_otel: event?.contexts?.otel !== undefined,
     });
   }
 
@@ -249,21 +238,24 @@ class GroupDetails extends Component<Props, State> {
     }
   }
 
-  getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {organization, router, routes} = this.props;
-    const {event} = this.state;
-
+  getCurrentTab() {
+    const {router, routes} = this.props;
     const currentRoute = routes[routes.length - 1];
 
-    let currentTab: Tab;
     // If we're in the tag details page ("/tags/:tagKey/")
     if (router.params.tagKey) {
-      currentTab = Tab.TAGS;
-    } else {
-      currentTab =
-        Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ??
-        Tab.DETAILS;
+      return Tab.TAGS;
     }
+    return (
+      Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS
+    );
+  }
+
+  getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
+    const {organization, router} = this.props;
+    const {event} = this.state;
+
+    const currentTab = this.getCurrentTab();
 
     const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
       router.params.eventId && event ? `events/${event.id}/` : ''
@@ -427,41 +419,6 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchReplayIds() {
-    const {api, location, organization, params} = this.props;
-    const {groupId} = params;
-
-    this.setState({loadingReplayIds: true});
-
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: `Errors within replay`,
-        version: 2,
-        fields: ['replayId', 'count()'],
-        query: `issue.id:${groupId} !replayId:""`,
-        projects: [],
-      },
-      location
-    );
-
-    try {
-      const [data] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location)
-      );
-
-      const replayIds = data.data.map(record => String(record.replayId));
-      this.setState({
-        replayIds,
-        loadingReplayIds: false,
-      });
-    } catch (err) {
-      this.setState({loadingReplayIds: false});
-    }
-  }
-
   async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -581,7 +538,7 @@ class GroupDetails extends Component<Props, State> {
 
   tabClickAnalyticsEvent(tab: Tab) {
     const {organization} = this.props;
-    const {project, group} = this.state;
+    const {project, group, event} = this.state;
 
     if (!project || !group) {
       return;
@@ -593,6 +550,26 @@ class GroupDetails extends Component<Props, State> {
       issue_category: group.issueCategory,
       project_id: parseInt(project.id, 10),
       tab,
+    });
+
+    if (group.issueCategory !== IssueCategory.ERROR) {
+      return;
+    }
+
+    const analyticsData = event
+      ? event.tags
+          .filter(({key}) => ['device', 'os', 'browser'].includes(key))
+          .reduce((acc, {key, value}) => {
+            acc[key] = value;
+            return acc;
+          }, {})
+      : {};
+
+    trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+      organization,
+      tab,
+      platform: project.platform,
+      ...analyticsData,
     });
   }
 
@@ -623,8 +600,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments, organization, location, router} = this.props;
-    const {loadingEvent, eventError, event, replayIds} = this.state;
+    const {children, environments, organization, router} = this.props;
+    const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -654,28 +631,15 @@ class GroupDetails extends Component<Props, State> {
 
     if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
-    } else if (currentTab === Tab.REPLAYS) {
-      childProps = {...childProps, replayIds};
     }
 
     return (
-      <Tabs
-        value={currentTab}
-        onChange={tab => {
-          this.tabClickAnalyticsEvent(tab);
-
-          router.push({
-            pathname: `${baseUrl}${TabPaths[tab]}`,
-            query: tab === Tab.EVENTS ? omit(location.query, 'query') : location.query,
-          });
-        }}
-      >
+      <Tabs value={currentTab} onChange={tab => this.tabClickAnalyticsEvent(tab)}>
         <GroupHeader
           organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
           event={event}
           group={group}
-          replaysCount={replayIds?.length}
           baseUrl={baseUrl}
           project={project as Project}
         />

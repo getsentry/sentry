@@ -53,11 +53,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (
-    TooManyBoostedReleasesException,
-    add_boosted_release,
-    observe_release,
-)
+from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -116,11 +112,11 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
@@ -715,18 +711,6 @@ def _run_background_grouping(project: Project, job: Job) -> None:
         sentry_sdk.capture_exception()
 
 
-def _get_job_category(data: Mapping[str, Any]) -> DataCategory:
-    event_type = data.get("type")
-    if event_type == "transaction":
-        # TODO: This logic should move into sentry-relay, but I'm not sure
-        # about the consequences of making `from_event_type` return
-        # `TRANSACTION_INDEXED` unconditionally.
-        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
-        return DataCategory.TRANSACTION_INDEXED
-
-    return DataCategory.from_event_type(event_type)
-
-
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
@@ -759,9 +743,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
 
-        job["category"] = _get_job_category(data)
+        event._project_cache = project = projects[job["project_id"]]
+        job["category"] = index_data_category(data.get("type"), project.organization)
         job["platform"] = event.platform
-        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
@@ -892,34 +876,42 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 ):
                     with sentry_sdk.start_span(
                         op="event_manager.dynamic_sampling_observe_latest_release"
-                    ) as span, metrics.timer(
-                        "event_manager.dynamic_sampling_observe_latest_release"
-                    ) as metrics_tags:
+                    ) as span:
                         try:
-                            release_observed_in_last_24h = observe_release(project_id, release.id)
-                            if not release_observed_in_last_24h:
+                            latest_release_params = LatestReleaseParams(
+                                release=release,
+                                project=projects[project_id],
+                                environment=_get_environment_from_transaction(data),
+                            )
+
+                            def on_release_boosted() -> None:
                                 span.set_tag(
                                     "dynamic_sampling.observe_release_status",
-                                    f"New release observed {release.id}",
+                                    "(release, environment) pair observed and boosted",
                                 )
-                                metrics_tags[
-                                    "dynamic_sampling.observe_release_status"
-                                ] = f"New release observed {release.id}"
-                                add_boosted_release(project_id, release.id)
+                                span.set_data("release", latest_release_params.release.id)
+                                span.set_data("environment", latest_release_params.environment)
+
                                 schedule_invalidate_project_config(
-                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                    project_id=project_id,
+                                    trigger="dynamic_sampling:boost_release",
                                 )
-                        except TooManyBoostedReleasesException:
-                            span.set_tag(
-                                "dynamic_sampling.observe_release_status",
-                                "Too many boosted releases",
-                            )
-                            metrics_tags[
-                                "dynamic_sampling.observe_release_status"
-                            ] = "Too many boosted releases"
-                            pass
+
+                            LatestReleaseBias(
+                                latest_release_params=latest_release_params
+                            ).observe_release(on_boosted_release_added=on_release_boosted)
                         except Exception:
                             sentry_sdk.capture_exception()
+
+
+def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
+    environment = data.get("environment", None)
+    # We handle the case in which the users sets the empty string as environment, for us that
+    # is equal to having no environment at all.
+    if environment == "":
+        environment = None
+
+    return environment  # type:ignore
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1359,9 +1351,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = problem.title
     return metadata
 
 
@@ -1752,7 +1743,9 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
     if is_regression:
         Activity.objects.create_group_activity(
-            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
+            group,
+            ActivityType.SET_REGRESSION,
+            data={"version": release.version if release else "", "event_id": event.event_id},
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
@@ -1768,7 +1761,11 @@ def _process_existing_aggregate(
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
-    if event.search_message and event.search_message != group.message:
+    if (
+        event.search_message
+        and event.search_message != group.message
+        and event.get_event_type() != TransactionEvent.key
+    ):
         extra["message"] = event.search_message
     if group.level != data["level"]:
         extra["level"] = data["level"]
@@ -2167,23 +2164,6 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={"platform": job["platform"] or "unknown"},
             )
-
-            # Try the new hashing config that more aggresively parametrizes DB
-            # spans, and record the difference with the default hashing config.
-            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
-                experimental_groupings = event.get_span_groupings(
-                    {"id": INCOMING_DEFAULT_CONFIG_ID}
-                )
-
-            unique_incoming_hashes = set(experimental_groupings.results.values())
-            metrics.incr(
-                "save_event.transaction.span_group_count.incoming",
-                amount=len(unique_incoming_hashes),
-            )
-            metrics.incr(
-                "save_event.transaction.span_group_count.difference",
-                amount=len(unique_default_hashes ^ unique_incoming_hashes),
-            )
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2224,6 +2204,13 @@ def _save_grouphash_and_group(
         # fetch it via GroupHash
         group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
     return group, created
+
+
+def _message_from_metadata(meta: Mapping[str, str]) -> str:
+    title = meta.get("title", "")
+    location = meta.get("location", "")
+    seperator = ": " if title and location else ""
+    return f"{title}{seperator}{location}"
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
@@ -2322,6 +2309,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                             group_kwargs["data"]["metadata"], problem
                         )
 
+                        if group_kwargs["data"]["metadata"]:
+                            group_kwargs["message"] = _message_from_metadata(
+                                group_kwargs["data"]["metadata"]
+                            )
+
                         group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
                         )
@@ -2364,6 +2356,10 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                         group_kwargs["data"]["metadata"], problem
                     )
+                    if group_kwargs["data"]["metadata"].get("title"):
+                        group_kwargs["message"] = _message_from_metadata(
+                            group_kwargs["data"]["metadata"]
+                        )
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=group_kwargs, release=job["release"]

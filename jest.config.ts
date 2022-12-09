@@ -52,7 +52,7 @@ let testMatch: string[] | undefined;
 function getTestsForGroup(
   nodeIndex: number,
   nodeTotal: number,
-  allTests: string[],
+  allTests: ReadonlyArray<string>,
   testStats: Record<string, number>
 ): string[] {
   const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
@@ -96,9 +96,19 @@ function getTestsForGroup(
 
   // We sort files by path so that we try and improve the transformer cache hit rate.
   // Colocated domain specific files are likely to require other domain specific files.
-  const testsSortedByPath = Array.from(tests.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0])
-  );
+  const testsSortedByPath = Array.from(tests.entries()).sort((a, b) => {
+    // WidgetBuilder tests are a special case as they can sometimes take a long time to run (3-5 minutes)
+    // As such, we want to ensure that they are ran in the same group as other widget builder tests.
+    // We do this by sorting them by the path of the widget builder test which ensures they are started by the first job
+    // in the CI group and that all of the tests actually run in the same group.
+    if (a[0].includes('widgetBuilder')) {
+      return -1;
+    }
+    if (b[0].includes('widgetBuilder')) {
+      return 1;
+    }
+    return a[0].localeCompare(b[0]);
+  });
 
   for (let group = 0; group < nodeTotal; group++) {
     groups[group] = [];
@@ -164,13 +174,10 @@ if (
   } catch (err) {
     // Just ignore if balance results doesn't exist
   }
-
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
   const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
     file.replace(__dirname, '')
   );
-  const tests = envTestList.sort((a, b) => b.localeCompare(a));
-
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
@@ -179,6 +186,8 @@ if (
     optionalTags.balancer_strategy = 'by_path';
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
   } else {
+    const tests = envTestList.sort((a, b) => b.localeCompare(a));
+
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);
     const remainder = length % nodeTotal;
@@ -264,7 +273,9 @@ const config: Config.InitialOptions = {
         // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
         environment: CI ? 'ci' : 'local',
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 1,
+        profilesSampleRate: 0.1,
+        transportOptions: {keepAlive: true},
       },
       transactionOptions: {
         tags: {

@@ -1,6 +1,5 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
-import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -12,6 +11,7 @@ from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.hybrid_cloud.organization import ApiOrganization
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def Feature(names):
 
             if isinstance(feature, OrganizationFeature):
                 org = args[0] if len(args) > 0 else kwargs.get("organization", None)
-                if not isinstance(org, Organization):
+                if not isinstance(org, Organization) and not isinstance(org, ApiOrganization):
                     raise ValueError("Must provide organization to check feature")
 
             if isinstance(feature, ProjectFeature):
@@ -103,8 +103,10 @@ def with_feature(feature):
 
 def apply_feature_flag_on_cls(feature_flag):
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            setattr(cls, name, with_feature(feature_flag)(fn))
+        # Wrap the [run](https://docs.python.org/3/library/unittest.html#unittest.TestCase.run) method
+        # with the with_feature decorator so all tests in the class can access the
+        # feature flag.
+        setattr(cls, "run", with_feature(feature_flag)(cls.run))
         return cls
 
     return decorate

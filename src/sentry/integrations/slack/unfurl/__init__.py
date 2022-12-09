@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, Callable, Mapping, NamedTuple, Pattern
+from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern
 
 from django.http.request import HttpRequest
 
 from sentry.models import Integration, User
 
 UnfurledUrl = Mapping[Any, Any]
-ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
+ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]
 
 
 class LinkType(enum.Enum):
@@ -34,7 +34,7 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     coerce given arguments into those types.
     """
 
-    def type_coercer(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+    def type_coercer(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
         return {k: type_map[k](v) if v is not None else None for k, v in args.items()}
 
     return type_coercer

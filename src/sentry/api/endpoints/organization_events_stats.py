@@ -69,6 +69,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_VITALS_CHART.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
+    Referrer.API_PROFILING_LANDING_CHART.value,
     Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
 }
 
@@ -149,7 +150,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 or (
                     batch_features.get("organizations:mep-rollout-flag", False)
                     and features.has(
-                        "organizations:server-side-sampling",
+                        "organizations:dynamic-sampling",
                         organization=organization,
                         actor=request.user,
                     )

@@ -1,6 +1,9 @@
-from django.urls import reverse
+from fnmatch import fnmatch
+
+from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.testutils import TestCase
+from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 
 class ReactPageViewTest(TestCase):
@@ -89,3 +92,150 @@ class ReactPageViewTest(TestCase):
             resp = self.client.get(path)
             assert resp.status_code == 302
             assert resp.url == f"/auth/login/{org.slug}/"
+
+    def test_redirect_to_customer_domain(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+
+        self.login_as(user)
+
+        with self.feature({"organizations:customer-domains": False}):
+            assert "activeorg" not in self.client.session
+
+            response = self.client.get(reverse("sentry-organization-issue-list", args=[org.slug]))
+            assert response.status_code == 200
+            assert self.client.session["activeorg"]
+
+        with self.feature({"organizations:customer-domains": True}):
+
+            # Redirect to customer domain
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302)
+            ]
+
+            response = self.client.get(reverse("issues"), follow=True)
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+
+            response = self.client.get("/", follow=True)
+            assert response.status_code == 200
+            # TODO(alberto): follow up with patch to make /issues/ the default whenever customer domain feature is
+            #                enabled.
+            assert response.redirect_chain == [
+                (f"/organizations/{org.slug}/issues/", 302),
+                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302),
+            ]
+
+            # No redirect if customer domain is already being used
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[org.slug]),
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+            response = self.client.get(
+                reverse("issues"),
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+
+    def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        with self.feature({"organizations:customer-domains": True}):
+
+            url_name = "sentry-organization-create"
+            url_name_is_non_customer_domain = any(
+                fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
+            )
+            assert (
+                url_name_is_non_customer_domain
+            ), "precondition missing. org-create should be non-customer-domain"
+
+            # Induce last active org.
+            assert "activeorg" not in self.client.session
+            response = self.client.get(
+                reverse(
+                    "sentry-organization-issue-list",
+                    args=[org.slug],
+                ),
+                HTTP_HOST=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 200
+            assert self.client.session["activeorg"]
+
+            # No redirect to customer domain if path is not meant to be accessed in customer domain context.
+            # There should be no redirect to the last active org.
+            response = self.client.get(
+                reverse(url_name),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+    def test_non_customer_domain_url_names(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        def extract_url_names(urlpatterns, parents):
+            for pattern in urlpatterns:
+                path = parents[:] + [pattern]
+                if isinstance(pattern, URLResolver):
+                    yield from extract_url_names(pattern.url_patterns, path)
+                else:
+                    url_pattern = path[-1]
+                    url_name = url_pattern.name
+                    if (
+                        url_name
+                        and url_pattern.callback
+                        and hasattr(url_pattern.callback, "view_class")
+                        and issubclass(url_pattern.callback.view_class, ReactMixin)
+                    ):
+                        yield url_name
+
+        url_names = list(extract_url_names(get_resolver().url_patterns, []))
+        for url_name in url_names:
+            for url_name_pattern in NON_CUSTOMER_DOMAIN_URL_NAMES:
+                if not fnmatch(url_name, url_name_pattern):
+                    continue
+
+                path = reverse(url_name)
+                # Does not redirect a non-customer domain URL
+                response = self.client.get(path)
+
+                self.assertTemplateUsed(response, "sentry/base-react.html")
+                assert response.status_code == 200
+
+                # Redirects for a customer domain URL
+                response = self.client.get(path, HTTP_HOST=f"{org.slug}.testserver")
+
+                assert response.status_code == 302
+                assert response["Location"] == f"http://testserver{path}"
+
+    def test_handles_unknown_url_name(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        response = self.client.get(f"/settings/{org.slug}/projects/albertos-apples/keys/")
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")

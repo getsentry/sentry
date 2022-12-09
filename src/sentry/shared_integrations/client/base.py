@@ -132,10 +132,10 @@ class BaseApiClient(TrackResponseMixin):
                     resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
-                raise ApiHostError.from_exception(e)
+                raise ApiHostError.from_exception(e) from e
             except Timeout as e:
                 self.track_response_data("timeout", span, e)
-                raise ApiTimeoutError.from_exception(e)
+                raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 resp = e.response
                 if resp is None:
@@ -147,9 +147,9 @@ class BaseApiClient(TrackResponseMixin):
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
 
-                    raise ApiError("Internal Error", url=full_url)
+                    raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp, url=full_url)
+                raise ApiError.from_response(resp, url=full_url) from e
 
             self.track_response_data(resp.status_code, span, None, resp)
 
@@ -170,7 +170,7 @@ class BaseApiClient(TrackResponseMixin):
     def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         query = ""
         if kwargs.get("params", None):
-            query = json.dumps(kwargs.get("params"), sort_keys=True)
+            query = json.dumps(kwargs.get("params"))
         key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
         result: BaseApiResponseX | None = cache.get(key)

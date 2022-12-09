@@ -66,6 +66,7 @@ def timeseries_query(
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
+        query=query,
         interval=rollup,
         selected_columns=selected_columns,
         functions_acl=functions_acl,

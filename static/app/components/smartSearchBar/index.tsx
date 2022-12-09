@@ -1,7 +1,6 @@
 import {Component, createRef, VFC} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -46,6 +45,8 @@ import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import DropdownMenuControl from '../dropdownMenuControl';
 import {MenuItemProps} from '../dropdownMenuItem';
@@ -145,6 +146,9 @@ type DefaultProps = {
    * their definitions may not overlap.
    */
   fieldDefinitionGetter: (key: string) => FieldDefinition | null;
+  id: string;
+  includeLabel: boolean;
+  name: string;
   /**
    * Called when the user makes a search
    */
@@ -317,9 +321,12 @@ type State = {
 
 class SmartSearchBar extends Component<DefaultProps & Props, State> {
   static defaultProps = {
+    id: 'smart-search-input',
+    includeLabel: true,
     defaultQuery: '',
     query: null,
     onSearch: function () {},
+    name: 'query',
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
@@ -1225,11 +1232,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         value: searches.query,
         type: ItemType.RECENT_SEARCH,
       }));
-    } catch (e) {
-      Sentry.captureException(e);
+    } catch {
+      return [];
     }
-
-    return [];
   };
 
   getReleases = debounce(
@@ -1731,6 +1736,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {
       api,
       className,
+      id,
       savedSearchType,
       dropdownClassName,
       actionBarItems,
@@ -1738,9 +1744,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       placeholder,
       disabled,
       useFormWrapper,
+      includeLabel,
       inlineLabel,
       maxQueryLength,
       maxMenuHeight,
+      name,
       customPerformanceMetrics,
       supportedTags,
     } = this.props;
@@ -1759,9 +1767,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       <SearchInput
         type="text"
         placeholder={placeholder}
-        id="smart-search-input"
+        id={id}
         data-test-id="smart-search-input"
-        name="query"
+        name={name}
         ref={this.searchInput}
         autoComplete="off"
         value={query}
@@ -1817,10 +1825,16 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           visibleShortcuts={visibleShortcuts}
           runShortcut={this.runShortcutOnHotkeyPress}
         />
-        <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <IconSearch />
-          {inlineLabel}
-        </SearchLabel>
+        {includeLabel ? (
+          <SearchLabel htmlFor={id} aria-label={t('Search events')}>
+            <IconSearch />
+            {inlineLabel}
+          </SearchLabel>
+        ) : (
+          <SearchIconContainer>
+            <IconSearch />
+          </SearchIconContainer>
+        )}
 
         <InputWrapper>
           <Highlight>
@@ -1916,7 +1930,7 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
   }
 }
 
-export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
+export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
 export {SmartSearchBar, Props as SmartSearchBarProps};
 
@@ -1944,6 +1958,13 @@ const Container = styled('div')<{inputHasFocus: boolean}>`
     border-color: ${p.theme.focusBorder};
     box-shadow: 0 0 0 1px ${p.theme.focusBorder};
   `}
+`;
+
+const SearchIconContainer = styled('div')`
+  display: flex;
+  padding: ${space(0.5)} 0;
+  margin: 0;
+  color: ${p => p.theme.gray300};
 `;
 
 const SearchLabel = styled('label')`

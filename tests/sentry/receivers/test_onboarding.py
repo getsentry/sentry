@@ -14,6 +14,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_replay_received,
     first_transaction_received,
     integration_added,
     issue_tracker_used,
@@ -473,6 +474,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=type(Rule),
             is_api_token=False,
         )
+        first_replay_received.send(project=project, sender=type(project))
 
         assert (
             OrganizationOption.objects.filter(

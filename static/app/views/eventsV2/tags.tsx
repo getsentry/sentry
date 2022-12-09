@@ -145,9 +145,11 @@ class Tags extends Component<Props, State> {
         </ErrorPanel>
       );
     }
+
     if (tags.length > 0) {
       return tags.map(tag => this.renderTag(tag));
     }
+
     return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;
   };
 

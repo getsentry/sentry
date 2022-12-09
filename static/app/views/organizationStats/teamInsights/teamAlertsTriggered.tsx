@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -102,7 +102,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SubText color={diff <= 0 ? 'green300' : 'red300'}>
+      <SubText color={diff <= 0 ? 'successText' : 'errorText'}>
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>
@@ -244,7 +244,7 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;
 

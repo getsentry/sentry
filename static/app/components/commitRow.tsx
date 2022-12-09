@@ -29,7 +29,7 @@ export function formatCommitMessage(message: string | null) {
 export interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
-  onCommitClick?: () => void;
+  onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
 }
 
@@ -103,7 +103,7 @@ function CommitRow({
                 showIcon={false}
                 commitId={commit.id}
                 repository={commit.repository}
-                onClick={onCommitClick}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
               />
             ),
           })}

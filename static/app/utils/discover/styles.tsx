@@ -14,6 +14,7 @@ export const Container = styled('div')`
 
 export const VersionContainer = styled('div')`
   display: flex;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const NumberContainer = styled('div')`

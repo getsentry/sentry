@@ -44,6 +44,12 @@ class EventAttributeConditionTest(RuleTestCase):
                     "type": "response",
                     "status_code": 500,
                 },
+                "device": {
+                    "screen_width_pixels": 1920,
+                    "screen_height_pixels": 1080,
+                    "screen_dpi": 123,
+                    "screen_density": 2.5,
+                },
             },
         }
         data.update(kwargs)
@@ -638,6 +644,86 @@ class EventAttributeConditionTest(RuleTestCase):
                 "match": MatchType.EQUAL,
                 "attribute": "stacktrace.package",
                 "value": "package/otherotherpackage.lib",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_width_pixels(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_width_pixels",
+                "value": "1920",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_width_pixels",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_height_pixels(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_height_pixels",
+                "value": "1080",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_height_pixels",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_dpi(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_dpi",
+                "value": "123",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_dpi",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_density(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_density",
+                "value": "2.5",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_density",
+                "value": "400",
             }
         )
         self.assertDoesNotPass(rule, event)

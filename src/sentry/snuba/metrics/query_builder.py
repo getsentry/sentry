@@ -56,16 +56,18 @@ from sentry.snuba.metrics.naming_layer.mapping import (
 )
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
+    MetricActionByField,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
-    MetricsQuery,
 )
-from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics.query import Tag
+from sentry.snuba.metrics.query import MetricOrderByField
+from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
+from sentry.snuba.metrics.query import MetricsQuery, Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
+    FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
@@ -93,11 +95,32 @@ def parse_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
+def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+    """
+    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
+    as such in any query using that tag value.
+
+    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
+    transform that '' as '<< unparameterized >>'.
+
+    It is important to note that this transformation has to be applied ONLY on tag.transaction.
+    """
+    return Function(
+        function="transform",
+        parameters=[
+            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
+            [""],
+            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
+        ],
+        alias=alias,
+    )
+
+
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
@@ -127,6 +150,21 @@ def resolve_tags(
                 [
                     resolve_tags(use_case_id, org_id, input_.parameters[0]),
                     resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                ],
+            )
+        elif input_.function == "match":
+            column = input_.parameters[0]
+
+            if column.name not in FILTERABLE_TAGS:
+                raise InvalidParams(
+                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
+                )
+
+            return Function(
+                function=input_.function,
+                parameters=[
+                    resolve_tags(use_case_id, org_id, column),
+                    input_.parameters[1],  # We directly pass the regex.
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
@@ -167,9 +205,12 @@ def resolve_tags(
             rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
 
             try:
-                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
-                    input_.op
-                ]
+                op = {
+                    Op.EQ: Op.IN,
+                    Op.IN: Op.IN,
+                    Op.NEQ: Op.NOT_IN,
+                    Op.NOT_IN: Op.NOT_IN,
+                }[input_.op]
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
@@ -196,6 +237,11 @@ def resolve_tags(
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
+            # If we are getting the column tags.transaction, we want to transform null values to
+            # '<< unparameterized >>'.
+            if input_.key == "transaction":
+                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -294,7 +340,7 @@ class QueryDefinition:
                 direction = Direction.DESC
 
             field = parse_field(orderby)
-            orderby_list.append(MetricsOrderBy(field, direction))
+            orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
 
@@ -348,7 +394,9 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
-def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+def get_metric_object_from_metric_field(
+    metric_field: MetricField,
+) -> MetricExpressionBase:
     """Get the metric object from a metric field"""
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
@@ -447,7 +495,6 @@ def translate_meta_results(
 
 
 class SnubaQueryBuilder:
-
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
         "metrics_counters",
@@ -459,7 +506,10 @@ class SnubaQueryBuilder:
     }
 
     def __init__(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+        self,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -469,47 +519,102 @@ class SnubaQueryBuilder:
         self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
 
     @staticmethod
-    def generate_snql_for_groupby_field(
-        metric_groupby_obj: MetricGroupByField,
+    def generate_snql_for_action_by_fields(
+        metric_action_by_field: MetricActionByField,
         use_case_id: UseCaseKey,
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
-    ) -> Union[Column, AliasedExpression, Function]:
-        if isinstance(metric_groupby_obj.field, str):
-            # Handles the case when we are trying to group by `project` for example, but we want
-            # to translate it to `project_id` as that is what the metrics dataset understands
-            if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
-                column_name = FIELD_ALIAS_MAPPINGS[metric_groupby_obj.field]
-            elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
-                column_name = metric_groupby_obj.field
-            else:
-                assert isinstance(metric_groupby_obj.field, Tag)
-                column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
-            return (
-                AliasedExpression(
-                    exp=Column(column_name),
-                    alias=metric_groupby_obj.alias,
+    ) -> Union[List[OrderBy], Column, AliasedExpression, Function]:
+        """
+        Generates the necessary snql for any action by field which in our case will be group by and order by. This
+        function has been designed to share as much logic as possible, however, it should be refactored in case
+        the snql generation starts to diverge significantly.
+        """
+
+        is_group_by = isinstance(metric_action_by_field, MetricGroupByField)
+        is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
+        if not is_group_by and not is_order_by:
+            raise InvalidParams("The metric action must either be an order by or group by.")
+
+        if isinstance(metric_action_by_field.field, str):
+            # This transformation is currently supported only for group by because OrderBy doesn't support the Function
+            # type.
+            if is_group_by and metric_action_by_field.field == "transaction":
+                return transform_null_transaction_to_unparameterized(
+                    use_case_id, org_id, metric_action_by_field.alias
                 )
-                if not is_column
-                else Column(column_name)
+
+            # Handles the case when we are trying to group or order by `project` for example, but we want
+            # to translate it to `project_id` as that is what the metrics dataset understands.
+            if metric_action_by_field.field in FIELD_ALIAS_MAPPINGS:
+                column_name = FIELD_ALIAS_MAPPINGS[metric_action_by_field.field]
+            elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
+                column_name = metric_action_by_field.field
+            else:
+                # The support for tags in the order by is disabled for now because there is no need to have it. If the
+                # need arise, we will implement it.
+                if is_group_by:
+                    assert isinstance(metric_action_by_field.field, Tag)
+                    column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported string field: {metric_action_by_field.field}"
+                    )
+
+            exp = (
+                AliasedExpression(
+                    exp=Column(name=column_name),
+                    alias=metric_action_by_field.alias,
+                )
+                if is_group_by and not is_column
+                else Column(name=column_name)
             )
 
-        elif isinstance(metric_groupby_obj.field, MetricField):
+            if is_order_by:
+                # We return a list in order to use the "extend" method and reduce the number of changes across
+                # the codebase.
+                exp = [OrderBy(exp=exp, direction=metric_action_by_field.direction)]
+
+            return exp
+        elif isinstance(metric_action_by_field.field, MetricField):
             try:
                 metric_expression = metric_object_factory(
-                    metric_groupby_obj.field.op, metric_groupby_obj.field.metric_mri
+                    metric_action_by_field.field.op, metric_action_by_field.field.metric_mri
                 )
-                return metric_expression.generate_groupby_statements(
-                    use_case_id=use_case_id,
-                    alias=metric_groupby_obj.field.alias,
-                    params=metric_groupby_obj.field.params,
-                    projects=projects,
-                )[0]
+
+                if is_group_by:
+                    return metric_expression.generate_groupby_statements(
+                        use_case_id=use_case_id,
+                        alias=metric_action_by_field.field.alias,
+                        params=metric_action_by_field.field.params,
+                        projects=projects,
+                    )[0]
+                elif is_order_by:
+                    return metric_expression.generate_orderby_clause(
+                        use_case_id=use_case_id,
+                        alias=metric_action_by_field.field.alias,
+                        params=metric_action_by_field.field.params,
+                        projects=projects,
+                        direction=metric_action_by_field.direction,
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Unsupported metric field: {metric_action_by_field.field}"
+                    )
+
             except IndexError:
-                raise InvalidParams(f"Cannot resolve {metric_groupby_obj.field} into SnQL")
+                raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
-            raise NotImplementedError(f"Unsupported groupby field: {metric_groupby_obj.field}")
+            action_by_name = None
+            if is_group_by:
+                action_by_name = "group by"
+            elif is_order_by:
+                action_by_name = "order by"
+
+            raise NotImplementedError(
+                f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
+            )
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
@@ -563,8 +668,8 @@ class SnubaQueryBuilder:
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
             groupby_cols.append(
-                self.generate_snql_for_groupby_field(
-                    metric_groupby_obj=metric_groupby_obj,
+                self.generate_snql_for_action_by_fields(
+                    metric_action_by_field=metric_groupby_obj,
                     use_case_id=self._use_case_id,
                     org_id=self._org_id,
                     projects=self._projects,
@@ -577,22 +682,30 @@ class SnubaQueryBuilder:
             return None
 
         orderby_fields = []
-        for orderby in self._metrics_query.orderby:
-            op = orderby.field.op
-            metric_field_obj = metric_object_factory(op, orderby.field.metric_mri)
+        for metric_order_by_obj in self._metrics_query.orderby:
             orderby_fields.extend(
-                metric_field_obj.generate_orderby_clause(
-                    projects=self._projects,
-                    direction=orderby.direction,
-                    params=orderby.field.params,
+                self.generate_snql_for_action_by_fields(
+                    metric_action_by_field=metric_order_by_obj,
                     use_case_id=self._use_case_id,
-                    alias=orderby.field.alias,
+                    org_id=self._org_id,
+                    projects=self._projects,
+                    is_column=True,
                 )
             )
+
         return orderby_fields
 
     def __build_totals_and_series_queries(
-        self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+        self,
+        entity,
+        select,
+        where,
+        groupby,
+        orderby,
+        limit,
+        offset,
+        rollup,
+        intervals_len,
     ):
         rv = {}
         totals_query = Query(
@@ -642,7 +755,11 @@ class SnubaQueryBuilder:
         )
 
     def __update_query_dicts_with_component_entities(
-        self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
+        self,
+        component_entities,
+        metric_mri_to_obj_dict,
+        fields_in_entities,
+        parent_alias,
     ):
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None

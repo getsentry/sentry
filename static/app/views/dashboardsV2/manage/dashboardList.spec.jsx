@@ -1,9 +1,12 @@
-import {act} from 'react-dom/test-utils';
-
-import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {triggerPress} from 'sentry-test/utils';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import DashboardList from 'sentry/views/dashboardsV2/manage/dashboardList';
 
@@ -14,7 +17,11 @@ describe('Dashboards > DashboardList', function () {
     projects: [TestStubs.Project()],
   });
 
+  const {router, routerContext} = initializeOrg();
+
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -118,99 +125,100 @@ describe('Dashboards > DashboardList', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders an empty list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={[]}
         pageLinks=""
-        location={{query: {}}}
+        location={router.location}
       />
     );
-    const content = wrapper.find('DashboardCard');
-    // No dashboards
-    expect(content).toHaveLength(0);
-    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 
   it('renders dashboard list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {}}}
+        location={router.location}
       />
     );
-    const content = wrapper.find('DashboardCard');
-    expect(content).toHaveLength(2);
+
+    expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
   });
 
   it('returns landing page url for dashboards', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {}}}
-      />
+        location={router.location}
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('DashboardCard').last();
-    const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual(`/organizations/org-slug/dashboard/2/`);
+
+    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/1/?'
+    );
+    expect(screen.getByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/2/?'
+    );
   });
 
   it('persists global selection headers', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
         location={{query: {statsPeriod: '7d'}}}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('DashboardCard').last();
-    const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual(`/organizations/org-slug/dashboard/2/`);
-    expect(link.query).toEqual({statsPeriod: '7d'});
+
+    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
+    );
   });
 
   it('can delete dashboards', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
         location={{query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-      />
+      />,
+      {context: routerContext}
     );
-    const card = wrapper.find('DashboardCard').last();
-    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+    renderGlobalModal();
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'DashboardCard', last: true},
-      itemKey: 'dashboard-delete',
-    });
+    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    userEvent.click(screen.getByTestId('dashboard-delete'));
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    // Confirm
-    const modal = await mountGlobalModal();
-    modal.find('Button').last().simulate('click');
+    userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
-    await tick();
-
-    expect(deleteMock).toHaveBeenCalled();
-    expect(dashboardUpdateMock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(deleteMock).toHaveBeenCalled();
+      expect(dashboardUpdateMock).toHaveBeenCalled();
+    });
   });
 
-  it('cannot delete last dashboard', async function () {
+  it('cannot delete last dashboard', function () {
     const singleDashboard = [
       TestStubs.Dashboard([], {
         id: '1',
@@ -220,7 +228,7 @@ describe('Dashboards > DashboardList', function () {
         widgetPreview: [],
       }),
     ];
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={singleDashboard}
@@ -229,23 +237,16 @@ describe('Dashboards > DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
-    let card = wrapper.find('DashboardCard').last();
-    expect(card.find('Title').text()).toEqual(singleDashboard[0].title);
 
-    await act(async () => {
-      triggerPress(card.find('DropdownTrigger'));
-
-      await tick();
-      wrapper.update();
-    });
-
-    card = wrapper.find('DashboardCard').last();
-    const dashboardDelete = card.find(`MenuItemWrap[data-test-id="dashboard-delete"]`);
-    expect(dashboardDelete.prop('aria-disabled')).toBe(true);
+    userEvent.click(screen.getByRole('button', {name: /dashboard actions/i}));
+    expect(screen.getByTestId('dashboard-delete')).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('can duplicate dashboards', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -254,27 +255,24 @@ describe('Dashboards > DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
-    const card = wrapper.find('DashboardCard').last();
-    expect(card.find('Title').text()).toEqual(dashboards[1].title);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'DashboardCard', last: true},
-      itemKey: 'dashboard-duplicate',
+    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalled();
+      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
-
-    expect(createMock).toHaveBeenCalled();
-    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('does not throw an error if the POST fails during duplication', async function () {
-    MockApiClient.addMockResponse({
+    const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       method: 'POST',
       statusCode: 404,
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -283,16 +281,14 @@ describe('Dashboards > DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
-    const card = wrapper.find('DashboardCard').last();
-    expect(card.find('Title').text()).toEqual(dashboards[1].title);
 
-    await selectDropdownMenuItem({
-      wrapper,
-      specifiers: {prefix: 'DashboardCard', last: true},
-      itemKey: 'dashboard-duplicate',
+    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalled();
+      // Should not update, and not throw error
+      expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
-
-    // Should not update, and not throw error
-    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 });

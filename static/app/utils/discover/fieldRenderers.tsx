@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
@@ -13,6 +13,7 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import Tooltip from 'sentry/components/tooltip';
@@ -38,10 +39,9 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
-import {
-  ContextType,
-  QuickContextHoverWrapper,
-} from 'sentry/views/eventsV2/table/quickContext';
+import toArray from 'sentry/utils/toArray';
+import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -72,7 +72,7 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
-  projectId?: string;
+  projectSlug?: string;
   unit?: string;
 };
 
@@ -287,7 +287,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   array: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      const value = toArray(data[field]);
       return <ArrayValue value={value} />;
     },
   },
@@ -341,7 +341,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   attachments: {
     sortField: null,
-    renderFunc: (data, {organization, projectId}) => {
+    renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment> = data.attachments;
 
       const items: MenuItemProps[] = attachments
@@ -351,7 +351,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
             ),
         }));
 
@@ -377,7 +377,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   minidump: {
     sortField: null,
-    renderFunc: (data, {organization, projectId}) => {
+    renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
@@ -393,7 +393,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectId}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
                     );
                   }
                 : undefined
@@ -481,7 +481,11 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+            <QuickContextHoverWrapper
+              dataRow={data}
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
               <StyledLink to={target} aria-label={issueID}>
                 <OverflowFieldShortId shortId={`${data.issue}`} />
               </StyledLink>
@@ -587,10 +591,20 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   release: {
     sortField: 'release',
-    renderFunc: data =>
+    renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper
+              dataRow={data}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version version={data.release} truncate />
+            </QuickContextHoverWrapper>
+          ) : (
+            <Version version={data.release} tooltipRawVersion truncate />
+          )}
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>

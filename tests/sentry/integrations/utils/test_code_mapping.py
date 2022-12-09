@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -8,6 +9,10 @@ from sentry.integrations.utils.code_mapping import (
     FrameFilename,
     Repo,
     RepoTree,
+    filter_source_code_files,
+    get_extension,
+    should_include,
+    stacktrace_buckets,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -18,27 +23,67 @@ with open(
     sentry_files = json.load(fd)
 
 
-class TestDerivedCodeMappings(TestCase):
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
-        self._caplog = caplog
+class TestRepoFiles(TestCase):
+    """These evaluate which files should be included as part of a repo."""
 
-    def setUp(self):
-        super().setUp()
-        self.foo_repo = Repo("Test-Organization/foo", "master")
-        self.bar_repo = Repo("Test-Organization/bar", "main")
-        self.code_mapping_helper = CodeMappingTreesHelper(
-            {
-                self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
-                self.bar_repo.name: RepoTree(self.bar_repo, files=["getsentry/web/urls.py"]),
-            }
-        )
+    def test_filter_source_code_files(self):
+        source_code_files = filter_source_code_files(sentry_files)
 
-        self.expected_code_mappings = [
-            CodeMapping(self.foo_repo, "sentry", "src/sentry"),
-            CodeMapping(self.foo_repo, "sentry_plugins", "src/sentry_plugins"),
-        ]
+        assert source_code_files.index("bin/__init__.py") == 0
+        assert source_code_files.index("docs-ui/.eslintrc.js") == 3
+        with pytest.raises(ValueError):
+            source_code_files.index("README.md")
 
+    def test_filter_source_code_files_not_supported(self):
+        source_code_files = filter_source_code_files([])
+        assert source_code_files == []
+        source_code_files = filter_source_code_files([".env", "README"])
+        assert source_code_files == []
+
+    def test_should_not_include(self):
+        for file in [
+            "static/app/views/organizationRoot.spec.jsx",
+            "tests/foo.py",
+        ]:
+            assert should_include(file) is False
+
+
+def test_get_extension():
+    assert get_extension("") == ""
+    assert get_extension(None) == ""
+    assert get_extension("f.py") == "py"
+    assert get_extension("f.xx") == "xx"
+    assert get_extension("./app/utils/handleXhrErrorResponse.tsx") == "tsx"
+    assert get_extension("[native code]") == ""
+    assert get_extension("/foo/bar/baz") == ""
+    assert get_extension("/gtm.js") == "js"
+
+
+def test_buckets_logic():
+    stacktraces = [
+        "<anonymous>",  # Garbage
+        "<frozen importlib._bootstrap>",
+        "[native code]",
+        "O$t",
+        "/foo/bar/baz",  # no extension
+        "README",  # no extension
+        "backburner.js",
+        "app://foo.js",
+        "./app/utils/handleXhrErrorResponse.tsx",
+        "getsentry/billing/tax/manager.py",
+        "/gtm.js",  # Top source; starts with backslash
+        "ssl.py",
+    ]
+    buckets = stacktrace_buckets(stacktraces)
+    assert buckets == {
+        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
+        "NO_TOP_DIR": [FrameFilename("/gtm.js"), FrameFilename("ssl.py")],
+        "app:": [FrameFilename("app://foo.js")],
+        "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
+    }
+
+
+class TestFrameFilename(TestCase):
     def test_frame_filename_package_and_more_than_one_level(self):
         ff = FrameFilename("getsentry/billing/tax/manager.py")
         assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
@@ -60,23 +105,38 @@ class TestDerivedCodeMappings(TestCase):
         path = "getsentry/billing/tax/manager.py"
         assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
 
-    def test_buckets_logic(self):
-        stacktraces = ["app://foo.js", "getsentry/billing/tax/manager.py", "ssl.py"]
-        buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
-        assert buckets == {
-            "NO_TOP_DIR": [FrameFilename("ssl.py")],
-            "app:": [FrameFilename("app://foo.js")],
-            "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
-        }
+
+class TestDerivedCodeMappings(TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    def setUp(self):
+        super().setUp()
+        self.foo_repo = Repo("Test-Organization/foo", "master")
+        self.bar_repo = Repo("Test-Organization/bar", "main")
+        self.code_mapping_helper = CodeMappingTreesHelper(
+            {
+                self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
+                self.bar_repo.name: RepoTree(self.bar_repo, files=["sentry/web/urls.py"]),
+            }
+        )
+
+        self.expected_code_mappings = [
+            CodeMapping(repo=self.foo_repo, stacktrace_root="sentry/", source_path="src/sentry/"),
+            CodeMapping(
+                repo=self.foo_repo,
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
+            ),
+        ]
 
     def test_package_also_matches(self):
+        repo_tree = RepoTree(self.foo_repo, files=["apostello/views/base.py"])
         # We create a new tree helper in order to improve the understability of this test
-        cmh = CodeMappingTreesHelper(
-            {self.foo_repo.name: RepoTree(self.foo_repo, files=["apostello/views/base.py"])}
-        )
+        cmh = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
         cm = cmh._generate_code_mapping_from_tree(
-            repo_full_name=self.foo_repo.name,
-            frame_filename=FrameFilename("raven/base.py"),
+            repo_tree=repo_tree, frame_filename=FrameFilename("raven/base.py")
         )
         # We should not derive a code mapping since the package name does not match
         assert cm == []
@@ -111,6 +171,27 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_matches_top_src_file(self, logger):
+        stacktraces = ["setup.py"]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        assert code_mappings == []
+
+        assert logger.info.called_with(
+            "We do not support top level files.",
+            extra={"stackframes": [FrameFilename("setup.py")]},
+        )
+
+    def test_no_dir_depth_match(self):
+        code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
+        assert code_mappings == [
+            CodeMapping(
+                repo=Repo(name="Test-Organization/foo", branch="master"),
+                stacktrace_root="sentry/",
+                source_path="src/sentry/",
+            )
+        ]
+
     def test_more_than_one_match_does_derive(self):
         stacktraces = [
             # More than one file matches for this, however, the package name is taken into account
@@ -122,8 +203,8 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == [
             CodeMapping(
                 repo=self.foo_repo,
-                stacktrace_root="sentry_plugins",
-                source_path="src/sentry_plugins",
+                stacktrace_root="sentry_plugins/",
+                source_path="src/sentry_plugins/",
             )
         ]
 
@@ -149,13 +230,48 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
-    def test_more_than_one_repo_match(self):
+    @patch("sentry.integrations.utils.code_mapping.logger")
+    def test_more_than_one_repo_match(self, logger):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
-        # repo 2: getsentry/web/urls.py
+        # repo 2: sentry/web/urls.py
         stacktraces = ["sentry/web/urls.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert self._caplog.records[0].message == "More than one repo matched sentry/web/urls.py"
-        assert self._caplog.records[0].levelname == "WARNING"
+        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
+
+    def test_list_file_matches_single(self):
+        frame_filename = FrameFilename("sentry_plugins/slack/client.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            {
+                "filename": "src/sentry_plugins/slack/client.py",
+                "repo_name": "Test-Organization/foo",
+                "repo_branch": "master",
+                "stacktrace_root": "sentry_plugins/",
+                "source_path": "src/sentry_plugins/",
+            }
+        ]
+        assert matches == expected_matches
+
+    def test_list_file_matches_multiple(self):
+        frame_filename = FrameFilename("sentry/web/urls.py")
+        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        expected_matches = [
+            {
+                "filename": "src/sentry/web/urls.py",
+                "repo_name": "Test-Organization/foo",
+                "repo_branch": "master",
+                "stacktrace_root": "sentry/",
+                "source_path": "src/sentry/",
+            },
+            {
+                "filename": "sentry/web/urls.py",
+                "repo_name": "Test-Organization/bar",
+                "repo_branch": "main",
+                "stacktrace_root": "sentry/",
+                "source_path": "sentry/",
+            },
+        ]
+        assert matches == expected_matches

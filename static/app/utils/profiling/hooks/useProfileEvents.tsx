@@ -2,6 +2,8 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
@@ -14,7 +16,8 @@ type Sort<F> = {
 };
 
 interface UseProfileEventsOptions<F> {
-  fields: F[];
+  fields: readonly F[];
+  referrer: string;
   sort: Sort<F>;
   cursor?: string;
   limit?: number;
@@ -28,8 +31,8 @@ type EventsResultsDataRow<F extends string> = {
 };
 
 type EventsResultsMeta<F extends string> = {
-  fields: {[K in F]: FieldValueType};
-  units: {[K in F]: Unit};
+  fields: Partial<{[K in F]: FieldValueType}>;
+  units: Partial<{[K in F]: Unit}>;
 };
 
 export type EventsResults<F extends string> = {
@@ -40,6 +43,7 @@ export type EventsResults<F extends string> = {
 export function useProfileEvents<F extends string>({
   fields,
   limit,
+  referrer,
   query,
   sort,
   cursor,
@@ -52,6 +56,7 @@ export function useProfileEvents<F extends string>({
   const endpointOptions = {
     query: {
       dataset: 'profiles',
+      referrer,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -80,9 +85,27 @@ export function useProfileEvents<F extends string>({
   });
 }
 
+export function formatError(error: any): string | null {
+  if (!defined(error)) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  return t('An unknown error occurred.');
+}
+
 export function formatSort<F extends string>(
   value: string | undefined,
-  allowedKeys: F[],
+  allowedKeys: readonly F[],
   fallback: Sort<F>
 ): Sort<F> {
   value = value || '';

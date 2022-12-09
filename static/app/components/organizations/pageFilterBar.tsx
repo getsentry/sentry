@@ -37,10 +37,19 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   }
 
   & > * {
-    min-width: 6rem;
+    min-width: 7rem;
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: max-content;
+
+    /* Prevent project filter from shrinking (it has in-built max character count)
+    except in mobile */
+    &:first-child {
+      flex-shrink: 0;
+      @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
+        flex-shrink: 1;
+      }
+    }
   }
 
   & > *:not(:first-child)::after {

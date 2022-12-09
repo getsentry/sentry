@@ -2,6 +2,7 @@ import logging
 
 import sentry_sdk
 from django.urls import reverse
+from sentry_sdk import set_tag
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
@@ -73,6 +74,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
     commit_list = []
 
     release = Release.objects.get(id=release_id)
+    set_tag("organization.slug", release.organization.slug)
     # TODO: Need a better way to error handle no user_id. We need the SDK to be able to call this without user context
     # to autoassociate commits to releases
     user = User.objects.get(id=user_id) if user_id is not None else None

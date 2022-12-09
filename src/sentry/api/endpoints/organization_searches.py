@@ -1,5 +1,4 @@
 from django.db.models import Q
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,25 +6,12 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
+from sentry.api.serializers.rest_framework.savedsearch import (
+    OrganizationSearchAdminSerializer,
+    OrganizationSearchMemberSerializer,
+)
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-
-
-class OrganizationSearchSerializer(serializers.Serializer):
-    type = serializers.IntegerField(required=True)
-    name = serializers.CharField(required=True)
-    query = serializers.CharField(required=True, min_length=1)
-    sort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
-    )
-    # TODO(epurkhiser): Once the frontend is deployed we should change this to
-    # default to OWNER since that is a more sane default than organization
-    # visibile.
-    visibility = serializers.ChoiceField(
-        choices=Visibility.as_choices(include_pinned=False),
-        default=Visibility.ORGANIZATION,
-        required=False,
-    )
 
 
 @region_silo_endpoint
@@ -67,24 +53,43 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(list(query), request.user))
 
     def post(self, request: Request, organization) -> Response:
-        serializer = OrganizationSearchSerializer(data=request.data)
+        if request.access.has_scope("org:write"):
+            serializer = OrganizationSearchAdminSerializer(data=request.data)
+        else:
+            serializer = OrganizationSearchMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
 
-        # Prevent from creating duplicate queries
-        if (
-            SavedSearch.objects
-            # Query duplication for pinned searches is fine, exlcuded these
-            .exclude(visibility=Visibility.OWNER_PINNED)
-            .filter(Q(is_global=True) | Q(organization=organization), query=result["query"])
-            .exists()
-        ):
-            return Response(
-                {"detail": "Query {} already exists".format(result["query"])}, status=400
-            )
+        if result["visibility"] == Visibility.ORGANIZATION:
+            # Check for conflicts against existing org searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.ORGANIZATION,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"An organization search for '{result['query']}' already exists"},
+                    status=400,
+                )
+        elif result["visibility"] == Visibility.OWNER:
+            # Check for conflicts against the user's searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.OWNER,
+                owner=request.user,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"A search for '{result['query']}' already exists"},
+                    status=400,
+                )
 
         saved_search = SavedSearch.objects.create(
             organization=organization,

@@ -5,15 +5,14 @@ from unittest.mock import patch
 import pytest
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    get_redis_client_for_ds,
-)
+from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import get_project_config
+from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -79,6 +78,14 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 
 
 @pytest.mark.django_db
+def test_get_project_config_non_visible(default_project):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update(status=ObjectStatus.PENDING_DELETION)
+    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    assert cfg.to_dict() == {"disabled": True}
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
@@ -108,11 +115,9 @@ SOME_EXCEPTION = RuntimeError("foo")
 @pytest.mark.django_db
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
-def test_get_experimental_config(mock_sentry_sdk, _, default_project):
+def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature(
-        {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
-    ):
+    with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
@@ -121,12 +126,41 @@ def test_get_experimental_config(mock_sentry_sdk, _, default_project):
 
 
 @pytest.mark.django_db
+@mock.patch("sentry.relay.config.capture_exception")
+def test_get_experimental_config_transaction_metrics_exception(
+    mock_capture_exception, default_project
+):
+    keys = ProjectKey.objects.filter(project=default_project)
+    default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
+    # wrong type
+    default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
+
+    with Feature({"organizations:transaction-metrics-extraction": True}):
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+
+    # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
+    assert (
+        "breakdowns.span_ops.ops"
+        not in cfg.to_dict()["config"]["transactionMetrics"]["extractMetrics"]
+    )
+    assert cfg.to_dict()["config"]["transactionMetrics"]["extractCustomTags"] == []
+    assert mock_capture_exception.call_count == 2
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("has_custom_filters", [False, True])
-def test_project_config_uses_filter_features(default_project, has_custom_filters):
+@pytest.mark.parametrize("has_blacklisted_ips", [False, True])
+def test_project_config_uses_filter_features(
+    default_project, has_custom_filters, has_blacklisted_ips
+):
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
+    blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
+
+    if has_blacklisted_ips:
+        default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
         cfg = get_project_config(default_project, full_config=True)
@@ -134,6 +168,7 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
     cfg = cfg.to_dict()
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
+    cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
 
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
@@ -142,144 +177,43 @@ def test_project_config_uses_filter_features(default_project, has_custom_filters
         assert cfg_releases is None
         assert cfg_error_messages is None
 
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("has_dyn_sampling", [False, True])
-@pytest.mark.parametrize("full_config", [False, True])
-def test_project_config_uses_filters_and_sampling_feature(
-    default_project, dyn_sampling_data, has_dyn_sampling, full_config
-):
-    """
-    Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:server-side-sampling" feature enabled.
-    """
-    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": has_dyn_sampling,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project, full_config=full_config)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    if has_dyn_sampling:
-        assert dynamic_sampling == dyn_sampling_data()
+    if has_blacklisted_ips:
+        assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
     else:
-        assert dynamic_sampling is None
+        assert cfg_client_ips is None
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("active", [False, True])
-def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
-    default_project, dyn_sampling_data, active
-):
-    """
-    Tests that dynamic sampling information is retrieved only for "active" rules.
-    """
-    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:custom-inbound-filters"])
+def test_project_config_exposed_features(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    if active:
-        assert dynamic_sampling == dyn_sampling_data(active)
-    else:
-        assert dynamic_sampling == {"rules": []}
+    cfg_features = get_path(cfg, "config", "features")
+    assert cfg_features == ["projects:custom-inbound-filters"]
 
 
 @pytest.mark.django_db
-def test_project_config_dynamic_sampling_is_none(default_project):
-    """
-    Tests test check inc-237 that dynamic sampling is None,
-    so it's pass when we have fix and fails when we dont
-    """
-    default_project.update_option("sentry:dynamic_sampling", None)
-
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-
-    assert dynamic_sampling is None
-
-
-@pytest.mark.django_db
-def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_project):
-    """
-    Tests that dynamic sampling information return correct release instead of alias "latest"
-    """
-    dynamic_sampling_data = {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "glob", "name": "trace.release", "value": ["latest"]},
-                    ],
-                },
-            },
-            {
-                "sampleRate": 0.1,
-                "type": "trace",
-                "condition": {"op": "and", "inner": []},
-                "active": True,
-                "id": 1,
-            },
-        ]
-    }
-
-    default_project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
-    release = Factories.create_release(
-        project=default_project,
-        version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
-    )
-    with Feature(
-        {
-            "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-deprecated": True,
-        }
-    ):
-        cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-    assert dynamic_sampling["rules"][0]["condition"]["inner"] == [
-        {"op": "glob", "name": "trace.release", "value": [release.version]}
-    ]
-    assert dynamic_sampling["rules"][1]["condition"]["inner"] == []
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
+def test_project_config_exposed_features_raise_exc(default_project):
+    with Feature({"projects:custom-inbound-filters": True}):
+        with pytest.raises(RuntimeError) as exc_info:
+            get_project_config(default_project, full_config=True)
+        assert (
+            str(exc_info.value)
+            == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
+        )
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "ss_sampling,ds_basic,current_ds_data,expected",
+    "ds_basic,expected",
     [
-        # server-side-sampling: True, dynamic-sampling: True
+        # dynamic-sampling: True
         # `dynamic-sampling` flag has the highest precedence
         (
             True,
-            True,
-            {"rules": []},
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
@@ -295,72 +229,20 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             },
         ),
         (
-            True,
-            True,
-            {
-                "rules": [
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    }
-                ]
-            },
-            {
-                "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ]
-            },
-        ),
-        (
-            True,
             False,
-            {"rules": []},
-            {"rules": []},
+            None,
         ),
-        (
-            True,
-            True,
-            {"rules": []},
-            {
-                "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ]
-            },
-        ),
-        (False, False, {"rules": []}, None),
     ],
 )
 def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
-    default_project, ss_sampling, ds_basic, current_ds_data, expected
+    default_project, ds_basic, expected
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    default_project.update_option("sentry:dynamic_sampling", current_ds_data)
     with Feature(
         {
-            "organizations:server-side-sampling": ss_sampling,
             "organizations:dynamic-sampling": ds_basic,
-            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         with mock.patch(
@@ -376,7 +258,6 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-@mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 5)
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
     default_project,
 ):
@@ -394,19 +275,20 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         )
         release_ids.append(release.id)
 
-    boosted_releases = [[release_ids[0], ts - BOOSTED_RELEASE_TIMEOUT * 2]]
+    # We mark the first release (1.0) as expired.
+    time_to_adoption = Platform(default_project.platform).time_to_adoption
+    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
     for release_id in release_ids[1:]:
         boosted_releases.append([release_id, ts])
 
     for release, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            release,
+            f"ds::r:{release}:e:prod",
             timestamp,
         )
     with Feature(
         {
-            "organizations:server-side-sampling": True,
             "organizations:dynamic-sampling": True,
         }
     ):
@@ -460,7 +342,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["2.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1500,
                 "timeRange": {
@@ -474,7 +363,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1501,
                 "timeRange": {
@@ -488,7 +384,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1502,
                 "timeRange": {
@@ -502,7 +405,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1503,
                 "timeRange": {
@@ -516,9 +426,37 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
                 },
                 "id": 1504,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1505,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
@@ -553,6 +491,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_metrics_extraction", (True, False))
+def test_project_config_with_organizations_metrics_extraction(
+    default_project, has_metrics_extraction
+):
+    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    session_metrics = get_path(cfg, "config", "sessionMetrics")
+    if has_metrics_extraction:
+        assert session_metrics == {"drop": False, "version": 1}
+    else:
+        assert session_metrics is None
 
 
 @pytest.mark.django_db
@@ -604,17 +558,15 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
-def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
+def test_has_metric_extraction(default_project, feature_flag, killswitch):
     options = override_options(
         {
             "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
             if killswitch
-            else [],
-            "relay.transaction-metrics-org-sample-rate": org_sample,
+            else []
         }
     )
     feature = Feature(
@@ -624,7 +576,7 @@ def test_has_metric_extraction(default_project, feature_flag, org_sample, killsw
     )
     with feature, options:
         config = get_project_config(default_project)
-        if killswitch or (org_sample == 0.0 and not feature_flag):
+        if killswitch or not feature_flag:
             assert "transactionMetrics" not in config.to_dict()["config"]
         else:
             config = config.to_dict()["config"]["transactionMetrics"]
@@ -653,3 +605,49 @@ def test_accept_transaction_names(default_project, org_sample):
             if org_sample
             else "strict"
         )
+
+
+@pytest.mark.django_db
+def test_project_config_setattr(default_project):
+    project_cfg = ProjectConfig(default_project)
+    with pytest.raises(Exception) as exc_info:
+        project_cfg.foo = "bar"
+    assert str(exc_info.value) == "Trying to change read only ProjectConfig object"
+
+
+@pytest.mark.django_db
+def test_project_config_getattr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.foo == "bar"
+
+
+@pytest.mark.django_db
+def test_project_config_str(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert str(project_cfg) == '{"foo":"bar"}'
+
+    with mock.patch.object(ProjectConfig, "to_dict") as fake_to_dict:
+        fake_to_dict.side_effect = ValueError("bad data")
+        project_cfg1 = ProjectConfig(default_project)
+        assert str(project_cfg1) == "Content Error:bad data"
+
+
+@pytest.mark.django_db
+def test_project_config_repr(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_to_json_string(default_project):
+    project_cfg = ProjectConfig(default_project, foo="bar")
+    assert project_cfg.to_json_string() == '{"foo":"bar"}'
+
+
+@pytest.mark.django_db
+def test_project_config_get_at_path(default_project):
+    project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
+    assert project_cfg.get_at_path("b") == "The b"
+    assert project_cfg.get_at_path("bb") is None
+    assert project_cfg.get_at_path("b", "c") is None
+    assert project_cfg.get_at_path() == project_cfg

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.pipeline.base import Pipeline
 
 
-class PipelineView(BaseView, abc.ABC):  # type: ignore
+class PipelineView(BaseView, abc.ABC):
     """
     A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.

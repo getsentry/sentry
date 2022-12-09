@@ -547,6 +547,8 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
         actors.update(
             {
                 ("user", email.lower()): ActorTuple(u_id, User)
+                # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
+                # without an explicit service call.
                 for u_id, email in User.objects.filter(
                     reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
                     # We don't require verified emails

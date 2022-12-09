@@ -6,6 +6,10 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
+  /**
+   * Number that represents how much user activity happened in a replay.
+   */
+  activity: number;
   browser: {
     name: null | string;
     version: null | string;
@@ -93,6 +97,7 @@ export type ReplayListLocationQuery = {
 
 export type ReplayListRecord = Pick<
   ReplayRecord,
+  | 'activity'
   | 'countErrors'
   | 'duration'
   | 'finishedAt'

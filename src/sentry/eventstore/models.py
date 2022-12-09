@@ -17,6 +17,7 @@ from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
@@ -689,10 +690,12 @@ class GroupEvent(BaseEvent):
         group: Group,
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
+        occurrence: IssueOccurrence | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
+        self._occurrence = occurrence
 
     def __eq__(self, other):
         if not isinstance(other, GroupEvent):
@@ -731,6 +734,14 @@ class GroupEvent(BaseEvent):
             group_event.project = event.project
         return group_event
 
+    @property
+    def occurrence(self) -> IssueOccurrence:
+        return self._occurrence
+
+    @occurrence.setter
+    def occurrence(self, value: IssueOccurrence) -> None:
+        self._occurrence = value
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
@@ -758,7 +769,11 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return cast(str, self.event.organization.slug)
         elif name == "title":
-            return self.event.title
+            return (
+                self.event.occurrence.issue_title
+                if getattr(self.event, "occurrence", None)
+                else self.event.title
+            )
         elif name == "issueType":
             return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
         raise KeyError

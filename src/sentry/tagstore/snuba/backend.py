@@ -1,4 +1,5 @@
 import functools
+import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
@@ -44,6 +45,13 @@ from sentry.types.issues import GroupCategory
 from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
+
+_max_unsampled_projects = 50
+if os.environ.get("SENTRY_SINGLE_TENANT"):
+    # This is a patch we used to have in single-tenant, but moving here
+    # to simplify image builds.
+    # hack(tagstore): Always sample get_tag_keys_for_projects query
+    _max_unsampled_projects = 0
 
 SEEN_COLUMN = "timestamp"
 
@@ -373,7 +381,7 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
     ):
-        max_unsampled_projects = 50
+        max_unsampled_projects = _max_unsampled_projects
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
         # If we are fetching less than max_unsampled_projects, then disable
@@ -463,14 +471,17 @@ class SnubaTagStorage(TagStorage):
     def get_perf_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
-        filters = {"project_id": project_ids, "group_id": group_id_list}
+        filters = {"project_id": project_ids}
         if environment_ids:
             filters["environment"] = environment_ids
 
         result = snuba.query(
             dataset=Dataset.Transactions,
             groupby=["group_id"],
-            conditions=[[f"tags[{key}]", "=", value]],
+            conditions=[
+                [["hasAny", ["group_ids", ["array", group_id_list]]], "=", 1],
+                [f"tags[{key}]", "=", value],
+            ],
             filter_keys=filters,
             aggregations=[
                 ["arrayJoin", ["group_ids"], "group_id"],
@@ -736,7 +747,7 @@ class SnubaTagStorage(TagStorage):
     def get_perf_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        filters_keys = {"project_id": project_ids, "group_id": group_ids}
+        filters_keys = {"project_id": project_ids}
         if environment_ids:
             filters_keys["environment"] = environment_ids
 
@@ -744,6 +755,7 @@ class SnubaTagStorage(TagStorage):
             dataset=Dataset.Transactions,
             start=start,
             end=start,
+            conditions=[[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]],
             filter_keys=filters_keys,
             aggregations=[
                 ["arrayJoin", ["group_ids"], "group_id"],

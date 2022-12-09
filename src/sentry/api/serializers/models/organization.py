@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
@@ -11,7 +11,6 @@ from typing_extensions import TypedDict
 
 from sentry import features, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models import UserSerializer
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
@@ -29,7 +28,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
+    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -41,8 +40,6 @@ from sentry.constants import (
 )
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
-    ApiKey,
-    AuthProvider,
     Organization,
     OrganizationAccessRequest,
     OrganizationAvatar,
@@ -55,6 +52,8 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.auth import ApiOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -174,16 +173,42 @@ class OrganizationSerializer(Serializer):  # type: ignore
             a.organization_id: a
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
-        auth_providers = {
-            a.organization_id: a for a in AuthProvider.objects.filter(organization__in=item_list)
+
+        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig] = {
+            config.organization_id: config
+            for config in auth_service.get_org_auth_config(
+                organization_ids=[o.id for o in item_list]
+            )
         }
+        auth_providers = self._serialize_auth_providers(configs_by_org_id, item_list, user)
+
         data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
             data[item] = {
                 "avatar": avatars.get(item.id),
                 "auth_provider": auth_providers.get(item.id, None),
+                "has_api_key": configs_by_org_id[item.id].has_api_key,
             }
         return data
+
+    def _serialize_auth_providers(
+        self,
+        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig],
+        item_list: Sequence[Organization],
+        user: User,
+    ) -> Mapping[int, Any]:
+        from .auth_provider import AuthProviderSerializer
+
+        auth_provider_serializer = AuthProviderSerializer()
+        return {
+            o.id: serialize(
+                configs_by_org_id[o.id].auth_provider,
+                user=user,
+                serializer=auth_provider_serializer,
+                organization=o,
+            )
+            for o in item_list
+        }
 
     def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User
@@ -236,14 +261,22 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.remove("onboarding")
 
         # Include api-keys feature if they previously had any api-keys
-        if "api-keys" not in feature_list and ApiKey.objects.filter(organization=obj).exists():
+        if "api-keys" not in feature_list and attrs["has_api_key"]:
             feature_list.add("api-keys")
 
         # Organization flag features (not provided through the features module)
-        if OrganizationOption.objects.filter(
-            organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists():
-            feature_list.add("legacy-rate-limits")
+        options_as_features = OrganizationOption.objects.filter(
+            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
+        )
+        for option in options_as_features:
+            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
+            if not option_feature:
+                continue
+            feature: str = option_feature[0]  # feature flag string
+            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
+            if not callable(func) or func(option):
+                feature_list.add(feature)
+
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
@@ -253,7 +286,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             # If the current request is using a customer domain, then we activate the feature for this organization.
             feature_list.add("customer-domains")
 
-        if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
+        if "dynamic-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
@@ -298,9 +331,9 @@ class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
-        # Unique user list
-        users = {item.user for item in item_list if item.user}
-        serialized_users = serialize(users, user, UserSerializer())
+        serialized_users = user_service.serialize_users(
+            user_ids=list({item.user_id for item in item_list if item.user_id})
+        )
         user_map = {user["id"]: user for user in serialized_users}
 
         data: MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs] = {}
@@ -488,14 +521,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return super().get_attrs(item_list, user)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
-        member_projects = list(access.projects)
-        member_project_ids = [p.id for p in member_projects]
-        other_projects = list(
-            Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE).exclude(
-                id__in=member_project_ids
-            )
+        project_list = list(
+            Project.objects.filter(
+                organization=organization, status=ProjectStatus.VISIBLE
+            ).order_by("slug")
         )
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)  # type: ignore
 
         for project in project_list:
             project.set_cached_field_value("organization", organization)
@@ -503,14 +533,11 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return project_list
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
-        member_teams = list(access.teams)
-        member_team_ids = [p.id for p in member_teams]
-        other_teams = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).exclude(
-                id__in=member_team_ids
+        team_list = list(
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+                "slug"
             )
         )
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)  # type: ignore
 
         for team in team_list:
             team.set_cached_field_value("organization", organization)
