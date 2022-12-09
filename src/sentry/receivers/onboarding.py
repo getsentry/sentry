@@ -401,13 +401,6 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         )
         return
 
-    url = None
-
-    # Check for the event url
-    for key, value in event.tags:
-        if key == "url":
-            url = value
-            break
 
     analytics.record(
         "first_event_with_minified_stack_trace_for_project.sent",
