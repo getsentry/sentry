@@ -26,7 +26,7 @@ type Options = {
 };
 
 type Return = {
-  getOptions: () => {label: string; value: string}[];
+  getLogLevels: () => {label: string; value: string}[];
   items: Item[];
   logLevel: BreadcrumbType[];
   searchTerm: string;
@@ -98,7 +98,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
     [typeDefaultCrumbs, logLevel, searchTerm]
   );
 
-  const getOptions = useCallback(
+  const getLogLevels = useCallback(
     () =>
       Array.from(
         new Set(
@@ -129,7 +129,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   );
 
   return {
-    getOptions,
+    getLogLevels,
     items,
     logLevel,
     searchTerm,

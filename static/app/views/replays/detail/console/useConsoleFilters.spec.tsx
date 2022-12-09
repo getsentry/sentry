@@ -269,7 +269,7 @@ describe('useConsoleFilters', () => {
       const {result} = reactHooks.renderHook(useConsoleFilters, {
         initialProps: {breadcrumbs: simpleCrumbs},
       });
-      expect(result.current.getOptions()).toStrictEqual([
+      expect(result.current.getLogLevels()).toStrictEqual([
         {label: 'console error', value: 'error'},
         {label: 'warning', value: 'warning'},
         {label: 'log', value: 'log'},
@@ -282,7 +282,7 @@ describe('useConsoleFilters', () => {
       const {result} = reactHooks.renderHook(useConsoleFilters, {
         initialProps: {breadcrumbs: simpleCrumbs},
       });
-      expect(result.current.getOptions()).toStrictEqual([{label: 'log', value: 'log'}]);
+      expect(result.current.getLogLevels()).toStrictEqual([{label: 'log', value: 'log'}]);
     });
 
     it('should inject extra BreadcrumbLevelType values', () => {
@@ -297,7 +297,7 @@ describe('useConsoleFilters', () => {
         initialProps: {breadcrumbs: simpleCrumbs},
       });
 
-      expect(result.current.getOptions()).toStrictEqual([
+      expect(result.current.getLogLevels()).toStrictEqual([
         {label: 'console error', value: 'error'},
         {label: 'warning', value: 'warning'},
         {label: 'log', value: 'log'},
@@ -310,7 +310,7 @@ describe('useConsoleFilters', () => {
       const {result} = reactHooks.renderHook(useConsoleFilters, {
         initialProps: {breadcrumbs: simpleCrumbs},
       });
-      expect(result.current.getOptions()).toStrictEqual([
+      expect(result.current.getLogLevels()).toStrictEqual([
         {label: 'sentry error', value: 'issue'},
       ]);
     });
@@ -326,7 +326,7 @@ describe('useConsoleFilters', () => {
         initialProps: {breadcrumbs: simpleCrumbs},
       });
 
-      expect(result.current.getOptions()).toStrictEqual([
+      expect(result.current.getLogLevels()).toStrictEqual([
         {label: 'sentry error', value: 'issue'},
       ]);
     });

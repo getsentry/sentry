@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
@@ -287,7 +288,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   return (
     <NetworkContainer>
-      <NetworkFilters>
+      <FiltersGrid>
         <CompactSelect
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
@@ -321,7 +322,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           query={searchTerm}
           disabled={!networkSpans || !networkSpans.length}
         />
-      </NetworkFilters>
+      </FiltersGrid>
 
       <NetworkTable ref={networkTableRef}>
         {networkSpans ? (
@@ -399,17 +400,6 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;
-`;
-
-const NetworkFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
 `;
 
 const Text = styled('p')`
