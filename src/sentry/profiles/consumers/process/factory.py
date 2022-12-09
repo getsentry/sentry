@@ -2,17 +2,19 @@ from typing import Mapping
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import CommitOffsets, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
 from sentry.profiles.task import process_profile_task
 from sentry.utils import json
 
 
-def process_message(message: Message[KafkaPayload]) -> None:
+def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     message_dict = msgpack.unpackb(message.payload.value, use_list=False)
     profile = json.loads(message_dict["payload"], use_rapid_json=True)
+
     profile.update(
         {
             "organization_id": message_dict["organization_id"],
@@ -20,8 +22,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
             "received": message_dict["received"],
         }
     )
-
     process_profile_task.s(profile=profile).apply_async()
+
+    return KafkaPayload(key=None, value=b"", headers=[])
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -30,7 +33,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return TransformStep(
-            function=process_message,
+        return RunTask(
+            function=process_message,  # type: ignore
             next_step=CommitOffsets(commit),
         )
