@@ -1,5 +1,7 @@
+import datetime
 import logging
 
+import pytz
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
@@ -33,6 +35,18 @@ from sentry.signals import (
 )
 from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path
+
+
+# Check if an event contains a minified stack trace
+def has_event_minified_stack_trace(event):
+    exception_values = get_path(event.data, "exception", "values", filter=True)
+
+    if exception_values:
+        for exception_value in exception_values:
+            if "raw_stacktrace" in exception_value:
+                return True
+
+    return False
 
 
 def try_mark_onboarding_complete(organization_id):
@@ -152,27 +166,6 @@ def record_first_event(project, event, **kwargs):
             url = value
             break
 
-    # Check if an event contains a minified stack trace
-    has_minified_stack_trace = False
-
-    exception_values = get_path(event.data, "exception", "values", filter=True)
-
-    if exception_values:
-        for exception_value in exception_values:
-            if "raw_stacktrace" in exception_value:
-                has_minified_stack_trace = True
-                break
-
-    if has_minified_stack_trace:
-        analytics.record(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            url=url,
-        )
-
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
@@ -181,7 +174,7 @@ def record_first_event(project, event, **kwargs):
         project_id=project.id,
         platform=event.platform,
         url=url,
-        has_minified_stack_trace=has_minified_stack_trace,
+        has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
 
     if rows_affected or created:
@@ -388,6 +381,47 @@ def record_user_context_received(project, event, **kwargs):
 
 
 event_processed.connect(record_user_context_received, weak=False)
+
+
+def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
+    # we only want to record events from projects created after 2022-12-09,
+    # otherwise amplitude would receive a large amount of data in a short period of time
+    if project.date_added < pytz.utc.localize(datetime.datetime(2022, 12, 9)):
+        return
+
+    has_minified_stack_trace = has_event_minified_stack_trace(event)
+
+    if not has_minified_stack_trace:
+        return
+
+    try:
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+    except IndexError:
+        logging.getLogger("sentry").warning(
+            "Cannot record first event for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        return
+
+    url = None
+
+    # Check for the event url
+    for key, value in event.tags:
+        if key == "url":
+            url = value
+            break
+
+    analytics.record(
+        "first_event_with_minified_stack_trace_for_project.sent",
+        user_id=user.id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=event.platform,
+        url=url,
+    )
+
+
+event_processed.connect(record_event_with_first_minified_stack_trace_for_project, weak=False)
 transaction_processed.connect(record_user_context_received, weak=False)
 
 
