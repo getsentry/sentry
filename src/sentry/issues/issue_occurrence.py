@@ -29,7 +29,7 @@ class IssueOccurrenceData(TypedDict):
     evidence_display: Sequence[IssueEvidenceData]
     type: int
     detection_time: float
-    level: str
+    level: Optional[str]
 
 
 @dataclass(frozen=True)
