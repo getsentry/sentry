@@ -78,7 +78,7 @@ const Context = ({
   if (isMobile) {
     if (
       event.platform !== 'java' ||
-      (event.platform === 'java' && frame?.module?.substring(0, 4) === 'com.')
+      (event.platform === 'java' && frame?.module?.startsWith('com.')
     ) {
       return (
         <ErrorBoundary customComponent={null}>
