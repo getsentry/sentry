@@ -26,7 +26,6 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
-import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -42,6 +41,7 @@ function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
   const {
+    getMutationsTypes,
     items,
     type: filteredTypes,
     searchTerm,
@@ -125,7 +125,7 @@ function DomMutations({replay}: Props) {
           triggerProps={{prefix: t('Event Type')}}
           triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
           multiple
-          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
+          options={getMutationsTypes()}
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={filteredTypes}
