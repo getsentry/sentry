@@ -51,8 +51,8 @@ def spawn_clusterers(**kwargs: Any) -> None:
     queue="transactions.name_clusterer",
     default_retry_delay=5,  # copied from release monitor
     max_retries=5,  # copied from release monitor
-)
-def cluster_projects(projects: Sequence[Project]):
+)  # type: ignore
+def cluster_projects(projects: Sequence[Project]) -> None:
     for project in projects:
         # NOTE: The probability that the feature flag is True is high, because
         # we know at this point that a redis set exists for the project.
