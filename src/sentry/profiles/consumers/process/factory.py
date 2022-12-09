@@ -11,7 +11,7 @@ from sentry.profiles.task import process_profile_task
 from sentry.utils import json
 
 
-def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
+def process_message(message: Message[KafkaPayload]) -> None:
     message_dict = msgpack.unpackb(message.payload.value, use_list=False)
     profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -24,8 +24,6 @@ def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     )
     process_profile_task.s(profile=profile).apply_async()
 
-    return KafkaPayload(key=None, value=b"", headers=[])
-
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
@@ -33,7 +31,8 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        next_step: CommitOffsets[None] = CommitOffsets(commit)
         return RunTask(
-            function=process_message,  # type: ignore
-            next_step=CommitOffsets(commit),
+            function=process_message,
+            next_step=next_step,
         )
