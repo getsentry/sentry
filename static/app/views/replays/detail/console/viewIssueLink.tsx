@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
+import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
@@ -16,10 +17,10 @@ type Props = {
 function ViewIssueLink({breadcrumb}: Props) {
   const organization = useOrganization();
 
-  const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
-  if (!groupId || !groupShortId || !eventId) {
+  if (!breadcrumbHasIssue(breadcrumb)) {
     return null;
   }
+  const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
 
   const to = {
     pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
@@ -34,7 +35,7 @@ function ViewIssueLink({breadcrumb}: Props) {
             hideName
             avatarProps={{tooltip: projectSlug}}
           />
-          <StyledShortId to={to} shortId={groupShortId} />
+          <ShortId to={to} shortId={groupShortId} />
         </ShortIdBreadrcumb>
       }
     >
@@ -54,11 +55,6 @@ const ShortIdBreadrcumb = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledHovercard = styled(
