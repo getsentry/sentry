@@ -136,21 +136,17 @@ class IssueOccurrence:
     def __hash__(self) -> int:
         return hash(self.id)
 
-    @property
-    def storage_identifier(self) -> str:
-        return self.build_storage_identifier(self.id)
-
     @classmethod
-    def build_storage_identifier(cls, id_: str) -> str:
-        identifier = hashlib.md5(f"{id_}".encode()).hexdigest()
+    def build_storage_identifier(cls, id_: str, project_id: int) -> str:
+        identifier = hashlib.md5(f"{id_}::{project_id}".encode()).hexdigest()
         return f"i-o:{identifier}"
 
-    def save(self) -> None:
-        nodestore.set(self.storage_identifier, self.to_dict())
+    def save(self, project_id: int) -> None:
+        nodestore.set(self.build_storage_identifier(self.id, project_id), self.to_dict())
 
     @classmethod
-    def fetch(cls, id_: str) -> Optional[IssueOccurrence]:
-        results = nodestore.get(cls.build_storage_identifier(id_))
+    def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:
+        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
