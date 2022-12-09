@@ -95,6 +95,7 @@ def dispatch_process_issue_occurrence_task(
     occurrence_data: IssueOccurrenceData,
 ) -> None:
     # event = occurrence_data.event_id  # TODO get Event object here
+    # occurrence_data.event_id = event.id
     # save_issue_occurrence(**kwargs, event)
     pass
 
@@ -104,9 +105,25 @@ def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
     payload = json.loads(value, use_rapid_json=True)
 
     kwargs = {
-        payload
+        "occurrence": {
+            "id": payload["id"],
+            # event_id: str
+            "fingerprint": payload["fingerprint"],
+            "issue_title": payload["issue_title"],
+            "subtitle": payload["subtitle"],
+            "resource_id": payload.get("resource_id"),
+            "evidence_data": None,
+            "evidence_display": None,
+            "type": payload["type"],
+            "detection_time": float,
+        }
         # TODO validate payload here
     }
+
+    if "event" in payload:
+        kwargs["event"] = {}
+    else:
+        kwargs["occurrence"].event_id = payload.get("event_id")
 
     return kwargs
 
