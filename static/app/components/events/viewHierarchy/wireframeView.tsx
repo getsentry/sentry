@@ -4,9 +4,9 @@ function WireframeView({hierarchy}) {
       <div
         data-test-id="leaf"
         style={{
-          border: '1px solid black',
-          top: hierarchy.y - 1,
-          left: hierarchy.x - 1,
+          outline: '1px solid black',
+          top: hierarchy.y,
+          left: hierarchy.x,
           width: hierarchy.width,
           height: hierarchy.height,
           position: 'absolute',
@@ -17,11 +17,11 @@ function WireframeView({hierarchy}) {
 
   return (
     <div
-      data-test-id="node"
+      data-test-id={hierarchy.type}
       style={{
-        border: '1px solid black',
-        top: hierarchy.y - 1,
-        left: hierarchy.x - 1,
+        outline: '1px solid black',
+        top: hierarchy.y,
+        left: hierarchy.x,
         width: hierarchy.width,
         height: hierarchy.height,
         position: 'absolute',
