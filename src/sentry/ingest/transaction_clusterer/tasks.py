@@ -22,8 +22,8 @@ from .tree import TreeClusterer
 MERGE_THRESHOLD = 100
 
 #: Number of projects to process in one celery task
-#: The number 10 was chosen at random and might still need tweaking.
-PROJECTS_PER_TASK = 10
+#: The number 100 was chosen at random and might still need tweaking.
+PROJECTS_PER_TASK = 100
 
 
 @instrumented_task(
