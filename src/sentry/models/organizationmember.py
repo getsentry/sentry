@@ -246,7 +246,6 @@ class OrganizationMember(Model):
             reverse(
                 "sentry-accept-invite",
                 kwargs={
-                    "organization_slug": self.organization.slug,
                     "member_id": self.id,
                     "token": self.token or self.legacy_token,
                 },
