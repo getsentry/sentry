@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
-from exam import patcher
 from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
 from sentry.incidents.logic import query_datasets_to_type
@@ -47,13 +46,16 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
 class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
-    metrics = patcher("sentry.snuba.tasks.metrics")
-
     status_translations = {
         QuerySubscription.Status.CREATING: "create",
         QuerySubscription.Status.UPDATING: "update",
         QuerySubscription.Status.DELETING: "delete",
     }
+
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self):
+        with patch("sentry.snuba.tasks.metrics") as self.metrics:
+            yield
 
     @abc.abstractproperty
     def expected_status(self):

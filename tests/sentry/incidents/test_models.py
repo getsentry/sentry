@@ -1,12 +1,12 @@
 import unittest
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from exam import patcher
 from freezegun import freeze_time
 
 from sentry.db.models.manager import BaseManager
@@ -495,7 +495,10 @@ class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateTest, unit
 
 
 class AlertRuleTriggerActionActivateTest(TestCase):
-    metrics = patcher("sentry.incidents.models.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.incidents.models.metrics") as self.metrics:
+            yield
 
     def setUp(self):
         self.old_handlers = AlertRuleTriggerAction._type_registrations
