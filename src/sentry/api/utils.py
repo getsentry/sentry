@@ -240,7 +240,7 @@ def generate_region_url() -> str:
     return region_url_template.replace("{region}", region)
 
 
-_path_patterns: List[Tuple[re.Pattern, str]] = [
+_path_patterns: List[Tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
