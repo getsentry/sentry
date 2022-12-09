@@ -143,7 +143,48 @@ class OrganizationIssueReplayCountEndpoint(APITestCase, SnubaTestCase, ReplaysSn
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_max_50(self):
+    def test_one_replay_same_issue_twice(self):
+        event_id_a = "a" * 32
+        event_id_b = "b" * 32
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay1_id},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": event_id_b,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay1_id},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            event_a.group.id: 1,
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == expected
+
+    def test_max_51(self):
         replay_ids = [uuid.uuid4().hex for _ in range(100)]
         for replay_id in replay_ids:
             self.store_replays(
@@ -168,7 +209,7 @@ class OrganizationIssueReplayCountEndpoint(APITestCase, SnubaTestCase, ReplaysSn
             response = self.client.get(self.url, query, format="json")
 
         expected = {
-            event_a.group.id: 50,
+            event_a.group.id: 51,
         }
         assert response.status_code == 200, response.content
         assert response.data == expected

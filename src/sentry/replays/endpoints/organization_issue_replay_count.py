@@ -16,6 +16,8 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.utils.snuba import Dataset
 
+MAX_REPLAY_COUNT = 51
+
 
 @region_silo_endpoint
 class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
@@ -59,8 +61,7 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         for row in replay_results["data"]:
             issue_ids = replay_id_to_issue_map[row["replay_id"]]
             for issue_id in issue_ids:
-                # cap count at 50
-                issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, 50)
+                issue_id_counts[issue_id] = min(issue_id_counts[issue_id] + 1, MAX_REPLAY_COUNT)
 
         return self.respond(issue_id_counts)
 
@@ -72,11 +73,11 @@ def _query_discover_for_replay_ids(
         dataset=Dataset.Discover,
         params=params,
         snuba_params=snuba_params,
-        selected_columns=["group_array(100,replayId)", "issue.id"],
+        selected_columns=["group_uniq_array(100,replayId)", "issue.id"],
         query=request.GET.get("query"),
         limit=25,
         offset=0,
-        functions_acl=["group_array"],
+        functions_acl=["group_uniq_array"],
     )
     _validate_params(builder)
 
@@ -85,7 +86,7 @@ def _query_discover_for_replay_ids(
     replay_id_to_issue_map = defaultdict(list)
 
     for row in discover_results["data"]:
-        for replay_id in row["group_array_100_replayId"]:
+        for replay_id in row["group_uniq_array_100_replayId"]:
             replay_id_to_issue_map[replay_id].append(row["issue.id"])
 
     return replay_id_to_issue_map
