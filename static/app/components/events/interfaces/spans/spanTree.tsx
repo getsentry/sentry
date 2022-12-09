@@ -9,11 +9,10 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import SpanBar from './spanBar';
+import {ProfiledSpanBar} from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -350,41 +349,38 @@ class SpanTree extends Component<PropType> {
         }
 
         acc.spanTree.push(
-          <CustomerProfiler id="SpanBar" key={key}>
-            <SpanBar
-              organization={organization}
-              event={waterfallModel.event}
-              spanBarColor={spanBarColor}
-              spanBarType={spanBarType}
-              span={span}
-              showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
-              numOfSpanChildren={numOfSpanChildren}
-              trace={waterfallModel.parsedTrace}
-              generateBounds={generateBounds}
-              toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
-              treeDepth={treeDepth}
-              continuingTreeDepths={continuingTreeDepths}
-              spanNumber={spanNumber}
-              isLast={isLast}
-              isRoot={isRoot}
-              showEmbeddedChildren={payload.showEmbeddedChildren}
-              toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
-              toggleSiblingSpanGroup={toggleSiblingSpanGroup}
-              fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
-              toggleSpanGroup={toggleSpanGroup}
-              numOfSpans={numOfSpans}
-              groupType={groupType}
-              groupOccurrence={payload.groupOccurrence}
-              isEmbeddedTransactionTimeAdjusted={
-                payload.isEmbeddedTransactionTimeAdjusted
-              }
-              onWheel={onWheel}
-              generateContentSpanBarRef={generateContentSpanBarRef}
-              markSpanOutOfView={markSpanOutOfView}
-              markSpanInView={markSpanInView}
-              storeSpanBar={storeSpanBar}
-            />
-          </CustomerProfiler>
+          <ProfiledSpanBar
+            key={key}
+            organization={organization}
+            event={waterfallModel.event}
+            spanBarColor={spanBarColor}
+            spanBarType={spanBarType}
+            span={span}
+            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
+            numOfSpanChildren={numOfSpanChildren}
+            trace={waterfallModel.parsedTrace}
+            generateBounds={generateBounds}
+            toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
+            treeDepth={treeDepth}
+            continuingTreeDepths={continuingTreeDepths}
+            spanNumber={spanNumber}
+            isLast={isLast}
+            isRoot={isRoot}
+            showEmbeddedChildren={payload.showEmbeddedChildren}
+            toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
+            fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
+            toggleSpanGroup={toggleSpanGroup}
+            numOfSpans={numOfSpans}
+            groupType={groupType}
+            groupOccurrence={payload.groupOccurrence}
+            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
+            onWheel={onWheel}
+            generateContentSpanBarRef={generateContentSpanBarRef}
+            markSpanOutOfView={markSpanOutOfView}
+            markSpanInView={markSpanInView}
+            storeSpanBar={storeSpanBar}
+          />
         );
 
         // If this is an embedded span tree, we will manually mark these spans as in view.

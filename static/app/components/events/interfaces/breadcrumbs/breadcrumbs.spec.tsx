@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
+  useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
-  useShouldShowOnboarding,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -44,13 +44,15 @@ describe('Breadcrumbs', () => {
       typeof useReplayOnboardingSidebarPanel
     >;
 
-  const MockUseShouldShowOnboarding = useShouldShowOnboarding as jest.MockedFunction<
-    typeof useShouldShowOnboarding
-  >;
+  const MockUseHaveSelectedProjectsSentAnyReplayEvents =
+    useHaveSelectedProjectsSentAnyReplayEvents as jest.MockedFunction<
+      typeof useHaveSelectedProjectsSentAnyReplayEvents
+    >;
+
   beforeEach(() => {
-    MockUseShouldShowOnboarding.mockReturnValue(true);
+    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      enabled: true,
+      hasSentOneReplay: false,
       activateSidebar: jest.fn(),
     });
     props = {
@@ -198,10 +200,34 @@ describe('Breadcrumbs', () => {
   });
 
   describe('replay', () => {
-    it('should render the replay inline onboarding component when replays are enabled', async function () {
-      MockUseShouldShowOnboarding.mockReturnValue(true);
+    it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        enabled: true,
+        hasSentOneReplay: false,
+        activateSidebar: jest.fn(),
+      });
+      const {container} = render(
+        <Breadcrumbs
+          {...props}
+          event={TestStubs.Event({
+            entries: [],
+            tags: [],
+            platform: 'javascript',
+          })}
+          organization={TestStubs.Organization({
+            features: ['session-replay-ui'],
+          })}
+        />
+      );
+
+      expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
+
+    it('should not render the replay inline onboarding component when the project is not JS', async function () {
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        hasSentOneReplay: false,
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -217,14 +243,17 @@ describe('Breadcrumbs', () => {
         />
       );
 
-      expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
+      expect(
+        await screen.queryByText('Configure Session Replay')
+      ).not.toBeInTheDocument();
+      expect(await screen.queryByTestId('player-container')).not.toBeInTheDocument();
       expect(container).toSnapshot();
     });
 
     it('should render a replay when there is a replayId', async function () {
-      MockUseShouldShowOnboarding.mockReturnValue(false);
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(true);
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        enabled: false,
+        hasSentOneReplay: true,
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -233,6 +262,7 @@ describe('Breadcrumbs', () => {
           event={TestStubs.Event({
             entries: [],
             tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            platform: 'javascript',
           })}
           organization={TestStubs.Organization({
             features: ['session-replay-ui'],
