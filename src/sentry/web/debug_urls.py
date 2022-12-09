@@ -33,6 +33,9 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
 from sentry.web.frontend.debug.debug_onboarding_continuation_email import (
     DebugOrganizationOnboardingContinuationEmail,
 )
+from sentry.web.frontend.debug.debug_organization_integration_request import (
+    DebugOrganizationIntegrationRequestEmailView,
+)
 from sentry.web.frontend.debug.debug_organization_invite_request import (
     DebugOrganizationInviteRequestEmailView,
 )
@@ -105,6 +108,9 @@ urlpatterns = [
     ),
     url(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
     url(r"^debug/mail/invite-request/$", DebugOrganizationInviteRequestEmailView.as_view()),
+    url(
+        r"^debug/mail/integration-request/$", DebugOrganizationIntegrationRequestEmailView.as_view()
+    ),
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
     url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
