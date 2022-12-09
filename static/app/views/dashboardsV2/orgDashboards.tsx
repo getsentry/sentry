@@ -101,7 +101,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         'release',
       ]);
       if (
-        organization.features.includes('dashboards-top-level-filter') &&
         stateKey === 'selectedDashboard' &&
         // Only redirect if there are saved filters and none of the filters
         // appear in the query params
@@ -202,7 +201,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (
       loading &&
-      organization.features.includes('dashboards-top-level-filter') &&
       selectedDashboard &&
       hasSavedPageFilters(selectedDashboard) &&
       isEmpty(location.query)

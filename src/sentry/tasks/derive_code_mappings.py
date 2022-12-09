@@ -65,22 +65,17 @@ def derive_code_mappings(
         return
 
     trees = {}
-    if not dry_run:
-        trees = installation.get_trees_for_org()
-    else:
-        # Acquire the lock for a maximum of 10 minutes
-        lock = locks.get(
-            key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending"
-        )
+    # Acquire the lock for a maximum of 10 minutes
+    lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
-        try:
-            with lock.acquire():
-                trees = installation.get_trees_for_org(3600 * 3)
-        except UnableToAcquireLock as error:
-            extra["error"] = error
-            logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
-            # This will cause the auto-retry logic to try again
-            raise error
+    try:
+        with lock.acquire():
+            trees = installation.get_trees_for_org()
+    except UnableToAcquireLock as error:
+        extra["error"] = error
+        logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
+        # This will cause the auto-retry logic to try again
+        raise error
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
