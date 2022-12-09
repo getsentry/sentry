@@ -170,7 +170,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__commit_function({}, force=True)
 
         for producer in self.__all_producers:
-            producer.flush(0)
+            producer.flush()
 
         while self.__queue:
             remaining = timeout - (time.time() - start) if timeout is not None else None
