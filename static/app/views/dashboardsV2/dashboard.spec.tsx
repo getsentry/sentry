@@ -269,8 +269,7 @@ describe('Dashboards > Dashboard', () => {
       mount(mockDashboardWithIssueWidget, organization);
       expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
-      expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
-      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
+      expect(await screen.findByText('Suggestion: test@sentry.io')).toBeInTheDocument();
       expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
     });
   });

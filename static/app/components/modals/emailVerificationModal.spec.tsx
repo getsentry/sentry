@@ -17,7 +17,10 @@ describe('Email Verification Modal', function () {
       />,
       {context: routerContext}
     );
-    const message = screen.getByText('Please verify your email before');
+    const message = screen.getByText(
+      'Please verify your email before taking this action',
+      {exact: false}
+    );
     expect(message.parentElement).toHaveTextContent(
       'Please verify your email before taking this action, or go to your email settings.'
     );
@@ -42,7 +45,10 @@ describe('Email Verification Modal', function () {
         actionMessage={actionMessage}
       />
     );
-    const message = screen.getByText('Please verify your email before');
+    const message = screen.getByText(
+      'Please verify your email before accepting the tenet',
+      {exact: false}
+    );
     expect(message.parentElement).toHaveTextContent(
       `Please verify your email before ${actionMessage}, or go to your email settings.`
     );

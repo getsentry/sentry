@@ -181,7 +181,7 @@ describe('ExternalIssueForm', () => {
       it('fast typing is debounced and uses trailing call when fetching data', async () => {
         renderComponent('Link');
         jest.useFakeTimers();
-        userEvent.click(screen.getAllByText('Issue').at(1));
+        userEvent.click(screen.getByRole('textbox', {name: 'Issue'}));
         userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), 'doOT');
         expect(window.fetch).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(300);

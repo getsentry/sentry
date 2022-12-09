@@ -160,7 +160,9 @@ describe('SuggestedOwners', function () {
     userEvent.hover(await screen.findByTestId('suggested-assignee'));
 
     expect(await screen.findByText('Suspect Release')).toBeInTheDocument();
-    expect(screen.getByText('last committed')).toBeInTheDocument();
+    expect(
+      screen.getByText('Foo Bar last committed', {exact: false})
+    ).toBeInTheDocument();
   });
 
   it('hides when there are no suggestions', async () => {

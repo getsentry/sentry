@@ -67,7 +67,7 @@ describe('MetricAlertDetails', () => {
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
     expect(screen.getByText('Change alert status to Resolved')).toBeInTheDocument();
-    expect(screen.getByText(incident.identifier)).toBeInTheDocument();
+    expect(screen.getByText(`#${incident.identifier}`)).toBeInTheDocument();
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
 
