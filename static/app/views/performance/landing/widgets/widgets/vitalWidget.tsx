@@ -31,6 +31,7 @@ import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
+import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -97,10 +98,7 @@ export function transformFieldsWithStops(props: {
 export function VitalWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization} = props;
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
+  const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
@@ -146,7 +144,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
-              useEvents={useEvents}
             />
           );
         },
@@ -209,9 +206,129 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
+  const getItems = provided =>
+    provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
+      const transaction = (listItem?.transaction as string | undefined) ?? '';
+      const _eventView = eventView.clone();
+
+      const initialConditions = new MutableSearch(_eventView.query);
+      initialConditions.addFilterValues('transaction', [transaction]);
+
+      const vital = settingToVital[props.chartSetting];
+
+      _eventView.query = initialConditions.formatString();
+
+      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : vitalDetailRouteWithQuery({
+            orgSlug: organization.slug,
+            query: _eventView.generateQueryStringObject(),
+            vitalName: vital,
+            projectID: decodeList(location.query.project),
+          });
+
+      const data = {
+        [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+          listItem,
+          vital,
+          false
+        ),
+      };
+
+      return (
+        <Fragment>
+          <GrowLink to={target}>
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <VitalBarCell>
+            <VitalBar
+              isLoading={provided.widgetData.list?.isLoading}
+              vital={settingToVital[props.chartSetting]}
+              data={data}
+              showBar
+              showDurationDetail={false}
+              showDetail={false}
+              showTooltip
+              barHeight={20}
+            />
+          </VitalBarCell>
+          {!props.withStaticFilters && (
+            <ListClose
+              setSelectListIndex={setSelectListIndex}
+              onClick={() =>
+                excludeTransaction(listItem.transaction, {
+                  eventView: props.eventView,
+                  location,
+                })
+              }
+            />
+          )}
+        </Fragment>
+      );
+    });
+
+  const visualizations = organization.features.includes('performance-new-widget-designs')
+    ? [
+        {
+          component: provided => (
+            <Accordion
+              expandedIndex={selectedListIndex}
+              setExpandedIndex={setSelectListIndex}
+              headers={getItems(provided)}
+              content={
+                <_VitalChart
+                  {...provided.widgetData.chart}
+                  {...provided}
+                  field={field}
+                  vitalFields={vitalFields}
+                  grid={provided.grid}
+                />
+              }
+            />
+          ),
+          // accordion items height + chart height
+          height: 120 + props.chartHeight,
+          noPadding: true,
+        },
+      ]
+    : [
+        {
+          component: provided => (
+            <_VitalChart
+              {...provided.widgetData.chart}
+              {...provided}
+              field={field}
+              vitalFields={vitalFields}
+              grid={provided.grid}
+            />
+          ),
+          height: props.chartHeight,
+        },
+        {
+          component: provided => (
+            <SelectableList
+              selectedIndex={selectedListIndex}
+              setSelectedIndex={setSelectListIndex}
+              items={getItems(provided)}
+            />
+          ),
+          height: 30,
+          noPadding: true,
+        },
+      ];
+
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       location={location}
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
@@ -226,7 +343,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           [settingToVital[props.chartSetting]]: getVitalDataForListItem(
             listItem,
             vital,
-            !useEvents
+            false
           ),
         };
 
@@ -265,98 +382,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 {t('View All')}
               </Button>
             </div>
-            <ContainerActions {...provided.widgetData.chart} />
+            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
         );
       }}
       Queries={Queries}
-      Visualizations={[
-        {
-          component: provided => (
-            <_VitalChart
-              {...provided.widgetData.chart}
-              {...provided}
-              field={field}
-              vitalFields={vitalFields}
-              grid={provided.grid}
-            />
-          ),
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
-                const transaction = (listItem?.transaction as string | undefined) ?? '';
-                const _eventView = eventView.clone();
-
-                const initialConditions = new MutableSearch(_eventView.query);
-                initialConditions.addFilterValues('transaction', [transaction]);
-
-                const vital = settingToVital[props.chartSetting];
-
-                _eventView.query = initialConditions.formatString();
-
-                const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-                const target = isUnparameterizedRow
-                  ? createUnnamedTransactionsDiscoverTarget({
-                      organization,
-                      location,
-                    })
-                  : vitalDetailRouteWithQuery({
-                      orgSlug: organization.slug,
-                      query: _eventView.generateQueryStringObject(),
-                      vitalName: vital,
-                      projectID: decodeList(location.query.project),
-                    });
-
-                const data = {
-                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(
-                    listItem,
-                    vital,
-                    !useEvents
-                  ),
-                };
-
-                return (
-                  <Fragment>
-                    <GrowLink to={target}>
-                      <Truncate value={transaction} maxLength={40} />
-                    </GrowLink>
-                    <VitalBarCell>
-                      <VitalBar
-                        isLoading={provided.widgetData.list?.isLoading}
-                        vital={settingToVital[props.chartSetting]}
-                        data={data}
-                        showBar
-                        showDurationDetail={false}
-                        showDetail={false}
-                        showTooltip
-                        barHeight={20}
-                      />
-                    </VitalBarCell>
-                    {!props.withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                );
-              })}
-            />
-          ),
-          height: 124,
-          noPadding: true,
-        },
-      ]}
+      Visualizations={visualizations}
     />
   );
 }

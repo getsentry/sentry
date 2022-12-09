@@ -146,8 +146,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       loadingEvent,
       onRetry,
       eventError,
-      router,
-      route,
     } = this.props;
 
     if (loadingEvent) {
@@ -167,8 +165,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         organization={organization}
         project={project}
         location={location}
-        router={router}
-        route={route}
       />
     );
   }

@@ -436,9 +436,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const eventOmitTags =
       dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
-    const hasMetricDataset =
-      organization.features.includes('metrics-performance-alerts') ||
-      organization.features.includes('mep-rollout-flag');
+    const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
     return (
       <Fragment>
