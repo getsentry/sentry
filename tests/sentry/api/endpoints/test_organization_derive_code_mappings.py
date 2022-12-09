@@ -32,7 +32,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_single_match(self, mock_get_trees_for_org):
         config_data = {
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         expected_matches = [
             {
@@ -55,7 +55,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org):
         config_data = {
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         expected_matches = [
             {
@@ -85,7 +85,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_get_no_installation(self):
         config_data = {
             "projectId": self.project.id,
-            "stacktraceFilename": "/stack/root/file.py",
+            "stacktraceFilename": "stack/root/file.py",
         }
         Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")

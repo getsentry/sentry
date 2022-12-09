@@ -53,6 +53,7 @@ import sentry_sdk
 from typing_extensions import TypeAlias
 
 from .base import Clusterer, ReplacementRule
+from .rule_validator import RuleValidator
 
 __all__ = ["TreeClusterer"]
 
@@ -75,6 +76,7 @@ class TreeClusterer(Clusterer):
     def __init__(self, *, merge_threshold: int) -> None:
         self._merge_threshold = merge_threshold
         self._tree = Node()
+        self._rules: Optional[List[ReplacementRule]] = None
 
     def add_input(self, transaction_names: Iterable[str]) -> None:
         for tx_name in transaction_names:
@@ -84,17 +86,34 @@ class TreeClusterer(Clusterer):
                 node = node.setdefault(part, Node())
 
     def get_rules(self) -> List[ReplacementRule]:
+        """Computes the rules for the current tree."""
+        self._extract_rules()
+        self._clean_rules()
+        self._sort_rules()
+
+        assert self._rules is not None  # Keep mypy happy
+        return self._rules
+
+    def _extract_rules(self) -> None:
         """Merge high-cardinality nodes in the graph and extract rules"""
         with sentry_sdk.start_span(op="txcluster_merge"):
             self._tree.merge(self._merge_threshold)
 
         # Generate exactly 1 rule for every merge
         rule_paths = [path for path in self._tree.paths() if path[-1] is MERGED]
+        self._rules = [self._build_rule(path) for path in rule_paths]
 
-        # Sort by path length, descending (most specific rule first)
-        rule_paths.sort(key=len, reverse=True)
+    def _clean_rules(self) -> None:
+        """Deletes the rules that are not valid."""
+        if not self._rules:
+            return
+        self._rules = [rule for rule in self._rules if RuleValidator(rule).is_valid()]
 
-        return [self._build_rule(path) for path in rule_paths]
+    def _sort_rules(self) -> None:
+        """Sorts the rules by path length, descending (most specific rule first)."""
+        if not self._rules:
+            return
+        self._rules.sort(key=len, reverse=True)
 
     @staticmethod
     def _build_rule(path: List["Edge"]) -> ReplacementRule:
