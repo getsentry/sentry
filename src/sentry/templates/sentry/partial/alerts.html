@@ -77,11 +77,9 @@
 {% elif show_login_banner %}
   <div class="alert-banner">
     <div class="alert-message">
-      {% if banner_choice == 0 %}
-        Join us for our upcoming integration workshop with Cloudflare on 12/8 at 10am PT.&nbsp<a target=”_blank” href="https://sentry.io/resources/cloudflare-built-sentry-client-for-serverless-computing/?utm_medium=banner&utm_source=sentry&utm_campaign=login-cloudflare-workshop">Register here</a>.
-      {% elif banner_choice == 1 %}
+      {% elif banner_choice == 0 %}
         <a target=”_blank” href="https://www.djangoproject.com">djangoproject.com</a>&nbspidentified an N+1 issue with Sentry performance issues.&nbsp<a target=”_blank” href="https://blog.sentry.io/2022/11/04/how-sentry-uncovered-an-n-1-issue-in-djangoproject/?utm_medium=banner&utm_source=sentry&utm_campaign=login-performance-issue">Learn how</a>.
-      {% elif banner_choice == 2 %}
+      {% elif banner_choice == 1 %}
         Get code-level performance insight for iOS, Android, Python and Node applications with Continuous Profiling.&nbsp<a target=”_blank” href="https://sentry.io/for/profiling/?utm_medium=website&utm_source=sentry&utm_campaign=login-profiling">Learn more</a>.
       {% endif %}
     </div>
