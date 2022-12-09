@@ -304,7 +304,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
-        occurrence.save()
+        occurrence.save(self.project.id)
         event.occurrence = occurrence
 
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
@@ -351,7 +351,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
-        occurrence.save()
+        occurrence.save(self.project.id)
         event.occurrence = occurrence
 
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
