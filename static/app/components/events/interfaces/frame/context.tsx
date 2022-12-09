@@ -76,15 +76,20 @@ const Context = ({
 
   // Temporarily allow mobile platforms to make API call and "show" stacktrace link
   if (isMobile) {
-    return (
-      <ErrorBoundary customComponent={null}>
-        <StacktraceLink
-          line={frame.function ? frame.function : ''}
-          frame={frame}
-          event={event}
-        />
-      </ErrorBoundary>
-    );
+    if (
+      event.platform !== 'java' ||
+      (event.platform === 'java' && frame?.module?.startsWith('com.'))
+    ) {
+      return (
+        <ErrorBoundary customComponent={null}>
+          <StacktraceLink
+            line={frame.function ? frame.function : ''}
+            frame={frame}
+            event={event}
+          />
+        </ErrorBoundary>
+      );
+    }
   }
 
   const contextLines = isExpanded
