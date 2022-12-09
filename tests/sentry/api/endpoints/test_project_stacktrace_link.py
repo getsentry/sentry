@@ -399,13 +399,6 @@ class ProjectStacktraceLinkTestMultipleMatches(APITestCase):
             "stackRoot": code_mapping.stack_root,
         }
 
-    def expected_code_mapping(self, code_mapping, sourceUrl) -> Mapping[str, Any]:
-        return {
-            "config": self.expected_configurations(code_mapping),
-            "outcome": {"sourceUrl": sourceUrl},
-            "automatically_generated": code_mapping.automatically_generated,
-        }
-
     def test_test_multiple_code_mapping_matches_order(self):
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
 
