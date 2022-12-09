@@ -841,11 +841,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 "SELECT m.* FROM authors a INNER JOIN books b ON a.book_id = b.id AND b.another_id = 'another_id_789' ORDER BY b.created_at DESC LIMIT 3",
             ),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
         consecutive_db_event = create_event(
             spans,
             "a" * 16,
@@ -864,11 +863,10 @@ class PerformanceDetectionTest(unittest.TestCase):
             create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
             create_span("db", span_duration, "SELECT `product`.`id` FROM `products`"),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
         consecutive_db_event = create_event(
             spans,
             "a" * 16,
@@ -894,11 +892,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 "SELECT `product`.`id` FROM `products` WHERE `product`.`name` = %s",
             ),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
         consecutive_db_event = create_event(
             spans,
             "a" * 16,
@@ -920,11 +917,9 @@ class PerformanceDetectionTest(unittest.TestCase):
             ),
             create_span("db", span_duration, "SELECT `product`.`id` FROM `products` ..."),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
         consecutive_db_event = create_event(
             spans,
             "a" * 16,
@@ -943,11 +938,9 @@ class PerformanceDetectionTest(unittest.TestCase):
             create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
             create_span("db", span_duration, "SELECT `product`.`id` FROM `products`"),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
         consecutive_db_event = create_event(
             spans,
             "a" * 16,
@@ -965,6 +958,35 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_consecutive_db", "bbbbbbbbbbbbbbbb"),
             ]
         )
+
+    def test_does_not_detect_consecutive_db_with_low_ratio(self):
+        span_duration = 200
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
+            ),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        consecutive_db_event = create_event(
+            spans,
+            "a" * 16,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(consecutive_db_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
     def test_detects_file_io_main_thread(self):
         file_io_event = EVENTS["file-io-on-main-thread"]

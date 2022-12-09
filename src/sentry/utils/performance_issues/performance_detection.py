@@ -309,8 +309,8 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            # Duration of all consecutive spans, useful because we want to check if it worth the independent spans being in parallel
-            "total_duration_threshold": 200,  # ms
+            # Minimum ratio of time saved/independent span durations
+            "cost_saving_ratio": 0.5,  # ms
             # Duration of all the independent spans in a set of consecutive spans
             "duration_threshold": 100,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
@@ -999,9 +999,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             for span in independent_db_spans
         )
 
-        exceeds_total_duration_threshold = exceeds_duration_threshold = self._sum_span_duration(
-            self.consecutive_db_spans
-        ) > self.settings.get("total_duration_threshold")
+        exceeds_cost_ratio_threshold = self._calculate_cost(
+            independent_db_spans
+        ) > self.settings.get("cost_saving_ratio")
         exceeds_duration_threshold = self._sum_span_duration(
             independent_db_spans
         ) > self.settings.get("duration_threshold")
@@ -1009,7 +1009,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
-            and exceeds_total_duration_threshold
+            and exceeds_cost_ratio_threshold
             and exceeds_duration_threshold
         ):
             self._store_performance_problem()
@@ -1051,8 +1051,25 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 independent_spans.append(span)
         return independent_spans
 
-    def _calculate_cost(self):
-        pass
+    def _calculate_cost(self, independent_spans: list[Span]) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the fraction of time saved over the parallelizable spans duration
+        """
+        consecutive_spans = self.consecutive_db_spans
+        time_saved_array = [0]  # Each index maps to the time saved for each independent span
+        idx = 0
+
+        for consec_span in consecutive_spans:
+            if consec_span == independent_spans[idx]:
+                if idx == len(independent_spans) - 1:
+                    return sum(time_saved_array) / self._sum_span_duration(independent_spans)
+                time_saved_array.append(time_saved_array[idx])
+                idx += 1
+
+            time_saved_array[idx] += get_span_duration(consec_span).total_seconds() * 1000
+
+        return sum(time_saved_array) / self._sum_span_duration(independent_spans)
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
