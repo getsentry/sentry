@@ -142,11 +142,11 @@ class ApiInviteHelper:
 
     @property
     def member_pending(self) -> bool:
-        return bool(self.om.is_pending)
+        return self.om.is_pending  # type: ignore[no-any-return]
 
     @property
     def invite_approved(self) -> bool:
-        return bool(self.om.invite_approved)
+        return self.om.invite_approved  # type: ignore[no-any-return]
 
     @property
     def valid_token(self) -> bool:
@@ -154,11 +154,12 @@ class ApiInviteHelper:
             return False
         if self.om.token_expired:
             return False
-        return bool(constant_time_compare(self.om.token or self.om.legacy_token, self.token))
+        tokens_are_equal = constant_time_compare(self.om.token or self.om.legacy_token, self.token)
+        return tokens_are_equal  # type: ignore[no-any-return]
 
     @property
     def user_authenticated(self) -> bool:
-        return bool(self.request.user.is_authenticated)
+        return self.request.user.is_authenticated  # type: ignore[no-any-return]
 
     @property
     def member_already_exists(self) -> bool:
@@ -168,7 +169,7 @@ class ApiInviteHelper:
         query = OrganizationMember.objects.filter(
             organization=self.om.organization, user=self.request.user
         )
-        return bool(query.exists())
+        return query.exists()  # type: ignore[no-any-return]
 
     @property
     def valid_request(self) -> bool:
