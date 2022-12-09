@@ -54,6 +54,7 @@ import {CommitRow} from '../commitRow';
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import mockViewHierarchyData from './viewHierarchy/viewHierarchy.json';
+import {WireframeView} from './viewHierarchy/wireframeView';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 import ViewHierarchy from './viewHierarchy';
@@ -412,6 +413,18 @@ const EventEntries = ({
       <h3 style={{marginLeft: '18px'}}>View Hierarchy</h3>
       <div style={{whiteSpace: 'nowrap', overflow: 'auto'}}>
         <ViewHierarchy hierarchy={mockViewHierarchyData.windows[0]} />
+      </div>
+      <div
+        style={{
+          whiteSpace: 'nowrap',
+          overflow: 'visible',
+          zIndex: 9999,
+          position: 'relative',
+          height: '10000px',
+          margin: '24px',
+        }}
+      >
+        <WireframeView hierarchy={mockViewHierarchyData.windows[0]} />
       </div>
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
