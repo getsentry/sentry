@@ -386,10 +386,8 @@ event_processed.connect(record_user_context_received, weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     # We only want to record events from projects created after 2022-12-09,
     # otherwise amplitude would receive a large amount of data in a short period of time
-    if project.date_added < datetime.datetime(2022, 12, 9, tzinfo=pytz.utc)
+    if project.date_added < datetime.datetime(2022, 12, 9, tzinfo=pytz.utc):
         return
-
-    has_minified_stack_trace = has_event_minified_stack_trace(event)
 
     if not has_event_minified_stack_trace(event):
         return
@@ -419,6 +417,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         platform=event.platform,
         url=url,
     )
+
 
 event_processed.connect(record_event_with_first_minified_stack_trace_for_project, weak=False)
 transaction_processed.connect(record_user_context_received, weak=False)
