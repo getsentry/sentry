@@ -420,7 +420,6 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         url=url,
     )
 
-
 event_processed.connect(record_event_with_first_minified_stack_trace_for_project, weak=False)
 transaction_processed.connect(record_user_context_received, weak=False)
 
