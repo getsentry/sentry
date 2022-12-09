@@ -193,6 +193,7 @@ def _get_mq_dict_params_from_where(query_where, is_alerts_query):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
+            # In case this is an alerts query, we relax restrictions.
             elif (condition.lhs.name in FILTERABLE_TAGS) or is_alerts_query:
                 where.append(condition)
             else:

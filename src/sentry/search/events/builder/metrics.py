@@ -802,6 +802,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         return snuba_request
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        # TODO: generalize logic.
         if self.use_metrics_layer:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (

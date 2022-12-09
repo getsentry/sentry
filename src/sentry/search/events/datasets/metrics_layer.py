@@ -252,7 +252,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         fields.MetricArg("if_col", allowed_columns=["session.status"]),
                         fields.SnQLStringArg("if_val", allowed_strings=["init", "crashed"]),
                     ],
-                    # TODO: Check if we should use this function or another one already implemented in the metrics layer.
                     snql_metric_layer=lambda args, alias: Function(
                         "sum_if_column",
                         # We use the metric mri specified in
@@ -296,12 +295,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     "uniq",
                     snql_metric_layer=lambda args, alias: Function(
                         "count_unique",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
                         [
                             Column(SessionMRI.USER.value),
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "uniqIf",
@@ -311,7 +311,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         fields.MetricArg("if_col", allowed_columns=["session.status"]),
                         fields.SnQLStringArg("if_val", allowed_strings=["crashed"]),
                     ],
-                    # TODO: Check if we should use this function or another one already implemented in the metrics layer.
                     snql_metric_layer=lambda args, alias: Function(
                         "uniq_if_column",
                         # We use the metric mri specified in

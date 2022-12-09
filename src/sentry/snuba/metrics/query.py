@@ -424,7 +424,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def validate_is_alerts_query(self) -> None:
         # We only allow the omission of start and end if this is an alerts query.
-        if not self.is_alerts_query and (self.start is None and self.end is None):
+        if (self.start is None or self.end is None) and not self.is_alerts_query:
             raise InvalidParams(
                 "start and env fields can only be None if the query is needed by alerts"
             )

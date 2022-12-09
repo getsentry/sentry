@@ -324,6 +324,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         }
 
     def _get_environment_condition(self, environment_name: str) -> Condition:
+        # If we don't use the metrics layer we need to handle indexer resolution on our own. The metrics layer does
+        # this automatically.
         environment_column = (
             "environment"
             if self.use_metrics_layer
@@ -334,6 +336,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             if self.use_metrics_layer
             else resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, environment_name)
         )
+
         return Condition(
             Column(environment_column),
             Op.EQ,
@@ -520,6 +523,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return aggregated_results
 
     def get_snql_extra_conditions(self) -> List[Condition]:
+        # If we don't use the metrics layer we need to filter by metric here. The metrics layer does this automatically.
         if not self.use_metrics_layer:
             return [
                 Condition(
@@ -544,6 +548,8 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
 
+        # If we don't use the metrics layer, we want to inject an extra condition filtering by session status. The
+        # metrics layer automatically uses the sumIf function with the column condition.
         if not self.use_metrics_layer:
             extra_conditions.append(
                 Condition(

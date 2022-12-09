@@ -979,6 +979,10 @@ class SnubaResultConverter:
                 # or also from raw_metrics that don't exist in clickhouse yet
                 cleaned_value = default_null_value
             else:
+                # We don't need anymore to extract the first value of quantilesIf, because we wrap it with
+                # arrayElement during query generation. I will leave this code here in case we decide to revert it,
+                # because it is quite difficult to find without proper knowledge of the metrics layer.
+                #
                 # if op in OPERATIONS_PERCENTILES:
                 #     value = value[0]
                 cleaned_value = finite_or_none(value)
