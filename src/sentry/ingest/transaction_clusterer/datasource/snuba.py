@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE
+from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
 from sentry.models import Project
 from sentry.utils.snuba import raw_snql_query
 
@@ -22,7 +22,7 @@ def fetch_unique_transaction_names(
                 Condition(Column("project_id"), Op.EQ, project.id),
                 Condition(Column("finish_ts"), Op.GTE, then),
                 Condition(Column("finish_ts"), Op.LT, now),
-                Condition(Column("transaction_source"), Op.EQ, TRANSACTION_SOURCE),
+                Condition(Column("transaction_source"), Op.EQ, TRANSACTION_SOURCE_URL),
             ],
             groupby=[Column("transaction")],
             limit=Limit(limit),
