@@ -203,7 +203,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
-                # XXX: The logic above allows all code mappings to be processed
                 if (
                     filepath.startswith(config.stack_root)
                     and config.automatically_generated is True
