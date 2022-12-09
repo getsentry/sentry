@@ -36,7 +36,7 @@ class AcceptOrganizationInvite(Endpoint):
             return self.respond_invalid()
 
         organization_member = helper.om
-        organization = organization_member.organization
+        organization = helper.organization
 
         if organization_slug:
             if organization_slug != organization.slug:
@@ -133,8 +133,7 @@ class AcceptOrganizationInvite(Endpoint):
         else:
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        organization_member = helper.om
-        organization = organization_member.organization
+        organization = helper.organization
 
         if organization_slug:
             if organization_slug != organization.slug:

@@ -110,11 +110,12 @@ class ApiInviteHelper:
         self.instance = instance
         self.logger = logger
         self.om = self.organization_member
+        self.organization: self.om.organization
 
     def handle_success(self) -> None:
         member_joined.send_robust(
             member=self.om,
-            organization=self.om.organization,
+            organization=self.organization,
             sender=self.instance if self.instance else self,
         )
 
@@ -122,14 +123,14 @@ class ApiInviteHelper:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User already org member",
-                extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
             )
 
     def handle_member_has_no_sso(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
-                extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
             )
 
     def handle_invite_not_approved(self) -> None:
@@ -167,7 +168,7 @@ class ApiInviteHelper:
             return False
 
         query = OrganizationMember.objects.filter(
-            organization=self.om.organization, user=self.request.user
+            organization=self.organization, user=self.request.user
         )
         return query.exists()  # type: ignore[no-any-return]
 
@@ -223,12 +224,12 @@ class ApiInviteHelper:
         return om
 
     def _needs_2fa(self) -> bool:
-        org_requires_2fa = self.om.organization.flags.require_2fa.is_set
+        org_requires_2fa = self.organization.flags.require_2fa.is_set
         user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
         return org_requires_2fa and not user_has_2fa
 
     def _needs_email_verification(self) -> bool:
-        organization = self.om.organization
+        organization = self.organization
         if not (
             features.has("organizations:required-email-verification", organization)
             and organization.flags.require_email_verification
