@@ -11,7 +11,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_transaction_names,
     record_transaction_name,
 )
-from sentry.ingest.transaction_clusterer.tasks import run_clusterer
+from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
@@ -130,8 +130,12 @@ def test_save_rules():
 
 @mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
+    wraps=cluster_projects,  # call immediately
+)
 @pytest.mark.django_db
-def test_run_clusterer_task(default_organization):
+def test_run_clusterer_task(cluster_projects_delay, default_organization):
     with Feature({"organizations:transaction-name-clusterer": True}):
         project1 = Project(id=123, name="project1", organization_id=default_organization.id)
         project2 = Project(id=223, name="project2", organization_id=default_organization.id)
@@ -141,7 +145,10 @@ def test_run_clusterer_task(default_organization):
                 _store_transaction_name(project, f"/user/tx-{project.name}-{i}")
                 _store_transaction_name(project, f"/org/tx-{project.name}-{i}")
 
-        run_clusterer()
+        spawn_clusterers()
+
+        assert cluster_projects_delay.call_count == 1
+        cluster_projects_delay.reset_mock()
 
         pr1_rules = rules.get_rules(project1)
         pr2_rules = rules.get_rules(project2)
@@ -154,7 +161,11 @@ def test_run_clusterer_task(default_organization):
             _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
             _store_transaction_name(project1, f"/test/path/{i}")
 
-        run_clusterer()
+        with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
+            spawn_clusterers()
+
+        # One project per batch now:
+        assert cluster_projects_delay.call_count == 2
 
         pr_rules = rules.get_rules(project1)
         assert pr_rules.keys() == {

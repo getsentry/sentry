@@ -43,6 +43,9 @@ def get_active_projects() -> Iterator[Project]:
     """Scan redis for projects and fetch their db models"""
     for key in _get_all_keys():
         project_id = int(key.split(":")[-1])
+        # NOTE: Would be nice to do a `select_related` on project.organization
+        # because we need it for the feature flag, but I don't know how to do
+        # it with `get_from_cache`.
         yield Project.objects.get_from_cache(id=project_id)
 
 
