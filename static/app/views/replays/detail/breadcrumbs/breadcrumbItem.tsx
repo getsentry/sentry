@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
@@ -66,10 +66,14 @@ function BreadcrumbItem({
       <CrumbDetails>
         <TitleContainer>
           <Title>{title}</Title>
-          <PlayerRelativeTime
-            relativeTimeMs={startTimestampMs}
-            timestamp={crumb.timestamp}
-          />
+          {onClick ? (
+            <TimestampButton
+              format="mm:ss"
+              onClick={() => {}}
+              startTimestampMs={startTimestampMs}
+              timestampMs={crumb.timestamp || ''}
+            />
+          ) : null}
         </TitleContainer>
 
         <Description title={description}>{description}</Description>
