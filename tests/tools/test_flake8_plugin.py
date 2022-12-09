@@ -99,3 +99,15 @@ from exam import patcher
     assert errors == [
         "t.py:1:0: S006 use unittest.mock instead of exam.patcher",
     ]
+
+
+def test_S007():
+    S006_py = """\
+from exam import before
+from exam import around
+"""
+    errors = _run(S006_py)
+    assert errors == [
+        "t.py:1:0: S007 use pytest.fixture(autouse=True) instead of exam.before / exam.around",
+        "t.py:2:0: S007 use pytest.fixture(autouse=True) instead of exam.before / exam.around",
+    ]
