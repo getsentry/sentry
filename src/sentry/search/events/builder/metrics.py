@@ -597,42 +597,42 @@ class MetricsQueryBuilder(QueryBuilder):
             ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
+    def _run_query_with_metrics_layer(self, query: Query) -> Any:
+        from sentry.snuba.metrics.datasource import get_series
+        from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
+
+        try:
+            with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                metric_query = transform_mqb_query_to_metrics_query(query)
+            with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                metrics_data = get_series(
+                    projects=self.params.projects,
+                    metrics_query=metric_query,
+                    use_case_id=UseCaseKey.PERFORMANCE
+                    if self.is_performance
+                    else UseCaseKey.RELEASE_HEALTH,
+                    include_meta=True,
+                )
+        except Exception as err:
+            raise IncompatibleMetricsQuery(err)
+        with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+            # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            for group in metrics_data["groups"]:
+                data = group["by"]
+                data.update(group["totals"])
+                metric_layer_result["data"].append(data)
+                for meta in metric_layer_result["meta"]:
+                    if data[meta["name"]] is None:
+                        data[meta["name"]] = self.get_default_value(meta["type"])
+            return metric_layer_result
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer:
-            from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
-                transform_mqb_query_to_metrics_query,
-            )
-
-            snuba_query = self.get_snql_query().query
-            try:
-                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
-                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                    metrics_data = get_series(
-                        projects=self.params.projects,
-                        metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
-                        if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
-                        include_meta=True,
-                    )
-            except Exception as err:
-                raise IncompatibleMetricsQuery(err)
-            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
-                metric_layer_result: Any = {
-                    "data": [],
-                    "meta": metrics_data["meta"],
-                }
-                for group in metrics_data["groups"]:
-                    data = group["by"]
-                    data.update(group["totals"])
-                    metric_layer_result["data"].append(data)
-                    for meta in metric_layer_result["meta"]:
-                        if data[meta["name"]] is None:
-                            data[meta["name"]] = self.get_default_value(meta["type"])
-                return metric_layer_result
+            return self._run_query_with_metrics_layer(self.get_snql_query().query)
 
         self.validate_having_clause()
         self.validate_orderby_clause()
@@ -802,46 +802,13 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         return snuba_request
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        # TODO: generalize logic.
         if self.use_metrics_layer:
-            from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
-                transform_mqb_query_to_metrics_query,
-            )
-
             # We have to copy the entire code of the run query here, because of how the get_snql_query() method
-            # behaves.
+            # behaves. The get_snql_query() of MetricsQueryBuilder returns a snql query that is understood by the mqb
+            # transformer. If we were to call get_snql_query() of this class, we would already get snql generated
+            # by the metrics layer, which is not understood by the transformer.
             snuba_query = super().get_snql_query().query
-            try:
-                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        query=snuba_query, is_alerts_query=True
-                    )
-                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                    metrics_data = get_series(
-                        projects=self.params.projects,
-                        metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
-                        if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
-                        include_meta=True,
-                    )
-            except Exception as err:
-                raise IncompatibleMetricsQuery(err)
-            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
-                metric_layer_result: Any = {
-                    "data": [],
-                    "meta": metrics_data["meta"],
-                }
-                for group in metrics_data["groups"]:
-                    data = group["by"]
-                    data.update(group["totals"])
-                    metric_layer_result["data"].append(data)
-                    for meta in metric_layer_result["meta"]:
-                        if data[meta["name"]] is None:
-                            data[meta["name"]] = self.get_default_value(meta["type"])
-                return metric_layer_result
+            return self._run_query_with_metrics_layer(snuba_query)
 
         return super().run_query(referrer, use_cache)
 
