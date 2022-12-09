@@ -128,7 +128,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         self,
         configs: List[RepositoryProjectPathConfig],
     ) -> List[RepositoryProjectPathConfig]:
-        sorted_configs = []
+        sorted_configs = []  # type: List[RepositoryProjectPathConfig]
         regex = r"\w+"
         inserted = False
         for config in configs:
