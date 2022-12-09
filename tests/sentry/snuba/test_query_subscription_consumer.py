@@ -7,7 +7,7 @@ import pytest
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from exam import fixture, patcher
+from exam import fixture
 
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -65,7 +65,10 @@ class BaseQuerySubscriptionTest:
 
 
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
-    metrics = patcher("sentry.snuba.query_subscription_consumer.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self):
+        with mock.patch("sentry.snuba.query_subscription_consumer.metrics") as self.metrics:
+            yield
 
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:

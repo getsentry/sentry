@@ -1,7 +1,8 @@
 import time
 from unittest import mock
 
-from exam import fixture, patcher
+import pytest
+from exam import fixture
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
@@ -207,17 +208,19 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    @patcher.object(RedisQuota, "get_project_quota")
-    def get_project_quota(self):
-        inst = mock.MagicMock()
-        inst.return_value = (0, 60)
-        return inst
+    @pytest.fixture(autouse=True)
+    def _patch_get_project_quota(self):
+        with mock.patch.object(
+            RedisQuota, "get_project_quota", return_value=(0, 60)
+        ) as self.get_project_quota:
+            yield
 
-    @patcher.object(RedisQuota, "get_organization_quota")
-    def get_organization_quota(self):
-        inst = mock.MagicMock()
-        inst.return_value = (0, 60)
-        return inst
+    @pytest.fixture(autouse=True)
+    def _patch_get_organization_quota(self):
+        with mock.patch.object(
+            RedisQuota, "get_organization_quota", return_value=(0, 60)
+        ) as self.get_organization_quota:
+            yield
 
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
