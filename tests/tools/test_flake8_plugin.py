@@ -89,3 +89,13 @@ from sentry.models import User
     assert errors == [
         "t.py:1:0: S005 Do not import models from sentry.models but the actual module",
     ]
+
+
+def test_S006():
+    S006_py = """\
+from exam import patcher
+"""
+    errors = _run(S006_py)
+    assert errors == [
+        "t.py:1:0: S006 use unittest.mock instead of exam.patcher",
+    ]
