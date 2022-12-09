@@ -604,6 +604,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
+    "sentry.ingest.transaction_clusterer.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -684,6 +685,9 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
+    Queue(
+        "transactions.name_clusterer", routing_key="transactions.name_clusterer"
+    ),  # TODO: add workers
 ]
 
 for queue in CELERY_QUEUES:
@@ -811,6 +815,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "transaction-name-clusterer": {
+        "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
     },
 }
 
@@ -1173,10 +1182,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
-    "organizations:server-side-sampling-allow-incompatible-platforms": False,
-    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
-    "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
@@ -1547,6 +1552,8 @@ SENTRY_RELEASE_MONITOR = (
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
 
+# Whether or not to run transaction clusterer
+SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
