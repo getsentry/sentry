@@ -146,7 +146,6 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Tr
 default_manager.add("organizations:scim-orgmember-roles", OrganizationFeature, True)
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, True)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
-default_manager.add("organizations:server-side-sampling-allow-incompatible-platforms", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, True)
