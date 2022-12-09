@@ -597,13 +597,13 @@ class MetricsQueryBuilder(QueryBuilder):
             ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
-    def _run_query_with_metrics_layer(self, query: Query) -> Any:
+    def _run_query_with_metrics_layer(self, query: Query, is_alerts_query: bool = False) -> Any:
         from sentry.snuba.metrics.datasource import get_series
         from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
 
         try:
             with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                metric_query = transform_mqb_query_to_metrics_query(query)
+                metric_query = transform_mqb_query_to_metrics_query(query, is_alerts_query)
             with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                 metrics_data = get_series(
                     projects=self.params.projects,
@@ -632,7 +632,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer:
-            return self._run_query_with_metrics_layer(self.get_snql_query().query)
+            return self._run_query_with_metrics_layer(query=self.get_snql_query().query)
 
         self.validate_having_clause()
         self.validate_orderby_clause()
@@ -808,7 +808,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             # transformer. If we were to call get_snql_query() of this class, we would already get snql generated
             # by the metrics layer, which is not understood by the transformer.
             snuba_query = super().get_snql_query().query
-            return self._run_query_with_metrics_layer(snuba_query)
+            return self._run_query_with_metrics_layer(query=snuba_query, is_alerts_query=True)
 
         return super().run_query(referrer, use_cache)
 
