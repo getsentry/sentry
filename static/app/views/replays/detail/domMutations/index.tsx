@@ -29,6 +29,7 @@ import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbH
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
+import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
@@ -124,7 +125,7 @@ function DomMutations({replay}: Props) {
 
   return (
     <MutationContainer>
-      <MutationFilters>
+      <FiltersGrid>
         <CompactSelect
           triggerProps={{prefix: t('Event Type')}}
           triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
@@ -142,7 +143,7 @@ function DomMutations({replay}: Props) {
           query={searchTerm}
           disabled={!replay || !actions.length}
         />
-      </MutationFilters>
+      </FiltersGrid>
       <MutationList>
         {isLoading ? (
           <Placeholder height="100%" />
@@ -186,16 +187,6 @@ function DomMutations({replay}: Props) {
     </MutationContainer>
   );
 }
-
-const MutationFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
-`;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: 100%;
