@@ -81,7 +81,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Headers"] == (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
             "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage"
+            "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
@@ -121,7 +121,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Headers"] == (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
             "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage"
+            "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
