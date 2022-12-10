@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from django.utils.functional import cached_property
 
+from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
 from sentry.models import (
     Activity,
@@ -227,7 +228,7 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def store_event(self, *args, **kwargs):
+    def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
