@@ -28,6 +28,8 @@ import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
+const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
+
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
@@ -297,6 +299,14 @@ function RuleNode({
       );
     }
 
+    if (
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType !== MailActionTargetType.IssueOwners &&
+      organization.features.includes('issue-alert-fallback-targeting')
+    ) {
+      node = {...node, label: 'Send a notification to {targetType}'};
+    }
+
     const {label, formFields} = node;
 
     const parts = label.split(/({\w+})/).map((part, i) => {
@@ -382,8 +392,9 @@ function RuleNode({
     }
 
     if (
-      data.id === 'sentry.mail.actions.NotifyEmailAction' &&
-      data.targetType === MailActionTargetType.IssueOwners
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType === MailActionTargetType.IssueOwners &&
+      !organization.features.includes('issue-alert-fallback-targeting')
     ) {
       return (
         <MarginlessAlert type="warning">
