@@ -1254,7 +1254,6 @@ class IssueListOverview extends Component<Props, State> {
                   id="IssueList-Body"
                 >
                   <GroupListBody
-                    // isPolling={this._poller.active}
                     memberList={this.state.memberList}
                     groupStatsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
