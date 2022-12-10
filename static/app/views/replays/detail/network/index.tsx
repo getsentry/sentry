@@ -25,12 +25,7 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {
-  getResourceTypes,
-  getStatusTypes,
-  ISortConfig,
-  sortNetwork,
-} from 'sentry/views/replays/detail/network/utils';
+import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -61,6 +56,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const networkTableRef = useRef<HTMLDivElement>(null);
 
   const {
+    getResourceTypes,
+    getStatusTypes,
     items,
     status: selectedStatus,
     type: selectedType,
@@ -68,7 +65,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     setStatus,
     setType,
     setSearchTerm,
-  } = useNetworkFilters({networkSpans});
+  } = useNetworkFilters({networkSpans: networkSpans || []});
 
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
 
@@ -294,10 +291,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans || []).map(value => ({
-            value,
-            label: value,
-          }))}
+          options={getStatusTypes()}
           size="sm"
           onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
@@ -307,10 +301,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{prefix: t('Type')}}
           triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans || []).map(value => ({
-            value,
-            label: value,
-          }))}
+          options={getResourceTypes()}
           size="sm"
           onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
