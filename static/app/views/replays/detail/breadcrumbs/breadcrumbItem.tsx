@@ -68,8 +68,6 @@ function BreadcrumbItem({
           <Title>{title}</Title>
           {onClick ? (
             <TimestampButton
-              format="mm:ss"
-              onClick={() => {}}
               startTimestampMs={startTimestampMs}
               timestampMs={crumb.timestamp || ''}
             />

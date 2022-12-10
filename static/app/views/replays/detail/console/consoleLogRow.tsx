@@ -51,7 +51,6 @@ function ConsoleMessage({
         </ErrorBoundary>
       </Message>
       <TimestampButton
-        format="mm:ss"
         onClick={onClickTimestamp}
         startTimestampMs={startTimestampMs}
         timestampMs={breadcrumb.timestamp || ''}
