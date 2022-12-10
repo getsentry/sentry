@@ -297,7 +297,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_consumer(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["issue_platform"]],
+        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -356,7 +356,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["issue_platform"]],
+        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
