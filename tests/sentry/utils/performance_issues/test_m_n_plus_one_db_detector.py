@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -8,6 +9,7 @@ from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
     MNPlusOneDBSpanDetector,
     PerformanceProblem,
+    _detect_performance_problems,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -77,3 +79,20 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         run_detector_on_data(detector, event)
         problems = list(detector.stored_problems.values())
         assert problems == []
+
+    def test_m_n_plus_one_detector_enabled(self):
+        event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]
+        sdk_span_mock = Mock()
+        _detect_performance_problems(event, sdk_span_mock)
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call("_pi_all_issue_count", 1),
+                call("_pi_sdk_name", "sentry.javascript.node"),
+                call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
+                call(
+                    "_pi_m_n_plus_one_db_fp",
+                    "1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                ),
+                call("_pi_m_n_plus_one_db", "9c5049407f37a364"),
+            ]
+        )

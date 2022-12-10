@@ -7,16 +7,16 @@ import {IconPlay} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Props = {
-  format: 'mm:ss' | 'mm:ss.SSS';
-  onClick: () => void;
   startTimestampMs: number;
   timestampMs: string | number | Date;
   className?: string;
+  format?: 'mm:ss' | 'mm:ss.SSS';
+  onClick?: () => void;
 };
 
 function TimestampButton({
   className,
-  format,
+  format = 'mm:ss',
   onClick,
   startTimestampMs,
   timestampMs,
