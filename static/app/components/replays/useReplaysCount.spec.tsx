@@ -1,3 +1,5 @@
+import range from 'lodash/range';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types';
@@ -100,6 +102,57 @@ describe('useReplaysCount', () => {
     );
 
     await waitForNextUpdate();
+  });
+
+  it('should send two parallel queries when there are more than 25 groupIds in the list', async () => {
+    const groupIds = range(30).map(String);
+    const firstChunk = groupIds.slice(0, 25).join(',');
+    const secondChunk = groupIds.slice(25).join(',');
+
+    const firstCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
+      method: 'GET',
+      body: {
+        groupId: 3,
+      },
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        project,
+        groupIds,
+      },
+    });
+
+    expect(firstCountRequest).toHaveBeenCalledTimes(2);
+
+    expect(firstCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[${firstChunk}]`,
+          statsPeriod: '14d',
+        },
+      })
+    );
+    expect(firstCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[${secondChunk}]`,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+
+    expect(result.current).toEqual(
+      expect.objectContaining({
+        groupId: 3,
+      })
+    );
   });
 
   it('should return the count of each groupId, or zero if not included in the response', async () => {

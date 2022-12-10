@@ -41,9 +41,10 @@ export default function IssuesReplayCountProvider({
   // Any project that supports replay will do here.
   // Project is used to signal if we should/should not do the query at all.
   const project = first(groups)?.project;
+  const replayGroupIds = useMemo(() => groups.map(group => group.id), [groups]);
 
   const counts = useReplaysCount({
-    groupIds,
+    groupIds: replayGroupIds,
     organization,
     project,
   });

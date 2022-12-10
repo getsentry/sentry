@@ -19,6 +19,7 @@ type GroupListBodyProps = {
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
+  // isPolling: boolean;
   isSavedSearchesOpen: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
@@ -45,6 +46,7 @@ function GroupListBody({
   sort,
   displayReprocessingLayout,
   groupStatsPeriod,
+  // isPolling,
   loading,
   error,
   refetchGroups,
