@@ -318,7 +318,8 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         original_index = symbolicated_frame["original_index"]
         original_frame = original_frames[original_index]
 
-        # we already merge a symbolicated frame so this is an inline one
+        # check if we already merged a symbolicated frame result
+        # if it's the case, the status field will contain the result of the symbolication
         if "status" in original_frame:
             inline_frame_ids[original_index].append(len(original_frames))
             original_frames.append(symbolicated_frame)
