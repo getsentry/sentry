@@ -299,15 +299,17 @@ function RuleNode({
       );
     }
 
+    let {label} = node;
+
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
       data.targetType !== MailActionTargetType.IssueOwners &&
-      organization.features.includes('issue-alert-fallback-targeting')
+      organization.features.includes('issue-alert-fallback-targeting') &&
+      label.startsWith('Send a notification to {targetType}')
     ) {
-      node = {...node, label: 'Send a notification to {targetType}'};
+      // Hide the fallback options when targeting team or member
+      label = 'Send a notification to {targetType}';
     }
-
-    const {label, formFields} = node;
 
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
@@ -323,8 +325,8 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {formFields && formFields.hasOwnProperty(key)
-            ? getField(key, formFields[key])
+          {node.formFields && node.formFields.hasOwnProperty(key)
+            ? getField(key, node.formFields[key])
             : part}
         </Separator>
       );
