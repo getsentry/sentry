@@ -148,6 +148,27 @@ describe('OrganizationMemberDetail', function () {
         })
       );
     });
+
+    it('cannot change roles if member is idp-provisioned', function () {
+      const roleRestrictedMember = TestStubs.Member({
+        roles: TestStubs.OrgRoleList(),
+        dateCreated: new Date(),
+        teams: [team.slug],
+        flags: {
+          'idp:role-restricted': true,
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: roleRestrictedMember,
+      });
+      render(<OrganizationMemberDetail params={{memberId: roleRestrictedMember.id}} />, {
+        context: routerContext,
+      });
+
+      const radios = screen.getAllByRole('radio');
+      expect(radios.at(0)).toHaveAttribute('readonly');
+    });
   });
 
   describe('Cannot Edit', function () {
