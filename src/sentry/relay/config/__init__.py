@@ -250,7 +250,7 @@ def _get_project_config(
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
-            "version": 1,
+            "version": 2 if features.has("projects:release-health-anr-extraction", project) else 1,
             "drop": features.has(
                 "organizations:release-health-drop-sessions", project.organization
             ),
