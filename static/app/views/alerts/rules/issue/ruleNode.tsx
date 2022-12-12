@@ -304,8 +304,7 @@ function RuleNode({
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
       data.targetType !== MailActionTargetType.IssueOwners &&
-      organization.features.includes('issue-alert-fallback-targeting') &&
-      label.startsWith('Send a notification to {targetType}')
+      organization.features.includes('issue-alert-fallback-targeting')
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
