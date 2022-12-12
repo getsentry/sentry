@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
@@ -59,10 +59,11 @@ def get_identity(slack_request: SlackDMRequest) -> Identity | None:
     return identity
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackCommandRequest
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         return self.respond(
@@ -142,7 +143,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackCommandRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             if e.status == status.HTTP_403_FORBIDDEN:

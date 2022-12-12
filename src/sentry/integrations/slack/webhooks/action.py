@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -124,10 +124,11 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return is_message
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackActionRequest
 
     def respond_ephemeral(self, text: str) -> Response:
         return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})
@@ -396,7 +397,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackActionRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)
