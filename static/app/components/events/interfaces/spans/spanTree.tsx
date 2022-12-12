@@ -1,4 +1,4 @@
-import React, {Component, useEffect, useRef} from 'react';
+import React, {Component, useLayoutEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -65,13 +65,6 @@ type StateType = {
 const listRef = React.createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
-  cache = new CellMeasurerCache({
-    fixedWidth: true,
-
-    defaultHeight: ROW_HEIGHT,
-    minHeight: ROW_HEIGHT,
-  });
-
   state: StateType = {
     headerPos: 0,
     // Stores each visible span row ref along with its its tree depth. This is used to calculate the
@@ -276,6 +269,13 @@ class SpanTree extends Component<PropType> {
       listRef.current?.forceUpdateGrid();
     }
   }
+
+  cache = new CellMeasurerCache({
+    fixedWidth: true,
+
+    defaultHeight: ROW_HEIGHT,
+    minHeight: ROW_HEIGHT,
+  });
 
   generateInfoMessage(input: {
     filteredSpansAbove: EnhancedProcessedSpanType[];
@@ -707,7 +707,9 @@ class SpanTree extends Component<PropType> {
       return;
     }
 
-    this.setState({spanRows: [...this.state.spanRows, {spanRow, treeDepth}]});
+    this.setState((prevState: StateType) => ({
+      spanRows: [...prevState.spanRows, {spanRow, treeDepth}],
+    }));
   };
 
   removeSpanRowFromMap = (spanRow: React.RefObject<HTMLDivElement>) => {
@@ -719,8 +721,26 @@ class SpanTree extends Component<PropType> {
   };
 
   debouncedOnScroll = debounce(() => {
-    console.log(this.props.traceViewHeaderRef.current?.getBoundingClientRect().bottom);
-  }, 50);
+    const {traceViewHeaderRef} = this.props;
+    if (!traceViewHeaderRef.current) {
+      return;
+    }
+
+    const headerBottom = traceViewHeaderRef.current.getBoundingClientRect().bottom;
+
+    this.state.spanRows.forEach(({spanRow, treeDepth}) => {
+      if (!spanRow.current) {
+        return;
+      }
+
+      const {bottom, top} = spanRow.current.getBoundingClientRect();
+
+      if (bottom < headerBottom && top < headerBottom) {
+        // Manage view here
+        treeDepth;
+      }
+    });
+  }, 100);
 
   render() {
     const spanTree = this.generateSpanTree();
@@ -773,6 +793,7 @@ type SpanRowProps = ListRowProps & {
   removeSpanRowFromMap: (spanRow: React.RefObject<HTMLDivElement>) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
+  // TODO: We don't need this anymore, remove it
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
 };
 
@@ -786,25 +807,24 @@ function SpanRow(props: SpanRowProps) {
     spanTree,
     cache,
     spanContextProps,
-    traceViewHeaderRef,
-    isVisible,
     addSpanRowToMap,
     removeSpanRowFromMap,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
+  const spanNode = spanTree[index];
 
-  // Keep track of this SpanRow when it is considered visible
-  useEffect(() => {
-    const node = spanTree[index];
-    if (node.type !== SpanTreeNodeType.MESSAGE && rowRef) {
-      isVisible
-        ? addSpanRowToMap(rowRef, node.props.treeDepth)
-        : removeSpanRowFromMap(rowRef);
+  // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
+  // we won't have access to the refs in useEffect
+  useLayoutEffect(() => {
+    if (spanNode.type !== SpanTreeNodeType.MESSAGE && rowRef) {
+      addSpanRowToMap(rowRef, spanNode.props.treeDepth);
     }
 
-    return () => removeSpanRowFromMap(rowRef);
-  }, [isVisible, rowRef]);
+    return () => {
+      removeSpanRowFromMap(rowRef);
+    };
+  }, [rowRef, addSpanRowToMap, removeSpanRowFromMap, spanNode]);
 
   const renderSpanNode = (
     node: SpanTreeNode,
@@ -857,7 +877,7 @@ function SpanRow(props: SpanRowProps) {
       {({measure}) => {
         return (
           <div style={style} ref={rowRef}>
-            {renderSpanNode(spanTree[index], {
+            {renderSpanNode(spanNode, {
               measure,
               listRef,
               cellMeasurerCache: cache,
