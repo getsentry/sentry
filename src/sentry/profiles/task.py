@@ -307,6 +307,7 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
     original_frames = profile["profile"]["frames"]
     symbolicated_frames = stacktraces[0]["frames"]
+    inline_frame_ids = {}
 
     # merge results
     for symbolicated_frame in symbolicated_frames:
@@ -314,14 +315,16 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         symbolicated_frame.pop("context_line", None)
         symbolicated_frame.pop("post_context", None)
 
-        original_frame = original_frames[symbolicated_frame["original_index"]]
+        original_index = symbolicated_frame["original_index"]
+        original_frame = original_frames[original_index]
 
+        # we already merge a symbolicated frame so this is an inline one
         if "status" in original_frame:
-            original_frame["inline_frame_ids"].append(len(original_frames))
+            inline_frame_ids[original_index].append(len(original_frames))
             original_frames.append(symbolicated_frame)
         else:
             original_frame.update(symbolicated_frame)
-            original_frame["inline_frame_ids"] = []
+            inline_frame_ids[original_index] = []
 
     if profile["platform"] == "rust":
 
@@ -362,9 +365,8 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
         # add inline frames to the stack
         for i, frame_id in enumerate(stack):
-            if "inline_frame_ids" in original_frames[frame_id]:
-                stack = stack[:i] + original_frames[frame_id]["inline_frame_ids"] + stack[i:]
-                original_frames[frame_id].pop("inline_frame_ids")
+            if frame_id in inline_frame_ids:
+                stack = stack[:i] + inline_frame_ids[frame_id] + stack[i:]
 
         profile["profile"]["stacks"][stack_id] = stack
 
