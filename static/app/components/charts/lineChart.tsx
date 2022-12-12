@@ -19,10 +19,17 @@ export interface LineChartProps extends Omit<ChartProps, 'series'> {
 }
 
 export function LineChart({series, seriesOptions, ...props}: LineChartProps) {
+  // const ser = [series[0]];
+  // console.log(series);
+  const ser = series.map(s => {
+    delete s.xAxisIndex;
+    delete s.yAxisIndex;
+    return s;
+  });
   return (
     <BaseChart
       {...props}
-      series={series.map(({seriesName, data, dataArray, ...options}) =>
+      series={ser.map(({seriesName, data, dataArray, ...options}) =>
         LineSeries({
           ...seriesOptions,
           ...options,

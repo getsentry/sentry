@@ -44,6 +44,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
+            PerformanceWidgetSetting.SPAN_OPERATIONS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
             PerformanceWidgetSetting.SLOW_HTTP_OPS,
             PerformanceWidgetSetting.SLOW_RESOURCE_OPS,

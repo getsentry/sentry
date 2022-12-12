@@ -13,7 +13,7 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
     widgetProps.location.query
   );
 
-  const data = results.timeseriesData ?? [];
+  const data = results.timeseriesData ?? results.results ?? [];
 
   const childData = {
     ...results,
