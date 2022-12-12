@@ -276,7 +276,7 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('cannot add members if team is idp:provisioned', function () {
+  it('cannot add or remove members if team is idp:provisioned', function () {
     const team2 = TestStubs.Team({
       flags: {
         'idp:provisioned': true,
@@ -318,6 +318,7 @@ describe('TeamMembers', function () {
 
     waitFor(() => {
       expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
+      expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
   });
 });

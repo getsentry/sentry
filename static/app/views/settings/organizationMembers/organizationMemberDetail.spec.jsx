@@ -152,7 +152,6 @@ describe('OrganizationMemberDetail', function () {
         context: routerContext,
       });
 
-      // Remove our one team
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
@@ -188,11 +187,7 @@ describe('OrganizationMemberDetail', function () {
         context: routerContext,
       });
 
-      // Select new team to join
-      // Open the dropdown
       userEvent.click(screen.getByText('Add Team'));
-
-      // Save Member
       expect(screen.queryByText('#idp-team')).not.toBeInTheDocument();
     });
 
