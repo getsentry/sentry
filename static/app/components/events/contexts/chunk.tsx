@@ -100,6 +100,8 @@ class Chunk extends Component<Props, State> {
         return t('Trace Details');
       case 'otel':
         return t('OpenTelemetry');
+      case 'Memory Info':
+        return t('Memory Info');
       case 'default':
         if (alias === 'state') {
           return t('Application State');

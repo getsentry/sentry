@@ -493,7 +493,31 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
 
+export enum MemoryInfoContextKey {
+  ALLOCATED_BYTES = 'allocated_bytes',
+  COMPACTED = 'compacted',
+  CONCURRENT = 'concurrent',
+  FINALIZATION_PENDING_COUNT = 'finalization_pending_count',
+  HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
+  PAUSE_DURATIONS = 'pause_durations',
+  TOTAL_AVAILABLE_MEMORY_BYTES = 'total_available_memory_bytes',
+}
+
+// MemoryInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface MemoryInfoContext {
+  type: 'Memory Info';
+  [MemoryInfoContextKey.ALLOCATED_BYTES]: number;
+  [MemoryInfoContextKey.COMPACTED]: boolean;
+  [MemoryInfoContextKey.CONCURRENT]: boolean;
+  [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
+  [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]: number;
+  [MemoryInfoContextKey.PAUSE_DURATIONS]: number[];
+  [MemoryInfoContextKey.TOTAL_AVAILABLE_MEMORY_BYTES]: number;
+}
+
 type EventContexts = {
+  'Memory Info'?: MemoryInfoContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
