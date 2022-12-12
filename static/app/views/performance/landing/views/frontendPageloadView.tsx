@@ -43,6 +43,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
+            PerformanceWidgetSetting.SPAN_OPERATIONS,
             PerformanceWidgetSetting.WORST_LCP_VITALS,
             PerformanceWidgetSetting.WORST_FCP_VITALS,
             PerformanceWidgetSetting.WORST_FID_VITALS,
