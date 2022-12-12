@@ -250,6 +250,5 @@ def test_submit_symbolicate_queue_switch(
             cache_key="e:1",
             event_id=EVENT_ID,
             start_time=0,
-            data=data,
         )
     assert mock_submit_symbolicate.call_count == 4
