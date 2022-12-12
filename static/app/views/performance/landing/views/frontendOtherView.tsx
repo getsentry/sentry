@@ -37,10 +37,6 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER}}
     >
       <div>
-        <TripleChartRow
-          {...props}
-          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
-        />
         <DoubleChartRow
           {...props}
           allowedCharts={[
@@ -49,6 +45,10 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.SLOW_HTTP_OPS,
             PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
           ]}
+        />
+        <TripleChartRow
+          {...props}
+          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
         />
         <Table
           {...props}

@@ -14,6 +14,7 @@ export type DiscoverEventParameters = {
     contextType: ContextType;
     eventType?: EventOrGroupType;
   };
+  'discover_v2.quick_context_update_query': {queryKey: string};
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.results.toggle_tag_facets': {};
   'discover_v2.saved_query_click': {};
@@ -58,4 +59,5 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.quick_context_header_copy':
     'Discover2: Copy value from Quick Context header',
   'discover_v2.y_axis_change': "Discoverv2: Change chart's y axis",
+  'discover_v2.quick_context_update_query': 'Discoverv2: Update query from Quick Context',
 };

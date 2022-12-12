@@ -36,10 +36,6 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND}}
     >
       <div data-test-id="frontend-pageload-view">
-        <TripleChartRow
-          {...props}
-          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
-        />
         <DoubleChartRow
           {...props}
           allowedCharts={[
@@ -53,6 +49,10 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.SLOW_BROWSER_OPS,
             PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
           ]}
+        />
+        <TripleChartRow
+          {...props}
+          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
         />
         <Table
           {...props}

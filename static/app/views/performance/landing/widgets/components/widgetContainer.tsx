@@ -63,6 +63,7 @@ function trackChartSettingChange(
     from_widget: previousChartSetting,
     to_widget: chartSetting,
     from_default: fromDefault,
+    is_new_menu: organization.features.includes('performance-new-widget-designs'),
   });
 }
 

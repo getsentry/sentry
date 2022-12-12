@@ -1,11 +1,12 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture, patcher
+from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -48,7 +49,10 @@ class BaseIncidentActivityTest:
 
 
 class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
-    send_async = patcher("sentry.utils.email.MessageBuilder.send_async")
+    @pytest.fixture(autouse=True)
+    def _setup_send_async_patch(self):
+        with mock.patch("sentry.utils.email.MessageBuilder.send_async") as self.send_async:
+            yield
 
     def test_simple(self):
         activity = create_incident_activity(
@@ -149,7 +153,10 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
 
 
 class HandleTriggerActionTest(TestCase):
-    metrics = patcher("sentry.incidents.tasks.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.incidents.tasks.metrics") as self.metrics:
+            yield
 
     @fixture
     def alert_rule(self):

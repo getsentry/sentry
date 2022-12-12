@@ -12,6 +12,15 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="all-transactions-view">
+        <DoubleChartRow
+          {...props}
+          allowedCharts={[
+            PerformanceWidgetSetting.SPAN_OPERATIONS,
+            PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+            PerformanceWidgetSetting.MOST_IMPROVED,
+            PerformanceWidgetSetting.MOST_REGRESSED,
+          ]}
+        />
         <TripleChartRow
           {...props}
           allowedCharts={[
@@ -23,15 +32,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
-          ]}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.SPAN_OPERATIONS,
-            PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
         />
         <Table {...props} setError={usePageError().setPageError} />
