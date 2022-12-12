@@ -766,21 +766,31 @@ def render_template_context(ctx, user):
         }
 
     def key_errors():
+        # TODO(Steve): Remove debug logging for Sentry
         def all_key_errors():
-            # TODO(Steve): Remove debug logging for Sentry
             if ctx.organization.slug == "sentry":
                 logger.info(
-                    "render_template_context.all_key_errors",
+                    "render_template_context.all_key_errors.num_projects",
                     extra={"user_id": user.id, "num_user_projects": len(user_projects)},
                 )
             for project_ctx in user_projects:
+                if ctx.organization.slug == "sentry":
+                    logger.info(
+                        "render_template_context.all_key_errors.project",
+                        extra={
+                            "user_id": user.id,
+                            "project_id": project_ctx.project.id,
+                        },
+                    )
                 for group, group_history, count in project_ctx.key_errors:
-                    # TODO(Steve): Remove debug logging for Sentry
                     if ctx.organization.slug == "sentry":
                         logger.info(
-                            "render_template_context.key_error: %s",
-                            group,
-                            extra={"group_id": group.id, "user_id": user.id},
+                            "render_template_context.all_key_errors.found_error",
+                            extra={
+                                "group_id": group.id,
+                                "user_id": user.id,
+                                "project_id": project_ctx.project.id,
+                            },
                         )
                     yield {
                         "count": count,
