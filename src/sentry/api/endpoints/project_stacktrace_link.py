@@ -116,18 +116,33 @@ def try_path_munging(
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
-    Sorts the code mapping config list based on precedence.
-    User generated code mappings are evaluated before Sentry generated code mappings.
-    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-    roots.
+    Returns valid links for source code providers so that
+    users can go from the file in the stack trace to the
+    provider of their choice.
 
-    `configs`: The list of code mapping configs
+    `file`: The file path from the stack trace
+    `commitId` (optional): The commit_id for the last commit of the
+                        release associated to the stack trace's event
+    `sdkName` (optional): The sdk.name associated with the event
+    `absPath` (optional): The abs_path field value of the relevant stack frame
+    `module`   (optional): The module field value of the relevant stack frame
+    `package`  (optional): The package field value of the relevant stack frame
+
     """
 
     def sort_code_mapping_configs(
         self,
         configs: List[RepositoryProjectPathConfig],
     ) -> List[RepositoryProjectPathConfig]:
+        """
+        Sorts the code mapping config list based on precedence.
+        User generated code mappings are evaluated before Sentry generated code mappings.
+        Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+        roots.
+
+        `configs`: The list of code mapping configs
+
+        """
         sorted_configs = []  # type: List[RepositoryProjectPathConfig]
         regex = r"\w+"
         inserted = False
@@ -151,21 +166,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 else:
                     sorted_configs.insert(0, config)
         return sorted_configs
-
-    """
-    Returns valid links for source code providers so that
-    users can go from the file in the stack trace to the
-    provider of their choice.
-
-    `file`: The file path from the stack trace
-    `commitId` (optional): The commit_id for the last commit of the
-                           release associated to the stack trace's event
-    `sdkName` (optional): The sdk.name associated with the event
-    `absPath` (optional): The abs_path field value of the relevant stack frame
-    `module`   (optional): The module field value of the relevant stack frame
-    `package`  (optional): The package field value of the relevant stack frame
-
-    """
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -241,14 +241,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             scope.set_tag("stacktrace_link.found", found)
             scope.set_tag("stacktrace_link.auto_derived", derived)
             if current_config:
-                # Any code mapping that matches and its results will be returned
-                last = current_config
-                result["config"] = last["config"]  # Backwards compatible
+                result["config"] = current_config["config"]
                 if not found:
-                    result["error"] = last["outcome"]["error"]  # Backwards compatible
+                    result["error"] = current_config["outcome"]["error"]  # Backwards compatible
                     # When no code mapping have been matched we have not attempted a URL
-                    if last["outcome"].get("attemptedUrl"):  # Backwards compatible
-                        result["attemptedUrl"] = last["outcome"]["attemptedUrl"]
+                    if current_config["outcome"].get("attemptedUrl"):  # Backwards compatible
+                        result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
                     if result["error"] == "stack_root_mismatch":
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
