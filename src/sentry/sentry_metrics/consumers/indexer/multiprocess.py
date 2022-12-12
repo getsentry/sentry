@@ -2,24 +2,21 @@ import logging
 import time
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Mapping, MutableMapping, Optional
 
 from arroyo.backends.abstract import Producer as AbstractProducer
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
-from arroyo.processing import StreamProcessor
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Message, Partition, Position
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.utils import kafka_config, metrics
-from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
@@ -226,38 +223,3 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__callbacks = 0
             self.__produced_message_offsets = {}
             self.__started = time.time()
-
-
-def get_streaming_metrics_consumer(
-    topic: str,
-    commit_max_batch_size: int,
-    commit_max_batch_time: int,
-    max_batch_size: int,
-    max_batch_time: float,
-    processes: int,
-    input_block_size: int,
-    output_block_size: int,
-    group_id: str,
-    auto_offset_reset: str,
-    factory_name: str,
-    indexer_profile: MetricsIngestConfiguration,
-    **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor[KafkaPayload]:
-    assert factory_name == "default"
-    processing_factory = BatchConsumerStrategyFactory(
-        max_batch_size=max_batch_size,
-        max_batch_time=max_batch_time,
-        commit_max_batch_size=commit_max_batch_size,
-        commit_max_batch_time=commit_max_batch_time,
-        config=indexer_profile,
-    )
-
-    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
-    create_topics(cluster_name, [indexer_profile.input_topic])
-
-    return StreamProcessor(
-        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
-        Topic(indexer_profile.input_topic),
-        processing_factory,
-        IMMEDIATE,
-    )
