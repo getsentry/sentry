@@ -17,7 +17,11 @@ describe('TeamMembers', function () {
   let createMock;
 
   const organization = TestStubs.Organization();
-  const team = TestStubs.Team();
+  const team = TestStubs.Team({
+    flags: {
+      'idp:provisioned': false,
+    },
+  });
   const members = TestStubs.Members();
   const member = TestStubs.Member({
     id: '9',
@@ -36,6 +40,11 @@ describe('TeamMembers', function () {
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
       body: members,
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/`,
+      method: 'GET',
+      body: team,
     });
 
     createMock = Client.addMockResponse({
@@ -267,7 +276,13 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('cannot add members if idp:provisioned', function () {
+  it('cannot add members if team is idp:provisioned', function () {
+    const team2 = TestStubs.Team({
+      flags: {
+        'idp:provisioned': true,
+      },
+    });
+
     const me = TestStubs.Member({
       id: '123',
       email: 'foo@example.com',
@@ -277,15 +292,26 @@ describe('TeamMembers', function () {
       },
     });
 
+    Client.clearMockResponses();
     Client.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: [...members, me],
     });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/members/`,
+      method: 'GET',
+      body: members,
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/`,
+      method: 'GET',
+      body: team2,
+    });
 
     render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
+        params={{orgId: organization.slug, teamId: team2.slug}}
         organization={organization}
       />
     );

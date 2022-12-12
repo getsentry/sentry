@@ -22,9 +22,8 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization, TeamMember} from 'sentry/types';
+import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -47,6 +46,7 @@ type State = {
   error: boolean;
   loading: boolean;
   orgMembers: Member[];
+  team: Team;
   teamMembers: TeamMember[];
 } & AsyncView['state'];
 
@@ -65,6 +65,7 @@ class TeamMembers extends AsyncView<Props, State> {
   componentDidMount() {
     // Initialize "add member" dropdown with data
     this.fetchMembersRequest('');
+    this.fetchTeamDetailsRequest();
   }
 
   debouncedFetchMembersRequest = debounce(
@@ -72,6 +73,26 @@ class TeamMembers extends AsyncView<Props, State> {
       this.setState({dropdownBusy: true}, () => this.fetchMembersRequest(query)),
     200
   );
+
+  debounceFetchTeamDetailsRequest = debounce(() =>
+    this.setState(() => this.fetchTeamDetailsRequest())
+  );
+
+  fetchTeamDetailsRequest = async () => {
+    const {params, api} = this.props;
+    const {orgId, teamId} = params;
+
+    try {
+      const data = await api.requestPromise(`/teams/${orgId}/${teamId}/`);
+      this.setState({
+        team: data,
+      });
+    } catch (err) {
+      addErrorMessage(t('Unable to fetch team details'), {
+        duration: 2000,
+      });
+    }
+  };
 
   fetchMembersRequest = async (query: string) => {
     const {organization, api} = this.props;
@@ -119,6 +140,7 @@ class TeamMembers extends AsyncView<Props, State> {
 
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
+    this.debounceFetchTeamDetailsRequest();
 
     joinTeam(
       this.props.api,
@@ -211,9 +233,8 @@ class TeamMembers extends AsyncView<Props, State> {
 
   renderDropdown(hasWriteAccess: boolean) {
     const {organization, params} = this.props;
-    const {orgMembers} = this.state;
+    const {orgMembers, team} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
-    const currentUser = ConfigStore.get('user');
 
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
@@ -232,10 +253,6 @@ class TeamMembers extends AsyncView<Props, State> {
           </StyledUserListElement>
         ),
       }));
-
-    const currentMember = (orgMembers || []).find(member => () => {
-      return member.id === currentUser.id;
-    });
 
     const menuHeader = (
       <StyledMembersLabel>
@@ -269,14 +286,14 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
-        disabled={currentMember?.flags['idp:provisioned']}
+        disabled={team?.idpProvisioned}
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
             size="xs"
             data-test-id="add-member"
-            disabled={currentMember?.flags['idp:provisioned']}
+            disabled={team?.idpProvisioned}
           >
             {t('Add Member')}
           </DropdownButton>

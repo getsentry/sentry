@@ -77,6 +77,7 @@ export type Team = {
   externalTeams: ExternalTeam[];
   hasAccess: boolean;
   id: string;
+  idpProvisioned: boolean;
   isMember: boolean;
   isPending: boolean;
   memberCount: number;
