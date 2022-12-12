@@ -3,12 +3,14 @@ from hashlib import md5
 from unittest import mock
 
 from sentry.constants import LOG_LEVELS_MAP
+from sentry.event_manager import GroupInfo
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
     process_occurrence_data,
     save_issue_from_occurrence,
     save_issue_occurrence,
+    send_issue_occurrence_to_eventstream,
 )
 from sentry.models import Group
 from sentry.ratelimits.sliding_windows import Quota
@@ -31,6 +33,18 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         )
         self.assert_occurrences_identical(occurrence, saved_occurrence)
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
+        # TODO: Query this data and make sure it's present once we have a corresponding dataset in
+        # snuba
+        # result = snuba.raw_query(
+        #     dataset=snuba.Dataset.IssuePlatform,
+        #     start=now - timedelta(days=1),
+        #     end=now + timedelta(days=1),
+        #     selected_columns=["event_id", "group_id", "occurrence_id"],
+        #     groupby=None,
+        #     filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+        # )
+        # assert len(result["data"]) == 1
+        # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
         # TODO: We should make this a platform event once we have one
@@ -164,3 +178,34 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
             "location": event.location,
             "last_received": event.datetime,
         }
+
+
+@region_silo_test
+class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
+    def test(self) -> None:
+        # TODO: We should make this a platform event once we have one
+        event = self.store_event(data={}, project_id=self.project.id)
+        event_group = event.for_group(self.group)
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        group_info = GroupInfo(event.group, True, False, None, False)
+        with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
+            event, "for_group", return_value=event_group
+        ):
+            send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+            eventstream.insert.assert_called_once_with(
+                event=event_group,
+                is_new=group_info.is_new,
+                is_regression=group_info.is_regression,
+                is_new_group_environment=group_info.is_new_group_environment,
+                primary_hash=event.get_primary_hash(),
+                received_timestamp=event.datetime,
+                skip_consume=False,
+                group_states=[
+                    {
+                        "id": group_info.group.id,
+                        "is_new": group_info.is_new,
+                        "is_regression": group_info.is_regression,
+                        "is_new_group_environment": group_info.is_new_group_environment,
+                    }
+                ],
+            )
