@@ -57,6 +57,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
           {field: 'transaction'},
           {field: 'team_key_transaction'},
           {field: 'count()'},
+          {field: 'project.id'},
           ...fields.map(f => ({field: f})),
         ];
 
@@ -166,22 +167,6 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
     provided.widgetData.list.data.map(listItem => () => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
-      const additionalQuery: Record<string, string> = {};
-
-      // if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
-      //   additionalQuery.breakdown = 'http';
-      //   additionalQuery.display = 'latency';
-      // } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
-      //   additionalQuery.breakdown = 'db';
-      //   additionalQuery.display = 'latency';
-      // } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
-      //   additionalQuery.breakdown = 'browser';
-      //   additionalQuery.display = 'latency';
-      // } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
-      //   additionalQuery.breakdown = 'resource';
-      //   additionalQuery.display = 'latency';
-      // }
-
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
@@ -192,8 +177,8 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
             orgSlug: props.organization.slug,
             projectID: listItem['project.id'] as string,
             transaction,
-            query: props.eventView.getPageFiltersQuery(),
-            additionalQuery,
+            query: props.eventView.generateQueryStringObject(),
+            subPath: 'spans',
           });
 
       const displayedField = 'count()';
