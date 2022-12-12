@@ -112,7 +112,7 @@ describe('Performance > Transaction Spans', function () {
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe('Performance > Transaction Spans', function () {
         const grid = await screen.findByTestId('grid-editable');
         expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
         expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-        expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+        expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
         expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
         expect(await within(grid).findByText(label)).toBeInTheDocument();
         expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('Performance > Transaction Spans', function () {
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
