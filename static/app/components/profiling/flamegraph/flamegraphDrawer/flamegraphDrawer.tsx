@@ -15,14 +15,13 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useParams} from 'sentry/utils/useParams';
 
-import {useLocalStorageState} from '../../../utils/useLocalStorageState';
-
-import {FrameStackTable} from './frameStackTable';
+import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
 
-interface FrameStackProps {
+interface FlamegraphDrawerProps {
   canvasPoolManager: CanvasPoolManager;
   canvasScheduler: CanvasScheduler;
   flamegraph: Flamegraph;
@@ -34,7 +33,7 @@ interface FrameStackProps {
   onResize?: MouseEventHandler<HTMLElement>;
 }
 
-const FrameStack = memo(function FrameStack(props: FrameStackProps) {
+const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
@@ -232,7 +231,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
 
-      <FrameStackTable
+      <FlamegraphTreeTable
         {...props}
         expanded={tab === 'top down'}
         recursion={recursion}
@@ -429,4 +428,4 @@ export const FrameCallersTableCell = styled('div')<{
   }
 `;
 
-export {FrameStack};
+export {FlamegraphDrawer};

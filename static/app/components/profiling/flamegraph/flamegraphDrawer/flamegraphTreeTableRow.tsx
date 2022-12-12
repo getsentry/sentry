@@ -7,7 +7,7 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
-import {FrameCallersTableCell} from './frameStack';
+import {FrameCallersTableCell} from './flamegraphDrawer';
 
 function computeRelativeWeight(base: number, value: number) {
   // Make sure we dont divide by zero
@@ -17,7 +17,7 @@ function computeRelativeWeight(base: number, value: number) {
   return (value / base) * 100;
 }
 
-interface FrameStackTableRowProps {
+interface FlamegraphTreeTableRowProps {
   formatDuration: Flamegraph['formatter'];
   frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
@@ -34,7 +34,10 @@ interface FrameStackTableRowProps {
   tabIndex: number;
 }
 
-export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowProps>(
+export const FlamegraphTreeTableRow = forwardRef<
+  HTMLDivElement,
+  FlamegraphTreeTableRowProps
+>(
   (
     {
       node,

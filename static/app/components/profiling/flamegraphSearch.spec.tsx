@@ -1,6 +1,6 @@
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-import {searchFzf, searchRegExp} from './flamegraphSearch';
+import {searchFzf, searchRegExp} from './flamegraph/flamegraphToolbar/flamegraphSearch';
 
 const f = (name: string) => {
   return {

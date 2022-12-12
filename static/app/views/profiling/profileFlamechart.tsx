@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
+import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
+import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
