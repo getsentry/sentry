@@ -305,12 +305,23 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
-    profile["profile"]["frames"] = stacktraces[0]["frames"]
-    if profile["platform"] in SHOULD_SYMBOLICATE:
-        for frame in profile["profile"]["frames"]:
-            frame.pop("pre_context", None)
-            frame.pop("context_line", None)
-            frame.pop("post_context", None)
+    original_frames = profile["profile"]["frames"]
+    symbolicated_frames = stacktraces[0]["frames"]
+
+    # merge results
+    for symbolicated_frame in symbolicated_frames:
+        symbolicated_frame.pop("pre_context", None)
+        symbolicated_frame.pop("context_line", None)
+        symbolicated_frame.pop("post_context", None)
+
+        original_frame = original_frames[symbolicated_frame["original_index"]]
+
+        if "status" in original_frame:
+            original_frame["inline_frame_ids"].append(len(original_frames))
+            original_frames.append(symbolicated_frame)
+        else:
+            original_frame.update(symbolicated_frame)
+            original_frame["inline_frame_ids"] = []
 
     if profile["platform"] == "rust":
 
@@ -342,36 +353,25 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
-    if profile["platform"] in SHOULD_SYMBOLICATE:
-        idx_map = get_frame_index_map(profile["profile"]["frames"])
-
-        def get_stack(stack: List[int]) -> List[int]:
-            new_stack: List[int] = []
-            for index in stack:
-                # the new stack extends the older by replacing
-                # a specific frame index with the indices of
-                # the frames originated from the original frame
-                # should inlines be present
-                new_stack.extend(idx_map[index])
-            return new_stack
-
-    else:
-
-        def get_stack(stack: List[int]) -> List[int]:
-            return stack
-
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
-        stack = get_stack(profile["profile"]["stacks"][stack_id])
-        profile["profile"]["stacks"][stack_id] = stack
+        stack = profile["profile"]["stacks"][stack_id]
 
         if len(stack) < 2:
             continue
 
+        # add inline frames to the stack
+        for i, frame_id in enumerate(stack):
+            if "inline_frame_ids" in original_frames[frame_id]:
+                stack = stack[:i] + original_frames[frame_id]["inline_frame_ids"] + stack[i:]
+                original_frames.pop("inline_frame_ids")
+
+        profile["profile"]["stacks"][stack_id] = stack
+
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
-            profile["profile"]["frames"], stack
-        )
+        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(original_frames, stack)
+
+    profile["profile"]["frames"] = original_frames
 
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
