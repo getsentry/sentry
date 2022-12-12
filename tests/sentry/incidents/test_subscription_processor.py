@@ -1,13 +1,14 @@
 import unittest
 from datetime import datetime, timedelta
 from random import randint
+from unittest import mock
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytest
 import pytz
 from django.utils import timezone
-from exam import fixture, patcher
+from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -58,7 +59,10 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 @freeze_time()
 class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
-    metrics = patcher("sentry.incidents.subscription_processor.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metrics_patch(self):
+        with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
+            yield
 
     def setUp(self):
         super().setUp()
@@ -161,7 +165,10 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
 @freeze_time()
 class ProcessUpdateTest(ProcessUpdateBaseClass):
-    slack_client = patcher("sentry.integrations.slack.SlackClient.post")
+    @pytest.fixture(autouse=True)
+    def _setup_slack_client(self):
+        with mock.patch("sentry.integrations.slack.SlackClient.post") as self.slack_client:
+            yield
 
     @fixture
     def other_project(self):
@@ -1603,7 +1610,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
-    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metrics_patcher(self):
+        with mock.patch(
+            "sentry.snuba.entity_subscription.metrics"
+        ) as self.entity_subscription_metrics:
+            yield
+
     format = "v2"  # TODO: remove once subscriptions migrated
 
     def setUp(self):

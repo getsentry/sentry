@@ -40,17 +40,3 @@ export function sortNetwork(
     return valueB > valueA ? 1 : -1;
   });
 }
-
-export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
-  Array.from(
-    new Set(networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')))
-  ).sort();
-
-export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
-  Array.from(
-    new Set(
-      networkSpans
-        .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
-        .map(String)
-    )
-  ).sort();
