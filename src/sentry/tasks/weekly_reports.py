@@ -767,6 +767,12 @@ def render_template_context(ctx, user):
 
     def key_errors():
         def all_key_errors():
+            # TODO(Steve): Remove debug logging for Sentry
+            if ctx.organization.slug == "sentry":
+                logger.info(
+                    "render_template_context.all_key_errors",
+                    extra={"user_id": user.id, "num_user_projects": len(user_projects)},
+                )
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_errors:
                     # TODO(Steve): Remove debug logging for Sentry
