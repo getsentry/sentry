@@ -142,7 +142,7 @@ function IssueListHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <IssueListSetAsDefault {...{sort, query, savedSearch, organization}} />
+          <IssueListSetAsDefault {...{sort, query, organization}} />
           {organization.features.includes('issue-list-saved-searches-v2') && (
             <Button
               size="sm"
