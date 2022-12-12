@@ -18,7 +18,7 @@ class SiloClientTest(TestCase):
             ControlSiloClient()
 
         with raises(SiloClientError):
-            RegionSiloClient(self.region.name)
+            RegionSiloClient(self.region)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_settings(SENTRY_REGION_CONFIG=region_config)
@@ -26,17 +26,21 @@ class SiloClientTest(TestCase):
         with raises(SiloClientError):
             ControlSiloClient()
 
-        with raises(RegionResolutionError):
+        with raises(SiloClientError):
             RegionSiloClient("atlantis")
 
-        client = RegionSiloClient(self.region.name)
+        with raises(RegionResolutionError):
+            region = Region("atlantis", 2, self.dummy_address, RegionCategory.MULTI_TENANT)
+            RegionSiloClient(region)
+
+        client = RegionSiloClient(self.region)
         assert self.region.address in client.base_url
 
     @override_settings(SILO_MODE=SiloMode.REGION)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
     def test_init_clients_from_region(self):
         with raises(SiloClientError):
-            RegionSiloClient(self.region.name)
+            RegionSiloClient(self.region)
 
         client = ControlSiloClient()
         assert self.dummy_address in client.base_url
