@@ -373,14 +373,18 @@ def test_relay_disabled_key(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("drop_sessions", [False, True])
-def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
+@pytest.mark.parametrize("extract_anrs", [False, True])
+def test_session_metrics_extraction(call_endpoint, task_runner, extract_anrs, drop_sessions):
     with Feature({"organizations:metrics-extraction": True}), Feature(
         {"organizations:release-health-drop-sessions": drop_sessions}
-    ):
+    ), Feature({"projects:release-health-anr-extraction": extract_anrs}):
         with task_runner():
             result, status_code = call_endpoint(full_config=True)
             assert status_code < 400
 
         for config in result["configs"].values():
             config = config["config"]
-            assert config["sessionMetrics"] == {"version": 1, "drop": drop_sessions}
+            if extract_anrs:
+                assert config["sessionMetrics"] == {"version": 2, "drop": drop_sessions}
+            else:
+                assert config["sessionMetrics"] == {"version": 1, "drop": drop_sessions}

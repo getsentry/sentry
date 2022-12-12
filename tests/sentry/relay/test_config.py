@@ -495,16 +495,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("has_metrics_extraction", (True, False))
+@pytest.mark.parametrize("has_anr_extraction", (True, False))
 def test_project_config_with_organizations_metrics_extraction(
-    default_project, has_metrics_extraction
+    default_project, has_anr_extraction, has_metrics_extraction
 ):
-    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+    with Feature({"organizations:metrics-extraction": has_metrics_extraction}), Feature(
+        {"projects:release-health-anr-extraction": has_anr_extraction}
+    ):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
     session_metrics = get_path(cfg, "config", "sessionMetrics")
     if has_metrics_extraction:
-        assert session_metrics == {"drop": False, "version": 1}
+        if has_anr_extraction:
+            assert session_metrics == {"drop": False, "version": 2}
+        else:
+            assert session_metrics == {"drop": False, "version": 1}
     else:
         assert session_metrics is None
 
