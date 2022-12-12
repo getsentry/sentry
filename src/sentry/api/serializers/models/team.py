@@ -233,7 +233,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
-            "idpProvisioned": obj.idp_provisioned,
+            "idpProvisioned": bool(obj.idp_provisioned),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
