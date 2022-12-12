@@ -37,9 +37,11 @@ class BaseSiloClient(BaseApiClient):
             )
 
     def clean_headers(self, headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
+        if not headers:
+            headers = {}
         modified_headers = {**headers}
         for invalid_header in INVALID_PROXY_HEADERS:
-            modified_headers.pop(invalid_header)
+            modified_headers.pop(invalid_header, None)
         return modified_headers
 
     def proxy_request(self, incoming_request: HttpRequest):
@@ -58,7 +60,7 @@ class BaseSiloClient(BaseApiClient):
             allow_text=True,
             prepared_request=prepared_request,
         )
-        return client_response.to_http_response()
+        return client_response
 
     def request(
         self,
