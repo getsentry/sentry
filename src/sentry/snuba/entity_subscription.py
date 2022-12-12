@@ -548,18 +548,28 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
 
-        # If we don't use the metrics layer, we want to inject an extra condition filtering by session status. The
-        # metrics layer automatically uses the sumIf function with the column condition.
-        if not self.use_metrics_layer:
-            extra_conditions.append(
-                Condition(
-                    Column(
-                        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status")
-                    ),
-                    Op.IN,
-                    resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
-                )
+        statuses = ["crashed", "init"]
+
+        session_status_column = (
+            "session.status"
+            if self.use_metrics_layer
+            else resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status")
+        )
+        session_statuses = (
+            statuses
+            if self.use_metrics_layer
+            else resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, statuses)
+        )
+
+        # We keep this condition for optimization reasons because the where clause is executed before the select, thus
+        # resulting in a smaller result set for the sumIf function(s).
+        extra_conditions.append(
+            Condition(
+                Column(session_status_column),
+                Op.IN,
+                session_statuses,
             )
+        )
 
         return extra_conditions
 

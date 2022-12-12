@@ -403,6 +403,11 @@ class EntitySubscriptionTestCase(TestCase):
         assert snql_query.query.where == [
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(
+                Column(session_status),
+                Op.IN,
+                [session_status_crashed, session_status_init],
+            ),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
         ]
 

@@ -933,6 +933,18 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(Column(name="project_id"), Op.IN, [self.project.id]),
             Condition(
+                Column(
+                    name=resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    )
+                ),
+                Op.IN,
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
+            ),
+            Condition(
                 Column(name="metric_id"),
                 Op.IN,
                 [
@@ -1004,6 +1016,18 @@ class BuildSnqlQueryTest(TestCase):
                 ),
                 Op.EQ,
                 resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
+            ),
+            Condition(
+                Column(
+                    name=resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    )
+                ),
+                Op.IN,
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
             ),
             Condition(
                 Column(

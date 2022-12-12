@@ -218,7 +218,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and isinstance(condition.lhs, Column)
                 and condition.lhs.name in UNALLOWED_TAGS
             ):
-                raise InvalidParams(f"Tag name {condition.lhs.name} is not a valid query filter")
+                # This is a special condition that holds only for the usage with alerts which requires the
+                # session.status to be injected in the where clause for performance reasons. This condition should
+                # be removed once we change how alerts uses the metrics layer.
+                if not (condition.lhs.name == "session.status" and self.is_alerts_query):
+                    raise InvalidParams(
+                        f"Tag name {condition.lhs.name} is not a valid query filter"
+                    )
 
     def validate_orderby(self) -> None:
         if not self.orderby:
