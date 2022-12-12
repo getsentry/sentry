@@ -11,6 +11,21 @@ import click
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
+_DEV_METRICS_INDEXER_ARGS = [
+    # We don't want to burn laptop CPU while idle, but do want for
+    # metrics to be ingested with lowest latency possible.
+    "--max-batch-time-ms",
+    "10",
+    "--max-batch-size",
+    "1",
+    # We don't really need more than 1 process.
+    "--processes",
+    "1",
+    # Avoid Offset out of range errors.
+    "--auto-offset-reset",
+    "latest",
+]
+
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -51,16 +66,18 @@ _DEFAULT_DAEMONS = {
     "metrics-rh": [
         "sentry",
         "run",
-        "ingest-metrics-consumer-2",
+        "ingest-metrics-parallel-consumer",
         "--ingest-profile",
         "release-health",
+        *_DEV_METRICS_INDEXER_ARGS,
     ],
     "metrics-perf": [
         "sentry",
         "run",
-        "ingest-metrics-consumer-2",
+        "ingest-metrics-parallel-consumer",
         "--ingest-profile",
         "performance",
+        *_DEV_METRICS_INDEXER_ARGS,
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
     "profiles": ["sentry", "run", "ingest-profiles"],
