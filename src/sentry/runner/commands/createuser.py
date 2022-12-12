@@ -15,7 +15,7 @@ def _get_email():
     rv = click.prompt("Email")
     field = _get_field("email")
     try:
-        return field.clean(rv, None)
+        return [field.clean(rv, None)]
     except ValidationError as e:
         raise click.ClickException("; ".join(e.messages))
 
