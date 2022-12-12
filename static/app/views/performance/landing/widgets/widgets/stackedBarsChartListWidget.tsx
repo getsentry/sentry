@@ -1,11 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 import pick from 'lodash/pick';
 
+import {BarChart} from 'sentry/components/charts/barChart';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {
   canUseMetricsData,
@@ -15,7 +17,6 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -143,7 +144,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                   end: prunedProvided.end,
                   period: prunedProvided.period,
                 },
-                'medium'
+                'low'
               )}
               hideError
               onError={pageError.setPageError}
@@ -215,22 +216,41 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
       Queries={Queries}
       Visualizations={[
         {
-          component: provided => (
-            <Accordion
-              expandedIndex={selectedListIndex}
-              setExpandedIndex={setSelectListIndex}
-              content={
-                <DurationChart
-                  {...provided.widgetData.chart}
-                  {...provided}
-                  isLineChart
-                  disableMultiAxis
-                  disableXAxis
-                />
-              }
-              headers={getHeaders(provided)}
-            />
-          ),
+          component: provided => {
+            return (
+              <Accordion
+                expandedIndex={selectedListIndex}
+                setExpandedIndex={setSelectListIndex}
+                content={
+                  <BarChart
+                    {...provided.widgetData.chart}
+                    {...provided}
+                    series={provided.widgetData.chart.data}
+                    start={provided.widgetData.chart.start as unknown as Date}
+                    end={provided.widgetData.chart.end as unknown as Date}
+                    stacked
+                    animation
+                    isGroupedByDate
+                    xAxis={{
+                      axisLabel: {show: false},
+                      axisLine: {show: false},
+                      axisTick: {show: false},
+                    }}
+                    tooltip={{
+                      valueFormatter: value =>
+                        tooltipFormatter(
+                          value,
+                          provided.widgetData.chart.timeseriesResultsTypes
+                            ? provided.widgetData.chart.timeseriesResultsTypes[fields[0]]
+                            : 'duration'
+                        ),
+                    }}
+                  />
+                }
+                headers={getHeaders(provided)}
+              />
+            );
+          },
           height: 124 + props.chartHeight,
           noPadding: true,
         },
