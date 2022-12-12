@@ -92,8 +92,13 @@ function TeamSelect({
   };
 
   // Only show options that aren't selected in the dropdown
+  // and that aren't idp-provisioned
   const options = teams
-    .filter(team => !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug))
+    .filter(
+      team =>
+        !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug) &&
+        !team.idpProvisioned
+    )
     .map((team, index) => ({
       index,
       value: team.slug,
@@ -153,9 +158,18 @@ const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps
       message={confirmMessage}
       bypass={!confirmMessage}
       onConfirm={() => onRemove(team.slug)}
-      disabled={disabled}
+      disabled={disabled || team.idpProvisioned}
     >
-      <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
+      <Button
+        size="xs"
+        icon={<IconSubtract isCircled size="xs" />}
+        disabled={disabled || team.idpProvisioned}
+        title={
+          team.idpProvisioned
+            ? t('You cannot leave this team as it has been idp-provisioned.')
+            : undefined
+        }
+      >
         {t('Remove')}
       </Button>
     </Confirm>
