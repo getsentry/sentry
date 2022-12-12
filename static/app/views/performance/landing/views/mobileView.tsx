@@ -30,6 +30,7 @@ export function MobileView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
+            // TODO fix mobile widget
             PerformanceWidgetSetting.SPAN_OPERATIONS,
             PerformanceWidgetSetting.MOST_SLOW_FRAMES,
             PerformanceWidgetSetting.MOST_FROZEN_FRAMES,

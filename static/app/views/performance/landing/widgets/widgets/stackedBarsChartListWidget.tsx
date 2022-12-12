@@ -222,6 +222,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                 expandedIndex={selectedListIndex}
                 setExpandedIndex={setSelectListIndex}
                 content={
+                  // TODO add bottom grid
                   <BarChart
                     {...provided.widgetData.chart}
                     {...provided}
