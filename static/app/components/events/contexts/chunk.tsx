@@ -53,7 +53,7 @@ function getTitle({value = {}, alias, type}: Pick<Props, 'alias' | 'type' | 'val
   }
 }
 
-export function Chunk({group, type, alias, value = {}}: Props) {
+export function Chunk({group, type, alias, value = {}, event}: Props) {
   const [pluginLoading, setPluginLoading] = useState(false);
 
   const syncPlugin = useCallback(() => {
