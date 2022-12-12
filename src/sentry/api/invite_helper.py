@@ -110,7 +110,7 @@ class ApiInviteHelper:
         self.instance = instance
         self.logger = logger
         self.om = self.organization_member
-        self.organization: self.om.organization
+        self.organization = self.om.organization
 
     def handle_success(self) -> None:
         member_joined.send_robust(
