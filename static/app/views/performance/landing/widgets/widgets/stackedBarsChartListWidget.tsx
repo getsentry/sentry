@@ -231,19 +231,14 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                     stacked
                     animation
                     isGroupedByDate
+                    showTimeInTooltip
                     xAxis={{
                       axisLabel: {show: false},
                       axisLine: {show: false},
                       axisTick: {show: false},
                     }}
                     tooltip={{
-                      valueFormatter: value =>
-                        tooltipFormatter(
-                          value,
-                          provided.widgetData.chart.timeseriesResultsTypes
-                            ? provided.widgetData.chart.timeseriesResultsTypes[fields[0]]
-                            : 'duration'
-                        ),
+                      valueFormatter: value => tooltipFormatter(value, 'duration'),
                     }}
                   />
                 }
