@@ -1,6 +1,5 @@
 import logging
 import time
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Mapping, MutableMapping, Optional
 
@@ -14,20 +13,6 @@ from django.conf import settings
 from sentry.utils import kafka_config, metrics
 
 logger = logging.getLogger(__name__)
-
-
-class UnflushedMessages(Exception):
-    pass
-
-
-class OutOfOrderOffset(Exception):
-    pass
-
-
-@dataclass
-class PartitionOffset:
-    position: Position
-    partition: Partition
 
 
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):
