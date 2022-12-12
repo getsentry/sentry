@@ -14,7 +14,6 @@ from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
 from sentry.utils import json
 
-# TODO(Leander): Replace once type is in place
 logger = logging.getLogger(__name__)
 
 
@@ -65,11 +64,9 @@ class BaseRequestParser(abc.ABC):
             raise SiloLimit.AvailabilityError(self.error_message)
 
         region_response = None
-        request_args = self._get_request_args()
         for region in regions:
             region_client = RegionSiloClient(region)
-            region_response = region_client.request(*request_args)
-
+            region_response = region_client.proxy_request(self.request)
         # If the response is sent to multiple regions, return the last response to the requestor
         return region_response
 

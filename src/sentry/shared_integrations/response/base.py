@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 import requests
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.functional import cached_property
 from requests import Response
 
@@ -48,7 +48,11 @@ class BaseApiResponse:
         internal library errors when interacting with these responses in middleware. This method
         returns an HttpResponse equivalent of the request.
         """
-        response = HttpResponse(self.body)
+        response = (
+            JsonResponse(self.body)
+            if self.headers.get("Content-Type") == "application/json"
+            else HttpResponse(self.body)
+        )
         response.headers = self.headers
         return response
 

@@ -59,10 +59,9 @@ class SlackRequestParser(BaseRequestParser):
         elif view_class_name in self.django_view_classes:
             # Parse the signed params and ensure the organization is associated with the
             params = unsign(self.match.kwargs.get("signed_params"))
-            organization_integration = OrganizationIntegration.objects.get(
-                organization_id=params.get("organization_id"),
+            organization_integration = OrganizationIntegration.objects.filter(
                 integration_id=params.get("integration_id"),
-            )
+            ).first()
             return organization_integration.integration
         elif view_class_name in self.installation_view_classes:
             return None
@@ -78,6 +77,12 @@ class SlackRequestParser(BaseRequestParser):
                 extra={"path": self.request.path},
             )
             return self.get_response_from_control_silo()
+
+        # Django views are returned from the control silo no matter what.
+        view_class_name = self.match.func.view_class.__name__
+        if view_class_name in self.django_view_classes:
+            return self.get_response_from_control_silo()
+
         # Slack only requires one synchronous response.
         # By convention, we just assume it's the first returned region.
         return self.get_response_from_region_silo(regions=[regions[0]])

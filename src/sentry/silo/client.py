@@ -10,7 +10,7 @@ from sentry.shared_integrations.client.base import BaseApiClient, BaseApiRespons
 from sentry.silo.base import SiloMode
 from sentry.types.region import Region, get_region_by_id
 
-INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
+INVALID_PROXY_HEADERS = ["Host"]
 
 
 class SiloClientError(Exception):

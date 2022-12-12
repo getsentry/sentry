@@ -34,15 +34,4 @@ def check_signing_secret(signing_secret: str, data: bytes, timestamp: str, signa
     # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
     # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
     request_hash = _encode_data(signing_secret, data, timestamp)
-    is_request_valid = hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))
-    # HACK: Forwarding webhooks for Hybrid Cloud involves deserializing the request body to identify
-    # the organization regions and re-serializing it to forward to silos. Though the JSON payload is
-    # identical, when we serialize, we add whitespace to the byte string in the request body, so
-    # verification fails against the header. Until we add a mechanism to check Slack's signature OR
-    # Sentry's signature to verify the request, we hack here to remove the whitespace and re-check.
-    if not is_request_valid:
-        serialized_request_hash = _encode_data(signing_secret, data.replace(b" ", b""), timestamp)
-        return hmac.compare_digest(
-            serialized_request_hash.encode("utf-8"), signature.encode("utf-8")
-        )
-    return is_request_valid
+    return hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))
