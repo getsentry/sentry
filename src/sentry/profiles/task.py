@@ -364,7 +364,7 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         for i, frame_id in enumerate(stack):
             if "inline_frame_ids" in original_frames[frame_id]:
                 stack = stack[:i] + original_frames[frame_id]["inline_frame_ids"] + stack[i:]
-                original_frames.pop("inline_frame_ids")
+                original_frames[frame_id].pop("inline_frame_ids")
 
         profile["profile"]["stacks"][stack_id] = stack
 
