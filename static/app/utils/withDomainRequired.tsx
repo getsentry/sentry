@@ -3,6 +3,7 @@ import {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
+// If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/?organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
