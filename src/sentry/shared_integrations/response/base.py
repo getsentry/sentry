@@ -50,7 +50,7 @@ class BaseApiResponse:
         """
         response = (
             JsonResponse(self.body)
-            if self.headers.get("Content-Type") == "application/json"
+            if (self.headers or {}).get("Content-Type") == "application/json"
             else HttpResponse(self.body)
         )
         response.headers = self.headers

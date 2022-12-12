@@ -44,7 +44,7 @@ class BaseSiloClient(BaseApiClient):
             modified_headers.pop(invalid_header, None)
         return modified_headers
 
-    def proxy_request(self, incoming_request: HttpRequest):
+    def proxy_request(self, incoming_request: HttpRequest) -> BaseApiResponseX:
         """
         Directly proxy the provided request to the appropriate silo with minimal header changes
         """
