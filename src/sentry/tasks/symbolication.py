@@ -105,7 +105,6 @@ def submit_symbolicate(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        data=None,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
     )
