@@ -93,8 +93,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+      organization,
+    });
     SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
-  }, []);
+  }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
     // if it's My Projects or All projects, only show onboarding if we can't
