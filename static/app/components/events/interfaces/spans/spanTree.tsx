@@ -680,7 +680,6 @@ class SpanTree extends Component<PropType> {
         spanTree={spanTree}
         spanContextProps={this.props.spanContextProps}
         cache={this.cache}
-        traceViewHeaderRef={this.props.traceViewHeaderRef}
         addSpanRowToMap={this.addSpanRowToMap}
         removeSpanRowFromMap={this.removeSpanRowFromMap}
       />
@@ -793,8 +792,6 @@ type SpanRowProps = ListRowProps & {
   removeSpanRowFromMap: (spanRow: React.RefObject<HTMLDivElement>) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
-  // TODO: We don't need this anymore, remove it
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
 };
 
 function SpanRow(props: SpanRowProps) {
