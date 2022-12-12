@@ -81,6 +81,24 @@ describe('OrganizationTeams', function () {
 
       expect(getOrgMock).toHaveBeenCalledTimes(1);
     });
+
+    it('cannot leave idp-provisioned team', function () {
+      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: true})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      createWrapper();
+
+      expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
+    });
+
+    it('cannot join idp-provisioned team', function () {
+      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: false})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      createWrapper({
+        access: new Set([]),
+      });
+
+      expect(screen.getByRole('button', {name: 'Join Team'})).toBeDisabled();
+    });
   });
 
   describe('Closed Membership', function () {
@@ -122,6 +140,26 @@ describe('OrganizationTeams', function () {
       });
 
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
+    });
+
+    it('cannot request to join idp-provisioned team', function () {
+      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: false})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      createWrapper({
+        access: new Set([]),
+      });
+
+      expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
+    });
+
+    it('cannot leave idp-provisioned team', function () {
+      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: true})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      createWrapper({
+        access: new Set([]),
+      });
+
+      expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
     });
   });
 

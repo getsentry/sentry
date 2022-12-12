@@ -211,7 +211,16 @@ class AllTeamsRow extends Component<Props, State> {
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="sm" onClick={this.handleLeaveTeam}>
+            <Button
+              size="sm"
+              onClick={this.handleLeaveTeam}
+              disabled={team.idpProvisioned}
+              title={
+                team.idpProvisioned
+                  ? t('You cannot leave this team as it has been idp-provisioned.')
+                  : undefined
+              }
+            >
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
@@ -225,11 +234,31 @@ class AllTeamsRow extends Component<Props, State> {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="sm" onClick={this.handleJoinTeam}>
+            <Button
+              size="sm"
+              onClick={this.handleJoinTeam}
+              disabled={team.idpProvisioned}
+              title={
+                team.idpProvisioned
+                  ? t('You cannot join this team as it has been idp-provisioned.')
+                  : undefined
+              }
+            >
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="sm" onClick={this.handleRequestAccess}>
+            <Button
+              size="sm"
+              onClick={this.handleRequestAccess}
+              disabled={team.idpProvisioned}
+              title={
+                team.idpProvisioned
+                  ? t(
+                      'You cannot request to join this team as it has been idp-provisioned.'
+                    )
+                  : undefined
+              }
+            >
               {t('Request Access')}
             </Button>
           )}
