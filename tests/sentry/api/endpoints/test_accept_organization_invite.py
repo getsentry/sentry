@@ -165,13 +165,13 @@ class AcceptInviteTest(TestCase):
 
     def test_can_accept_while_authenticated(self):
         urls = self._get_urls()
-        user = self.create_user("boo@example.com")
-        users = [self.user, user]
 
         for i, url in enumerate(urls):
-            self.login_as(users[i])
+            user = self.create_user(f"boo{i}@example.com")
+            self.login_as(user)
+
             om = OrganizationMember.objects.create(
-                email="newuser" + str(i) + "@example.com",
+                email=user.email,
                 role="member",
                 token="abc",
                 organization=self.organization,
@@ -182,15 +182,15 @@ class AcceptInviteTest(TestCase):
 
             om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == users[i]
+            assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
                 organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
-            assert ale.actor == users[i]
+            assert ale.actor == user
             assert ale.target_object == om.id
-            assert ale.target_user == users[i]
+            assert ale.target_user == user
             assert ale.data
 
     def test_cannot_accept_expired(self):
@@ -232,14 +232,13 @@ class AcceptInviteTest(TestCase):
 
     def test_member_already_exists(self):
         urls = self._get_urls()
-        user = self.create_user("boo@example.com")
-        users = [self.user, user]
 
         for i, url in enumerate(urls):
-            self.login_as(users[i])
+            user = self.create_user(f"boo{i}@example.com")
+            self.login_as(user)
 
             om = OrganizationMember.objects.create(
-                email="newuser" + str(i) + "@example.com",
+                email=user.email,
                 role="member",
                 token="abc",
                 organization=self.organization,
@@ -250,7 +249,7 @@ class AcceptInviteTest(TestCase):
 
             om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == users[i]
+            assert om.user == user
 
             om2 = OrganizationMember.objects.create(
                 email="newuser3@example.com",
@@ -265,14 +264,13 @@ class AcceptInviteTest(TestCase):
 
     def test_can_accept_when_user_has_2fa(self):
         urls = self._get_urls()
-        user = self.create_user("boo@example.com")
-        users = [self.user, user]
 
         for i, url in enumerate(urls):
             self._require_2fa_for_organization()
-            self._enroll_user_in_2fa(users[i])
+            user = self.create_user(f"boo{i}@example.com")
+            self._enroll_user_in_2fa(user)
 
-            self.login_as(users[i])
+            self.login_as(user)
 
             om = OrganizationMember.objects.create(
                 email="newuser" + str(i) + "@example.com",
@@ -289,15 +287,15 @@ class AcceptInviteTest(TestCase):
 
             om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == users[i]
+            assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
                 organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
-            assert ale.actor == users[i]
+            assert ale.actor == user
             assert ale.target_object == om.id
-            assert ale.target_user == users[i]
+            assert ale.target_user == user
             assert ale.data
 
     def test_cannot_accept_when_user_needs_2fa(self):
@@ -315,14 +313,13 @@ class AcceptInviteTest(TestCase):
 
     def test_2fa_cookie_deleted_after_accept(self):
         urls = self._get_urls()
-        user = self.create_user("boo@example.com")
-        users = [self.user, user]
 
         for i, url in enumerate(urls):
             self._require_2fa_for_organization()
-            self.assertFalse(Authenticator.objects.user_has_2fa(users[i]))
+            user = self.create_user(f"boo{i}@example.com")
+            self.assertFalse(Authenticator.objects.user_has_2fa(user))
 
-            self.login_as(users[i])
+            self.login_as(user)
 
             om = OrganizationMember.objects.create(
                 email="newuser" + str(i) + "@example.com",
@@ -335,7 +332,7 @@ class AcceptInviteTest(TestCase):
             assert resp.status_code == 200
             self._assert_pending_invite_details_in_session(om)
 
-            self._enroll_user_in_2fa(users[i])
+            self._enroll_user_in_2fa(user)
             resp = self.client.post(path)
             assert resp.status_code == 204
 
