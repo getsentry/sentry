@@ -1,11 +1,9 @@
-import styled from '@emotion/styled';
-
 import CompactSelect from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
+import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
   breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
@@ -13,7 +11,7 @@ type Props = {
 
 function Filters({
   breadcrumbs,
-  getOptions,
+  getLogLevels,
   logLevel,
   searchTerm,
   setLogLevel,
@@ -25,7 +23,7 @@ function Filters({
         triggerProps={{prefix: t('Log Level')}}
         triggerLabel={logLevel.length === 0 ? t('Any') : null}
         multiple
-        options={getOptions()}
+        options={getLogLevels()}
         onChange={selected => setLogLevel(selected.map(_ => _.value))}
         size="sm"
         value={logLevel}
@@ -41,16 +39,5 @@ function Filters({
     </FiltersGrid>
   );
 }
-
-const FiltersGrid = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
-`;
 
 export default Filters;
