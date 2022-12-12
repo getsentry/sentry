@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import {Field} from 'sentry/components/forms/types';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
@@ -87,8 +87,8 @@ function CreateReleaseIntegrationModal({
             addSuccessMessage(t('Created Release Integration'));
             closeModal();
           }}
-          onSubmitError={error => {
-            addErrorMessage(tct('Something went wrong! [error]', {error}));
+          onSubmitError={() => {
+            addErrorMessage(t('Something went wrong!'));
           }}
         >
           {fields.map(field => (

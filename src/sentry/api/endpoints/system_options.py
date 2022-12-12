@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -12,6 +13,11 @@ from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
+
+SYSTEM_OPTIONS_ALLOWLIST = (
+    # Used during setup before the superadmin role with the options.admin permission is authed
+    "system.admin-email"
+)
 
 
 @pending_silo_endpoint
@@ -43,7 +49,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name),
+                "value": options.get(k.name) if not self.__is_secret(k) else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -56,8 +62,24 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def put(self, request: Request):
+    def __is_secret(self, k: Any) -> bool:
+        keywords = ["secret", "private", "token"]
+        return (k.flags & options.FLAG_CREDENTIAL) or any(
+            [keyword in k.name for keyword in keywords]
+        )
+
+    def has_permission(self, request: Request):
         if not request.access.has_permission("options.admin"):
+            # We ignore options.admin permission is all keys in the update match the allowlist.
+            if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):
+                return True
+
+            return False
+
+        return True
+
+    def put(self, request: Request):
+        if not self.has_permission(request):
             return Response(status=403)
 
         # TODO(dcramer): this should validate options before saving them

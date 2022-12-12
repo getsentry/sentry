@@ -1,6 +1,39 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
+{% block css %}
+{% if show_login_banner %}
+<style type="text/css">
+  .alert-banner {
+    background: rgb(255, 219, 74);
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    display: flex;
+    justify-content: center;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .alert-message {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    line-height: 1.5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    flex-grow: 1;
+    font-size: 16px;
+    font-family: Rubik;
+  }
+  @media only screen and (max-width: 1025px) {
+    .alert-banner {
+      display: none;
+    }
+  }
+</style>
+{% endif %}
+{% endblock %}
+
 <div id="blk_alerts" class="messages-container"></div>
 <div id="blk_indicators"></div>
 
@@ -26,6 +59,7 @@
 </script>
 {% endscript %}
 
+
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
@@ -39,5 +73,15 @@
           </div>
       {% endwith %}
     {% endfor %}
+  </div>
+{% elif show_login_banner %}
+  <div class="alert-banner">
+    <div class="alert-message">
+      {% if banner_choice == 0 %}
+        <a target=”_blank” href="https://www.djangoproject.com">djangoproject.com</a>&nbspidentified an N+1 issue with Sentry performance issues.&nbsp<a target=”_blank” href="https://blog.sentry.io/2022/11/04/how-sentry-uncovered-an-n-1-issue-in-djangoproject/?utm_medium=banner&utm_source=sentry&utm_campaign=login-performance-issue">Learn how</a>.
+      {% elif banner_choice == 1 %}
+        Get code-level performance insight for iOS, Android, Python and Node applications with Continuous Profiling.&nbsp<a target=”_blank” href="https://sentry.io/for/profiling/?utm_medium=website&utm_source=sentry&utm_campaign=login-profiling">Learn more</a>.
+      {% endif %}
+    </div>
   </div>
 {% endif %}

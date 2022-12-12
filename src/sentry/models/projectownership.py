@@ -13,7 +13,8 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Team
+    from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
 
@@ -159,7 +160,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[
         Tuple[
             "Rule",
-            Sequence[Union["Team", "User"]],
+            Sequence[Union["Team", "APIUser"]],
             Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
         ]
     ]:
@@ -264,23 +265,23 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-
-            assignment = GroupAssignee.objects.assign(
-                event.group,
-                owner.resolve(),
-                create_only=True,
-                extra=details,
-            )
-
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment"
-                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                    else "issueowners.assignment",
-                    organization_id=ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=event.group.id,
+            if owner and owner.resolve():
+                assignment = GroupAssignee.objects.assign(
+                    event.group,
+                    owner.resolve(),
+                    create_only=True,
+                    extra=details,
                 )
+
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=event.group.id,
+                    )
 
     @classmethod
     def _matching_ownership_rules(

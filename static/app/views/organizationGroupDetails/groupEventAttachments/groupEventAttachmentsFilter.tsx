@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
@@ -8,21 +6,26 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Project} from 'sentry/types';
+import {isMobilePlatform} from 'sentry/utils/platform';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 const SCREENSHOT_TYPE = 'event.screenshot';
 
-const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
-  const {query, pathname} = props.location;
+type Props = {
+  project: Project;
+};
+
+const GroupEventAttachmentsFilter = (props: Props) => {
+  const {project} = props;
+  const {query, pathname} = useLocation();
   const {types} = query;
   const allAttachmentsQuery = omit(query, 'types');
   const onlyCrashReportsQuery = {
     ...query,
     types: crashReportTypes,
   };
-
-  const organization = useOrganization();
 
   const onlyScreenshotQuery = {
     ...query,
@@ -45,7 +48,7 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        {organization.features.includes('mobile-screenshot-gallery') && (
+        {isMobilePlatform(project.platform) && (
           <Button
             barId="screenshot"
             size="sm"
@@ -69,4 +72,4 @@ const FilterWrapper = styled('div')`
 `;
 
 export {crashReportTypes, SCREENSHOT_TYPE};
-export default withRouter(GroupEventAttachmentsFilter);
+export default GroupEventAttachmentsFilter;

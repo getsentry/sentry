@@ -11,7 +11,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 
 import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
@@ -24,7 +26,7 @@ type OrgDashboardsChildrenProps = {
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
-type Props = {
+type Props = WithRouteAnalyticsProps & {
   api: Client;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
   location: Location;
@@ -66,10 +68,8 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (params.dashboardId) {
       endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
-      trackAnalyticsEvent({
-        eventKey: 'dashboards2.view',
-        eventName: 'Dashboards2: View dashboard',
-        organization_id: parseInt(this.props.organization.id, 10),
+      this.props.setEventNames('dashboards2.view', 'Dashboards2: View dashboard');
+      this.props.setRouteAnalyticsParams({
         dashboard_id: params.dashboardId,
       });
     }
@@ -101,7 +101,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         'release',
       ]);
       if (
-        organization.features.includes('dashboards-top-level-filter') &&
         stateKey === 'selectedDashboard' &&
         // Only redirect if there are saved filters and none of the filters
         // appear in the query params
@@ -202,7 +201,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (
       loading &&
-      organization.features.includes('dashboards-top-level-filter') &&
       selectedDashboard &&
       hasSavedPageFilters(selectedDashboard) &&
       isEmpty(location.query)
@@ -221,4 +219,4 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 }
 
-export default OrgDashboards;
+export default withRouteAnalytics(OrgDashboards);

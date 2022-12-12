@@ -9,22 +9,28 @@ type PerformanceTourParams = {
   step: number;
 };
 
+type PageLayoutParams = {
+  project_platforms: string;
+};
+
 export type PerformanceEventParameters = {
   'performance_views.all_events.open_in_discover': {};
+  'performance_views.anomalies.anomalies_tab_clicked': PageLayoutParams;
   'performance_views.create_sample_transaction': SampleTransactionParam;
   'performance_views.event_details.anchor_span': {
     span_id: string;
   };
+
   'performance_views.event_details.filter_by_op': {
     operation: string;
   };
-
   'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
     operation: string;
     project_platform: string;
   };
   'performance_views.event_details.search_query': {};
+  'performance_views.events.events_tab_clicked': PageLayoutParams;
   'performance_views.filter_dropdown.selection': {
     action: string;
   };
@@ -50,6 +56,7 @@ export type PerformanceEventParameters = {
     widget_type?: string;
   };
   'performance_views.landingv3.widget.switch': {
+    is_new_menu: boolean;
     from_default?: boolean;
     from_widget?: string;
     to_widget?: string;
@@ -64,10 +71,6 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
-  'performance_views.overview.view': {
-    project_platforms: string;
-    show_onboarding: boolean;
-  };
   'performance_views.project_transaction_threshold.change': {
     from: string;
     key: string;
@@ -80,15 +83,13 @@ export type PerformanceEventParameters = {
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
-  'performance_views.span_summary.view': {
-    project_platforms: string;
-  };
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.spans.spans_tab_clicked': PageLayoutParams;
   'performance_views.summary.tag_explorer.cell_action': {};
   'performance_views.summary.tag_explorer.change_page': {};
   'performance_views.summary.tag_explorer.sort': {
@@ -106,6 +107,7 @@ export type PerformanceEventParameters = {
     to_tag: string;
   };
   'performance_views.tags.jump_to_release': {};
+  'performance_views.tags.tags_tab_clicked': PageLayoutParams;
   'performance_views.team_key_transaction.set': {
     action: string;
   };
@@ -144,6 +146,7 @@ export type PerformanceEventParameters = {
   'performance_views.vital_detail.view': {
     project_platforms: string;
   };
+  'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
@@ -169,7 +172,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
-  'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.summary.tag_explorer.tag_value':
@@ -181,7 +183,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.summary.tag_explorer.change_page':
     'Performance Views: Tag Explorer Change Page',
   'performance_views.summary.tag_explorer.sort': 'Performance Views: Tag Explorer Sorted',
-  'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.project_transaction_threshold.change':
     'Project Transaction Threshold: Changed',
@@ -231,4 +232,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.relative_breakdown.selection':
     'Performance Views: Select Relative Breakdown',
   'performance_views.mep.metrics_outcome': 'Performance Views: Metrics Outcome',
+  'performance_views.vitals.vitals_tab_clicked': 'Performance Views: Vitals tab clicked',
+  'performance_views.tags.tags_tab_clicked': 'Performance Views: Tags tab clicked',
+  'performance_views.events.events_tab_clicked': 'Performance Views: Events tab clicked',
+  'performance_views.spans.spans_tab_clicked': 'Performance Views: Spans tab clicked',
+  'performance_views.anomalies.anomalies_tab_clicked':
+    'Performance Views: Anomalies tab clicked',
 };

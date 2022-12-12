@@ -153,6 +153,7 @@ class Team(Model):
     actor = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
     )
+    idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
@@ -163,6 +164,9 @@ class Team(Model):
         unique_together = (("organization", "slug"),)
 
     __repr__ = sane_repr("name", "slug")
+
+    def class_name(self):
+        return "Team"
 
     def __str__(self):
         return f"{self.name} ({self.slug})"

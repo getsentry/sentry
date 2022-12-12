@@ -352,10 +352,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "name": self.issues_ignored_fields_key,
                 "label": "Ignored Fields",
                 "type": "textarea",
-                "placeholder": _('e.g. "components, security, customfield_10006"'),
-                "help": _(
-                    "Comma-separated list of Jira Server fields that you don't want to show in issue creation form"
-                ),
+                "placeholder": _("components, security, customfield_10006"),
+                "help": _("Comma-separated Jira field IDs that you want to hide."),
             },
         ]
 
@@ -935,13 +933,16 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         v = {"id": v}
                 cleaned_data[field_name] = v
 
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
+        if not (
+            isinstance(cleaned_data.get("issuetype"), dict)
+            and "id" in cleaned_data.get("issuetype", {})
+        ):
             # something fishy is going on with this field, working on some Jira
             # instances, and some not.
             # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
+            cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
             response = client.create_issue(cleaned_data)

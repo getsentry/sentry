@@ -108,7 +108,7 @@ const Label = styled('div')<{
   transform: ${p => (p.isSingleLabel ? `translate(-50%, 15%)` : `translateY(15%)`)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 600;
-  color: ${p => (p.failedThreshold ? `${p.theme.red300}` : `${p.theme.gray500}`)};
+  color: ${p => (p.failedThreshold ? `${p.theme.errorText}` : `${p.theme.textColor}`)};
   background: ${p => p.theme.white};
   border: 1px solid;
   border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray100)};

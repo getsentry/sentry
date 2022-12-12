@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Avatar from 'sentry/components/avatar';
 import Button from 'sentry/components/button';
@@ -17,10 +18,11 @@ import {GroupTombstone} from 'sentry/types';
 
 type RowProps = {
   data: GroupTombstone;
+  disabled: boolean;
   onUndiscard: (id: string) => void;
 };
 
-function GroupTombstoneRow({data, onUndiscard}: RowProps) {
+function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
   const actor = data.actor;
 
   return (
@@ -50,12 +52,19 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
             'Undiscarding this issue means that incoming events that match this will no longer be discarded. New incoming events will count toward your event quota and will display on your issues dashboard. Are you sure you wish to continue?'
           )}
           onConfirm={() => onUndiscard(data.id)}
+          disabled={disabled}
         >
           <Button
+            type="button"
             aria-label={t('Undiscard')}
-            title={t('Undiscard')}
+            title={
+              disabled
+                ? t('You do not have permission to perform this action')
+                : t('Undiscard')
+            }
             size="xs"
             icon={<IconDelete size="xs" />}
+            disabled={disabled}
           />
         </Confirm>
       </ActionContainer>
@@ -110,18 +119,23 @@ class GroupTombstones extends AsyncComponent<Props, State> {
     const {tombstones, tombstonesPageLinks} = this.state;
 
     return tombstones.length ? (
-      <Fragment>
-        <Panel>
-          {tombstones.map(data => (
-            <GroupTombstoneRow
-              key={data.id}
-              data={data}
-              onUndiscard={this.handleUndiscard}
-            />
-          ))}
-        </Panel>
-        {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
-      </Fragment>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <Fragment>
+            <Panel>
+              {tombstones.map(data => (
+                <GroupTombstoneRow
+                  key={data.id}
+                  data={data}
+                  disabled={!hasAccess}
+                  onUndiscard={this.handleUndiscard}
+                />
+              ))}
+            </Panel>
+            {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
+          </Fragment>
+        )}
+      </Access>
     ) : (
       this.renderEmpty()
     );

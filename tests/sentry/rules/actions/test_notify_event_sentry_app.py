@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-from exam import before
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
@@ -21,7 +20,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         {"name": "summary", "value": "circle triangle square"},
     ]
 
-    @before
+    @pytest.fixture(autouse=True)
     def create_schema(self):
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
@@ -184,3 +183,26 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         )
         with pytest.raises(ValidationError):
             rule.self_validate()
+
+    def test_render_label(self):
+        event = self.get_event()
+
+        self.app = self.create_sentry_app(
+            organization=event.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=self.schema,
+        )
+
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=event.organization
+        )
+
+        rule = self.get_rule(
+            data={
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": self.schema_data,
+            }
+        )
+
+        assert rule.render_label() == "Create Task with App"

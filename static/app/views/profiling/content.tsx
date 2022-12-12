@@ -3,30 +3,32 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
+  formatError,
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -38,45 +40,6 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
-
-function hasSetupProfilingForAtLeastOneProject(
-  selectedProjects: PageFilters['projects'],
-  projects: Project[]
-): boolean {
-  const projectIDsToProjectTable = projects.reduce<Record<string, Project>>(
-    (acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    },
-    {}
-  );
-
-  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
-    const projectWithProfiles = projects.find(p => {
-      const project = projectIDsToProjectTable[String(p)];
-
-      if (!project) {
-        // Shouldnt happen, but lets be safe and just not do anything
-        return false;
-      }
-      return project.hasProfiles;
-    });
-
-    return projectWithProfiles !== undefined;
-  }
-
-  const projectWithProfiles = selectedProjects.find(p => {
-    const project = projectIDsToProjectTable[String(p)];
-
-    if (!project) {
-      // Shouldnt happen, but lets be safe and just not do anything
-      return false;
-    }
-    return project.hasProfiles;
-  });
-
-  return projectWithProfiles !== undefined;
-}
 
 interface ProfilingContentProps {
   location: Location;
@@ -105,6 +68,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     referrer: 'api.profiling.landing-table',
   });
 
+  const transactionsError =
+    transactions.status === 'error' ? formatError(transactions.error) : null;
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
       organization,
@@ -127,21 +93,31 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    openModal(props => {
-      return <ProfilingOnboardingModal {...props} organization={organization} />;
+    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+      organization,
     });
+    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (transactions.status !== 'success') {
-      return false;
+    // if it's My Projects or All projects, only show onboarding if we can't
+    // find any projects with profiles
+    if (
+      selection.projects.length === 0 ||
+      selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      return projects.every(project => !project.hasProfiles);
     }
 
-    if (transactions.data[0].data.length > 0) {
-      return false;
-    }
-    return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
-  }, [selection.projects, projects, transactions]);
+    // otherwise, only show onboarding if we can't find any projects with profiles
+    // from those that were selected
+    const projectsWithProfiles = new Set(
+      projects.filter(project => project.hasProfiles).map(project => project.id)
+    );
+    return selection.projects.every(
+      project => !projectsWithProfiles.has(String(project))
+    );
+  }, [selection.projects, projects]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -150,7 +126,19 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
           <StyledPageContent>
             <Layout.Header>
               <StyledLayoutHeaderContent>
-                <StyledHeading>{t('Profiling')}</StyledHeading>
+                <StyledHeading>
+                  {t('Profiling')}
+                  <PageHeadingQuestionTooltip
+                    title={tct(
+                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production. [link: Read the docs].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/profiling/" />
+                        ),
+                      }
+                    )}
+                  />
+                </StyledHeading>
                 <HeadingActions>
                   <Button size="sm" onClick={onSetupProfilingClick}>
                     {t('Set Up Profiling')}
@@ -176,6 +164,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
+                {transactionsError && (
+                  <Alert type="error" showIcon>
+                    {transactionsError}
+                  </Alert>
+                )}
                 <ActionBar>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />

@@ -9,9 +9,9 @@ from sentry.models import AuditLogEntry, UserIP
 from sentry.region_to_control.consumer import get_region_to_control_consumer
 from sentry.region_to_control.messages import UserIpEvent
 from sentry.region_to_control.producer import region_to_control_message_service, user_ip_service
-from sentry.services.hybrid_cloud import use_real_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.batching_kafka_consumer import create_topics
 

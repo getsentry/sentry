@@ -1,27 +1,29 @@
 # Avoid shadowing the standard library json module
 
-# XXX(epurkhiser): We import JSONDecodeError just to have it be exported as
-# part of this module. We don't use it directly within the module, but modules
-# that import it from here will. Do not remove.
+from __future__ import annotations
 
 import datetime
 import decimal
 import uuid
 from enum import Enum
-from typing import Any
+from typing import IO, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
-from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
+from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S003
+from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
 
+TKey = TypeVar("TKey")
+TValue = TypeVar("TValue")
 
-def better_default_encoder(o):
+
+def better_default_encoder(o: object) -> object:
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
@@ -54,13 +56,13 @@ def better_default_encoder(o):
 class JSONEncoderForHTML(JSONEncoder):
     # Our variant of JSONEncoderForHTML that also accounts for apostrophes
     # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py
-    def encode(self, o):
+    def encode(self, o: object) -> str:
         # Override JSONEncoder.encode because it has hacks for
         # performance that make things more complicated.
         chunks = self.iterencode(o, True)
         return "".join(chunks)
 
-    def iterencode(self, o, _one_shot=False):
+    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str, None, None]:
         chunks = super().iterencode(o, _one_shot)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")
@@ -90,23 +92,27 @@ _default_escaped_encoder = JSONEncoderForHTML(
 JSONData = Any  # https://github.com/python/typing/issues/182
 
 
-def dump(value: JSONData, fp, **kwargs):
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def dump(value: JSONData, fp: IO[str], **kwargs: NoReturn) -> None:
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
-def dumps(value: JSONData, escape: bool = False, **kwargs) -> str:
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
 
 
-def load(fp, **kwargs) -> JSONData:
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
     return loads(fp.read())
 
 
-def loads(value: str, use_rapid_json: bool = False, **kwargs) -> JSONData:
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> JSONData:
     with sentry_sdk.start_span(op="sentry.utils.json.loads"):
         if use_rapid_json is True:
             return rapidjson.loads(value)
@@ -114,11 +120,21 @@ def loads(value: str, use_rapid_json: bool = False, **kwargs) -> JSONData:
             return _default_decoder.decode(value)
 
 
-def dumps_htmlsafe(value):
+def dumps_htmlsafe(value: object) -> SafeString:
     return mark_safe(_default_escaped_encoder.encode(value))
 
 
-def prune_empty_keys(obj):
+@overload
+def prune_empty_keys(obj: None) -> None:
+    ...
+
+
+@overload
+def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
+    ...
+
+
+def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TKey, TValue]:
     if obj is None:
         return None
 
@@ -133,3 +149,15 @@ def prune_empty_keys(obj):
     # message has no params" and `None` means "this message is already
     # formatted".
     return {k: v for k, v in obj.items() if v is not None}
+
+
+__all__ = (
+    "JSONData",
+    "JSONDecodeError",
+    "dump",
+    "dumps",
+    "dumps_htmlsafe",
+    "load",
+    "loads",
+    "prune_empty_keys",
+)

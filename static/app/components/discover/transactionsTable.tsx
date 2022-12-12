@@ -153,9 +153,9 @@ class TransactionsTable extends PureComponent<Props> {
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
       rendered = isNumeric ? (
-        <GridCellNumber>{rendered}</GridCellNumber>
+        <GridCellNumber data-test-id="grid-cell">{rendered}</GridCellNumber>
       ) : (
-        <GridCell>{rendered}</GridCell>
+        <GridCell data-test-id="grid-cell">{rendered}</GridCell>
       );
 
       if (handleCellAction) {

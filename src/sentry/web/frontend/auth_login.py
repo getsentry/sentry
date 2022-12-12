@@ -1,3 +1,4 @@
+from random import randint
 from typing import Optional
 
 from django.conf import settings
@@ -11,7 +12,8 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry import features
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -166,7 +168,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+            invite_helper = ApiInviteHelper.from_session(request=request, instance=self)
 
             # In single org mode, associate the user to the only organization.
             #
@@ -182,7 +184,7 @@ class AuthLoginView(BaseView):
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
                 response = self.redirect_to_org(request)
-                remove_invite_cookie(request, response)
+                remove_invite_details_from_session(request)
 
                 return response
 
@@ -247,7 +249,12 @@ class AuthLoginView(BaseView):
                     )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect
-
+                    if features.has(
+                        "organizations:customer-domains",
+                        self.active_organization.organization,
+                        actor=user,
+                    ):
+                        setattr(request, "subdomain", self.active_organization.organization.slug)
                 return self.redirect(get_login_redirect(request))
             else:
                 metrics.incr(
@@ -262,7 +269,8 @@ class AuthLoginView(BaseView):
             "register_form": register_form,
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
-            "show_session_replay_banner": settings.SHOW_SESSION_REPLAY_BANNER,
+            "show_login_banner": settings.SHOW_LOGIN_BANNER,
+            "banner_choice": randint(0, 1),  # 2 possible banners
         }
 
         context.update(additional_context.run_callbacks(request))

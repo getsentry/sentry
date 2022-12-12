@@ -8,9 +8,15 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
+from sentry.notifications.utils.participants import (
+    get_owner_reason,
+    get_owners,
+    get_release_committers,
+    get_send_to,
+)
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -34,8 +40,8 @@ class GetSendToMemberTest(TestCase):
 
     def test_send_to_user(self):
         assert self.get_send_to_member() == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -46,7 +52,9 @@ class GetSendToMemberTest(TestCase):
             project=self.project,
         )
 
-        assert self.get_send_to_member() == {ExternalProviders.SLACK: {self.user}}
+        assert self.get_send_to_member() == {
+            ExternalProviders.SLACK: {user_service.serialize_user(self.user)}
+        }
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -56,8 +64,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
@@ -70,8 +78,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
@@ -108,7 +116,7 @@ class GetSendToTeamTest(TestCase):
 
     def test_send_to_team(self):
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -136,7 +144,9 @@ class GetSendToTeamTest(TestCase):
             NotificationSettingOptionValues.NEVER,
             team=self.team,
         )
-        assert self.get_send_to_team() == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_team() == {
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)}
+        }
 
     def test_other_project_team(self):
         user_2 = self.create_user()
@@ -144,8 +154,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -156,8 +166,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_2},
-            ExternalProviders.SLACK: {user_2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
+            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -201,8 +211,8 @@ class GetSentToReleaseMembersTest(TestCase):
         event.group = self.group
         with self.feature("organizations:active-release-notifications-enable"):
             assert self.get_send_to_release_members(event) == {
-                ExternalProviders.EMAIL: {self.user},
-                ExternalProviders.SLACK: {self.user},
+                ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+                ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
             }
             assert spy_get_release_committers.call_count == 1
 
@@ -279,8 +289,8 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("user.jsx")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -293,7 +303,7 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_single_user_no_teams(self):
@@ -305,8 +315,14 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("team.py")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
+            ExternalProviders.SLACK: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -318,8 +334,11 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.SLACK: {
+                user_service.serialize_user(self.user),
+                user_service.serialize_user(self.user2),
+            },
         }
 
     def test_disable_alerts_multiple_scopes(self):
@@ -343,16 +362,22 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user},
-            ExternalProviders.SLACK: {self.user},
+            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
         }
 
     def test_fallthrough(self):
         event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {self.user, self.user2},
-            ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.EMAIL: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
+            ExternalProviders.SLACK: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
         }
 
     def test_without_fallthrough(self):
@@ -409,11 +434,14 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, User]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:
-            assert recipient in received
+            if isinstance(recipient, User):
+                assert UserService.serialize_user(recipient) in received
+            else:
+                assert recipient in received
 
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):
@@ -462,3 +490,34 @@ class GetOwnersCase(TestCase):
         event_2 = self.create_event(self.project)
         recipients_2 = get_owners(project=self.project, event=event_2)
         self.assert_recipients(expected=[self.user_1], received=recipients_2)
+
+    def test_get_owner_reason(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+
+        # Test feature flag
+        owner_reason = get_owner_reason(
+            project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+        )
+        assert owner_reason is None
+
+        with self.feature("organizations:issue-alert-fallback-targeting"):
+            owner_reason = get_owner_reason(
+                project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+            )
+            assert (
+                owner_reason
+                == f"We notified all members in the {self.project.get_full_name()} project of this issue"
+            )
+
+    def test_get_owner_reason_assigned(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+        with self.feature("organizations:issue-alert-fallback-targeting"):
+            owner_reason = get_owner_reason(
+                project=self.project,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                target_identifier=self.user_1,
+                event=event,
+            )
+            assert owner_reason is None

@@ -1,3 +1,53 @@
+22.11.0
+-------
+
+### Derived code mappings (Internal Release) (ongoing)
+
+This milestones add support for creating Python code mappings automatically for orgs with the Github integration installed.
+
+This milestone initially focuses on Python projects.
+
+Future work described in this RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @snigdhas (#41147, #41036, #40882, #40973, #40934, #40881, #40717, #40528, #40465, #40271), @armenzg (#41131, #41067, #40892, #40781, #40764, #40729, #40671, #40461, #40190, #40101), @scttcper (#40593)
+
+### Derived code mappings (EA release - Python only) (ongoing)
+
+This adds the ability of deriving code mappings automatically for all orgs using Python and Github at first.
+
+See RFC for details: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#41313, #41199, #41132, #41125, #41083), @snigdhas (#41097, #41038, #41080, #41003, #41000, #40991, #40979)
+
+### Various fixes & improvements
+
+- feat(profiling): Add release to profile payload (#41282) by @Zylphrex
+- fix(tests): escape `.` in regex passed to findByText (#41391) by @mdtro
+- test(js): Convert DashboardList to RTL (#41375) by @malwilley
+- test(js): Convert SentryApplicationDetails to RTL (#41378) by @evanpurkhiser
+- feat(profiling): profiling onboarding sidebar (#41322) by @eliashussary
+- feat(useStacktraceLink): add hook to fetch stack trace link (#41269) by @JonasBa
+- dep(profiling): Bump sentry sdk for updated profiler (#41324) by @Zylphrex
+- feat(analytics): Record analytics for first profile sent (#41315) by @Zylphrex
+- perf(users-endpoint): Improve users endpoint performance more (#41347) by @Zylphrex
+- fix(metrics): Use parameterize instead of for loop in test (#41316) by @iambriccardo
+- ref(perf-issues): Add projectoption for enabling individual detector (#41328) by @k-fish
+- ref(contexts): Prettify only known contexts - (#41379) by @priscilawebdev
+- ci(jest): regenerate jest-balance.json (#41377) by @getsentry-bot
+- fix(code-mappings): Always add a trailing backslash for codemappings (#41330) by @snigdhas
+- fix(replays): Adjust Replay Details layout(s) dimensions (#41331) by @jesus4497
+- test(js): Convert ManageDashboards test to RTL (#41352) by @malwilley
+- feat(monitors): Tag error events with monitor id (#41291) by @davidenwang
+- ref(access): Dataclass to represent (requires_sso, sso_is_valid) pairs (#41239) by @RyanSkonnord
+- test(js): Convert organizationAuthList to RTL (#41309) by @evanpurkhiser
+- feat(hybrid-cloud): Add /user-feedback/* Django route (#41326) by @dashed
+- test(js): Convert teamKeyTransactionButton to RTL (#41308) by @evanpurkhiser
+- Customize pip-compile header (#41334) by @atugushev
+- ref: fix typing in sentry.integrations.slack (#41314) by @asottile-sentry
+- feat(hybrid-cloud): Add /issues/* Django route (#41333) by @dashed
+
+_Plus 1017 more_
+
 22.10.0
 -------
 

@@ -36,6 +36,9 @@ class GzippedDictField(TextField):
             return {}
         return value
 
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
+
     def get_prep_value(self, value):
         if not value and self.null:
             # save ourselves some storage

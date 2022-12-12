@@ -1,6 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
@@ -65,12 +69,12 @@ describe('ProjectDebugFiles', function () {
     });
 
     render(<ProjectDebugFiles {...props} />);
+    renderGlobalModal();
 
     // Delete button
     userEvent.click(screen.getByTestId('delete-dif'));
 
     // Confirm Modal
-    mountGlobalModal();
     await screen.findByRole('dialog');
 
     userEvent.click(screen.getByTestId('confirm-button'));

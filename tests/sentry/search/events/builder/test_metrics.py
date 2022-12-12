@@ -1,6 +1,5 @@
 import datetime
 import math
-import re
 from typing import List
 from unittest import mock
 
@@ -8,7 +7,6 @@ import pytest
 from django.utils import timezone
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
-from sentry import options
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
@@ -101,14 +99,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
-        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            for string in self.METRIC_STRINGS:
-                indexer.record(
-                    use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
-                )
-            self.expected_tag_value_type = "UInt64"
-        else:
-            self.expected_tag_value_type = "String"
+        self.expected_tag_value_type = "String"
 
         indexer.record(
             use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
@@ -145,25 +136,14 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         )
 
     def build_transaction_transform(self, alias):
-        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            tags_col = "tags"
-            unparam = indexer.resolve(
-                UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>"
-            )
-            null = 0
-        else:
-            tags_col = "tags_raw"
-            unparam = "<< unparameterized >>"
-            null = ""
-
         return Function(
             "transform",
             [
                 Column(
-                    f"{tags_col}[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
+                    f"tags_raw[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
                 ),
-                [null],
-                [unparam],
+                [""],
+                ["<< unparameterized >>"],
             ],
             alias,
         )
@@ -434,35 +414,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
-
-    def test_missing_transaction_index(self):
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            pytest.skip("test does not apply if tag values are in clickhouse")
-
-        with pytest.raises(
-            IncompatibleMetricsQuery,
-            match=re.compile("Transaction value .* in filter not found"),
-        ):
-            MetricsQueryBuilder(
-                self.params,
-                query="transaction:something_else",
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=["transaction", "project", "p95(transaction.duration)"],
-            )
-
-    def test_missing_transaction_index_in_filter(self):
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            pytest.skip("test does not apply if tag values are in clickhouse")
-        with pytest.raises(
-            IncompatibleMetricsQuery,
-            match=re.compile("Transaction value .* in filter not found"),
-        ):
-            MetricsQueryBuilder(
-                self.params,
-                query="transaction:[something_else, something_else2]",
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=["transaction", "project", "p95(transaction.duration)"],
-            )
 
     def test_incorrect_parameter_for_metrics(self):
         with pytest.raises(IncompatibleMetricsQuery):
@@ -912,17 +863,59 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 100,
         }
 
+    def test_run_query_with_transactions_orderby(self):
+        for transaction_name in ["aaa", "zzz", "bbb"]:
+            self.store_transaction_metric(
+                100,
+                tags={"transaction": transaction_name},
+                project=self.project.id,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="-transaction",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 3
+        assert result["data"][0] == {
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "zzz",
+            ),
+            "project": self.project.id,
+            "p95_transaction_duration": 100,
+        }
+
+        assert result["data"][1] == {
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bbb",
+            ),
+            "project": self.project.id,
+            "p95_transaction_duration": 100,
+        }
+
+    # TODO: multiple groupby with counter
+
     def test_run_query_with_tag_orderby(self):
         with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
-                    "transaction",
+                    "title",
                     "project",
                     "p95(transaction.duration)",
                 ],
-                orderby="transaction",
+                orderby="title",
             )
             query.run_query("test_query")
 
@@ -1498,14 +1491,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
 
-        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            expected.append(
-                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction")
-            )
-            expected.append(
-                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>")
-            )
-
         expected.extend(
             [
                 mock.call(
@@ -1516,9 +1501,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
             ]
         )
-
-        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            expected.append(mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "good"))
 
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
@@ -1697,36 +1679,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
-
-    def test_missing_transaction_index(self):
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            pytest.skip("test does not apply if tag values are in clickhouse")
-        with pytest.raises(
-            IncompatibleMetricsQuery,
-            match=re.compile("Transaction value .* in filter not found"),
-        ):
-            TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=900,
-                query="transaction:something_else",
-                selected_columns=["project", "p95(transaction.duration)"],
-            )
-
-    def test_missing_transaction_index_in_filter(self):
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            pytest.skip("test does not apply if tag values are in clickhouse")
-        with pytest.raises(
-            IncompatibleMetricsQuery,
-            match=re.compile("Transaction value .* in filter not found"),
-        ):
-            TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=900,
-                query="transaction:[something_else, something_else2]",
-                selected_columns=["p95(transaction.duration)"],
-            )
 
     def test_project_filter(self):
         query = TimeseriesMetricQueryBuilder(

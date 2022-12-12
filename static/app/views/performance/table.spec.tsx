@@ -1,8 +1,9 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -40,19 +41,6 @@ const WrappedComponent = ({data, ...rest}) => {
     </OrganizationContext.Provider>
   );
 };
-
-function openContextMenu(wrapper, cellIndex) {
-  const menu = wrapper.find('CellAction').at(cellIndex);
-  // Hover over the menu
-  menu.find('Container > div').at(0).simulate('mouseEnter');
-  wrapper.update();
-
-  // Open the menu
-  wrapper.find('MenuButton').simulate('click');
-
-  // Return the menu wrapper so we can interact with it.
-  return wrapper.find('CellAction').at(cellIndex).find('Menu');
-}
 
 function mockEventView(data) {
   const eventView = new EventView({
@@ -112,7 +100,7 @@ function mockEventView(data) {
 }
 
 describe('Performance > Table', function () {
-  let eventsV2Mock, eventsMock;
+  let eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
@@ -164,13 +152,6 @@ describe('Performance > Table', function () {
         project_threshold_config: ['duration', 300],
       },
     ];
-    eventsV2Mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {
-        meta: eventsMetaFieldsMock,
-        data: eventsBodyMock,
-      },
-    });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -189,71 +170,67 @@ describe('Performance > Table', function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with eventsv2', function () {
+  describe('with events', function () {
     it('renders correct cell actions without feature', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
 
-      const wrapper = mountWithTheme(
+      ProjectsStore.loadInitialData(data.organization.projects);
+
+      render(
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />
+        />,
+        {context: data.routerContext}
       );
 
-      await tick();
-      wrapper.update();
-      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-      const transactionCell = firstRow.find('GridBodyCell').at(1);
-      expect(transactionCell.find('Link').prop('to')).toEqual({
-        pathname: '/organizations/org-slug/performance/summary/',
-        query: {
-          transaction: '/apple/cart',
-          project: '2',
-          environment: [],
-          statsPeriod: '14d',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
-          referrer: 'performance-transaction-summary',
-          unselectedSeries: 'p100()',
-          showTransactions: undefined,
-          display: undefined,
-          trendFunction: undefined,
-          trendColumn: undefined,
-        },
+      const rows = await screen.findAllByTestId('grid-body-row');
+      const transactionCells = within(rows[0]).getAllByTestId('grid-body-cell');
+      const transactionCell = transactionCells[1];
+      const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
+      expect(link).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
+      );
+
+      const cellActionContainers = screen.getAllByTestId('cell-action-container');
+      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
+      userEvent.hover(cellActionContainers[8]);
+      const cellActions = await screen.findByTestId('cell-action');
+      expect(cellActions).toBeInTheDocument();
+      userEvent.click(cellActions);
+
+      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
+      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
+
+      userEvent.hover(cellActionContainers[0]); // Transaction name
+      const transactionCellActions = await screen.findAllByTestId('cell-action');
+      expect(transactionCellActions[0]).toBeInTheDocument();
+      userEvent.click(transactionCellActions[0]);
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(0);
+      userEvent.click(screen.getByTestId('add-to-filter'));
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
+        pathname: undefined,
+        query: expect.objectContaining({
+          query: 'transaction:/apple/cart',
+        }),
       });
-      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-      const cellAction = userMiseryCell.find('CellAction');
-
-      expect(cellAction.prop('allowActions')).toEqual([
-        'add',
-        'exclude',
-        'show_greater_than',
-        'show_less_than',
-        'edit_threshold',
-      ]);
-
-      const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-      expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
-      expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
-        'Edit threshold (300ms)'
-      );
     });
 
-    it('hides cell actions when withStaticFilters is true', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
+    it('hides cell actions when withStaticFilters is true', function () {
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
@@ -264,16 +241,11 @@ describe('Performance > Table', function () {
         />
       );
 
-      await tick();
-      wrapper.update();
-      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-      const cellAction = userMiseryCell.find('CellAction');
-
-      expect(cellAction.prop('allowActions')).toEqual([]);
+      const cellActionContainers = screen.queryByTestId('cell-action-container');
+      expect(cellActionContainers).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', async function () {
+    it('sends MEP param when setting enabled', function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -281,7 +253,7 @@ describe('Performance > Table', function () {
         ['performance-use-metrics']
       );
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
@@ -291,151 +263,6 @@ describe('Performance > Table', function () {
           isMEPEnabled
         />
       );
-
-      await tick();
-      wrapper.update();
-
-      expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-      expect(eventsV2Mock).toHaveBeenNthCalledWith(
-        1,
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            environment: [],
-            field: [
-              'team_key_transaction',
-              'transaction',
-              'project',
-              'tpm()',
-              'p50()',
-              'p95()',
-              'failure_rate()',
-              'apdex()',
-              'count_unique(user)',
-              'count_miserable(user)',
-              'user_misery()',
-            ],
-            dataset: 'metrics',
-            per_page: 50,
-            project: ['1', '2'],
-            query: 'event.type:transaction transaction:/api*',
-            referrer: 'api.performance.landing-table',
-            sort: '-team_key_transaction',
-            statsPeriod: '14d',
-          }),
-        })
-      );
-    });
-  });
-
-  describe('with events', function () {
-    it('renders correct cell actions without feature', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-        />
-      );
-
-      await tick();
-      wrapper.update();
-      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-      const transactionCell = firstRow.find('GridBodyCell').at(1);
-      expect(transactionCell.find('Link').prop('to')).toEqual({
-        pathname: '/organizations/org-slug/performance/summary/',
-        query: {
-          transaction: '/apple/cart',
-          project: '2',
-          environment: [],
-          statsPeriod: '14d',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
-          referrer: 'performance-transaction-summary',
-          unselectedSeries: 'p100()',
-          showTransactions: undefined,
-          display: undefined,
-          trendFunction: undefined,
-          trendColumn: undefined,
-        },
-      });
-      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-      const cellAction = userMiseryCell.find('CellAction');
-
-      expect(cellAction.prop('allowActions')).toEqual([
-        'add',
-        'exclude',
-        'show_greater_than',
-        'show_less_than',
-        'edit_threshold',
-      ]);
-
-      const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-      expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
-      expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
-        'Edit threshold (300ms)'
-      );
-    });
-
-    it('hides cell actions when withStaticFilters is true', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-frontend-use-events-endpoint']
-      );
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-          withStaticFilters
-        />
-      );
-
-      await tick();
-      wrapper.update();
-      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-      const cellAction = userMiseryCell.find('CellAction');
-
-      expect(cellAction.prop('allowActions')).toEqual([]);
-    });
-
-    it('sends MEP param when setting enabled', async function () {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['performance-use-metrics', 'performance-frontend-use-events-endpoint']
-      );
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          data={data}
-          eventView={mockEventView(data)}
-          setError={jest.fn()}
-          summaryConditions=""
-          projects={data.projects}
-          isMEPEnabled
-        />
-      );
-
-      await tick();
-      wrapper.update();
 
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenNthCalledWith(

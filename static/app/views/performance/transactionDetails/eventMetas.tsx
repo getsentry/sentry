@@ -99,7 +99,19 @@ class EventMetas extends Component<Props, State> {
 
     const timestamp = (
       <TimeSince
-        tooltipBody={<EventCreatedTooltip event={event} />}
+        tooltipBody={getDynamicText({
+          value: (
+            <EventCreatedTooltip
+              event={{
+                ...event,
+                dateCreated:
+                  event.dateCreated ||
+                  new Date((event.endTimestamp || 0) * 1000).toISOString(),
+              }}
+            />
+          ),
+          fixed: 'Event Created Tooltip',
+        })}
         date={event.dateCreated || (event.endTimestamp || 0) * 1000}
       />
     );
@@ -262,7 +274,7 @@ const EventIDWrapper = styled('span')`
   margin-right: ${space(1)};
 `;
 
-function HttpStatus({event}: {event: Event}) {
+export function HttpStatus({event}: {event: Event}) {
   const {tags} = event;
 
   const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
@@ -289,7 +301,7 @@ function HttpStatus({event}: {event: Event}) {
   event.contexts?.trace?.status ?? '\u2014';
 */
 
-function getStatusBodyText(
+export function getStatusBodyText(
   project: AvatarProject | undefined,
   event: EventTransaction,
   meta: TraceMeta | null

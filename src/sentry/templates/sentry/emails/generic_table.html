@@ -1,0 +1,16 @@
+{% load i18n %}
+<table>
+    <colgroup>
+      <col style="width:130px;">
+    </colgroup>
+    <tbody>
+        {% for key, value in data.items %}
+            <tr>
+                <th>{{ key }}</th>
+                <td>
+                    <code>{{ value|truncatechars:50 }}</code>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

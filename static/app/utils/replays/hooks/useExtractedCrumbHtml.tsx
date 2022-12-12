@@ -25,7 +25,7 @@ export type Extraction = {
 };
 
 type HookOpts = {
-  replay: ReplayReader;
+  replay: null | ReplayReader;
 };
 
 const requestIdleCallback =
@@ -49,6 +49,9 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   useEffect(() => {
     requestIdleCallback(
       () => {
+        if (!replay) {
+          return () => {};
+        }
         let isMounted = true;
 
         const domRoot = document.createElement('div');
@@ -149,7 +152,9 @@ class BreadcrumbReferencesPlugin {
   }
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    if (event.type === EventType.IncrementalSnapshot) {
+    if (event.type === EventType.FullSnapshot) {
+      this.extractNextCrumb({replayer});
+    } else if (event.type === EventType.IncrementalSnapshot) {
       this.extractCurrentCrumb(event, {replayer});
       this.extractNextCrumb({replayer});
     }

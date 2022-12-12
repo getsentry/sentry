@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -27,13 +27,7 @@ const cache = new CellMeasurerCache({
 
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
-  | 'event'
-  | 'organization'
-  | 'searchTerm'
-  | 'relativeTime'
-  | 'displayRelativeTime'
-  | 'router'
-  | 'route'
+  'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
 > & {
   breadcrumbs: Crumb[];
   emptyMessage: Pick<
@@ -52,47 +46,29 @@ function Breadcrumbs({
   event,
   relativeTime,
   emptyMessage,
-  route,
-  router,
 }: Props) {
-  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
   const entryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.BREADCRUMBS
   );
 
-  let listRef: List | null = null;
+  const listRef = useRef<List>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    updateGrid();
+  const updateGrid = useCallback(() => {
+    if (listRef.current) {
+      cache.clearAll();
+      listRef.current.forceUpdateGrid();
+    }
   }, []);
 
   useEffect(() => {
-    if (!!breadcrumbs.length && !scrollToIndex) {
-      setScrollToIndex(breadcrumbs.length - 1);
-      return;
-    }
-
     updateGrid();
-  }, [breadcrumbs]);
-
-  useEffect(() => {
-    if (scrollToIndex !== undefined) {
-      updateGrid();
-    }
-  }, [scrollToIndex]);
-
-  function updateGrid() {
-    if (listRef) {
-      cache.clearAll();
-      listRef.forceUpdateGrid();
-    }
-  }
+  }, [breadcrumbs, updateGrid]);
 
   function renderRow({index, key, parent, style}: ListRowProps) {
     const breadcrumb = breadcrumbs[index];
-    const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+    const isLastItem = breadcrumbs[0].id === breadcrumb.id;
     const {height} = style;
     return (
       <CellMeasurer
@@ -120,8 +96,6 @@ function Breadcrumbs({
                 ? scrollbarSize
                 : 0
             }
-            router={router}
-            route={route}
           />
         )}
       </CellMeasurer>
@@ -157,9 +131,7 @@ function Breadcrumbs({
         <AutoSizer disableHeight onResize={updateGrid}>
           {({width}) => (
             <StyledList
-              ref={(el: List | null) => {
-                listRef = el;
-              }}
+              ref={listRef}
               deferredMeasurementCache={cache}
               height={PANEL_MAX_HEIGHT}
               overscanRowCount={5}
@@ -168,9 +140,6 @@ function Breadcrumbs({
               rowRenderer={renderRow}
               width={width}
               onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-              // when the component mounts, it scrolls to the last item
-              scrollToIndex={scrollToIndex}
-              scrollToAlignment={scrollToIndex ? 'end' : undefined}
             />
           )}
         </AutoSizer>

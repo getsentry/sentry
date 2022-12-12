@@ -98,30 +98,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
-    def test_get_replays_require_duration(self):
-        """Test returned replays must have a substantive duration."""
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        replay2_id = uuid.uuid4().hex
-        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
-        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=6)
-
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
-        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
-        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
-
-        with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-
-            response_data = response.json()
-            assert "data" in response_data
-            assert len(response_data["data"]) == 1
-
     def test_get_replays_require_timely_initial_sequence(self):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
@@ -130,8 +106,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id, segment_id=1))
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -407,6 +383,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "c:*st",
                 "!c:*zz",
                 "urls:example.com",
+                "activity:3",
             ]
 
             for query in queries:
@@ -436,6 +413,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "releases:[a,b]",
                 "c:*zz",
                 "!c:*st",
+                "!activity:3",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")
@@ -456,6 +434,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project2.id,
                 replay1_id,
+                error_ids=[uuid.uuid4().hex, uuid.uuid4().hex],
                 platform="b",
                 dist="b",
                 user_id="b",
@@ -506,6 +485,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay2_id,
+                error_ids=[uuid.uuid4().hex],
                 platform="a",
                 dist="a",
                 user_id="a",
@@ -567,6 +547,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.id",
                 "user.name",
                 "user.email",
+                "activity",
             ]
 
             for key in queries:
@@ -636,6 +617,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?field=unknown")
             assert response.status_code == 400
+
+    def test_get_replays_activity_field(self):
+        """Test replays activity field does not raise 400."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=activity")
+            assert response.status_code == 200
 
     def test_archived_records_are_not_returned(self):
         replay1_id = uuid.uuid4().hex

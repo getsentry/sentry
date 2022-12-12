@@ -1,383 +1,324 @@
-import {Fragment} from 'react';
+import {useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {ResponseMeta} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
-import {IconInfo} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
+  makePromptsCheckQueryKey,
+  PromptResponse,
+  promptsUpdate,
+  usePromptsCheck,
+} from 'sentry/actionCreators/prompts';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import type {PlatformKey} from 'sentry/data/platformCategories';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import type {
+  Event,
   Frame,
-  Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfigWithIntegration,
+  StacktraceLinkResult,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
-import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
+import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
-type Props = AsyncComponent['props'] & {
+const supportedStacktracePlatforms: PlatformKey[] = [
+  'go',
+  'javascript',
+  'node',
+  'php',
+  'python',
+  'ruby',
+  'elixir',
+];
+
+interface StacktraceLinkSetupProps {
   event: Event;
-  frame: Frame;
-  lineNo: number;
   organization: Organization;
-  projects: Project[];
-};
+  project?: Project;
+}
 
-export type StacktraceErrorMessage =
-  | 'file_not_found'
-  | 'stack_root_mismatch'
-  | 'integration_link_forbidden';
+function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
+  const api = useApi();
+  const queryClient = useQueryClient();
 
-// format of the ProjectStacktraceLinkEndpoint response
-type StacktraceResultItem = {
-  integrations: Integration[];
-  attemptedUrl?: string;
-  config?: RepositoryProjectPathConfigWithIntegration;
-  error?: StacktraceErrorMessage;
-  sourceUrl?: string;
-};
-
-type State = AsyncComponent['state'] & {
-  isDismissed: boolean;
-  match: StacktraceResultItem;
-  promptLoaded: boolean;
-};
-
-class StacktraceLink extends AsyncComponent<Props, State> {
-  get project() {
-    // we can't use the withProject HoC on an the issue page
-    // so we ge around that by using the withProjects HoC
-    // and look up the project from the list
-    const {projects, event} = this.props;
-    return projects.find(project => project.id === event.projectID);
-  }
-
-  get errorText() {
-    const error = this.state.match.error;
-
-    switch (error) {
-      case 'stack_root_mismatch':
-        return t('Error matching your configuration.');
-      case 'file_not_found':
-        return t('Source file not found.');
-      case 'integration_link_forbidden':
-        return t('The repository integration was disconnected.');
-      default:
-        return t('There was an error encountered with the code mapping for this project');
-    }
-  }
-
-  componentDidMount() {
-    this.promptsCheck();
-  }
-
-  async promptsCheck() {
-    const {organization} = this.props;
-
-    const prompt = await promptsCheck(this.api, {
+  const dismissPrompt = () => {
+    promptsUpdate(api, {
       organizationId: organization.id,
-      projectId: this.project?.id,
-      feature: 'stacktrace_link',
-    });
-
-    this.setState({
-      isDismissed: promptIsDismissed(prompt),
-      promptLoaded: true,
-    });
-  }
-
-  dismissPrompt() {
-    const {organization} = this.props;
-    promptsUpdate(this.api, {
-      organizationId: organization.id,
-      projectId: this.project?.id,
+      projectId: project?.id,
       feature: 'stacktrace_link',
       status: 'dismissed',
     });
 
+    // Update cached query data
+    // Will set prompt to dismissed
+    queryClient.setQueryData<PromptResponse>(
+      makePromptsCheckQueryKey({
+        feature: 'stacktrace_link',
+        organizationId: organization.id,
+        projectId: project?.id,
+      }),
+      () => {
+        const dimissedTs = new Date().getTime() / 1000;
+        return {
+          data: {dismissed_ts: dimissedTs},
+          features: {stacktrace_link: {dismissed_ts: dimissedTs}},
+        };
+      }
+    );
+
     trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(this.props.event),
+      ...getAnalyicsDataForEvent(event),
     });
+  };
 
-    this.setState({isDismissed: true});
-  }
+  return (
+    <CodeMappingButtonContainer columnQuantity={2}>
+      <StyledLink to={`/settings/${organization.slug}/integrations/`}>
+        <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+        {t('Add the GitHub or GitLab integration to jump straight to your source code')}
+      </StyledLink>
+      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
+        <IconClose size="xs" aria-label={t('Close')} />
+      </CloseButton>
+    </CodeMappingButtonContainer>
+  );
+}
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, frame, event} = this.props;
-    const project = this.project;
-    if (!project) {
-      throw new Error('Unable to find project');
+interface StacktraceLinkProps {
+  event: Event;
+  frame: Frame;
+  /**
+   * The line of code being linked
+   */
+  line: string;
+}
+
+export function isMobileLanguage(event: Event) {
+  return (
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects?.[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
+  );
+}
+
+export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
+  const prompt = usePromptsCheck({
+    feature: 'stacktrace_link',
+    organizationId: organization.id,
+    projectId: project?.id,
+  });
+  const isPromptDismissed =
+    prompt.isSuccess && prompt.data.data
+      ? promptIsDismissed({
+          dismissedTime: prompt.data.data.dismissed_ts,
+          snoozedTime: prompt.data.data.snoozed_ts,
+        })
+      : false;
+
+  const isMobile = isMobileLanguage(event);
+
+  const query = {
+    file: frame.filename,
+    platform: event.platform,
+    commitId: event.release?.lastCommit?.id,
+    ...(event.sdk?.name && {sdkName: event.sdk.name}),
+    ...(frame.absPath && {absPath: frame.absPath}),
+    ...(frame.module && {module: frame.module}),
+    ...(frame.package && {package: frame.package}),
+  };
+  const {
+    data: match,
+    isLoading,
+    refetch,
+  } = useQuery<StacktraceLinkResult>(
+    [`/projects/${organization.slug}/${project?.slug}/stacktrace-link/`, {query}],
+    {staleTime: Infinity, retry: false}
+  );
+
+  // Track stacktrace analytics after loaded
+  useEffect(() => {
+    if (isLoading || prompt.isLoading || !match) {
+      return;
     }
-    const commitId = event.release?.lastCommit?.id;
-    const platform = event.platform;
-    const sdkName = event.sdk?.name;
-    return [
-      [
-        'match',
-        `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {
-          query: {
-            file: frame.filename,
-            platform,
-            commitId,
-            ...(sdkName && {sdkName}),
-            ...(frame.absPath && {absPath: frame.absPath}),
-            ...(frame.module && {module: frame.module}),
-            ...(frame.package && {package: frame.package}),
-          },
-        },
-      ],
-    ];
-  }
 
-  onRequestSuccess(resp: {data: StacktraceResultItem; stateKey: 'match'}) {
-    const {config, sourceUrl} = resp.data;
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
-      organization: this.props.organization,
-      platform: this.project?.platform,
-      project_id: this.project?.id,
+      organization,
+      platform: project?.platform,
+      project_id: project?.id,
       state:
         // Should follow the same logic in render
-        config && sourceUrl
+        match.sourceUrl
           ? 'match'
-          : config
+          : match.error || match.integrations.length > 0
           ? 'no_match'
-          : !this.state.isDismissed
+          : !isPromptDismissed
           ? 'prompt'
           : 'empty',
-      ...getAnalyicsDataForEvent(this.props.event),
+      ...getAnalyicsDataForEvent(event),
     });
-  }
+    // excluding isPromptDismissed because we want this only to record once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, prompt.isLoading, match, organization, project, event]);
 
-  onRequestError(resp: ResponseMeta) {
-    handleXhrErrorResponse('Unable to fetch stack trace link')(resp);
-  }
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      showModal: false,
-      sourceCodeInput: '',
-      match: {integrations: []},
-      isDismissed: false,
-      promptLoaded: false,
-    };
-  }
-
-  onOpenLink() {
-    const provider = this.state.match.config?.provider;
+  const onOpenLink = () => {
+    const provider = match!.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
         StacktraceLinkEvents.OPEN_LINK,
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
-          organization: this.props.organization,
-          ...getAnalyicsDataForEvent(this.props.event),
+          organization,
+          ...getAnalyicsDataForEvent(event),
         },
         {startSession: true}
       );
     }
-  }
-
-  onReconfigureMapping() {
-    const provider = this.state.match.config?.provider;
-    const error = this.state.match.error;
-    if (provider) {
-      trackIntegrationAnalytics(
-        'integrations.reconfigure_stacktrace_setup',
-        {
-          view: 'stacktrace_issue_details',
-          provider: provider.key,
-          error_reason: error,
-          organization: this.props.organization,
-          ...getAnalyicsDataForEvent(this.props.event),
-        },
-        {startSession: true}
-      );
-    }
-  }
-
-  handleSubmit = () => {
-    this.reloadData();
   };
 
-  // don't show the error boundary if the component fails.
-  // capture the endpoint error on onRequestError
-  renderError(): React.ReactNode {
+  const handleSubmit = () => {
+    refetch();
+  };
+
+  // Temporarily prevent mobile platforms from showing stacktrace link
+  if (isMobile) {
     return null;
   }
 
-  renderLoading() {
-    // TODO: Add loading
-    return null;
-  }
-
-  renderNoMatch() {
-    const {organization} = this.props;
-    const filename = this.props.frame.filename;
-    const platform = this.props.event.platform;
-    const {integrations} = this.state.match;
-    if (this.project && integrations.length > 0 && filename) {
-      return (
-        <CodeMappingButtonContainer columnQuantity={2}>
-          {tct('[link:Link your stack trace to your source code.]', {
-            link: (
-              <a
-                onClick={() => {
-                  trackIntegrationAnalytics(
-                    'integrations.stacktrace_start_setup',
-                    {
-                      view: 'stacktrace_issue_details',
-                      platform,
-                      organization,
-                      ...getAnalyicsDataForEvent(this.props.event),
-                    },
-                    {startSession: true}
-                  );
-                  openModal(
-                    deps =>
-                      this.project && (
-                        <StacktraceLinkModal
-                          onSubmit={this.handleSubmit}
-                          filename={filename}
-                          project={this.project}
-                          organization={organization}
-                          integrations={integrations}
-                          {...deps}
-                        />
-                      )
-                  );
-                }}
-              />
-            ),
-          })}
-          <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
-        </CodeMappingButtonContainer>
-      );
-    }
-    return null;
-  }
-
-  renderHovercard() {
-    const {frame} = this.props;
-    const {config, error, attemptedUrl} = this.state.match;
-    return (
-      <StyledHovercard
-        skipWrapper
-        header={
-          <HovercardHeader>
-            {error === 'stack_root_mismatch'
-              ? t('Mismatch between filename and stack root')
-              : t('Unable to find source code url')}
-          </HovercardHeader>
-        }
-        body={
-          <HovercardBody>
-            {error === 'stack_root_mismatch' ? (
-              <Fragment>
-                <div>
-                  filename: <code>{`${frame.filename}`}</code>
-                </div>
-                <div>
-                  stack root: <code>{`${config?.stackRoot}`}</code>
-                </div>
-              </Fragment>
-            ) : (
-              attemptedUrl
-            )}
-          </HovercardBody>
-        }
-      >
-        <StyledIconInfo size="xs" aria-label={t('More Info')} />
-      </StyledHovercard>
-    );
-  }
-
-  renderMatchNoUrl() {
-    const {config, error} = this.state.match;
-    const {organization} = this.props;
+  if (isLoading || !match) {
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
-        <ErrorInformation>
-          {error && this.renderHovercard()}
-          <ErrorText>{this.errorText}</ErrorText>
-          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
-            link: (
-              <Link
-                onClick={() => {
-                  this.onReconfigureMapping();
-                }}
-                to={{
-                  pathname: `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/`,
-                  query: {tab: 'codeMappings'},
-                }}
-              />
-            ),
-          })}
-        </ErrorInformation>
+        <Placeholder height="24px" width="60px" />
       </CodeMappingButtonContainer>
     );
   }
 
-  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
-    url = `${url}#L${this.props.frame.lineNo}`;
+  // Match found - display link to source
+  if (match.config && match.sourceUrl) {
     return (
-      <OpenInContainer columnQuantity={2}>
-        <div>{t('Open this line in')}</div>
-        <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
-          <OpenInName>{config.provider.name}</OpenInName>
+      <CodeMappingButtonContainer columnQuantity={2}>
+        <OpenInLink
+          onClick={onOpenLink}
+          href={`${match!.sourceUrl}#L${frame.lineNo}`}
+          openInNewTab
+        >
+          <StyledIconWrapper>
+            {getIntegrationIcon(match.config.provider.key, 'sm')}
+          </StyledIconWrapper>
+          {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-      </OpenInContainer>
+      </CodeMappingButtonContainer>
     );
   }
 
-  renderBody() {
-    const {config, sourceUrl} = this.state.match || {};
-    const {isDismissed, promptLoaded} = this.state;
-
-    if (config && sourceUrl) {
-      return this.renderMatchWithUrl(config, sourceUrl);
-    }
-    if (config) {
-      return this.renderMatchNoUrl();
-    }
-
-    if (!promptLoaded || (promptLoaded && isDismissed)) {
+  // Hide stacktrace link errors if the stacktrace might be minified javascript
+  // Check if the line starts and ends with {snip}
+  const isMinifiedJsError =
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+  const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
+    event.platform as PlatformKey
+  );
+  const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
+  // No match found - Has integration but no code mappings
+  if (!hideErrors && (match.error || match.integrations.length > 0)) {
+    const filename = frame.filename;
+    if (!project || !match.integrations.length || !filename) {
       return null;
     }
 
-    return this.renderNoMatch();
+    const sourceCodeProviders = match.integrations.filter(integration =>
+      ['github', 'gitlab'].includes(integration.provider?.key)
+    );
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        <FixMappingButton
+          type="button"
+          priority="link"
+          icon={
+            sourceCodeProviders.length === 1
+              ? getIntegrationIcon(sourceCodeProviders[0].provider.key, 'sm')
+              : undefined
+          }
+          onClick={() => {
+            trackIntegrationAnalytics(
+              'integrations.stacktrace_start_setup',
+              {
+                view: 'stacktrace_issue_details',
+                platform: event.platform,
+                organization,
+                ...getAnalyicsDataForEvent(event),
+              },
+              {startSession: true}
+            );
+            openModal(deps => (
+              <StacktraceLinkModal
+                onSubmit={handleSubmit}
+                filename={filename}
+                project={project}
+                organization={organization}
+                integrations={match.integrations}
+                {...deps}
+              />
+            ));
+          }}
+        >
+          {t('Tell us where your source code is')}
+        </FixMappingButton>
+      </CodeMappingButtonContainer>
+    );
   }
-}
 
-export default withProjects(withOrganization(StacktraceLink));
-export {StacktraceLink};
+  // No integrations, but prompt is dismissed or hidden
+  if (hideErrors || isPromptDismissed) {
+    return null;
+  }
+
+  // No integrations
+  return (
+    <StacktraceLinkSetup event={event} project={project} organization={organization} />
+  );
+}
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+  min-height: 28px;
+`;
+
+const FixMappingButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
+
+const CloseButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;
 
 const StyledIconWrapper = styled('span')`
@@ -385,43 +326,18 @@ const StyledIconWrapper = styled('span')`
   line-height: 0;
 `;
 
-const StyledIconClose = styled(IconClose)`
-  margin: auto;
-  cursor: pointer;
-`;
-
-const StyledIconInfo = styled(IconInfo)`
-  margin-right: ${space(0.5)};
-  margin-bottom: -2px;
-  cursor: pointer;
-  line-height: 0;
-`;
-
-const StyledHovercard = styled(Hovercard)`
-  font-weight: normal;
-  width: inherit;
-  line-height: 0;
-`;
-
-const HovercardHeader = styled('span')`
-  font-weight: strong;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-`;
-
-const HovercardBody = styled('span')`
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeSmall};
+const LinkStyles = css`
   display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  line-height: 1.2;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
-const ErrorInformation = styled('div')`
-  padding-right: 5px;
-  margin-right: ${space(1)};
+const OpenInLink = styled(ExternalLink)`
+  ${LinkStyles}
+  color: ${p => p.theme.gray300};
 `;
-const ErrorText = styled('span')`
-  margin-right: ${space(0.5)};
+
+const StyledLink = styled(Link)`
+  ${LinkStyles}
+  color: ${p => p.theme.gray300};
 `;

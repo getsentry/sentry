@@ -172,7 +172,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     <GridPanel>
       <HomePanelHeader>
         <SupportLink icon {...supportLinkProps}>
-          <HomeIconContainer color="purple300">
+          <HomeIconContainer color="activeText">
             <IconSupport size="lg" />
           </HomeIconContainer>
           {t('Support')}
@@ -300,10 +300,10 @@ const HomeIconContainer = styled('div')<{color?: string}>`
 `;
 
 const linkCss = ({theme}: {theme: Theme}) => css`
-  color: ${theme.purple300};
+  color: ${theme.activeText};
 
   &:hover {
-    color: ${theme.purple300};
+    color: ${theme.activeText};
   }
 `;
 

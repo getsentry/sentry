@@ -84,7 +84,12 @@ from sentry.utils.snuba import (
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryBuilder:
+class BaseQueryBuilder:
+    requires_organization_condition: bool = False
+    organization_column: str = "organization.id"
+
+
+class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
     def _dataclass_params(
@@ -533,6 +538,18 @@ class QueryBuilder:
             condition = self._environment_filter_converter(term)
             if condition:
                 conditions.append(condition)
+
+        if self.requires_organization_condition:
+            if self.params.organization is None:
+                raise InvalidSearchQuery("Organization is a required parameter")
+
+            conditions.append(
+                Condition(
+                    self.column(self.organization_column),
+                    Op.EQ,
+                    self.params.organization.id,
+                )
+            )
 
         return conditions
 

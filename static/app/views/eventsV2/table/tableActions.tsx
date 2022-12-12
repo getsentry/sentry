@@ -35,7 +35,7 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
     eventName: 'Discoverv2: Download CSV',
     organization_id: parseInt(organization.id, 10),
   });
-  downloadAsCsv(tableData, eventView.getColumns(true), title);
+  downloadAsCsv(tableData, eventView.getColumns(), title);
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
@@ -111,12 +111,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button
-      data-test-id="toggle-show-tags"
-      size="sm"
-      onClick={onChangeShowTags}
-      icon={<IconTag size="xs" />}
-    >
+    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );

@@ -40,10 +40,7 @@ import {getSelectedProjectPlatforms} from '../utils';
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
 
-type Props = Pick<
-  RouteComponentProps<{eventSlug: string}, {}>,
-  'params' | 'location' | 'router' | 'route'
-> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
   eventSlug: string;
   organization: Organization;
   projects: Project[];
@@ -125,7 +122,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug, route, router, projects} = this.props;
+    const {organization, location, eventSlug, projects} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -134,6 +131,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       event_type: event.type,
       organization_id: parseInt(organization.id, 10),
       project_platforms: getSelectedProjectPlatforms(location, projects),
+      has_otel: event?.contexts?.otel !== undefined,
     });
 
     const {isSidebarVisible} = this.state;
@@ -234,8 +232,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               showTagSummary={false}
                               location={location}
                               api={this.api}
-                              router={router}
-                              route={route}
                             />
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>

@@ -1,17 +1,17 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import isNil from 'lodash/isNil';
 
-import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
+import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';
 
-interface IssueListSetAsDefaultProps extends WithRouterProps {
+interface IssueListSetAsDefaultProps {
   organization: Organization;
   query: string;
   savedSearch: SavedSearch | null;
@@ -19,19 +19,41 @@ interface IssueListSetAsDefaultProps extends WithRouterProps {
 }
 
 const IssueListSetAsDefault = ({
-  location,
   organization,
   savedSearch,
   sort,
   query,
 }: IssueListSetAsDefaultProps) => {
-  const api = useApi();
+  const location = useLocation();
+
   const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
   const pinnedSearchActive = !isNil(pinnedSearch);
 
-  const onTogglePinnedSearch = async () => {
-    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+  const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
+    onSuccess: response => {
+      const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+      browserHistory.push({
+        ...location,
+        pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
+        query: {referrer: 'search-bar', ...currentQuery},
+      });
+    },
+  });
+  const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
+    onSuccess: () => {
+      const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+      browserHistory.push({
+        ...location,
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          referrer: 'search-bar',
+          ...currentQuery,
+        },
+      });
+    },
+  });
 
+  const onTogglePinnedSearch = () => {
     trackAdvancedAnalyticsEvent('search.pin', {
       organization,
       action: pinnedSearch ? 'unpin' : 'pin',
@@ -40,37 +62,15 @@ const IssueListSetAsDefault = ({
     });
 
     if (pinnedSearch) {
-      await unpinSearch(api, organization.slug, SavedSearchType.ISSUE, pinnedSearch);
-      browserHistory.push({
-        ...location,
-        pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          referrer: 'search-bar',
-          ...currentQuery,
-          query: pinnedSearch.query,
-          sort: pinnedSearch.sort,
-        },
+      unpinSearch({orgSlug: organization.slug, type: SavedSearchType.ISSUE});
+    } else {
+      pinSearch({
+        orgSlug: organization.slug,
+        type: SavedSearchType.ISSUE,
+        query: removeSpace(query),
+        sort,
       });
-      return;
     }
-
-    const resp = await pinSearch(
-      api,
-      organization.slug,
-      SavedSearchType.ISSUE,
-      removeSpace(query),
-      sort
-    );
-
-    if (!resp || !resp.id) {
-      return;
-    }
-
-    browserHistory.push({
-      ...location,
-      pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-      query: {referrer: 'search-bar', ...currentQuery},
-    });
   };
 
   if (!organization.features.includes('issue-list-saved-searches-v2')) {
@@ -82,10 +82,11 @@ const IssueListSetAsDefault = ({
       onClick={onTogglePinnedSearch}
       size="sm"
       icon={<IconBookmark isSolid={pinnedSearchActive} />}
+      disabled={isPinning || isUnpinning}
     >
       {pinnedSearchActive ? t('Remove Default') : t('Set as Default')}
     </Button>
   );
 };
 
-export default withRouter(IssueListSetAsDefault);
+export default IssueListSetAsDefault;

@@ -11,8 +11,16 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.silo import SiloMode
+from sentry.testutils.region import override_regions
+from sentry.types.region import Region, RegionCategory
 
 TestMethod = Callable[..., None]
+
+region_map = [
+    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
+]
 
 
 class SiloModeTest:
@@ -29,18 +37,32 @@ class SiloModeTest:
         self.run_unstable_tests = bool(settings.SILO_MODE_UNSTABLE_TESTS)
 
     @staticmethod
-    def _find_all_test_methods(test_class: type) -> Iterable[Tuple[str, TestMethod]]:
+    def _find_all_test_methods(test_class: type) -> Iterable[TestMethod]:
         for attr_name in dir(test_class):
             if attr_name.startswith("test_") or attr_name == "test":
                 attr = getattr(test_class, attr_name)
                 if callable(attr):
-                    yield attr_name, attr
+                    yield attr
 
-    def _create_mode_methods(self, test_method: TestMethod) -> Iterable[Tuple[str, TestMethod]]:
+    def _is_acceptance_test(self, test_class: type) -> bool:
+        from sentry.testutils import AcceptanceTestCase
+
+        return issubclass(test_class, AcceptanceTestCase)
+
+    def _create_mode_methods(
+        self, test_class: type, test_method: TestMethod
+    ) -> Iterable[Tuple[str, TestMethod]]:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-                with override_settings(SILO_MODE=mode):
-                    test_method(*args, **kwargs)
+                with override_settings(
+                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class)
+                ):
+                    with override_regions(region_map):
+                        if mode == SiloMode.REGION:
+                            with override_settings(SENTRY_REGION="north_america"):
+                                test_method(*args, **kwargs)
+                        else:
+                            test_method(*args, **kwargs)
 
             functools.update_wrapper(replacement_test_method, test_method)
             modified_name = f"{test_method.__name__}__in_{str(mode).lower()}_silo"
@@ -48,11 +70,19 @@ class SiloModeTest:
             yield modified_name, replacement_test_method
 
         for mode in self.silo_modes:
+            # Currently, test classes that are decorated already handle the monolith mode as the default
+            # because the original test method remains -- this is different from the pytest variant
+            # that actually strictly parameterizes the existing test.  This reduces a redundant run of MONOLITH
+            # mode.
+            if mode == SiloMode.MONOLITH:
+                continue
             yield from method_for_mode(mode)
 
     def _add_silo_modes_to_methods(self, test_class: type) -> type:
-        for (method_name, test_method) in self._find_all_test_methods(test_class):
-            for (new_method_name, new_test_method) in self._create_mode_methods(test_method):
+        for test_method in self._find_all_test_methods(test_class):
+            for (new_method_name, new_test_method) in self._create_mode_methods(
+                test_class, test_method
+            ):
                 setattr(test_class, new_method_name, new_test_method)
         return test_class
 
@@ -67,8 +97,14 @@ class SiloModeTest:
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-            with override_settings(SILO_MODE=kwargs.pop("silo_mode")):
-                return test_method(*args, **kwargs)
+            silo_mode = kwargs.pop("silo_mode")
+            with override_settings(SILO_MODE=silo_mode):
+                with override_regions(region_map):
+                    if silo_mode == SiloMode.REGION:
+                        with override_settings(SENTRY_REGION="north_america"):
+                            test_method(*args, **kwargs)
+                    else:
+                        test_method(*args, **kwargs)
 
         orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)
@@ -103,6 +139,7 @@ class SiloModeTest:
 
 
 all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+no_silo_test = SiloModeTest(SiloMode.MONOLITH)
 control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 

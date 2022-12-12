@@ -12,7 +12,7 @@ interface ProfilingOnboardingPanelProps {
 
 export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
   return (
-    <OnboardingPanel image={<AlertsImage src={emptyStateImg} />}>
+    <OnboardingPanel image={<HeroImage src={emptyStateImg} />}>
       <h3>{t('Function level insights')}</h3>
       <p>
         {t(
@@ -24,7 +24,7 @@ export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
   );
 }
 
-const AlertsImage = styled('img')`
+const HeroImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     user-select: none;
     position: absolute;

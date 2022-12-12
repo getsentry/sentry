@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping, Tuple
 
 from django import forms
 from django.core.cache import cache
@@ -17,6 +17,11 @@ from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GRO
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.types.condition_activity import (
+    FREQUENCY_CONDITION_BUCKET_SIZE,
+    ConditionActivity,
+    round_to_five_minute,
+)
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
 
@@ -106,20 +111,56 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        interval = self.get_option("interval")
+    def _get_options(self) -> Tuple[str | None, float | None]:
+        interval, value = None, None
         try:
+            interval = self.get_option("interval")
             value = float(self.get_option("value"))
         except (TypeError, ValueError):
-            return False
+            pass
+        return interval, value
 
-        if not interval:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
+        interval, value = self._get_options()
+        if not (interval and value is not None):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
+
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        interval, value = self._get_options()
+        if not (interval and value is not None):
+            return False
+        interval_delta = self.intervals[interval][1]
+        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+
+        # extrapolate if interval less than bucket size
+        # if comparing percent increase, both intervals will be increased, so do not extrapolate value
+        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
+            if comparison_type != COMPARISON_TYPE_PERCENT:
+                value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
+            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
+
+        result = bucket_count(activity.timestamp - interval_delta, activity.timestamp, buckets)
+
+        if comparison_type == COMPARISON_TYPE_PERCENT:
+            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+            comparison_end = activity.timestamp - comparison_interval
+
+            comparison_result = bucket_count(
+                comparison_end - interval_delta, comparison_end, buckets
+            )
+            result = percent_increase(result, comparison_result)
+
+        return result > value
+
+    def get_preview_aggregate(self) -> Tuple[str, str]:
+        raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
         query_result = self.query_hook(event, start, end, environment_id)
@@ -158,11 +199,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 comparison_result = self.query(
                     event, comparison_end - duration, comparison_end, environment_id=environment_id
                 )
-                result = (
-                    int(max(0, ((result / comparison_result) * 100) - 100))
-                    if comparison_result > 0
-                    else 0
-                )
+                result = percent_increase(result, comparison_result)
 
         return result
 
@@ -201,6 +238,9 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
+    def get_preview_aggregate(self) -> Tuple[str, str]:
+        return "count", "roundedTime"
+
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
@@ -219,6 +259,9 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             jitter_value=event.group_id,
         )
         return totals[event.group_id]
+
+    def get_preview_aggregate(self) -> Tuple[str, str]:
+        return "uniq", "user"
 
 
 percent_intervals = {
@@ -269,7 +312,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
     label = "The issue affects more than {value} percent of sessions in {interval}"
-    logger = logging.getLogger("rules.event_frequency")
+    logger = logging.getLogger("sentry.rules.event_frequency")
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.intervals = percent_intervals
@@ -336,3 +379,23 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             return percent
 
         return 0
+
+    def passes_activity_frequency(
+        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+    ) -> bool:
+        raise NotImplementedError
+
+
+def bucket_count(start: datetime, end: datetime, buckets: Dict[datetime, int]) -> int:
+    rounded_end = round_to_five_minute(end)
+    rounded_start = round_to_five_minute(start)
+    count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)
+    return count
+
+
+def percent_increase(result: int, comparison_result: int) -> int:
+    return (
+        int(max(0, ((result - comparison_result) / comparison_result * 100)))
+        if comparison_result > 0
+        else 0
+    )

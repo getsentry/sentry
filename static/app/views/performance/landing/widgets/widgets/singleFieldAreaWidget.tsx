@@ -1,6 +1,4 @@
 import {Fragment, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -16,8 +14,9 @@ import {
 } from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import _DurationChart from 'sentry/views/performance/charts/chart';
+import DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
@@ -31,7 +30,8 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
-  const {ContainerActions} = props;
+  const location = useLocation();
+  const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
@@ -94,9 +94,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 {...provided}
                 queryBatching={queryBatching}
                 eventView={eventView}
-                location={props.location}
+                location={location}
                 queryExtras={getMEPQueryParams(mepSetting)}
-                useEvents
               />
             )}
           </QueryBatchNode>
@@ -116,6 +115,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={() => (
         <Subtitle>
           {globalSelection.datetime.period
@@ -123,6 +123,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             : t('Compared to the last period')}
         </Subtitle>
       )}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       HeaderActions={provided => (
         <Fragment>
           {provided.widgetData?.overall?.hasData ? (
@@ -142,7 +147,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               })}
             </Fragment>
           ) : null}
-          <ContainerActions {...provided.widgetData.chart} />
+          {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
         </Fragment>
       )}
       Queries={Queries}
@@ -166,7 +171,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-export const DurationChart = withRouter(_DurationChart);
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};

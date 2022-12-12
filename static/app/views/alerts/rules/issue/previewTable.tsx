@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
@@ -7,13 +6,14 @@ import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Member} from 'sentry/types';
 
 type Props = {
-  error: boolean;
+  error: string | null;
   issueCount: number;
   loading: boolean;
   members: Member[] | undefined;
@@ -41,7 +41,7 @@ const PreviewTable = ({
     if (error || !members) {
       return (
         <EmptyStateWarning>
-          <p>{t('No preview available')}</p>
+          <p>{error ? error : t('No preview available')}</p>
         </EmptyStateWarning>
       );
     }
@@ -67,6 +67,7 @@ const PreviewTable = ({
           useFilteredStats
           withChart={false}
           canSelect={false}
+          showLastTriggered
         />
       );
     });
@@ -95,13 +96,13 @@ const PreviewTable = ({
   };
 
   return (
-    <Fragment>
+    <IssuesReplayCountProvider groupIds={previewGroups || []}>
       <Panel>
-        <GroupListHeader withChart={false} />
+        <GroupListHeader withChart={false} showLastTriggered />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}
-    </Fragment>
+    </IssuesReplayCountProvider>
   );
 };
 

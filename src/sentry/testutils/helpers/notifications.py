@@ -4,6 +4,7 @@ from typing import Any, Iterable, Mapping
 
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 
@@ -15,7 +16,7 @@ class DummyNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         pass
 
-    def determine_recipients(self) -> Iterable[Team | User]:
+    def determine_recipients(self) -> Iterable[Team | APIUser]:
         return []
 
     def build_attachment_title(self, *args):

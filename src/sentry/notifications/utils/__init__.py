@@ -45,6 +45,7 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
 from sentry.utils.performance_issues.performance_detection import (
@@ -54,7 +55,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.user_report import UserReportNotification
 
@@ -239,7 +240,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                     commits[commit["id"]] = commit_data
 
-    return sorted(commits.values(), key=lambda x: float(x["score"]), reverse=True)
+    # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
+    # commits from Commit Context dont have a "score" key
+    return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
 def has_integrations(organization: Organization, project: Project) -> bool:
@@ -403,6 +406,25 @@ def get_transaction_data(event: Event) -> Any:
     return perf_to_email_html(spans, matched_problem)
 
 
+def get_generic_data(event: GroupEvent) -> Any:
+    """Get data about a generic issue type to populate alert emails."""
+    generic_evidence = event.occurrence.evidence_display
+
+    if not generic_evidence:
+        return ""
+
+    context = {}
+    for row in generic_evidence:
+        context[row.name] = row.value
+
+    return generic_email_html(context)
+
+
+def generic_email_html(context: Any) -> Any:
+    """Format issue evidence into a (stringified) HTML table for emails"""
+    return render_to_string("sentry/emails/generic_table.html", {"data": context})
+
+
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
     spans, matched_problem = get_span_and_problem(event)
@@ -411,6 +433,19 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
         _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
         repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
     return repeating_span_value.replace("`", '"')
+
+
+def get_notification_group_title(
+    group: Group, event: Event, max_length: int = 255, **kwargs: str
+) -> str:
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        transaction = get_performance_issue_alert_subtitle(event)
+        title = f"{issue_type}: {transaction}"
+        return (title[: max_length - 2] + "..") if len(title) > max_length else title
+    else:
+        event_title: str = event.title
+        return event_title
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

@@ -58,7 +58,7 @@ describe('SearchBar', () => {
     jest.clearAllMocks();
 
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: []},
     });
   });
@@ -69,7 +69,7 @@ describe('SearchBar', () => {
 
   it('Sends user input as a transaction search and shows the results', async () => {
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
       },
@@ -88,7 +88,7 @@ describe('SearchBar', () => {
 
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'transaction:*proje* event.type:transaction',
@@ -103,7 +103,7 @@ describe('SearchBar', () => {
   it('Responds to keyboard navigation', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
           {project_id: 1, transaction: 'clients.call'},
@@ -141,5 +141,34 @@ describe('SearchBar', () => {
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
+  });
+
+  it('Submits wildcard searches', async () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {project_id: 1, transaction: 'clients.call'},
+          {project_id: 1, transaction: 'clients.fetch'},
+        ],
+      },
+    });
+    render(<SearchBar {...testProps} onSearch={onSearch} />);
+
+    userEvent.paste(screen.getByRole('textbox'), 'client*');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{Enter}');
+
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith('transaction:client*');
   });
 });

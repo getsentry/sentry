@@ -35,9 +35,10 @@ import LoadingMask from 'sentry/components/loadingMask';
 import {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
+import Tooltip from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
@@ -123,6 +124,11 @@ type RuleTaskResponse = {
 
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
+export type IncompatibleRule = {
+  conditionIndices: number[] | null;
+  filterIndices: number[] | null;
+};
+
 type Props = {
   location: Location;
   members: Member[] | undefined;
@@ -144,12 +150,13 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
-  incompatibleCondition: number | null;
-  incompatibleFilter: number | null;
+  incompatibleConditions: number[] | null;
+  incompatibleFilters: number[] | null;
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
-  previewError: boolean;
+  previewEndpoint: null | string;
+  previewError: null | string;
   previewGroups: string[] | null;
   previewPage: number;
   project: Project;
@@ -166,6 +173,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
+  trackIncompatibleAnalytics: boolean = false;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -188,8 +196,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     } else if (this.isRuleStateChange(prevState)) {
       this.setState({
         loadingPreview: true,
-        incompatibleCondition: null,
-        incompatibleFilter: null,
+        incompatibleConditions: null,
+        incompatibleFilters: null,
       });
       this.fetchPreviewDebounced();
       this.checkIncompatibleRule();
@@ -239,13 +247,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       project,
       previewGroups: null,
       previewCursor: null,
-      previewError: false,
+      previewError: null,
       issueCount: 0,
       previewPage: 0,
       loadingPreview: false,
       sendingNotification: false,
-      incompatibleCondition: null,
-      incompatibleFilter: null,
+      incompatibleConditions: null,
+      incompatibleFilters: null,
+      previewEndpoint: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -360,7 +369,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule, previewCursor} = this.state;
+    const {project, rule, previewCursor, previewEndpoint} = this.state;
 
     if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
@@ -385,6 +394,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           actionMatch: rule?.actionMatch || 'all',
           filterMatch: rule?.filterMatch || 'all',
           frequency: rule?.frequency || 60,
+          endpoint: previewEndpoint,
         },
       })
       .then(([data, _, resp]) => {
@@ -392,19 +402,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
         const pageLinks = resp?.getResponseHeader('Link');
         const hits = resp?.getResponseHeader('X-Hits');
+        const endpoint = resp?.getResponseHeader('Endpoint');
         const issueCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
           previewGroups: data.map(g => g.id),
-          previewError: false,
+          previewError: null,
           pageLinks: pageLinks ?? '',
           issueCount,
           loadingPreview: false,
+          previewEndpoint: endpoint ?? null,
         });
       })
       .catch(_ => {
+        const errorMessage =
+          rule?.conditions.length || rule?.filters.length
+            ? t('Preview is not supported for these conditions')
+            : t('Select a condition to generate a preview');
         this.setState({
-          previewError: true,
+          previewError: errorMessage,
           loadingPreview: false,
         });
       });
@@ -416,55 +432,21 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRule = debounce(() => {
-    const {rule} = this.state;
-    if (
-      !rule ||
-      !this.props.organization.features.includes('issue-alert-incompatible-rules')
-    ) {
-      return;
-    }
-
-    const {conditions, filters} = rule;
-    // Check for more than one 'issue state change' condition
-    // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
-    if (rule.actionMatch === 'all') {
-      let firstSeen = 0;
-      let regression = 0;
-      let reappeared = 0;
-      let eventFrequency = 0;
-      for (let i = 0; i < conditions.length; i++) {
-        const id = conditions[i].id;
-        if (id.endsWith('FirstSeenEventCondition')) {
-          firstSeen = 1;
-        } else if (id.endsWith('RegressionEventCondition')) {
-          regression = 1;
-        } else if (id.endsWith('ReappearedEventCondition')) {
-          reappeared = 1;
-        } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
-          eventFrequency = 1;
-        }
-        if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
-          this.setState({incompatibleCondition: i});
-          return;
-        }
+    if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
+      const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
+      if (
+        !this.trackIncompatibleAnalytics &&
+        (conditionIndices !== null || filterIndices !== null)
+      ) {
+        this.trackIncompatibleAnalytics = true;
+        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
+          organization: this.props.organization,
+        });
       }
-    }
-    // Check for 'FirstSeenEventCondition' and 'IssueOccurrencesFilter'
-    const firstSeen = conditions.some(condition =>
-      condition.id.endsWith('FirstSeenEventCondition')
-    );
-    if (
-      firstSeen &&
-      (rule.actionMatch === 'all' || conditions.length === 1) &&
-      (rule.filterMatch === 'all' || (rule.filterMatch === 'any' && filters.length === 1))
-    ) {
-      for (let i = 0; i < filters.length; i++) {
-        const id = filters[i].id;
-        if (id.endsWith('IssueOccurrencesFilter') && filters[i].value > 1) {
-          this.setState({incompatibleFilter: i});
-          return;
-        }
-      }
+      this.setState({
+        incompatibleConditions: conditionIndices,
+        incompatibleFilters: filterIndices,
+      });
     }
   }, 500);
 
@@ -507,7 +489,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule} = this.state;
     this.setState({sendingNotification: true});
-    addLoadingMessage(t('Sending a test notification...'));
+    const actions = rule?.actions ? rule?.actions.length : 0;
+    addLoadingMessage(
+      tn('Sending a test notification...', 'Sending test notifications...', actions)
+    );
     this.api
       .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
         method: 'POST',
@@ -516,10 +501,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(() => {
-        addSuccessMessage(t('Notification sent!'));
+        addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: true,
+        });
       })
       .catch(() => {
-        addErrorMessage(t('Notification failed'));
+        addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: false,
+        });
       })
       .finally(() => {
         this.setState({sendingNotification: false});
@@ -728,14 +721,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddRow = (type: ConditionOrActionProperty, id: string) => {
+  handleAddRow = (
+    type: ConditionOrActionProperty,
+    item: IssueAlertRuleActionTemplate
+  ) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration
       const newRule = {
-        ...this.getInitialValue(type, id),
-        id,
+        ...this.getInitialValue(type, item.id),
+        id: item.id,
+        sentryAppInstallationUuid: item.sentryAppInstallationUuid,
       };
       const newTypeList = prevState.rule ? prevState.rule[type] : [];
 
@@ -749,7 +746,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       organization,
       project_id: project.id,
       type,
-      name: id,
+      name: item.id,
     });
   };
 
@@ -765,9 +762,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddCondition = (id: string) => this.handleAddRow('conditions', id);
-  handleAddAction = (id: string) => this.handleAddRow('actions', id);
-  handleAddFilter = (id: string) => this.handleAddRow('filters', id);
+  handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('conditions', template);
+  handleAddAction = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('actions', template);
+  handleAddFilter = (template: IssueAlertRuleActionTemplate) =>
+    this.handleAddRow('filters', template);
   handleDeleteCondition = (ruleIndex: number) =>
     this.handleDeleteRow('conditions', ruleIndex);
   handleDeleteAction = (ruleIndex: number) => this.handleDeleteRow('actions', ruleIndex);
@@ -956,9 +956,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       );
     }
     return tct(
-      "[issueCount] issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to [link:read the docs].",
+      "[issueCount] issues would have triggered this rule in the past 14 days [approximately:approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
       {
         issueCount,
+        approximately: (
+          <Tooltip
+            title={t('Previews that include issue frequency conditions are approximated')}
+            showUnderline
+          />
+        ),
         link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
       }
     );
@@ -1128,8 +1134,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       loading,
       ownership,
       sendingNotification,
-      incompatibleCondition,
-      incompatibleFilter,
+      incompatibleConditions,
+      incompatibleFilters,
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
@@ -1159,8 +1165,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 }}
                 submitDisabled={
                   disabled ||
-                  incompatibleCondition !== null ||
-                  incompatibleFilter !== null
+                  incompatibleConditions !== null ||
+                  incompatibleFilters !== null
                 }
                 submitLabel={t('Save Rule')}
                 extraButton={
@@ -1268,7 +1274,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     </StyledAlert>
                                   )
                                 }
-                                incompatibleRule={incompatibleCondition}
+                                incompatibleRules={incompatibleConditions}
+                                incompatibleBanner={
+                                  incompatibleFilters === null &&
+                                  incompatibleConditions !== null
+                                    ? incompatibleConditions.at(-1)
+                                    : null
+                                }
                               />
                             </StepContent>
                           </StepContainer>
@@ -1339,7 +1351,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     </StyledAlert>
                                   )
                                 }
-                                incompatibleRule={incompatibleFilter}
+                                incompatibleRules={incompatibleFilters}
+                                incompatibleBanner={
+                                  incompatibleFilters ? incompatibleFilters.at(-1) : null
+                                }
                               />
                             </StepContent>
                           </StepContainer>
@@ -1450,6 +1465,94 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 }
 
 export default withOrganization(withProjects(IssueRuleEditor));
+
+export const findIncompatibleRules = (
+  rule: IssueAlertRule | UnsavedIssueAlertRule | null | undefined
+): IncompatibleRule => {
+  if (!rule) {
+    return {conditionIndices: null, filterIndices: null};
+  }
+
+  const {conditions, filters} = rule;
+  // Check for more than one 'issue state change' condition
+  // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
+  if (rule.actionMatch === 'all') {
+    let firstSeen = -1;
+    let regression = -1;
+    let reappeared = -1;
+    let eventFrequency = -1;
+    let userFrequency = -1;
+    for (let i = 0; i < conditions.length; i++) {
+      const id = conditions[i].id;
+      if (id.endsWith('FirstSeenEventCondition')) {
+        firstSeen = i;
+      } else if (id.endsWith('RegressionEventCondition')) {
+        regression = i;
+      } else if (id.endsWith('ReappearedEventCondition')) {
+        reappeared = i;
+      } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+        eventFrequency = i;
+      } else if (
+        id.endsWith('EventUniqueUserFrequencyCondition') &&
+        conditions[i].value >= 1
+      ) {
+        userFrequency = i;
+      }
+      // FirstSeenEventCondition is incompatible with all the following types
+      const firstSeenError =
+        firstSeen !== -1 &&
+        [regression, reappeared, eventFrequency, userFrequency].some(idx => idx !== -1);
+      const regressionReappearedError = regression !== -1 && reappeared !== -1;
+      if (firstSeenError || regressionReappearedError) {
+        const indices = [firstSeen, regression, reappeared, eventFrequency, userFrequency]
+          .filter(idx => idx !== -1)
+          .sort((a, b) => a - b);
+        return {conditionIndices: indices, filterIndices: null};
+      }
+    }
+  }
+  // Check for 'FirstSeenEventCondition' and ('IssueOccurrencesFilter' or 'AgeComparisonFilter')
+  // Considers the case where filterMatch is 'any' and all filters are incompatible
+  const firstSeen = conditions.findIndex(condition =>
+    condition.id.endsWith('FirstSeenEventCondition')
+  );
+  if (firstSeen !== -1 && (rule.actionMatch === 'all' || conditions.length === 1)) {
+    let incompatibleFilters = 0;
+    for (let i = 0; i < filters.length; i++) {
+      const filter = filters[i];
+      const id = filter.id;
+      if (id.endsWith('IssueOccurrencesFilter')) {
+        if (
+          (rule.filterMatch === 'all' && filter.value > 1) ||
+          (rule.filterMatch === 'none' && filter.value <= 1)
+        ) {
+          return {conditionIndices: [firstSeen], filterIndices: [i]};
+        }
+        if (rule.filterMatch === 'any' && filter.value > 1) {
+          incompatibleFilters += 1;
+        }
+      } else if (id.endsWith('AgeComparisonFilter')) {
+        if (rule.filterMatch !== 'none') {
+          if (filter.comparison_type === 'older') {
+            if (rule.filterMatch === 'all') {
+              return {conditionIndices: [firstSeen], filterIndices: [i]};
+            }
+            incompatibleFilters += 1;
+          }
+        } else if (filter.comparison_type === 'newer' && filter.value > 0) {
+          return {conditionIndices: [firstSeen], filterIndices: [i]};
+        }
+      }
+    }
+    if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
+      return {
+        conditionIndices: [firstSeen],
+        filterIndices: [...Array(filters.length).keys()],
+      };
+    }
+  }
+  return {conditionIndices: null, filterIndices: null};
+};
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`
