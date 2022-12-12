@@ -270,7 +270,7 @@ class AuthLoginView(BaseView):
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 2),  # 3 possible banners
+            "banner_choice": randint(0, 1),  # 2 possible banners
         }
 
         context.update(additional_context.run_callbacks(request))

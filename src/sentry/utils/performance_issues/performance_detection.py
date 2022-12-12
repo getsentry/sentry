@@ -55,7 +55,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicates"
-    LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
@@ -69,7 +68,6 @@ class DetectorType(Enum):
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
     DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
-    DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -285,12 +283,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
                 "allowed_span_ops": ["db"],
             },
         ],
-        DetectorType.LONG_TASK_SPANS: [
-            {
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["ui.long-task", "ui.sentry.long-task"],
-            }
-        ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
             "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
@@ -349,7 +341,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
         ),
@@ -360,6 +351,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
         DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
+        DetectorType.M_N_PLUS_ONE_DB: MNPlusOneDBSpanDetector(detection_settings, data),
     }
 
     for _, detector in detectors.items():
@@ -674,41 +666,6 @@ class SlowSpanDetector(PerformanceDetector):
             spans_involved = [span_id]
             self.stored_problems[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, spans_involved
-            )
-
-
-class LongTaskSpanDetector(PerformanceDetector):
-    """
-    Checks for ui.long-task spans, where the cumulative duration of the spans exceeds our threshold
-    """
-
-    __slots__ = ("cumulative_duration", "spans_involved", "stored_problems")
-
-    settings_key = DetectorType.LONG_TASK_SPANS
-
-    def init(self):
-        self.cumulative_duration = timedelta(0)
-        self.spans_involved = []
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duration_threshold = settings.get("cumulative_duration")
-
-        fingerprint = fingerprint_span(span)
-        if not fingerprint:
-            return
-
-        span_duration = get_span_duration(span)
-        self.cumulative_duration += span_duration
-        self.spans_involved.append(span_id)
-
-        if self.cumulative_duration >= timedelta(milliseconds=duration_threshold):
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                span_id, op_prefix, self.spans_involved
             )
 
 

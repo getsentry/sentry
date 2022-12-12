@@ -1,8 +1,7 @@
-import {useEffect} from 'react';
+import {useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
-  CellMeasurerCache,
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
@@ -15,7 +14,6 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -29,23 +27,19 @@ import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbH
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
+import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
   replay: null | ReplayReader;
 };
 
-// The cache is used to measure the height of each row
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-  minHeight: 82,
-});
-
 function DomMutations({replay}: Props) {
   const startTimestampMs = replay?.getReplay()?.startedAt?.getTime() || 0;
   const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  let listRef: ReactVirtualizedList | null = null;
 
   const {
     items,
@@ -65,13 +59,15 @@ function DomMutations({replay}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  useEffect(() => {
-    // Restart cache when items changes
-    if (listRef) {
-      cache.clearAll();
-      listRef?.forceUpdateGrid();
-    }
-  }, [items, listRef]);
+  const listRef = useRef<ReactVirtualizedList>(null);
+  const {cache} = useVirtualizedList({
+    cellMeasurer: {
+      fixedWidth: true,
+      minHeight: 82,
+    },
+    ref: listRef,
+    deps: [items],
+  });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = items[index];
@@ -106,12 +102,11 @@ function DomMutations({replay}: Props) {
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
-              <UnstyledButton onClick={() => handleClick(crumb)}>
-                <PlayerRelativeTime
-                  relativeTimeMs={startTimestampMs}
-                  timestamp={crumb.timestamp}
-                />
-              </UnstyledButton>
+              <TimestampButton
+                onClick={() => handleClick(crumb)}
+                startTimestampMs={startTimestampMs}
+                timestampMs={crumb.timestamp || ''}
+              />
             </MutationDetailsContainer>
             <CodeContainer>
               <HTMLCode code={html} />
@@ -124,7 +119,7 @@ function DomMutations({replay}: Props) {
 
   return (
     <MutationContainer>
-      <MutationFilters>
+      <FiltersGrid>
         <CompactSelect
           triggerProps={{prefix: t('Event Type')}}
           triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
@@ -142,7 +137,7 @@ function DomMutations({replay}: Props) {
           query={searchTerm}
           disabled={!replay || !actions.length}
         />
-      </MutationFilters>
+      </FiltersGrid>
       <MutationList>
         {isLoading ? (
           <Placeholder height="100%" />
@@ -150,9 +145,7 @@ function DomMutations({replay}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
+                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
@@ -186,16 +179,6 @@ function DomMutations({replay}: Props) {
     </MutationContainer>
   );
 }
-
-const MutationFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
-`;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: 100%;
@@ -304,13 +287,6 @@ const Title = styled('span')<{hasOccurred?: boolean}>`
   color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  line-height: 0.75;
 `;
 
 const MutationMessage = styled('p')`
