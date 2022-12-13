@@ -314,16 +314,43 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
     # merge results
     for symbolicated_frame in symbolicated_frames:
-        symbolicated_frame.pop("pre_context", None)
-        symbolicated_frame.pop("context_line", None)
-        symbolicated_frame.pop("post_context", None)
-
         original_index = symbolicated_frame["original_index"]
         original_frame = original_frames[original_index]
+
+        for k in {"pre_context", "context_line", "post_context", "original_index"}:
+            symbolicated_frame.pop(k, None)
 
         # check if we already merged a symbolicated frame result
         # if it's the case, the status field will contain the result of the symbolication
         if "status" in original_frame:
+            """
+            This builds a map {index: [indexes]} that will let us replace a specific
+            frame index with (potentially) a list of frames indices that originated from that frame.
+
+            The reason for this is that the frame from the SDK exists "physically",
+            and symbolicator then synthesizes other frames for calls that have been inlined
+            into the physical frame.
+
+            Example:
+
+            `
+            fn a() {
+            b()
+            }
+            fb b() {
+            fn c_inlined() {}
+            c_inlined()
+            }
+            `
+
+            this would yield the following from the SDK:
+            b -> a
+
+            after symbolication you would have:
+            c_inlined -> b -> a
+
+            The sorting order is callee to caller (child to parent)
+            """
             inline_frame_ids[original_index].insert(0, len(original_frames))
             original_frames.append(symbolicated_frame)
         else:
@@ -380,8 +407,6 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
         profile["profile"]["stacks"][stack_id] = truncate_stack_needed(original_frames, stack)
 
-    profile["profile"]["frames"] = original_frames
-
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
     for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
@@ -410,46 +435,6 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
-
-
-"""
-This function returns a map {index: [indexes]} that will let us replace a specific
-frame index with (potentially) a list of frames indices that originated from that frame.
-
-The reason for this is that the frame from the SDK exists "physically",
-and symbolicator then synthesizes other frames for calls that have been inlined
-into the physical frame.
-
-Example:
-
-`
-fn a() {
-b()
-}
-fb b() {
-fn c_inlined() {}
-c_inlined()
-}
-`
-
-this would yield the following from the SDK:
-b -> a
-
-after symbolication you would have:
-c_inlined -> b -> a
-
-The sorting order is callee to caller (child to parent)
-"""
-
-
-def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    index_map: dict[int, List[int]] = {}
-    for i, frame in enumerate(frames):
-        original_idx = frame["original_index"]
-        idx_list = index_map.get(original_idx, [])
-        idx_list.append(i)
-        index_map[original_idx] = idx_list
-    return index_map
 
 
 @metrics.wraps("process_profile.deobfuscate")
