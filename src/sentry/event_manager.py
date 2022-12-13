@@ -2271,7 +2271,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     client = redis.redis_clusters.get(cluster_key)
 
                     for new_grouphash in new_grouphashes:
-                        if not should_create_group(client, new_grouphash):
+                        group_type = performance_problems_by_hash[new_grouphash].type
+                        if not should_create_group(client, new_grouphash, group_type):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2381,14 +2382,14 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str) -> bool:
+def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={"times_seen": times_seen},
         sample_rate=1.0,
     )
-    if times_seen >= GROUPHASH_IGNORE_LIMIT[GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]:
+    if times_seen >= GROUPHASH_IGNORE_LIMIT[type]:
         client.delete(grouphash)
         return True
     else:
