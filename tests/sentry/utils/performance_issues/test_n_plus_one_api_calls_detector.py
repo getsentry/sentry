@@ -123,6 +123,12 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
+            "description": "GET http://service.io/resource.js",
+            "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
             "description": "GET http://service.io/resource",
             "hash": "a",
             "data": {"url": "/resource.js"},

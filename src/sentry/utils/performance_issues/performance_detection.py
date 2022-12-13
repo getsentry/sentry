@@ -814,6 +814,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
+        if not url:
+            # If data is missing, fall back to description
+            parts = description.split(" ", 1)
+            if len(parts) == 2:
+                url = parts[1]
+
         if type(url) is dict:
             url = url.get("pathname") or ""
 
