@@ -11,7 +11,7 @@ export const memoryInfoMockData: MemoryInfoContext = {
   high_memory_load_threshold_bytes: 30923764531,
   pause_durations: [0, 0],
   total_available_memory_bytes: 34359738368,
-  type: 'Memory Info',
+  type: 'memory_info',
 };
 
 export const memoryInfoMetaMockData = {
@@ -24,7 +24,7 @@ const event = {
   ...TestStubs.Event(),
   _meta: {
     contexts: {
-      'Memory Info': memoryInfoMetaMockData,
+      memory_info: memoryInfoMetaMockData,
     },
   },
 };

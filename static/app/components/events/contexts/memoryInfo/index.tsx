@@ -20,7 +20,8 @@ export function MemoryInfoEventContext({data, event}: Props) {
     return null;
   }
 
-  const meta = event._meta?.contexts?.['Memory Info'] ?? {};
+  const meta =
+    event._meta?.contexts?.['Memory Info'] ?? event._meta?.contexts?.memory_info ?? {};
 
   return (
     <Fragment>
