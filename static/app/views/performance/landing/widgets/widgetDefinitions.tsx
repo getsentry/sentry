@@ -320,7 +320,5 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: 'remove me',
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
     dataType: GenericPerformanceWidgetDataType.stacked_bars,
-    // TODO hook this in
-    chartColor: WIDGET_PALETTE[2],
   },
 });

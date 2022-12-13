@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -47,6 +48,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const pageError = usePageError();
+  const theme = useTheme();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -128,7 +130,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(prunedProvided, eventsRequestQueryProps)}
-              limit={6}
+              limit={5}
               includePrevious={false}
               includeTransformedData
               partial
@@ -221,6 +223,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                   <BarChart
                     {...provided.widgetData.chart}
                     {...provided}
+                    colors={theme.charts.getColorPalette(5).reverse()}
                     series={provided.widgetData.chart.data}
                     stacked
                     animation
