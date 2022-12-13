@@ -532,8 +532,30 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
 }
 
+export enum ThreadPoolInfoContextKey {
+  MIN_WORKER_THREADS = 'min_worker_threads',
+  MIN_COMPLETION_PORT_THREADS = 'min_completion_port_threads',
+  MAX_WORKER_THREADS = 'max_worker_threads',
+  MAX_COMPLETION_PORT_THREADS = 'max_completion_port_threads',
+  AVAILABLE_WORKER_THREADS = 'available_worker_threads',
+  AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
+}
+
+// ThreadPoolInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface ThreadPoolInfoContext {
+  type: 'ThreadPool Info' | 'threadpool_info';
+  [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MIN_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
+  'ThreadPool Info'?: ThreadPoolInfoContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
@@ -544,6 +566,7 @@ type EventContexts = {
   // once perf issue data shape is more clear
   performance_issue?: any;
   runtime?: RuntimeContext;
+  threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
 };
 

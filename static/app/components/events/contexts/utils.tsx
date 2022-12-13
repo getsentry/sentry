@@ -27,6 +27,12 @@ const CONTEXT_TYPES = {
   user: require('sentry/components/events/contexts/user').UserEventContext,
   gpu: require('sentry/components/events/contexts/gpu').GPUEventContext,
   trace: require('sentry/components/events/contexts/trace').TraceEventContext,
+  // 'ThreadPool Info' will be replaced with 'threadpool_info' but
+  // we want to keep it here for now so it works for existing versions
+  'ThreadPool Info': require('sentry/components/events/contexts/threadPoolInfo')
+    .ThreadPoolInfoEventContext,
+  threadpool_info: require('sentry/components/events/contexts/threadPoolInfo')
+    .ThreadPoolInfoEventContext,
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': require('sentry/components/events/contexts/redux').default,
   state: require('sentry/components/events/contexts/state').StateEventContext,
