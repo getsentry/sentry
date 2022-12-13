@@ -405,6 +405,21 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
     "tags": ["tags.key", "tags.value"],
+    # Nested fields.  Useful for selecting searchable fields.
+    "user.id": ["user_id"],
+    "user.email": ["user_email"],
+    "user.name": ["user_name"],
+    "user.ipAddress": ["user_ipAddress"],
+    "os.name": ["os_name"],
+    "os.version": ["os_version"],
+    "browser.name": ["browser_name"],
+    "browser.version": ["browser_version"],
+    "device.name": ["device_name"],
+    "device.brand": ["device_brand"],
+    "device.family": ["device_family"],
+    "device.model": ["device_model"],
+    "sdk.name": ["sdk_name"],
+    "sdk.version": ["sdk_version"],
 }
 
 
@@ -498,16 +513,8 @@ QUERY_ALIAS_COLUMN_MAP = {
     "device_model": _grouped_unique_scalar_value(column_name="device_model"),
     "sdk_name": _grouped_unique_scalar_value(column_name="sdk_name"),
     "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
-    "tags.key": Function(
-        "groupArrayArray",
-        parameters=[Column("tags.key")],
-        alias="tk",
-    ),
-    "tags.value": Function(
-        "groupArrayArray",
-        parameters=[Column("tags.value")],
-        alias="tv",
-    ),
+    "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
+    "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
 }
 
 
@@ -515,12 +522,18 @@ def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     result = {"isArchived"}
 
+    saw_tags = False
     for field in fields:
         aliases = FIELD_QUERY_ALIAS_MAP.get(field, None)
         if aliases is None:
-            raise Exception("suppress me")
+            saw_tags = True
+            continue
         for alias in aliases:
             result.add(alias)
+
+    if saw_tags:
+        result.add("tk")
+        result.add("tv")
 
     return list(result)
 

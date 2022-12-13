@@ -174,6 +174,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/login",
                 ],
                 tags={"test": "hello", "other": "hello"},
+                user_id=123,
             )
         )
         self.store_replays(
@@ -187,7 +188,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
 
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + "?field=id&sort=countErrors&query=duration:>0")
+            response = self.client.get(
+                self.url + "?field=id&sort=countErrors&query=test:hello user_id:123"
+            )
             assert response.status_code == 200
 
             response_data = response.json()
