@@ -47,28 +47,14 @@ function useReplaysCount({
       );
     }
     if (groupIds && groupIds.length) {
-      // The endpoint only supports 25, that's also the
-      // max rows that the issue list page will show.
-      const chunkSize = 25;
-
       const groupsToFetch = groupIds.filter(gid => !(gid in replayCounts));
       if (!groupsToFetch.length) {
         return null;
       }
 
-      const chunks = Math.ceil(groupsToFetch.length / chunkSize);
-      const conditions: string[] = [];
-      for (let i = 0; i < chunks; i++) {
-        conditions.push(
-          `issue.id:[${groupsToFetch
-            .slice(i * chunkSize, (i + 1) * chunkSize)
-            .join(',')}]`
-        );
-      }
-
       return {
         field: 'issue.id' as const,
-        conditions,
+        conditions: `issue.id:[${groupsToFetch.join(',')}]`,
       };
     }
     if (transactionNames && transactionNames.length) {
@@ -100,32 +86,21 @@ function useReplaysCount({
       }
 
       if (query.field === 'issue.id') {
-        const results = await Promise.allSettled(
-          query.conditions.map(cond =>
-            api.requestPromise(
-              `/organizations/${organization.slug}/issue-replay-count/`,
-              {
-                query: {
-                  query: cond,
-                  statsPeriod: '14d',
-                  project: projectIds.map(Number),
-                },
-              }
-            )
-          )
+        const response = await api.requestPromise(
+          `/organizations/${organization.slug}/issue-replay-count/`,
+          {
+            query: {
+              query: query.conditions,
+              statsPeriod: '14d',
+              project: projectIds.map(Number),
+            },
+          }
         );
 
-        const counts = results
-          .map(result => (result.status === 'fulfilled' ? result.value : {}))
-          .reduce(
-            (memo, resp) => ({
-              ...memo,
-              ...resp,
-            }),
-            zeroCounts
-          );
-
-        setReplayCounts(counts);
+        setReplayCounts({
+          ...zeroCounts,
+          ...response,
+        });
       } else {
         const [data] = await doDiscoverQuery<TableData>(
           api,
