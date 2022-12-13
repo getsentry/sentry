@@ -35,23 +35,30 @@ class BaseRequestParser(abc.ABC):
 
     def get_response_from_control_silo(self):
         """
-        Used to synchronously process the incoming request directly on the control silo.
+        Used to handle the request directly on the control silo.
         """
         self._ensure_control_silo()
         return self.response_handler(self.request)
 
     def get_response_from_region_silo(self, regions: Iterable[Region]):
         """
-        Used to process the incoming request from region silos.
-        This shouldn't use the API Gateway to stay performant.
+        Used to handle the requests on a given list of regions (synchronously).
+        If multiple regions are provided, only the last response is returned to the requestor.
         """
         self._ensure_control_silo()
-
         region_response = None
         for region in regions:
             region_client = RegionSiloClient(region)
             region_response = region_client.proxy_request(self.request).to_http_response()
-        # If the response is sent to multiple regions, return the last response to the requestor
+        if region_response is None:
+            logger.error(
+                "integration_control.base.region_proxy_error",
+                extra={
+                    "path": self.request.path,
+                    "regions": [region.name for region in regions],
+                },
+            )
+            return self.response_handler(self.request)
         return region_response
 
     def get_response(self):
