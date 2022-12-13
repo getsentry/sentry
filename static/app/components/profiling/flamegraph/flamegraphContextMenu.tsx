@@ -1,5 +1,13 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 
+import {
+  ProfilingContextMenu,
+  ProfilingContextMenuGroup,
+  ProfilingContextMenuHeading,
+  ProfilingContextMenuItemButton,
+  ProfilingContextMenuItemCheckbox,
+  ProfilingContextMenuLayer,
+} from 'sentry/components/profiling/profilingContextMenu';
 import {IconCopy, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types';
@@ -20,15 +28,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {
-  ProfilingContextMenu,
-  ProfilingContextMenuGroup,
-  ProfilingContextMenuHeading,
-  ProfilingContextMenuItemButton,
-  ProfilingContextMenuItemCheckbox,
-  ProfilingContextMenuLayer,
-} from './ProfilingContextMenu/profilingContextMenu';
-
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by symbol name',
   'by system / application',
@@ -40,7 +39,7 @@ const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions = ['top down', 'bottom up']
 const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting = ['left heavy', 'call order'];
 const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions = ['standalone', 'transaction'];
 
-interface FlameGraphOptionsContextMenuProps {
+interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurences: boolean;
@@ -57,11 +56,10 @@ function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean
   return platform === 'node' || platform === 'python';
 }
 
-export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
+export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
-
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 

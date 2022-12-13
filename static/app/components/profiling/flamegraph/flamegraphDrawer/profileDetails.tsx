@@ -22,7 +22,7 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import useProjects from 'sentry/utils/useProjects';
 
-import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './frameStack';
+import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
 function renderValue(
   key: string,

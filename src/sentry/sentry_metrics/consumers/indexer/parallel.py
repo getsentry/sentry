@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
@@ -23,9 +23,12 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     IndexerOutputMessageBatch,
     get_config,
 )
-from sentry.sentry_metrics.consumers.indexer.multiprocess import get_metrics_producer_strategy
+from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
+from sentry.sentry_metrics.consumers.indexer.routing_producer import (
+    RoutingPayload,
+    RoutingProducerStep,
+)
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -156,6 +159,30 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
         return strategy
+
+
+def get_metrics_producer_strategy(
+    config: MetricsIngestConfiguration,
+    commit: Commit,
+    commit_max_batch_size: int,
+    commit_max_batch_time_ms: float,
+    slicing_router: Optional[SlicingRouter],
+) -> Any:
+    if config.is_output_sliced:
+        if slicing_router is None:
+            raise ValueError("Slicing router is required for sliced output")
+        return RoutingProducerStep(
+            commit_function=commit,
+            message_router=slicing_router,
+        )
+    else:
+        return SimpleProduceStep(
+            commit_function=commit,
+            commit_max_batch_size=commit_max_batch_size,
+            # convert to seconds
+            commit_max_batch_time=commit_max_batch_time_ms / 1000,
+            output_topic=config.output_topic,
+        )
 
 
 def get_parallel_metrics_consumer(

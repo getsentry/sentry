@@ -1,127 +1,18 @@
 import logging
 import time
-from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Mapping, MutableMapping, Optional
 
 from arroyo.backends.abstract import Producer as AbstractProducer
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import CommitPolicy
-from arroyo.processing import StreamProcessor
-from arroyo.processing.strategies import ProcessingStrategy
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Commit, Message, Partition, Position, Topic
+from arroyo.types import Message, Partition, Position
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
-from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import (
-    RoutingPayload,
-    RoutingProducerStep,
-)
-from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils import kafka_config, metrics
-from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
-
-
-class BatchConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    """
-    Batching Consumer Strategy
-    """
-
-    def __init__(
-        self,
-        max_batch_size: int,
-        max_batch_time: float,
-        commit_max_batch_size: int,
-        commit_max_batch_time: int,
-        config: MetricsIngestConfiguration,
-        slicing_router: Optional[SlicingRouter],
-    ):
-        self.__max_batch_time = max_batch_time
-        self.__max_batch_size = max_batch_size
-        self.__commit_max_batch_time = commit_max_batch_time
-        self.__commit_max_batch_size = commit_max_batch_size
-        self.__config = config
-        self.__slicing_router = slicing_router
-
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        producer = get_metrics_producer_strategy(
-            config=self.__config,
-            commit=commit,
-            commit_max_batch_size=self.__commit_max_batch_size,
-            commit_max_batch_time_ms=self.__commit_max_batch_time,
-            slicing_router=self.__slicing_router,
-        )
-        transform_step = TransformStep(
-            next_step=producer,
-            config=self.__config,
-        )
-        strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
-        return strategy
-
-
-class TransformStep(ProcessingStep[MessageBatch]):
-    """
-    Temporary Transform Step
-    """
-
-    def __init__(
-        self,
-        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
-        config: MetricsIngestConfiguration,
-    ) -> None:
-        self.__message_processor: MessageProcessor = MessageProcessor(config)
-        self.__next_step = next_step
-        self.__closed = False
-
-    def poll(self) -> None:
-        self.__next_step.poll()
-
-    def submit(self, message: Message[MessageBatch]) -> None:
-        assert not self.__closed
-
-        with metrics.timer("transform_step.process_messages"):
-            transformed_message_batch = self.__message_processor.process_messages(message)
-
-        for transformed_message in transformed_message_batch:
-            self.__next_step.submit(transformed_message)
-
-    def close(self) -> None:
-        self.__closed = True
-
-    def terminate(self) -> None:
-        self.__closed = True
-
-        logger.debug("Terminating %r...", self.__next_step)
-        self.__next_step.terminate()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        self.__next_step.close()
-        self.__next_step.join(timeout)
-
-
-class UnflushedMessages(Exception):
-    pass
-
-
-class OutOfOrderOffset(Exception):
-    pass
-
-
-@dataclass
-class PartitionOffset:
-    position: Position
-    partition: Partition
 
 
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):
@@ -236,64 +127,3 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__callbacks = 0
             self.__produced_message_offsets = {}
             self.__started = time.time()
-
-
-def get_metrics_producer_strategy(
-    config: MetricsIngestConfiguration,
-    commit: Commit,
-    commit_max_batch_size: int,
-    commit_max_batch_time_ms: float,
-    slicing_router: Optional[SlicingRouter],
-) -> Any:
-    if config.is_output_sliced:
-        if slicing_router is None:
-            raise ValueError("Slicing router is required for sliced output")
-        return RoutingProducerStep(
-            commit_function=commit,
-            message_router=slicing_router,
-        )
-    else:
-        return SimpleProduceStep(
-            commit_function=commit,
-            commit_max_batch_size=commit_max_batch_size,
-            # convert to seconds
-            commit_max_batch_time=commit_max_batch_time_ms / 1000,
-            output_topic=config.output_topic,
-        )
-
-
-def get_streaming_metrics_consumer(
-    topic: str,
-    commit_max_batch_size: int,
-    commit_max_batch_time: int,
-    max_batch_size: int,
-    max_batch_time: float,
-    processes: int,
-    input_block_size: int,
-    output_block_size: int,
-    group_id: str,
-    auto_offset_reset: str,
-    factory_name: str,
-    indexer_profile: MetricsIngestConfiguration,
-    slicing_router: Optional[SlicingRouter],
-    **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor[KafkaPayload]:
-    assert factory_name == "default"
-    processing_factory = BatchConsumerStrategyFactory(
-        max_batch_size=max_batch_size,
-        max_batch_time=max_batch_time,
-        commit_max_batch_size=commit_max_batch_size,
-        commit_max_batch_time=commit_max_batch_time,
-        config=indexer_profile,
-        slicing_router=slicing_router,
-    )
-
-    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
-    create_topics(cluster_name, [indexer_profile.input_topic])
-
-    return StreamProcessor(
-        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
-        Topic(indexer_profile.input_topic),
-        processing_factory,
-        CommitPolicy(commit_max_batch_time, commit_max_batch_size),
-    )

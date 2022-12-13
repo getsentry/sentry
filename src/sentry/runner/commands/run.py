@@ -600,50 +600,6 @@ def region_to_control_consumer(region_name, **kafka_options):
         get_region_to_control_consumer(**kafka_options).run()
 
 
-@run.command("ingest-metrics-consumer-2")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--factory-name", default="default")
-@click.option("--ingest-profile", required=True)
-@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
-@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
-@click.option("--indexer-db", default="postgres")
-def metrics_streaming_consumer(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-    from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
-    from sentry.utils.metrics import global_tags
-
-    use_case = UseCaseKey(options["ingest_profile"])
-    db_backend = IndexerStorage(options["indexer_db"])
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, db_backend)
-    slicing_router = get_slicing_router(ingest_config)
-
-    streamer = get_streaming_metrics_consumer(
-        indexer_profile=ingest_config, slicing_router=slicing_router, **options
-    )
-
-    def handler(signum, frame):
-        streamer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
-
-
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
 @batching_kafka_options("ingest-metrics-consumer")
