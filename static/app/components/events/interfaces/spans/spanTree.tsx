@@ -9,9 +9,9 @@ import {
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
+import throttle from 'lodash/throttle';
 
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
@@ -680,8 +680,8 @@ class SpanTree extends Component<PropType> {
         spanTree={spanTree}
         spanContextProps={this.props.spanContextProps}
         cache={this.cache}
-        addSpanRowToMap={this.addSpanRowToMap}
-        removeSpanRowFromMap={this.removeSpanRowFromMap}
+        addSpanRowToState={this.addSpanRowToState}
+        removeSpanRowFromState={this.removeSpanRowFromState}
       />
     );
   }
@@ -697,49 +697,62 @@ class SpanTree extends Component<PropType> {
     };
   }
 
-  addSpanRowToMap = (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => {
-    const spanRowExists = this.state.spanRows.find(
-      ({spanRow: _spanRow}) => _spanRow === spanRow
-    );
+  addSpanRowToState = (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => {
+    this.setState((prevState: StateType) => {
+      // It's possible that in some cases, React will lose track of refs and their `current` value becomes
+      // null, so we clean up those dead refs here
 
-    if (spanRowExists) {
-      return;
-    }
+      const filteredSpanRows = prevState.spanRows.filter(
+        ({spanRow: _spanRow}) => _spanRow.current
+      );
 
-    this.setState((prevState: StateType) => ({
-      spanRows: [...prevState.spanRows, {spanRow, treeDepth}],
-    }));
+      return {
+        spanRows: [...filteredSpanRows, {spanRow, treeDepth}],
+      };
+    });
   };
 
-  removeSpanRowFromMap = (spanRow: React.RefObject<HTMLDivElement>) => {
-    const filteredSpanRows = this.state.spanRows.filter(
-      ({spanRow: _spanRow}) => _spanRow !== spanRow
-    );
+  removeSpanRowFromState = (spanRow: React.RefObject<HTMLDivElement>) => {
+    const filteredSpanRows = this.state.spanRows.filter(({spanRow: _spanRow}) => {
+      return _spanRow.current && !isEqual(spanRow, _spanRow);
+    });
 
     this.setState({spanRows: filteredSpanRows});
   };
 
-  debouncedOnScroll = debounce(() => {
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
     const {traceViewHeaderRef} = this.props;
-    if (!traceViewHeaderRef.current) {
-      return;
+
+    if (!spanRow.current || !traceViewHeaderRef.current) {
+      return false;
     }
 
-    const headerBottom = traceViewHeaderRef.current.getBoundingClientRect().bottom;
+    const headerBottom = traceViewHeaderRef.current?.getBoundingClientRect().bottom;
+    const viewportBottom = window.innerHeight || document.documentElement.clientHeight;
+    const {bottom, top} = spanRow.current.getBoundingClientRect();
 
-    this.state.spanRows.forEach(({spanRow, treeDepth}) => {
-      if (!spanRow.current) {
-        return;
-      }
+    // We determine if a span row is visible if it is above the viewport bottom boundary, below the header, and also below the top of the viewport
+    return bottom < viewportBottom && top > headerBottom && top > 0;
+  };
 
-      const {bottom, top} = spanRow.current.getBoundingClientRect();
+  throttledOnScroll = throttle(
+    () => {
+      console.dir(this.state.spanRows);
 
-      if (bottom < headerBottom && top < headerBottom) {
-        // Manage view here
-        treeDepth;
-      }
-    });
-  }, 100);
+      this.state.spanRows.forEach(({spanRow, treeDepth}) => {
+        if (!spanRow.current) {
+          return;
+        }
+
+        if (this.isSpanRowVisible(spanRow)) {
+          // Manage view here
+          treeDepth;
+        }
+      });
+    },
+    500,
+    {trailing: true}
+  );
 
   render() {
     const spanTree = this.generateSpanTree();
@@ -754,11 +767,7 @@ class SpanTree extends Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        <WindowScroller
-          // NEW PLAN: Use this event, determine the bottom pos of the header. In renderRow, we will calculate the boundingBox and use that
-          // to determine if each row's top is above the header's bot
-          onScroll={this.debouncedOnScroll}
-        >
+        <WindowScroller onScroll={this.throttledOnScroll}>
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>
               {({width}) => (
@@ -773,8 +782,6 @@ class SpanTree extends Component<PropType> {
                   rowHeight={this.cache.rowHeight}
                   rowCount={spanTree.length}
                   rowRenderer={props => this.renderRow(props, spanTree)}
-                  // overscanRowCount={0}
-                  overscanIndicesGetter={this.overscanIndicesGetter}
                   ref={listRef}
                 />
               )}
@@ -787,9 +794,12 @@ class SpanTree extends Component<PropType> {
 }
 
 type SpanRowProps = ListRowProps & {
-  addSpanRowToMap: (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => void;
+  addSpanRowToState: (
+    spanRow: React.RefObject<HTMLDivElement>,
+    treeDepth: number
+  ) => void;
   cache: CellMeasurerCache;
-  removeSpanRowFromMap: (spanRow: React.RefObject<HTMLDivElement>) => void;
+  removeSpanRowFromState: (spanRow: React.RefObject<HTMLDivElement>) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
 };
@@ -804,8 +814,8 @@ function SpanRow(props: SpanRowProps) {
     spanTree,
     cache,
     spanContextProps,
-    addSpanRowToMap,
-    removeSpanRowFromMap,
+    addSpanRowToState,
+    removeSpanRowFromState,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -814,14 +824,17 @@ function SpanRow(props: SpanRowProps) {
   // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
   // we won't have access to the refs in useEffect
   useLayoutEffect(() => {
-    if (spanNode.type !== SpanTreeNodeType.MESSAGE && rowRef) {
-      addSpanRowToMap(rowRef, spanNode.props.treeDepth);
+    if (spanNode.type !== SpanTreeNodeType.MESSAGE) {
+      addSpanRowToState(rowRef, spanNode.props.treeDepth);
     }
 
     return () => {
-      removeSpanRowFromMap(rowRef);
+      if (spanNode.type !== SpanTreeNodeType.MESSAGE) {
+        console.log(spanNode.props.treeDepth);
+        removeSpanRowFromState(rowRef);
+      }
     };
-  }, [rowRef, addSpanRowToMap, removeSpanRowFromMap, spanNode]);
+  }, [rowRef, spanNode, addSpanRowToState, removeSpanRowFromState]);
 
   const renderSpanNode = (
     node: SpanTreeNode,
