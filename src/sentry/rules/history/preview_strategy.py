@@ -1,7 +1,7 @@
 from typing import Any, Dict, Sequence
 
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.events import Column
+from sentry.snuba.events import Columns
 from sentry.types.issues import GroupCategory
 
 """
@@ -28,7 +28,7 @@ DATASET_TO_COLUMN_NAME: Dict[Dataset, str] = {
 
 
 # Given a list of Column Enum objects, return their actual column name in each dataset that is supported
-def get_dataset_columns(columns: Sequence[Column]) -> Dict[Dataset, Sequence[str]]:
+def get_dataset_columns(columns: Sequence[Columns]) -> Dict[Dataset, Sequence[str]]:
     dataset_columns: Dict[Dataset, Sequence[str]] = {}
     for dataset, column_name in DATASET_TO_COLUMN_NAME.items():
         dataset_columns[dataset] = [

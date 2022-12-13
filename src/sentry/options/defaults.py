@@ -590,8 +590,10 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 
-# Controls whether we should attempt to derive code mappings for projects during post processing.
+# Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)
 # Allows adjusting the percentage of orgs we test under the dry run mode
 register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
 register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
+# Allows adjusting the GA percentage
+register("derive-code-mappings.general-availability-rollout", default=0.0)
