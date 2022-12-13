@@ -352,14 +352,9 @@ urlpatterns += [
     url(r"^out/$", OutView.as_view()),
     url(r"^accept-transfer/$", react_page_view, name="sentry-accept-project-transfer"),
     url(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite",
-    ),
-    url(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite-with-org",
+        name="sentry-accept-invite",
     ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view
