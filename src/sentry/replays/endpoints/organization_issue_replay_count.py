@@ -52,6 +52,7 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             where=[
                 Condition(Column("replay_id"), Op.IN, list(replay_id_to_issue_map.keys())),
             ],
+            fields=[],
             search_filters=[],
             pagination=None,
         )
