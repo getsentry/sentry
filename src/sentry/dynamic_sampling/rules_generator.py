@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime
-from typing import List, Optional, Union, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
+import pytz
 import sentry_sdk
 from pytz import UTC
 
@@ -18,6 +20,57 @@ from sentry.dynamic_sampling.utils import (
     RuleType,
 )
 from sentry.models import Project
+
+
+class DSRulesLogger:
+    def __init__(self, rules: List[Tuple[RuleType, Union[BaseRule, ReleaseRule]]]):
+        self.logger = logging.getLogger("dynamic_sampling.rules")
+        self.rules = rules
+
+    def log_rules(self) -> None:
+        try:
+            self.logger.info(
+                "rules_generator.generate_rules",
+                extra={
+                    "rules": self._format_rules(),
+                    # We set the current date as creation timestamp, however, this is not indicating that Relay
+                    # did apply the rules at this time as there will be a non-deterministic delay before that happens.
+                    "creation_timestamp": datetime.now(tz=pytz.utc),
+                },
+            )
+        except Exception as e:
+            # If there is any problem while generating the log message, we just silently fail and notify the error to
+            # Sentry.
+            sentry_sdk.capture_exception(e)
+
+    def _format_rules(self) -> Dict:
+        formatted_rules = []
+
+        for rule_type, rule in self.rules:
+            formatted_rules.append(
+                {
+                    "type": rule_type.value,
+                    "id": rule["id"],
+                    "sample_rate": rule["sampleRate"],
+                    **self._extract_info_from_rule(rule_type, rule),
+                }
+            )
+
+        return formatted_rules
+
+    def _extract_info_from_rule(
+        self, rule_type: RuleType, rule: Union[BaseRule, ReleaseRule]
+    ) -> Dict:
+        if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
+            return {
+                "release": rule["condition"]["inner"][0]["value"],
+                "environment": rule["condition"]["inner"][1]["value"],
+            }
+        elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
+            return {"transaction": rule["condition"]["inner"][0]["value"]}
+        else:
+            return {}
+
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz
@@ -159,7 +212,7 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
-    rules: List[Union[BaseRule, ReleaseRule]] = []
+    rules: List[Tuple(RuleType, Union[BaseRule, ReleaseRule])] = []
 
     sample_rate = quotas.get_blended_sample_rate(project)
 
@@ -178,20 +231,38 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 key_transactions = get_key_transactions(project)
                 if key_transactions:
-                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
+                    rules.append(
+                        (
+                            RuleType.BOOST_KEY_TRANSACTIONS_RULE,
+                            generate_boost_key_transaction_rule(sample_rate, key_transactions),
+                        )
+                    )
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
-                rules.append(generate_environment_rule())
+                rules.append((RuleType.BOOST_ENVIRONMENTS_RULE, generate_environment_rule()))
 
             # Add Ignore health check rule
             if RuleType.IGNORE_HEALTHCHECKS_RULE.value in enabled_biases:
-                rules.append(generate_healthcheck_rule(sample_rate))
+                rules.append(
+                    (RuleType.IGNORE_HEALTHCHECKS_RULE, generate_healthcheck_rule(sample_rate))
+                )
 
             # Latest releases
             if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
-                rules += generate_boost_release_rules(project.id, sample_rate)
+                boost_release_rules = generate_boost_release_rules(project.id, sample_rate)
 
-        rules.append(generate_uniform_rule(sample_rate))
+                rules += list(
+                    zip(
+                        [RuleType.BOOST_LATEST_RELEASES_RULE] * len(boost_release_rules),
+                        boost_release_rules,
+                    )
+                )
 
-    return rules
+        rules.append((RuleType.UNIFORM_RULE, generate_uniform_rule(sample_rate)))
+
+    # We log rules onto Google Cloud Logging in order to have more observability into dynamic sampling rules.
+    DSRulesLogger(rules).log_rules()
+
+    # We only return the rule and not its type.
+    return list(map(lambda rule: rule[1], rules))
