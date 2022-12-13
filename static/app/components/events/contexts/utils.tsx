@@ -17,6 +17,7 @@ const CONTEXT_TYPES = {
   browser: require('sentry/components/events/contexts/browser').BrowserEventContext,
   os: require('sentry/components/events/contexts/operatingSystem')
     .OperatingSystemEventContext,
+  unity: require('sentry/components/events/contexts/unity').UnityEventContext,
   runtime: require('sentry/components/events/contexts/runtime').RuntimeEventContext,
   user: require('sentry/components/events/contexts/user').UserEventContext,
   gpu: require('sentry/components/events/contexts/gpu').GPUEventContext,

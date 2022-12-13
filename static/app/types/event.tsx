@@ -493,6 +493,23 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
 
+export enum UnityContextKey {
+  COPY_TEXTURE_SUPPORT = 'copy_texture_support',
+  EDITOR_VERSION = 'editor_version',
+  INSTALL_MODE = 'install_mode',
+  RENDERING_THREADING_MODE = 'rendering_threading_mode',
+  TARGET_FRAME_RATE = 'target_frame_rate',
+}
+
+export interface UnityContext {
+  [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
+  [UnityContextKey.EDITOR_VERSION]: string;
+  [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.RENDERING_THREADING_MODE]: string;
+  [UnityContextKey.TARGET_FRAME_RATE]: string;
+  type: 'unity';
+}
+
 type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
@@ -504,6 +521,7 @@ type EventContexts = {
   performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
+  unity?: UnityContext;
 };
 
 export type Measurement = {value: number; unit?: string};
