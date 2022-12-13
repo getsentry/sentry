@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
@@ -137,7 +138,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
           // Ignore aliases because changing alias does not need a query
-          rest.fieldAliases = [];
+          rest = omit(rest, 'fieldAliases');
           queries.push(rest);
           return [names, queries];
         },
@@ -158,7 +159,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
           // Ignore aliases because changing alias does not need a query
-          rest.fieldAliases = [];
+          rest = omit(rest, 'fieldAliases');
           queries.push(rest);
           return [names, queries];
         },
