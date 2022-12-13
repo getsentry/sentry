@@ -6,6 +6,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
 
@@ -50,7 +51,7 @@ const MonitorCheckIns = ({monitor}: Props) => {
             <TimeSince date={checkIn.dateCreated} />
           </TimeSinceWrapper>
           <DurationWrapper>
-            {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
+            {defined(checkIn.duration) && <Duration seconds={checkIn.duration / 1000} />}
           </DurationWrapper>
         </PanelItem>
       ))}
