@@ -215,7 +215,8 @@ export function formatSecondsToClock(
     ? [padAll ? fill(hours) : hours, fill(minutes), fill(secs)]
     : [padAll ? fill(minutes) : minutes, fill(secs)];
 
-  return milliseconds ? `${parts.join(':')}.${milliseconds}` : parts.join(':');
+  const ms = `000${milliseconds}`.slice(-3);
+  return milliseconds ? `${parts.join(':')}.${ms}` : parts.join(':');
 }
 
 export function parseClockToSeconds(clock: string) {

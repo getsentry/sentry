@@ -1,4 +1,5 @@
 import functools
+import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
@@ -44,6 +45,13 @@ from sentry.types.issues import GroupCategory
 from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
+
+_max_unsampled_projects = 50
+if os.environ.get("SENTRY_SINGLE_TENANT"):
+    # This is a patch we used to have in single-tenant, but moving here
+    # to simplify image builds.
+    # hack(tagstore): Always sample get_tag_keys_for_projects query
+    _max_unsampled_projects = 0
 
 SEEN_COLUMN = "timestamp"
 
@@ -373,7 +381,7 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
     ):
-        max_unsampled_projects = 50
+        max_unsampled_projects = _max_unsampled_projects
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
         # If we are fetching less than max_unsampled_projects, then disable

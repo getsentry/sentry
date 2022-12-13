@@ -149,7 +149,6 @@ class Table extends Component<TableProps, TableState> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
-          useEvents
         >
           {({isLoading, tableData}) => (
             <GridEditable
