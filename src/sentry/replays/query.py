@@ -466,7 +466,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="errorIds",
     ),
-    # Aggregations.
     "startedAt": Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
     "finishedAt": Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
     "duration": Function(
@@ -522,6 +521,7 @@ QUERY_ALIAS_COLUMN_MAP = {
 
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
+    # isArchived is a required field.  It must always be selected.
     result = {"isArchived"}
 
     saw_tags = False
