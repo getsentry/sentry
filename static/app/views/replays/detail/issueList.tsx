@@ -17,7 +17,6 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   projectId: string;
@@ -35,8 +34,6 @@ function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === projectId);
 
   const [state, setState] = useState<State>({
     fetchError: undefined,
@@ -82,7 +79,7 @@ function IssueList({projectId, replayId}: Props) {
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    project,
+    projectIds: [projectId],
   });
 
   return (

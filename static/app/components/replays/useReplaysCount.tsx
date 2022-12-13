@@ -2,24 +2,28 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
-  project: undefined | Project;
-  groupIds?: string | string[];
-  transactionNames?: string | string[];
+  projectIds: (number | string)[];
+  groupIds?: string[];
+  transactionNames?: string[];
 };
 
 type CountState = Record<string, undefined | number>;
 
-function useReplaysCount({groupIds, transactionNames, organization, project}: Options) {
+function useReplaysCount({
+  groupIds,
+  transactionNames,
+  organization,
+  projectIds,
+}: Options) {
   const api = useApi();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});
@@ -51,9 +55,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
       const conditions: string[] = [];
       for (let i = 0; i < chunks; i++) {
         conditions.push(
-          `issue.id:[${toArray(groupIds.slice(i * chunkSize, (i + 1) * chunkSize)).join(
-            ','
-          )}]`
+          `issue.id:[${groupIds.slice(i * chunkSize, (i + 1) * chunkSize).join(',')}]`
         );
       }
 
@@ -65,9 +67,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     if (transactionNames && transactionNames.length) {
       return {
         field: 'transaction' as const,
-        conditions: `event.type:transaction transaction:[${toArray(transactionNames).join(
-          ','
-        )}]`,
+        conditions: `event.type:transaction transaction:[${transactionNames.join(',')}]`,
       };
     }
     return null;
@@ -81,9 +81,9 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
         version: 2,
         fields: ['count_unique(replayId)', String(query?.field)],
         query: `!replayId:"" ${query?.conditions}`,
-        projects: [Number(project?.id)],
+        projects: projectIds.map(Number),
       }),
-    [project?.id, query]
+    [projectIds, query]
   );
 
   const fetchReplayCount = useCallback(async () => {
@@ -101,7 +101,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
                 query: {
                   query: cond,
                   statsPeriod: '14d',
-                  project: [Number(project?.id)],
+                  project: projectIds.map(Number),
                 },
               }
             )
@@ -137,16 +137,11 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, eventView, project]);
+  }, [api, organization.slug, query, zeroCounts, eventView, projectIds]);
 
   useEffect(() => {
-    const hasSessionReplay =
-      organization.features.includes('session-replay-ui') &&
-      projectSupportsReplay(project);
-    if (hasSessionReplay) {
-      fetchReplayCount();
-    }
-  }, [fetchReplayCount, organization, project]);
+    fetchReplayCount();
+  }, [fetchReplayCount]);
 
   return replayCounts;
 }
