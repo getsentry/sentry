@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +24,9 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         """
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request: Request, project, monitor) -> Response:
+    def put(
+        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+    ) -> Response:
         """
         Update a monitor
         ````````````````
@@ -73,7 +77,9 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request: Request, project, monitor) -> Response:
+    def delete(
+        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+    ) -> Response:
         """
         Delete a monitor
         ````````````````
