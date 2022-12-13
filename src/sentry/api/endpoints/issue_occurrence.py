@@ -60,7 +60,7 @@ class IssueOccurrenceEndpoint(Endpoint):
             "event": event,
         }
 
-        topic = settings.KAFKA_EVENTS  # needs to be changed, not sure what the new topic is called
+        topic = settings.KAFKA_INGEST_OCCURRENCES
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
         cluster_options = get_kafka_producer_cluster_options(cluster_name)
         producer = Producer(cluster_options)
