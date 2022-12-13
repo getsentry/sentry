@@ -69,6 +69,9 @@ class SpanTree extends Component<PropType> {
     headerPos: 0,
     // Stores each visible span row ref along with its its tree depth. This is used to calculate the
     // horizontal auto-scroll positioning
+
+    // TODO: Instead of an array here, create a map and use the span's ID as the key, and store its ref and tree depth.
+    // Something weird is going on with refs persisting when expanding autogroups
     spanRows: [],
   };
 
@@ -351,7 +354,7 @@ class SpanTree extends Component<PropType> {
                   {organization}
                 );
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
-                this.props.updateScrollState();
+
                 // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
                 // determine the specific cache slots to clear when hidden spans are expanded
                 this.cache.clearAll();
