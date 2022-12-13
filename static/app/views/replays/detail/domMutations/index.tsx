@@ -94,7 +94,6 @@ function DomMutations({replay}: Props) {
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
               <TimestampButton
-                format="mm:ss"
                 onClick={() => handleClick(crumb)}
                 startTimestampMs={startTimestampMs}
                 timestampMs={crumb.timestamp || ''}

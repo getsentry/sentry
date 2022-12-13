@@ -16,7 +16,7 @@ type Props = {
 
 function TimestampButton({
   className,
-  format,
+  format = 'mm:ss',
   onClick,
   startTimestampMs,
   timestampMs,

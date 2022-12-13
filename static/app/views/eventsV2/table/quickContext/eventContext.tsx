@@ -73,10 +73,6 @@ function EventContext(props: EventContextProps) {
       2,
       true
     );
-    const httpStatusTag = data.tags.find(
-      tagObject => tagObject.key === 'http.status_code'
-    );
-    const httpStatusValue = httpStatusTag ? httpStatusTag.value : '';
     return (
       <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
@@ -98,36 +94,43 @@ function EventContext(props: EventContextProps) {
         </EventContextContainer>
         {location && (
           <EventContextContainer>
-            <ContextHeader>
-              <ContextTitle>{t('Status')}</ContextTitle>
-              {location && eventView && (
-                <ActionDropDown
-                  dataRow={dataRow}
-                  contextValueType={ContextValueType.STRING}
-                  location={location}
-                  eventView={eventView}
-                  organization={organization}
-                  queryKey="http.status_code"
-                  value={httpStatusValue}
-                />
-              )}
-            </ContextHeader>
-            <EventContextBody>
-              <ContextRow>
-                <TraceMetaQuery
-                  location={location}
-                  orgSlug={organization.slug}
-                  traceId={traceId}
-                  start={start}
-                  end={end}
-                >
-                  {metaResults => getStatusBodyText(project, data, metaResults?.meta)}
-                </TraceMetaQuery>
-                <HttpStatusWrapper>
-                  (<HttpStatus event={data} />)
-                </HttpStatusWrapper>
-              </ContextRow>
-            </EventContextBody>
+            <TraceMetaQuery
+              location={location}
+              orgSlug={organization.slug}
+              traceId={traceId}
+              start={start}
+              end={end}
+            >
+              {metaResults => {
+                const status = getStatusBodyText(project, data, metaResults?.meta);
+                return (
+                  <Fragment>
+                    <ContextHeader>
+                      <ContextTitle>{t('Status')}</ContextTitle>
+                      {location && eventView && (
+                        <ActionDropDown
+                          dataRow={dataRow}
+                          contextValueType={ContextValueType.STRING}
+                          location={location}
+                          eventView={eventView}
+                          organization={organization}
+                          queryKey="transaction.status"
+                          value={status}
+                        />
+                      )}
+                    </ContextHeader>
+                    <EventContextBody>
+                      <ContextRow>
+                        {status}
+                        <HttpStatusWrapper>
+                          (<HttpStatus event={data} />)
+                        </HttpStatusWrapper>
+                      </ContextRow>
+                    </EventContextBody>
+                  </Fragment>
+                );
+              }}
+            </TraceMetaQuery>
           </EventContextContainer>
         )}
       </Wrapper>

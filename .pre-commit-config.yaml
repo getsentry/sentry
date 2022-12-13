@@ -49,9 +49,9 @@ repos:
     - id: lint-requirements
       name: lint-requirements
       entry: python -m tools.lint_requirements
-      language: system
-      files: requirements-frozen.txt
-      pass_filenames: false
+      language: python
+      files: requirements-.*\.txt$
+      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright
