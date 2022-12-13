@@ -103,7 +103,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()

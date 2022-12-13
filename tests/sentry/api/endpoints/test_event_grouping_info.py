@@ -63,7 +63,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
     def test_transaction_event_with_problem(self):
         event_data = load_data(
             "transaction-n-plus-one",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()

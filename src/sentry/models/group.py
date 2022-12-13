@@ -424,7 +424,6 @@ class Group(Model):
         default=GroupType.ERROR.value,
         choices=(
             (GroupType.ERROR.value, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
             (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
             (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
             (

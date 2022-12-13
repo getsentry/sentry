@@ -160,7 +160,7 @@ def convert_type_value(
     user: User,
     environments: Optional[Sequence[Environment]],
 ) -> List[int]:
-    """Convert a value like 'error' or 'performance_n_plus_one' to the GroupType value for issue lookup"""
+    """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     if features.has("organizations:performance-issues", projects[0].organization):
         results = []
         for type in value:

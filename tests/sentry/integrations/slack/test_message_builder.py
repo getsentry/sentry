@@ -173,7 +173,7 @@ class BuildGroupAttachmentTest(TestCase):
         could happen in that case (it is optional). It also creates a performance group that won't
         have a latest event attached to it to mimic a specific edge case.
         """
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         with self.feature("organizations:performance-issues"):
             attachments = SlackIssuesMessageBuilder(perf_group).build()
 
