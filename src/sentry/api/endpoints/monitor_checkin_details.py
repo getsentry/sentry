@@ -113,6 +113,10 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         params = {"date_updated": current_datetime}
         if "duration" in result:
             params["duration"] = result["duration"]
+        else:
+            duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
+            params["duration"] = duration
+
         if "status" in result:
             params["status"] = getattr(CheckInStatus, result["status"].upper())
 
