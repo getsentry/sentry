@@ -537,6 +537,7 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
