@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import pytest
-
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -31,8 +29,9 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         replay_id = uuid4().hex
-        seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
-        seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
+        now = datetime.fromisoformat("2022-12-13T11:42:00")
+        seq1_timestamp = now - timedelta(minutes=10, seconds=52)
+        seq2_timestamp = now - timedelta(minutes=10, seconds=35)
         self.store_replays(
             [
                 mock_replay(
@@ -77,7 +76,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("replay detail not found")
 
-    @pytest.mark.skip(reason="flaky: https://github.com/getsentry/sentry/issues/42263")
     def test_simple(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
